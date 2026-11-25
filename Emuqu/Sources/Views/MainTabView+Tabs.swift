@@ -275,6 +275,9 @@ extension MainTabView {
         let units: UnitsPreference
         let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
+        /// The settings the reports draw with (body weight, units, the
+        /// recovery report's sections).
+        let settings: UserSettings
     }
 
     /// The baseline is the one the reported night was scored against
@@ -295,7 +298,7 @@ extension MainTabView {
             lthr: settings.effectiveLTHR,
             units: UnitsPreferenceStore.current.resolved,
             sleepSchedule: settings.sleepSchedule,
-            temperatureUnit: settings.temperatureUnit
+            temperatureUnit: settings.temperatureUnit, settings: settings
         )
     }
 

@@ -437,5 +437,5 @@ struct OnboardingSensorPage: View {
 
 #Preview {
     OnboardingSensorPage(advance: {})
-        .environment(RRCollector())
+        .environment(RRCollector(dependencies: AppDependencies()))
 }

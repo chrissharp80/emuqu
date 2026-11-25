@@ -285,8 +285,8 @@ extension RecordView {
 
 #Preview {
     NavigationStack {
-        RecordView(selectedTab: .constant(.record))
-            .environment(RRCollector())
+        RecordView(selectedTab: .constant(.record), breathingAudio: BreathingAudioManager(dependencies: AppDependencies()))
+            .environment(RRCollector(dependencies: AppDependencies()))
             .environment(AppDependencies().app.settingsManager)
     }
 }

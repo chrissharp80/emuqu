@@ -25,4 +25,12 @@ struct VoiceServices: Sendable {
     var watchConnectivityBridge: WatchConnectivityBridge { container.services.watchConnectivityBridge }
     @MainActor
     var whisperKitSTTBridge: WhisperKitSTTBridge { container.providers.whisperKitSTTBridge }
+    /// The values the metrics verifier checks a spoken reply's app-state claims against.
+    @MainActor
+    var verifiedAppState: MetricsVerifier.AppState {
+        MetricsVerifier.AppState(
+            settings: settingsManager.settings, trainingMetricsCache: container.analysis.trainingMetricsCache,
+            archive: container.storage.sessionArchive
+        )
+    }
 }

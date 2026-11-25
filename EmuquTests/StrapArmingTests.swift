@@ -43,7 +43,7 @@ final class StrapArmingTests: XCTestCase {
     private func armingNight(_ radio: FakeStrapRadio, battery: Int? = nil) -> RRCollector {
         let manager = linkedManager(radio)
         manager.batteryLevel = battery
-        let collector = RRCollector(polarManager: manager, healthKit: HealthKitManager(), archive: archive)
+        let collector = RRCollector(polarManager: manager, healthKit: HealthKitManager.forTests(), archive: archive, settingsManager: AppDependencies.current.app.settingsManager, services: CollectorServices(.current))
         collectors.append(collector)
         collector.overnightRun.armingRetryInterval = 0.05
         collector.overnightRun.usesDeviceBackup = true

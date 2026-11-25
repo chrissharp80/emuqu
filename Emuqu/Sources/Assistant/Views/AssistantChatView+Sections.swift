@@ -520,6 +520,7 @@ extension AssistantChatView {
         ChatInputBar(
             composerState: viewModel.composerState,
             isAppleActive: isAppleActive,
+            audioSession: dependencies.services.audioSessionCoordinator,
             onSend: { viewModel.send(text: $0) },
             onSendPrefab: { viewModel.send(prefab: $0) }
         )

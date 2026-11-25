@@ -194,8 +194,9 @@ extension MorningReanalysisControls {
         style: PDFReportGenerator.ReportStyle,
         sections: PDFReportGenerator.ReportSections
     ) async -> URL? {
-        await Task.detached {
-            let generator = PDFReportGenerator()
+        let settingsManager = settingsManager
+        return await Task.detached {
+            let generator = PDFReportGenerator { settingsManager.settingsSnapshot }
             return generator.generateReportURL(
                 for: sessionForExport,
                 sleepData: inputs.sleepData,

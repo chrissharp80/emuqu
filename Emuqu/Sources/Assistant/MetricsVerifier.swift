@@ -187,6 +187,14 @@ enum MetricsVerifier {
         let correctedText: String?
     }
 
+    /// The app's own values `verifyAppStateClaims` checks claims against.
+    struct AppState {
+        /// The settings in force, for whether training load is paused.
+        let settings: UserSettings
+        let trainingMetricsCache: TrainingMetricsCache
+        let archive: SessionArchive
+    }
+
     /// Verify training-load, overnight HRV and last night's sleep claims
     /// against the app's source-of-truth values (`TrainingLoadRegistry` for
     /// ATL / CTL / TSB / ACWR, unless training load is paused; today's
@@ -209,11 +217,12 @@ enum MetricsVerifier {
     /// conversationally ("TSB negative thirty-one point seven"), so without
     /// the normaliser every wrong value would escape the verifier.
     @MainActor
-    static func verifyAppStateClaims(_ text: String) -> AppStateVerifyResult {
+    static func verifyAppStateClaims(_ text: String, against state: AppState) -> AppStateVerifyResult {
         acknowledgeDeliveredCorrections()
         let normalized = SpelledNumberNormalizer.normalizeWithRewrites(text)
-        let found = trainingLoadDiscrepancies(in: normalized.text) + overnightDiscrepancies(in: normalized.text)
-            + lastNightSleepDiscrepancies(in: normalized.text)
+        let found = trainingLoadDiscrepancies(in: normalized.text, state: state)
+            + overnightDiscrepancies(in: normalized.text, archive: state.archive)
+            + lastNightSleepDiscrepancies(in: normalized.text, archive: state.archive)
         let mapped = found.compactMap {
             remap($0, from: normalized.text, to: text, rewrites: normalized.rewrites)
         }
@@ -246,9 +255,9 @@ enum MetricsVerifier {
     /// Skipped while training load is paused: the prompt leaves the load
     /// numbers out then, as the screens do, so there is no value to correct to.
     @MainActor
-    private static func trainingLoadDiscrepancies(in text: String) -> [Discrepancy] {
-        guard !TrainingLoadVisibility.isPaused(AppDependencies.current.app.settingsManager.settings),
-              let load = TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) else { return [] }
+    private static func trainingLoadDiscrepancies(in text: String, state: AppState) -> [Discrepancy] {
+        guard !TrainingLoadVisibility.isPaused(state.settings),
+              let load = TrainingLoadRegistry.live(from: state.trainingMetricsCache) else { return [] }
         var found = claimsMatching(
             in: text,
             pattern: #"\bTSB(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?:negative\s+)?(?<value>-?\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
@@ -285,8 +294,7 @@ enum MetricsVerifier {
     /// archive index; the session file is decoded only when the text names
     /// RMSSD.
     @MainActor
-    private static func overnightDiscrepancies(in text: String) -> [Discrepancy] {
-        let archive = AppDependencies.current.storage.sessionArchive
+    private static func overnightDiscrepancies(in text: String, archive: SessionArchive) -> [Discrepancy] {
         guard let entry = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive) else { return [] }
         var found: [Discrepancy] = []
         if text.range(of: "rmssd", options: .caseInsensitive) != nil,
@@ -348,9 +356,9 @@ enum MetricsVerifier {
     /// back the number the user sees on screen and the model was given. The
     /// archive is read only when the text talks about sleep.
     @MainActor
-    private static func lastNightSleepDiscrepancies(in text: String) -> [Discrepancy] {
+    private static func lastNightSleepDiscrepancies(in text: String, archive: SessionArchive) -> [Discrepancy] {
         guard text.range(of: #"\b(?:sleep|slept|asleep|efficien)"#, options: [.regularExpression, .caseInsensitive]) != nil,
-              let sleep = latestOvernightSleep() else { return [] }
+              let sleep = latestOvernightSleep(in: archive) else { return [] }
         return sleepDiscrepancies(
             in: text, nightMinutes: sleep.nightSleepMinutes, efficiency: sleep.measuredSleepEfficiency
         )
@@ -362,8 +370,7 @@ enum MetricsVerifier {
     /// from a live HealthKit read this cannot see, so nothing is checked. A
     /// nap or quick reading is not last night.
     @MainActor
-    private static func latestOvernightSleep() -> SleepData? {
-        let archive = AppDependencies.current.storage.sessionArchive
+    private static func latestOvernightSleep(in archive: SessionArchive) -> SleepData? {
         guard let session = OvernightArchive.latest(archive), session.sessionType == .overnight,
               let sleep = session.sleepSnapshot, sleep.nightSleepMinutes > 0 else { return nil }
         return sleep

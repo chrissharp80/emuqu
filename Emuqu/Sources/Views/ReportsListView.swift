@@ -387,6 +387,8 @@ struct ReportsListView: View {
         let lthr: Int
         let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
+        /// The settings the reports draw with.
+        let settings: UserSettings
     }
 
     private func generationInputs(for row: ReportRow) -> GenerationInputs {
@@ -407,7 +409,7 @@ struct ReportsListView: View {
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
             sleepSchedule: settings.sleepSchedule,
-            temperatureUnit: settings.temperatureUnit
+            temperatureUnit: settings.temperatureUnit, settings: settings
         )
     }
 
@@ -480,7 +482,8 @@ struct ReportsListView: View {
     nonisolated private static func profile(_ inputs: GenerationInputs) -> ReportRenderer.Profile {
         ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
-            units: inputs.units, sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
+            bodyWeightKg: inputs.settings.effectiveBodyWeightKg, units: inputs.units,
+            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
         )
     }
 
@@ -498,7 +501,7 @@ struct ReportsListView: View {
         }
         let rendered = try await ReportRenderer.renderRecovery(
             overnightSession, recentOvernight: inputs.recentOvernight,
-            baselineStats: inputs.baselineStats, load: load, to: inputs.pdfURL
+            baselineStats: inputs.baselineStats, load: load, settings: inputs.settings, to: inputs.pdfURL
         )
         guard rendered else { throw ReportsListError.recoveryGenerationFailed }
     }

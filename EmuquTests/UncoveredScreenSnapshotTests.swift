@@ -239,7 +239,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             fetchFailed: .constant(false),
             showingDiscardConfirm: .constant(false),
             isDiscarding: false,
-            breathingAudio: BreathingAudioManager()
+            breathingAudio: BreathingAudioManager(dependencies: .current)
         )
     }
 

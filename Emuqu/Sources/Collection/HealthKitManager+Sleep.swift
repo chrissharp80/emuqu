@@ -41,7 +41,8 @@ extension SleepHealthQueries {
         let allSamples = try await lastNightSamples(
             sleepType: sleepType, windowStart: window.start, windowEnd: min(window.end, Date())
         )
-        let context = Self.lastNightContext(samples: allSamples, window: window)
+        let splitGap = SleepMergingConfig.defaultProcessing(settings: access.settingsProvider()).awakeGapSplitMinutes
+        let context = Self.lastNightContext(samples: allSamples, window: window, splitGapMinutes: splitGap)
         return await Self.resolvedOffMain(context)
     }
 
@@ -65,7 +66,9 @@ extension SleepHealthQueries {
         await Task.detached(priority: .userInitiated) { SleepResolver.resolve(context).sleepData }.value
     }
 
-    nonisolated private static func lastNightContext(samples: [HKCategorySample], window: DateInterval) -> SleepResolver.Context {
+    nonisolated private static func lastNightContext(
+        samples: [HKCategorySample], window: DateInterval, splitGapMinutes: Int
+    ) -> SleepResolver.Context {
         SleepResolver.Context(
             sessionBounds: nil,
             linkedSessionBounds: [],
@@ -75,7 +78,7 @@ extension SleepHealthQueries {
             enhanceWithRR: false,
             autoSleepExtension: nil,
             fallbackDate: samples.first?.endDate ?? Date(),
-            splitGapMinutes: SleepMergingConfig.defaultProcessing().awakeGapSplitMinutes
+            splitGapMinutes: splitGapMinutes
         )
     }
 
@@ -117,7 +120,7 @@ extension SleepHealthQueries {
         // extension's end so post-session stages are available to the resolver.
         let queryEnd = autoSleepExtension.map { max(recordingEnd, $0.bounds.end) } ?? recordingEnd
         let samples = try await querySleepSamples(recordingStart: recordingStart, recordingEnd: queryEnd)
-        let config = SleepMergingConfig.fromSettings(recordingStart: recordingStart)
+        let config = SleepMergingConfig.fromSettings(recordingStart: recordingStart, settings: access.settingsProvider())
         let resolved = await Self.processOffMain(
             samples, recordingStart: recordingStart, recordingEnd: recordingEnd,
             config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension, rrStart: rrStart

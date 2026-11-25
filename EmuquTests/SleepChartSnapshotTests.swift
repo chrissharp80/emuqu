@@ -11,7 +11,7 @@ import XCTest
 final class SleepChartSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         view
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: .current))
             .environment(SettingsManager.shared)
     }
 

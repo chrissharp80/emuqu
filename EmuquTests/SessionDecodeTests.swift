@@ -128,10 +128,12 @@ final class SessionDecodeTests: XCTestCase {
     private func makeCollector() -> RRCollector {
         RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
+            healthKit: HealthKitManager.forTests(),
             archive: archive,
             rawBackup: RawRRBackup(directory: directory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
-            baselineTracker: BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+            baselineTracker: BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json")),
+            settingsManager: AppDependencies.current.app.settingsManager,
+            services: CollectorServices(.current)
         )
     }
 }

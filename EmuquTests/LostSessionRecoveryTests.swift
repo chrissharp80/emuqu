@@ -53,8 +53,10 @@ final class LostSessionRecoveryTests: XCTestCase {
             onCloudSync: { _ in }, onCloudDelete: { _ in }
         )
         return RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager(), archive: archive, rawBackup: rawBackup,
-            baselineTracker: tracker, cloudSyncManager: sync, acceptanceService: acceptance
+            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(), archive: archive, rawBackup: rawBackup,
+            baselineTracker: tracker,
+            settingsManager: AppDependencies.current.app.settingsManager, cloudSyncManager: sync, acceptanceService: acceptance,
+            services: CollectorServices(.current)
         )
     }
 

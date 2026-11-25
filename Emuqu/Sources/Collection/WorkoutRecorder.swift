@@ -191,10 +191,15 @@ final class WorkoutRecorder {
         let settingsManager = services.settingsManager
         self.settingsProvider = settingsProvider ?? { settingsManager.settings }
         self.core = core
-        self.sensors = WorkoutSensors(location: location, footPod: footPod ?? services.footPodManager)
+        self.sensors = WorkoutSensors(
+            location: location, footPod: footPod ?? services.footPodManager, ambientLocation: services.ambientLocationService
+        )
         let bridge = services.watchConnectivityBridge
         self.watchBridge = bridge
-        let coach = WorkoutVoiceCoach(watchBridge: bridge)
+        let coach = WorkoutVoiceCoach(
+            settingsProvider: { settingsManager.settings }, activeRoute: services.activeRouteSession,
+            ambientLocation: services.ambientLocationService, watchBridge: bridge
+        )
         self.voiceCoach = coach
         self.conversation = conversation
         // Route spoken triggers through the shared conversation so they

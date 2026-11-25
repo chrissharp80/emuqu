@@ -18,7 +18,8 @@ extension MainTabView {
         let pdfURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).pdf")
         let hr = ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
-            units: inputs.units, sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
+            bodyWeightKg: inputs.settings.effectiveBodyWeightKg, units: inputs.units,
+            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
         )
         let recent = inputs.recentOvernight
         do {
@@ -64,7 +65,7 @@ extension MainTabView {
             lthr: inputs.lthr,
             units: inputs.units,
             sleepSchedule: inputs.sleepSchedule,
-            temperatureUnit: inputs.temperatureUnit
+            temperatureUnit: inputs.temperatureUnit, settings: inputs.settings
         )
     }
 
@@ -76,7 +77,8 @@ extension MainTabView {
             return .failed(String(localized: "No recent HRV recording to report on. Record an overnight session first.", bundle: LanguageManager.appBundle))
         }
         let rendered = try await ReportRenderer.renderRecovery(
-            overnight, recentOvernight: inputs.recentOvernight, baselineStats: inputs.baselineStats, load: load, to: pdfURL
+            overnight, recentOvernight: inputs.recentOvernight, baselineStats: inputs.baselineStats, load: load,
+            settings: inputs.settings, to: pdfURL
         )
         guard rendered else {
             return .failed(String(localized: "Couldn't render the recovery PDF. The session may not have enough data.", bundle: LanguageManager.appBundle))
@@ -147,6 +149,8 @@ enum ReportRenderer {
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
+        /// The workout pages' calorie estimate.
+        let bodyWeightKg: Double
         let units: UnitsPreference
         /// Assigns overnights to nights for the daily report's baseline.
         let sleepSchedule: SleepSchedule
@@ -156,13 +160,17 @@ enum ReportRenderer {
     /// Frozen-snapshot comprehensive recovery PDF (no live HealthKit query),
     /// moved onto `pdfURL` (`PDFReportGenerator` writes to its own URL);
     /// false when the session couldn't be rendered. `baselineStats` is the
-    /// baseline before the reported night.
+    /// baseline before the reported night; `settings` are the ones the
+    /// report draws with.
     static func renderRecovery(
         _ overnight: HRVSession, recentOvernight: [HRVSession],
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
-        load: TrainingLoadRegistry.TrainingLoad?, to pdfURL: URL
+        load: TrainingLoadRegistry.TrainingLoad?, settings: UserSettings, to pdfURL: URL
     ) async throws -> Bool {
-        guard let url = recoveryPDFURL(for: overnight, recentOvernight: recentOvernight, baselineStats: baselineStats, load: load) else {
+        let generator = PDFReportGenerator { settings }
+        guard let url = recoveryPDFURL(
+            for: overnight, recentOvernight: recentOvernight, baselineStats: baselineStats, load: load, generator: generator
+        ) else {
             return false
         }
         try replace(pdfURL, with: url)
@@ -171,10 +179,11 @@ enum ReportRenderer {
 
     private static func recoveryPDFURL(
         for overnight: HRVSession, recentOvernight: [HRVSession],
-        baselineStats: BaselineTracker.RecoveryBaselineStats?, load: TrainingLoadRegistry.TrainingLoad?
+        baselineStats: BaselineTracker.RecoveryBaselineStats?, load: TrainingLoadRegistry.TrainingLoad?,
+        generator: PDFReportGenerator
     ) -> URL? {
         let breakdown = overnight.scoreBreakdown
-        return PDFReportGenerator().generateReportURL(
+        return generator.generateReportURL(
             for: overnight,
             sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
             sleepTrend: .recentNights(before: overnight, in: recentOvernight),
@@ -210,6 +219,7 @@ enum ReportRenderer {
             userMaxHR: profile.maxHR,
             userRestingHR: profile.restingHR,
             userLTHR: profile.lthr,
+            userBodyWeightKg: profile.bodyWeightKg,
             units: profile.units,
             sleepSchedule: profile.sleepSchedule,
             temperatureUnit: profile.temperatureUnit,
@@ -225,6 +235,7 @@ enum ReportRenderer {
             userMaxHR: profile.maxHR,
             userRestingHR: profile.restingHR,
             userLTHR: profile.lthr,
+            userBodyWeightKg: profile.bodyWeightKg,
             units: profile.units
         )
         try await report.generate(to: pdfURL)

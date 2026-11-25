@@ -264,7 +264,7 @@ extension WorkoutPDFRenderer {
         let mets = samples.compactMap(\.mets)
         guard !mets.isEmpty else { return "—" }
         let avgMETs = mets.reduce(0, +) / Double(mets.count)
-        let weight = AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveBodyWeightKg
+        let weight = report.userBodyWeightKg
         let kcal = (avgMETs * 3.5 * weight * (duration / 60.0)) / 200.0
         return String(format: "%.0f kcal", locale: LanguageManager.appLocale, kcal)
     }

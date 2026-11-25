@@ -269,6 +269,6 @@ struct DeleteAllDataPage: View {
     NavigationStack {
         DeleteAllDataPage()
             .environment(AppDependencies().app.settingsManager)
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: AppDependencies()))
     }
 }

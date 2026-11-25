@@ -156,10 +156,10 @@ final class BackgroundOperationsTests: XCTestCase {
     // MARK: - Releaser
 
     func testReleaserEndsOnlyTheTrackedUtterancesCue() {
-        let releaser = CueAudioSessionReleaser(manager: manager)
+        let releaser = CueAudioSessionReleaser()
         let synthesizer = AVSpeechSynthesizer()
         let tracked = AVSpeechUtterance(string: "Run started")
-        releaser.track(tracked, token: manager.beginCue())
+        releaser.track(tracked, token: manager.beginCue(), on: manager)
 
         releaser.speechSynthesizer(synthesizer, didFinish: AVSpeechUtterance(string: "Other"))
         manager.waitForPendingTransitions()

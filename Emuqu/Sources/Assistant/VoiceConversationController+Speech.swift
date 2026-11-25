@@ -189,7 +189,7 @@ extension VoiceConversationController {
     /// The verifier returns the original text with only the claimed spans
     /// replaced.
     private func appStateCorrected(_ text: String) -> String {
-        let result = MetricsVerifier.verifyAppStateClaims(text)
+        let result = MetricsVerifier.verifyAppStateClaims(text, against: services.verifiedAppState)
         guard !result.discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
         MetricsVerifier.recordCorrections(result.discrepancies)

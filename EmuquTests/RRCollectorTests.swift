@@ -25,10 +25,12 @@ final class RRCollectorTests: XCTestCase {
 
     private func makeCollector() -> RRCollector {
         RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager(),
+            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
             archive: SessionArchive(directory: storageDirectory.appendingPathComponent("Archive", isDirectory: true)),
             rawBackup: RawRRBackup(directory: storageDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
-            baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json"))
+            baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json")),
+            settingsManager: AppDependencies.current.app.settingsManager,
+            services: CollectorServices(.current)
         )
     }
 
@@ -182,8 +184,10 @@ final class RRCollectorSaveResultTests: XCTestCase {
             onCloudSync: { _ in }, onCloudDelete: { _ in }
         )
         return RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager(), archive: archive, rawBackup: rawBackup,
-            baselineTracker: tracker, acceptanceService: acceptance
+            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(), archive: archive, rawBackup: rawBackup,
+            baselineTracker: tracker,
+            settingsManager: AppDependencies.current.app.settingsManager, acceptanceService: acceptance,
+            services: CollectorServices(.current)
         )
     }
 

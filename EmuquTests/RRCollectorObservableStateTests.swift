@@ -28,7 +28,9 @@ final class RRCollectorObservableStateTests: XCTestCase {
         healthKit: AppDependencies.current.collection.healthKitManager,
         archive: SessionArchive(directory: storageDirectory),
         rawBackup: RawRRBackup(directory: storageDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
-        baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json"))
+        baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json")),
+        settingsManager: AppDependencies.current.app.settingsManager,
+        services: CollectorServices(.current)
     )
     var cancellables: Set<AnyCancellable> = []
 
@@ -153,8 +155,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
     private func isolatedCollector() -> RRCollector {
         RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
-            archiveSignal: ArchiveSignal(center: NotificationCenter())
+            healthKit: HealthKitManager.forTests(),
+            archive: AppDependencies.current.storage.sessionArchive,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            archiveSignal: ArchiveSignal(center: NotificationCenter()),
+            services: CollectorServices(.current)
         )
     }
 
@@ -187,8 +192,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
         await waitForVersion(customSignal, toReach: 2)
         let injected = RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
-            archiveSignal: customSignal
+            healthKit: HealthKitManager.forTests(),
+            archive: AppDependencies.current.storage.sessionArchive,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            archiveSignal: customSignal,
+            services: CollectorServices(.current)
         )
         XCTAssertEqual(injected.archiveVersion, 2)
         XCTAssertTrue(injected.archiveSignal === customSignal)
@@ -224,8 +232,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
         customStatus.isDeviceConnected = true
         let injected = RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
-            deviceStatus: customStatus
+            healthKit: HealthKitManager.forTests(),
+            archive: AppDependencies.current.storage.sessionArchive,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            deviceStatus: customStatus,
+            services: CollectorServices(.current)
         )
         XCTAssertEqual(injected.deviceStatus.batteryLevel, 42)
         XCTAssertTrue(injected.deviceStatus.isDeviceConnected)
@@ -312,8 +323,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
         custom.streamingTargetSeconds = 999
         let injected = RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
-            streamingLifecycle: custom
+            healthKit: HealthKitManager.forTests(),
+            archive: AppDependencies.current.storage.sessionArchive,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            streamingLifecycle: custom,
+            services: CollectorServices(.current)
         )
         XCTAssertEqual(injected.streamingLifecycle.streamingTargetSeconds, 999)
         XCTAssertTrue(injected.streamingLifecycle === custom)
@@ -340,8 +354,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
         custom.sleepDataVersion = 42
         let injected = RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
-            morningCoordination: custom
+            healthKit: HealthKitManager.forTests(),
+            archive: AppDependencies.current.storage.sessionArchive,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            morningCoordination: custom,
+            services: CollectorServices(.current)
         )
         XCTAssertEqual(injected.morningCoordination.sleepDataVersion, 42)
         XCTAssertTrue(injected.morningCoordination === custom)
@@ -387,8 +404,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
         custom.recordingPhase = .analyzing
         let injected = RRCollector(
             polarManager: PolarManager(),
-            healthKit: HealthKitManager(),
-            sessionState: custom
+            healthKit: HealthKitManager.forTests(),
+            archive: AppDependencies.current.storage.sessionArchive,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            sessionState: custom,
+            services: CollectorServices(.current)
         )
         XCTAssertEqual(injected.sessionState.recordingPhase, .analyzing)
         XCTAssertTrue(injected.sessionState === custom)

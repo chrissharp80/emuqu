@@ -479,7 +479,7 @@ extension AssistantToolRunner {
         let original = owner.turns[assistantIndex].text
         let live = MetricsVerifier.verify(original, againstLive: owner.services.liveWorkoutBroker.currentSnapshot())
         let text = MetricsVerifier.correctedText(from: original, applying: live) ?? original
-        let result = MetricsVerifier.verifyAppStateClaims(text)
+        let result = MetricsVerifier.verifyAppStateClaims(text, against: owner.services.verifiedAppState)
         let discrepancies = live + result.discrepancies
         guard !discrepancies.isEmpty else { return }
         debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
