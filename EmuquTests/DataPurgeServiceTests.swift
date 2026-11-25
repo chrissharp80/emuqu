@@ -413,7 +413,7 @@ final class DataPurgeServiceTests: XCTestCase {
     }
 
     /// The in-app language picker writes `AppleLanguages` into the app's own
-    /// persistent domain (`SettingsView+Appearance`). A preferences sweep that
+    /// persistent domain (`AppearanceAndLanguagePages`). A preferences sweep that
     /// did not exclude the system-owned prefixes would reset the user's chosen
     /// UI language as a side effect of deleting their data.
     func testPurgeLeavesTheChosenAppLanguageAlone() async throws {

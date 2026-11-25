@@ -10,7 +10,7 @@ import Foundation
 ///
 ///   • Every non-private member of this file that touches those fields takes
 ///     `archiveLock` first. Checked member by member, not sampled.
-///   • Of the helpers in `Archive+Internal.swift`, those that touch the
+///   • Of the helpers in `ArchiveStore+Internal.swift`, those that touch the
 ///     fields without locking (`entryById`, `_retrieve`, `dropFromIndex`, …)
 ///     run under the caller's lock; the leading underscore and
 ///     `private`/internal scoping mark them as such. The rest take
@@ -24,7 +24,7 @@ import Foundation
 /// background tasks (`FitnessTabView+Sections` detaches its week-workout
 /// lookup), and the compiler cannot see a lock-based invariant. If you add a
 /// member here that touches the fields above, it takes the lock or it goes in
-/// `Archive+Internal.swift` where the convention says the caller already did.
+/// `ArchiveStore+Internal.swift` where the convention says the caller already did.
 final class SessionArchive: @unchecked Sendable {
     /// Shared archive policy tuning. These thresholds are used at multiple
     /// sites (the 0.85 containment ratio, the 1-hour import-duplicate
@@ -62,7 +62,7 @@ final class SessionArchive: @unchecked Sendable {
     /// `SessionStorageDiagnostic` and `MorningNotificationScheduler` use the
     /// lock-safe `entries` snapshot).
     /// Setter cannot be tightened to `private(set)`: that ACL is
-    /// file-scoped, and `Archive+Migrations`/`Archive+Repair` legitimately
+    /// file-scoped, and `ArchiveMigrations+Steps`/`SessionArchive+Repair` legitimately
     /// write `index` from other files while holding the lock.
     var index: [SessionArchiveEntry] = []
     /// Cached sorted entries — invalidated whenever `saveIndex()` is called.

@@ -449,7 +449,7 @@ Only SpO2 retains a post-composite penalty in the current scoring:
 
 Respiratory rate and wrist temperature carry no post-composite penalty. They feed the Vitals factor (Tier 3) as a continuous sub-score.
 
-Magic numbers for all scoring thresholds (z-score clamps, DFA bands, CV thresholds, Vitals sub-score weights, Comeback weights, SpO2 penalty, etc.) are centralized in the constants files: `ScoringWeights` lives in `Constants.swift`, while `RecoveryScoreConstants` (and the ACWR / capacity-ratio / freshness-bonus figures) lives in the `Constants+RecoveryScore.swift` extension.
+Magic numbers for all scoring thresholds (z-score clamps, DFA bands, CV thresholds, Vitals sub-score weights, Comeback weights, SpO2 penalty, etc.) are centralized in the constants files: `ScoringWeights` lives in `Constants.swift`, while `RecoveryScoreConstants` (and the ACWR / capacity-ratio / freshness-bonus figures) lives in the `RecoveryScoreConstants.swift` extension.
 
 ### Confidence pips (cold-start UX)
 
@@ -512,7 +512,7 @@ Two dampeners reduce the penalty's effect when the underlying ratio is unreliabl
 1. **Low-CTL confidence ramp.** Penalty multiplied by `min(CTL/50, 1.0)`. At CTL=16 the ratio is mathematically noisy (one 40-TRIMP walk swings it ~0.2); the ramp prevents that noise from steamrolling the readout.
 2. **Autonomic-state rescue.** When the morning recovery score is ≥70, the ACWR penalty is capped at 10%. The proxy (ACWR) shouldn't override the direct physiological signal (HRV) when they disagree on a clearly-recovered morning.
 
-Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context on the Load & Trajectory page and uses it as a graded readiness modifier here, but does not surface ACWR by name in user-facing copy and does not present it as an injury predictor (rules 11 and 13 of the system prompt in `AIProvider+SystemPromptText.swift`).
+Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context on the Load & Trajectory page and uses it as a graded readiness modifier here, but does not surface ACWR by name in user-facing copy and does not present it as an injury predictor (rules 11 and 13 of the system prompt in `AssistantSystemPrompt+Text.swift`).
 
 ### Fatigue Dissipation (intra-day)
 
@@ -667,7 +667,7 @@ Separate from the 7-day baseline, used for z-score normalization:
 
 File-based JSON in App Group container with SHA256 integrity checking.
 
-**Index**: `SessionArchiveEntry` stores lightweight metadata in memory — e.g. sessionId, date, endDate, recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, sessionType, linkedSessionIds, plus `fileHash` / `filePath`, `notes`, and the sleep-index fields (`sleepEnd`, `sleepSegmentCount`, deep/rem/core/awake minutes, nocturnal-HR-dip) that make trend + AI queries possible without loading full sessions (see `Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift`, `SessionArchiveEntry` for the authoritative field list). This enables trend computation and filtering without loading full sessions from disk. A sorted cache (`sortedEntriesCache`) avoids re-sorting on every `entries` access.
+**Index**: `SessionArchiveEntry` stores lightweight metadata in memory — e.g. sessionId, date, endDate, recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, sessionType, linkedSessionIds, plus `fileHash` / `filePath`, `notes`, and the sleep-index fields (`sleepEnd`, `sleepSegmentCount`, deep/rem/core/awake minutes, nocturnal-HR-dip) that make trend + AI queries possible without loading full sessions (see `Emuqu/Sources/Models/SessionArchiveEntry.swift`, `SessionArchiveEntry` for the authoritative field list). This enables trend computation and filtering without loading full sessions from disk. A sorted cache (`sortedEntriesCache`) avoids re-sorting on every `entries` access.
 
 **Locking**: `archiveLock` (NSLock) protects the in-memory index. All migrations use 3-phase locking — gather work items under lock, release for disk I/O, reacquire to apply patches — so the main thread is never blocked for more than a few milliseconds. `archive()`, `retrieve()`, `entries`, and other public APIs acquire/release the lock per-call.
 
@@ -710,7 +710,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 9 passes on a background thread at launch: `reencryptPendingSessions` and `resealPlainIndexIfNeeded` (re-encrypt session files and the index written plain while the key was unavailable), `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `migrateLegacyEliteImportIndex`, `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
-**File Organization**: `Archive` is split into extensions — `Archive+Migrations.swift` (deferred migrations), `SessionMerger.swift` (session merging logic), and `Archive+Repair.swift` (integrity repair utilities).
+**File Organization**: `Archive` is split into extensions — `ArchiveMigrations+Steps.swift` (deferred migrations), `SessionMerger.swift` (session merging logic), and `SessionArchive+Repair.swift` (integrity repair utilities).
 
 ### iCloud Sync
 
@@ -1124,7 +1124,7 @@ workout recorder and the recording collector's parts read no container: each is 
 `install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
 static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
-file, in `AppDependencies+Instances.swift` beside it (the services whose construction names
+file, in `SharedInstances.swift` beside it (the services whose construction names
 other services) and in the Watch target's root, `WatchDependencies`, which
 `scripts/check_no_shared_outside_root.sh` enforces. The reasoning, and why the app is one target,
 is [ADR 007](adr/007-single-target-composition-root.md).

@@ -4,8 +4,8 @@ import os
 
 // The archive's internals. The underscored and private helpers assume the
 // caller already holds `archive.archiveLock`; the public entry points further
-// down (`exists`, `delete`, …) and `archiveBatch` (`Archive+Batch.swift`)
-// take it themselves. `Archive.swift` is the public API and its
+// down (`exists`, `delete`, …) and `archiveBatch` (`ArchiveStore+Batch.swift`)
+// take it themselves. `SessionArchive.swift` is the public API and its
 // initialisation.
 
 extension ArchiveStore {
@@ -430,7 +430,7 @@ extension ArchiveStore {
     }
 
     /// Shared by `_retrieve`/`retrieveLightweight` and the migration paths in
-    /// `Archive+Migrations.swift`, so migrations read the same dual-format
+    /// `ArchiveMigrations+Steps.swift`, so migrations read the same dual-format
     /// files those paths handle rather than JSON-decoding ciphertext.
     ///
     /// Wider than `looksEncrypted`, which only matches Format 1 (the `"FR"`

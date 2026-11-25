@@ -24,7 +24,7 @@ import UIKit
 // Fallback behaviour: with no overnight session this class still draws
 // both cover pages, page 1 showing a "No morning data" row. Callers that
 // want the standalone WorkoutPDFReport instead when there is no night
-// (WorkoutRecorder+Metrics, MainTabView+Reports) choose it themselves.
+// (WorkoutSessionLifecycle+Metrics, MainTabView+Reports) choose it themselves.
 /// Immutable after construction, so it is `Sendable` and renders on whatever
 /// task the caller detaches; the drawing APIs are thread-safe.
 final class HolisticDailyReport: Sendable {
@@ -79,7 +79,7 @@ final class HolisticDailyReport: Sendable {
     /// Crash guard: reading
     /// `TrainingLoadRegistry.live(from:)` inside the renderer via
     /// `MainActor.assumeIsolated` traps. PDF generation runs from
-    /// `Task.detached(priority: .userInitiated)` (WorkoutRecorder+Metrics'
+    /// `Task.detached(priority: .userInitiated)` (WorkoutSessionLifecycle+Metrics'
     /// coach report, ReportsListView.renderHolistic and
     /// MainTabView+Reports.renderDailyReport), so `assumeIsolated`
     /// triggers a fatal trap the moment the render touches training

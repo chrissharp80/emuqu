@@ -173,7 +173,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
         return rec.merging(Self.liveForecastFields(atl: live.atl, ctl: live.ctl)) { _, new in new }
     }
 
-    /// The recorder's formulas (`WorkoutRecorder+StartBaselines`
+    /// The recorder's formulas (`WorkoutSessionLifecycle+StartBaselines`
     /// trainingProjection, `liveRecoveryHoursNeeded`) applied to the live load:
     /// a stay-the-course day (ATL as the day's load) for tomorrow's TSB, a
     /// rest forecast for days until fresh.

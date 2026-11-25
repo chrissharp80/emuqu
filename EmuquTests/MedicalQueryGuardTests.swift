@@ -231,7 +231,7 @@ final class MedicalQueryGuardTests: XCTestCase {
 
     func testRefusalReplyMatchesSystemPromptCopy() {
         // If this fails, the guard's copy has drifted from the MEDICAL
-        // BOUNDARY rules in AIProvider+SystemPromptText.swift (rule B quotes
+        // BOUNDARY rules in AssistantSystemPrompt+Text.swift (rule B quotes
         // the symptom and self-harm replies; rule C states the rhythm one).
         XCTAssertTrue(MedicalQueryGuard.arrhythmiaReply.contains("Apple Watch"))
         XCTAssertTrue(MedicalQueryGuard.arrhythmiaReply.contains("ECG"))

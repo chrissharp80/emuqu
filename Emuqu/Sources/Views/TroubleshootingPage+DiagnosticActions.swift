@@ -3,7 +3,7 @@ import SwiftUI
 // The action half of `TroubleshootingPage`: the sections that *do*
 // something — repair, re-analyse, rebuild, export — along with the
 // debug-mode-gated advanced controls. The read-only diagnostic cards are in
-// `SettingsPages+Diagnostics.swift`.
+// `TroubleshootingPage.swift`.
 //
 // Members here are not `private`, because Swift's `private` does not reach
 // across files.

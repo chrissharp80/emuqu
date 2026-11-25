@@ -55,7 +55,7 @@ watch_budget="$(read_budget "$WATCH_BUDGET_FILE")"
 # vocabulary of persistence is not this codebase's: its primary write is
 # `SessionArchive.archive(_:)`, and a verb list that does not know "archive"
 # lets `_ = try? archive.archive(...)` calls — the shape found in
-# HealthKitManager, WorkoutRecorder+Metrics, RRCollector+NapRepairMigration,
+# HealthKitManager, WorkoutSessionLifecycle+Metrics, RRCollector+NapRepairMigration,
 # DashboardV2View+Cards and RecoveryScoreDetailView — sit in the tree while
 # this gate reports 0. A swallowed archive write is a lost night of recorded
 # data.

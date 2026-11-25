@@ -363,7 +363,6 @@ final class RRCollector {
 
     @ObservationIgnored private let didBootBaseline = OSAllocatedUnfairLock(initialState: false)
 
-
     /// A collector over the services of `dependencies`. `makeDefault` builds
     /// the app's with it; SwiftUI `#Preview` blocks and tests that don't care
     /// about individual dependencies build one directly. Callers that need a

@@ -5,7 +5,7 @@ import Foundation
 // The verbatim text blocks: the persona + medical boundary (`base`), the
 // tool-use contract (`toolOverlay`), its no-tools counterpart
 // (`nonToolModeOverlay`), and the voice overlay. They are kept apart from
-// the composer (`AIProvider+SystemPrompt.swift`) so a prompt change is
+// the composer (`AssistantSystemPrompt.swift`) so a prompt change is
 // reviewable on its own — the exact bytes are the contract with the model.
 
 extension AssistantSystemPrompt {

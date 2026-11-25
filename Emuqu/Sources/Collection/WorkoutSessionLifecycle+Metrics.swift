@@ -4,8 +4,8 @@ import HealthKit
 
 // Normalized power and METs estimation (per-tick derived values) and the
 // post-workout Coach Report. Recording-state persistence lives in
-// `WorkoutRecorder+Start.swift`, the workout-start alert in `WorkoutStartCue`,
-// and finalize in `WorkoutRecorder+Lifecycle.swift`.
+// `WorkoutSessionLifecycle+Start.swift`, the workout-start alert in `WorkoutStartCue`,
+// and finalize in `WorkoutFinalizer+Finalize.swift`.
 
 extension WorkoutSessionLifecycle {
     // MARK: - Normalized power

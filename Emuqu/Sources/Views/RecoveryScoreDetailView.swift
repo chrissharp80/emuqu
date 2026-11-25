@@ -452,7 +452,7 @@ struct RecoveryScoreDetailView: View {
     /// Recompute the cached overnight chart series (`rmssdChartSeries` /
     /// `hrChartSeries`) from the current inputs. This is
     /// the off-render-path home for `buildRMSSDSeries` / `buildHRSeries`
-    /// (RecoveryScoreDetailView+Charts.swift). Inputs are snapshotted on
+    /// (RecoveryScoreCharts+Overnight.swift). Inputs are snapshotted on
     /// the MainActor, the walk runs on a detached task, and the results
     /// land back in @State — the main thread never blocks on a
     /// full-night beat stream.

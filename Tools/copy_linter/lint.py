@@ -60,15 +60,15 @@ def load_config(config_path: Path) -> dict:
 def is_allowlisted(path: Path, allowlist: list[str], repo_root: Path) -> bool:
     """Prefix match, deliberately.
 
-    A full-path entry such as `AIProvider+SystemPrompt.swift` is on a timer:
+    A full-path entry such as `AssistantSystemPrompt.swift` is on a timer:
     this repo splits files to meet length budgets as a matter of routine, and
     the split moves the prompt text into a sibling like
-    `AIProvider+SystemPromptText.swift` where the exemption silently stops
+    `AssistantSystemPrompt+Text.swift` where the exemption silently stops
     applying. Nothing flags that, and the sibling's multi-line literals may not
     even be read until the string extractor is repaired — at which point they
     surface as violations. This is the exact failure `is_prohibition_context`
     warns about, and keying one level up — the family prefix
-    `…/AIProvider+SystemPrompt` — is what defuses it, so the next split is
+    `…/AssistantSystemPrompt` — is what defuses it, so the next split is
     covered on the day it happens. The content-keyed guard stays as the general
     mechanism; this covers the one file whose entire contents are instructions
     to a model rather than copy a user reads.
@@ -106,7 +106,7 @@ def iter_swift_strings(source: str) -> Iterable[tuple[int, str]]:
     appear inside prose blocks shift the pairing again. The scanner ends up an
     odd number of quotes out of phase, and what it extracts from that point is
     the CODE BETWEEN the literals instead of the prose inside them — in
-    `HelpContent+ScienceArticles.swift` the "string" such a regex finds at
+    `HelpScienceCatalog.swift` the "string" such a regex finds at
     line 217 is `'),\\n   .warning('`. Measured, that leaves 143,581 of the
     155,018 characters inside multi-line literals — 93%, across 31 files —
     never handed to the pattern matcher, including every one of the app's

@@ -51,7 +51,7 @@ FORWARDER = re.compile(r"func (\w+)[^{]*\{\s*(?:return\s+)?(?:try\s+)?(?:await\s
 
 
 def is_root(path):
-    return path.name.startswith("AppDependencies")
+    return path.name.startswith("AppDependencies") or path.name == "SharedInstances.swift"
 
 
 def in_views(path):

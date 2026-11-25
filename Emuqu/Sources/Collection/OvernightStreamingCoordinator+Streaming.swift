@@ -825,20 +825,6 @@ extension OvernightStreamingCoordinator {
     }
 }
 
-extension DeviceProvenance {
-    /// Provenance for a session streamed live from the connected Polar strap —
-    /// the overnight start and the pause/resume restart stamp the same thing.
-    @MainActor
-    static func streaming(from link: StrapLinkState) -> DeviceProvenance {
-        DeviceProvenance.current(
-            deviceId: link.connectedDeviceId ?? "unknown",
-            deviceModel: link.connectedDeviceType?.displayName ?? "Polar device",
-            firmwareVersion: nil,
-            recordingMode: .streaming
-        )
-    }
-}
-
 // MARK: - File-scope helpers
 //
 // Each names no member of `RRCollector` and calls nothing on it, so none needs

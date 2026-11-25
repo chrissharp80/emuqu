@@ -343,7 +343,7 @@ extension VoiceAudioPipeline {
     /// turn's natural begin will start a fresh task. The
     /// "voice silently dies" failure mode is handled by the
     /// long-idle / first-partial / stalled-transcript watchdogs
-    /// in VoiceConversationController+Audio.swift, which
+    /// in VoiceAudioPipeline+Audio.swift, which
     /// are smarter about distinguishing dead-task from
     /// healthy-but-quiet states.
     ///

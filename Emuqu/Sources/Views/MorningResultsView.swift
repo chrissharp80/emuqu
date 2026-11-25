@@ -121,7 +121,7 @@ struct MorningResultsView: View {
     /// the detail cards. Fixed `.system(size:)` values would ignore
     /// the user's text-size setting entirely. Scaled here
     /// (extensions can't hold stored @ScaledMetric props) and consumed
-    /// in MorningResultsView+DetailCards.
+    /// in MorningDetailCards+Cards.
     @ScaledMetric(relativeTo: .largeTitle) var heroScoreFontSize: CGFloat = 56
     @ScaledMetric(relativeTo: .title) var metricValueFontSize: CGFloat = 32
 

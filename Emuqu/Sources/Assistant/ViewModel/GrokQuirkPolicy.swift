@@ -3,7 +3,7 @@ import Foundation
 // `GrokQuirkPolicy` and the `ChatTurn` helpers it uses. The policy encodes
 // provider-specific workarounds and is independent of the tool-dispatch
 // extension; `private` at file scope would be invisible to the call
-// site, which lives in `AssistantViewModel+Tools.swift`.
+// site, which lives in `AssistantToolRunner+Tools.swift`.
 
 // MARK: - Grok quirk policy
 

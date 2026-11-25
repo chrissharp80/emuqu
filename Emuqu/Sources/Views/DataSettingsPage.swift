@@ -1,7 +1,7 @@
 import SwiftUI
 
 // The custom-tags and iCloud/data settings pages: what the app stores, not
-// how it reports faults (troubleshooting is in `SettingsPages+Diagnostics.swift`).
+// how it reports faults (troubleshooting is in `TroubleshootingPage.swift`).
 
 // MARK: - Custom Tags Page
 

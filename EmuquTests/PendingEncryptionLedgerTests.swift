@@ -3,7 +3,7 @@ import XCTest
 
 /// Pins the fail-closed behaviour of sensitive storage.
 ///
-/// `Archive+SessionCodec` and `RawRRBackup` both wrote
+/// `SessionArchive+SessionCodec` and `RawRRBackup` both wrote
 /// plaintext JSON whenever `EncryptionManager` was unavailable or `encrypt`
 /// threw — same file path, same protection class, and in one of the three sites
 /// no log line at all. Application-layer confidentiality on health data failed

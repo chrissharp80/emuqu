@@ -85,7 +85,7 @@ final class PrivacyControlsTests: XCTestCase {
     /// control-flow property directly: the flush is lexically inside a `defer`.
     func testTheStreamBufferFlushIsDeferred() throws {
         let file = try sourceRoot()
-            .appendingPathComponent("Assistant/ViewModel/AssistantViewModel+Tools.swift")
+            .appendingPathComponent("Assistant/ViewModel/AssistantToolRunner+Tools.swift")
         let text = try String(contentsOf: file, encoding: .utf8)
 
         let flushLines = text.split(separator: "\n", omittingEmptySubsequences: false)

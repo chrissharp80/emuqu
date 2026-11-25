@@ -381,7 +381,7 @@ final class WatchConnectivityBridge: NSObject {
     /// One tick of live workout state, as the Watch face needs it.
     ///
     /// A parameter object rather than a long argument list: there is exactly
-    /// one caller — `WorkoutRecorder+Ticker.pushLiveStateToWatch` — and the
+    /// one caller — `WorkoutTicker+Tick.pushLiveStateToWatch` — and the
     /// arguments group naturally (`LiveTotals` carries the running totals).
     struct LiveState {
         let sport: Sport

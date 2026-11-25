@@ -236,7 +236,7 @@ This section is the short version; read the spec before any non-trivial change.
   `.ci/try_optional_budget.txt` guard caps silent `try?` usage.
 - **Zero tolerance for magic** — no hidden global mutable state, no
   stringly-typed APIs, **no magic numbers in logic**. All thresholds live
-  centralized and named in `Emuqu/Sources/Utilities/Constants.swift` (+`Constants+RecoveryScore.swift`).
+  centralized and named in `Emuqu/Sources/Utilities/Constants.swift` (+`RecoveryScoreConstants.swift`).
 - **Explicit dependency wiring** — the only place allowed to create real
   dependencies is the wiring/boundary shell. `RRCollector.makeDefault()` is the
   production composition root (there is no DI framework); the `Protocols/` seams
@@ -246,7 +246,7 @@ This section is the short version; read the spec before any non-trivial change.
 
 | Convention | What it looks like | Why |
 |---|---|---|
-| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. A file is named for the type it extends. Splitting a file does not split a type: a part takes only what it uses (`scripts/check_coupling_budget.sh`). |
+| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. A file is named for the type it extends (`scripts/check_file_names.sh`). Splitting a file does not split a type: a part takes only what it uses (`scripts/check_coupling_budget.sh`). |
 | **Centralized constants** | `Constants.swift` namespaced enums (`RecoveryScoreConstants`, `ScoringWeights`, `FeatureFlags`, …) | No magic numbers in logic; scoring thresholds auditable in one place. |
 | **Centralized theme** | `Utilities`/`Views` `AppTheme` / `Theme.swift` | Colors, typography, accent themes in one surface. |
 | **Per-screen archive subscription** | each screen owns its own `recentSessionsAsync(...)` refresh `Task` | Load limits are per-screen, not tab-routing-dependent (see [`ARCHITECTURE.md` → UI Session Load Contract](ARCHITECTURE.md#ui-session-load-contract)). |
@@ -353,7 +353,7 @@ The signal-processing and scoring engine. Mostly pure transforms.
 - `HRVAnalysisPipeline.swift` — top-level orchestrator: raw RR → `AnalysisResult`.
 - `RecoveryScoreCalculator.swift` (+`+Composite`, `+Tiers`, `+Training`, `+Parts`; readiness in `ReadinessScoring`, vitals in `VitalsScoring`, tier composition in `ScoreDetailBuilder`) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
 - Signal metrics: `TimeDomainAnalysis`, `FrequencyDomainAnalysis`, `NonlinearAnalysis`, `DFAAnalysis`, `LiveDFAAnalyzer` (rolling α1 during workouts).
-- `WindowSelection.swift` (+`+Evaluation`, `+Filters`) — picks the best recovery window (score = RMSSD × stability), not raw peak RMSSD.
+- `WindowSelector.swift` (+`+Evaluation`, `+Filters`) — picks the best recovery window (score = RMSSD × stability), not raw peak RMSSD.
 - Workout analytics: `WorkoutAnalyzer.swift`, `WorkoutAnalysisSnapshotBuilder.swift`, `WorkoutLiveTrends.swift`, `WorkoutAlpha1Reanalyzer`, `BarometricAltitudeProcessor`, `TopoElevationService`.
 - Baselines/trends/load/sleep: `BaselineTracker`, `TrendAnalysis`, `TrainingLoadRegistry`, `HeatAcclimation`, `SleepScienceAnalyzer`, `SleepResolver`, `AnalysisSummaryGenerator` (narrative).
 - Track I/O: `CSVExporter`, `GPXExporter`, `TCXExporter`, `GPXImporter`.
@@ -417,7 +417,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 ### 5.5 `Storage/` — persistence, encryption, sync (~49 files)
 
-- `Archive.swift` (+`+StoreAPI`, `+Migrations`, `+Repair`, `+Parts`; merge logic in `SessionMerger`, migrations in `ArchiveMigrations`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
+- `SessionArchive.swift` (+`+StoreAPI`, `+Migrations`, `+Repair`, `+Parts`; merge logic in `SessionMerger`, migrations in `ArchiveMigrations`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
 - iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`; `CloudSessionPayload` (`CloudSessionPayload.swift`) — the upload shape, with Apple Health data left out; `CloudAccountIdentity` + `CloudAccountGuard` (`CloudAccountIdentity.swift`) — the Apple ID sync was turned on for, checked before anything is read from or written to iCloud; `CloudAccountChangeHandler` — what `.CKAccountChanged` does to sync.
 - Support: `EncryptionManager`, `DataCompression` (ZLIB), `RawRRBackup`, `WorkoutTrackBackup`, caches (`SleepDataCache`, `UIStateCache`, `RespiratoryBaselineCache`, `WristTemperatureBaselineCache`), `SessionStorageDiagnostic`.
 
@@ -500,7 +500,7 @@ themselves hold the full field lists; this is the orientation.
 | Type | File | What it is |
 |---|---|---|
 | **`HRVSession`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`HRVSession`) | **The central record.** One recording (overnight or quick) or workout. Holds `analysisResult`, `sleepSnapshot`, `vitalsSnapshot`, `rrSeries`, tags, notes, `recoveryScore` (0–10 stored), `sessionType`, `linkedSessionIds`. |
-| **`SessionArchiveEntry`** | `Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift` (`SessionArchiveEntry`) | Lightweight **in-memory index** row — metadata only (no `rrSeries`) so trends/lists/AI can scan the whole archive cheaply. Carries score, means, tags, sleep-stage minutes, `sleepEnd`, `fileHash`, `filePath`. |
+| **`SessionArchiveEntry`** | `Emuqu/Sources/Models/SessionArchiveEntry.swift` (`SessionArchiveEntry`) | Lightweight **in-memory index** row — metadata only (no `rrSeries`) so trends/lists/AI can scan the whole archive cheaply. Carries score, means, tags, sleep-stage minutes, `sleepEnd`, `fileHash`, `filePath`. |
 | **`HRVAnalysisResult`** | `Emuqu/Sources/Models/RRModels.swift` | The computed HRV payload (time/frequency/nonlinear metrics, window info, artifact %). The doc's "AnalysisResult". |
 | **`ANSMetrics`** | `Emuqu/Sources/Models/RRModels.swift` (`ANSMetrics`) | Autonomic metrics incl. the HRV-only `readinessScore` (1-10). |
 | **`RRPoint` / RR models** | `Emuqu/Sources/Models/RRModels.swift` | Raw RR-interval primitives (`t_ms`, `rr`, wall-clock). |
@@ -586,7 +586,7 @@ The spine of the product.
    (`MorningSessionPipeline+Analysis.swift`) → `RecoveryScoreCalculator.calculateWithBreakdown`
    computes the composite **0–100** (HRV 60 / Sleep 25 / Vitals 15, with tier
    fallback and comeback-mode reweighting), then stores it **0–10** via
-   `RecoveryScoreCalculator.toTenScale`. All thresholds live in `Constants+RecoveryScore.swift`.
+   `RecoveryScoreCalculator.toTenScale`. All thresholds live in `RecoveryScoreConstants.swift`.
 7. **Archive + notify** — the session is pre-archived for crash safety
    (`archive.archive(finalSession)`), `archiveSignal.notifyChanged()` bumps
    `archiveVersion`, and CloudKit upload fires.
@@ -641,7 +641,7 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
    queries with a fact-catalog read + template, **zero tokens**, before the
    consent check and any LLM call.
 3. **Route** — `dispatch()` calls `resolveProviderForThisTurn()`
-   (`AssistantViewModel+Routing.swift`, pure core in `TurnRouter`). The
+   (`AssistantTurnRouter+Routing.swift`, pure core in `TurnRouter`). The
    `RoutingMode` acts only while Apple Intelligence is the selected model; with
    any other model selected, every turn goes to that model. With Apple selected:
    Manual keeps every turn on Apple; a voice turn goes to the first consented
@@ -652,11 +652,11 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
    Grok, then DeepSeek, else Apple. If the tier lands on Apple and the message
    needs tools Apple can't call, the turn goes to the first consented cloud. A
    50-turn/day cap on cloud Deep turns downgrades to Auto.
-4. **Tool-use loop** — `runToolUseLoop` (`AssistantViewModel+Tools.swift`):
+4. **Tool-use loop** — `runToolUseLoop` (`AssistantToolRunner+Tools.swift`):
    the provider streams; `.textDelta` appends, `.toolUse` accumulates; each tool
    call is resolved **locally** by `CompactToolRouter.resolveTool` over the Fact
    Catalog (no network); results go back as a continuation. Hard cap
-   **`maxToolCallsPerTurn = 8`** (`AssistantViewModel+Tools.swift`), then one closing pass.
+   **`maxToolCallsPerTurn = 8`** (`AssistantToolRunner+Tools.swift`), then one closing pass.
    Once a tool that changes data has run, a failed round is shown rather than
    handed to another model (`PickedModelFailure`). Tools that delete, or that
    write a value the user did not state in their latest message (a memory fact,
@@ -679,7 +679,7 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
 
 ### 7.5 Storage & iCloud sync
 
-1. **Write** — `SessionArchive.archive(_:)` (`Emuqu/Sources/Storage/Archive.swift`) encodes the
+1. **Write** — `SessionArchive.archive(_:)` (`Emuqu/Sources/Storage/SessionArchive.swift`) encodes the
    session to JSON in the App Group container, stores its SHA-256, updates the
    locked in-memory index, and persists the index.
 2. **Sync up** — only when iCloud sync is on (off by default).
@@ -713,7 +713,7 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
    writes already under way. iCloud sync is turned off before the remote
    delete.
 6. **Deferred migrations** — `runDeferredMigrations()`
-   (`Emuqu/Sources/Storage/Archive+Migrations.swift`) runs the idempotent one-time
+   (`Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift`) runs the idempotent one-time
    migrations on a background thread at launch.
 
 ---
@@ -734,7 +734,7 @@ doc. Use this to decide *where to read next*.
   Selection, Recovery Score, Sleep, Baseline sections).
 - **Key contracts:** window selection operates on 30–70 % of *actual sleep*, not
   recording duration; scores freeze at morning measurement; all magic numbers in
-  `Constants+RecoveryScore.swift`.
+  `RecoveryScoreConstants.swift`.
 
 ### 8.2 Workout & training load
 
@@ -911,7 +911,7 @@ substitute on its `overrides`, puts it in force with
 
 ### 9.5 Feature flags & kill switches
 
-`Constants+SleepAndDisplay.swift` (`FeatureFlags`) holds **intentional kill
+`SleepAndDisplayConstants.swift` (`FeatureFlags`) holds **intentional kill
 switches** — per-provider AI switches (disable OpenAI/Anthropic/Gemini/Grok/
 DeepSeek without deleting the key, e.g. on a leak or outage) and per-feature
 switches (e.g. the Beat Consistency card). These are **not** dead code. They
@@ -1038,7 +1038,7 @@ history, as the conversation is.
 (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`), never in UserDefaults/JSON,
 never iCloud-synced. Dictation (`SpeechInputManager`) is on-device only. Voice
 chat recognition is on-device when the device supports it; otherwise it uses
-Apple's server recognizer (`VoiceConversationController+Pipeline.swift`). Supply-chain: GitHub Actions pinned to
+Apple's server recognizer (`VoiceAudioPipeline+Engine.swift`). Supply-chain: GitHub Actions pinned to
 SHAs; Dependabot is configured monthly with `open-pull-requests-limit: 0`,
 so it opens no PRs and upgrades are made by hand. Full posture: [`.github/SECURITY.md`](../.github/SECURITY.md).
 A copy-perimeter linter (`Tools/copy_linter/`) blocks prohibited medical-claim
@@ -1199,7 +1199,7 @@ zero on both counters:
 | `WorkoutDetailFacts` | the fact catalogue: one property per entry, `description:` hoisted to a `static let`, the resolve closure lifted to a method |
 | `LiveCoachingFacts` | a 173-line `location.situation` resolver split into fix / address / POI / journey record builders |
 | `AnalysisSummaryGenerator+Steps` | pure logic: a 236-line `[String]` builder turned into `append…(&steps, gates:)` steps over one `PushGates` value |
-| `SettingsPages+DiagnosticActions` | a `Group` of `Section`s where every `Button { } label: { }` became `Button { action() } label: { … }` |
+| `TroubleshootingPage+DiagnosticActions` | a `Group` of `Section`s where every `Button { } label: { }` became `Button { action() } label: { … }` |
 | `MorningResultsView` | the widest one: `withSheets` / `withDialogs` / `withLifecycle` peel 3 sheets, 3 dialogs and 4 lifecycle hooks off a 325-line body |
 
 **The metric only moves when every piece lands at or under 20.** Splitting one

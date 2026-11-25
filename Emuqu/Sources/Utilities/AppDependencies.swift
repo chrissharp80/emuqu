@@ -9,7 +9,7 @@ import SwiftUI
 /// to read for who depends on what. So:
 ///
 /// - This file is the composition root: `Type.shared` is read here and in
-///   `AppDependencies+Instances.swift`, which builds the services whose
+///   `SharedInstances.swift`, which builds the services whose
 ///   construction names other services, and nowhere else
 ///   (`scripts/check_no_shared_outside_root.sh` enforces it).
 /// - Every accessor resolves lazily, so nothing is constructed until it is

@@ -6,7 +6,7 @@ import UIKit
 
 // Text-to-speech, permissions and the voice system prompt. The input side —
 // start cue, interruption recovery, and streaming observation — lives in
-// `VoiceConversationController+Audio.swift`.
+// `VoiceAudioPipeline+Audio.swift`.
 
 extension VoiceConversationController {
     // MARK: - TTS

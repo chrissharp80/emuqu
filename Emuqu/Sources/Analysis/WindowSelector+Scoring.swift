@@ -2,7 +2,7 @@ import Foundation
 
 // Selector configuration and the scoring rules: temporal representativeness,
 // stability weighting, spike filtering. The organization metrics live in
-// `WindowSelection.swift`.
+// `WindowSelector.swift`.
 
 extension WindowSelector {
     // MARK: - Configuration

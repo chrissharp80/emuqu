@@ -87,7 +87,7 @@ final class WorkoutLifecycle {
     @ObservationIgnored var ownedStrapStreamStart: Date?
 
     /// Open correlation scope for the workout in progress, `nil` when idle.
-    /// Plumbing lives in `WorkoutRecorder+Correlation.swift`.
+    /// Plumbing lives in `WorkoutLifecycle+Correlation.swift`.
     var logCorrelation: LogCorrelation.Token?
 }
 

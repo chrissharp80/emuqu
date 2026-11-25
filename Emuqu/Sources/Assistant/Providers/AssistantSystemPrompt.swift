@@ -3,7 +3,7 @@ import Foundation
 // The shared system prompt's composer: which sections go to which provider and
 // turn, in what order, split into a cacheable stable half and a per-send half.
 // The prose itself (the medical boundary, the tone rules, the tool-use
-// contract) is in `AIProvider+SystemPromptText.swift`, where the exact bytes
+// contract) is in `AssistantSystemPrompt+Text.swift`, where the exact bytes
 // are the contract with the model.
 
 // MARK: - Shared system prompt

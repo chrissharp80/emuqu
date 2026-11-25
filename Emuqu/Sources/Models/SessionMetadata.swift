@@ -3,7 +3,7 @@ import UIKit
 
 // The session (`HRVSession`), where it came from (`DeviceProvenance`), what
 // kind it is (`SessionType`) and how good its HRV is (`HRVDataQuality`).
-// `SessionMetadata+ArchiveEntry.swift` holds the archive's index entry;
+// `SessionArchiveEntry.swift` holds the archive's index entry;
 // `HRVSession.swift` holds the lightweight-decoding flag, reading tags and the
 // hex `Color` helper.
 

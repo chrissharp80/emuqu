@@ -7,8 +7,7 @@ import UIKit
 
 // AI context builders (workout, route topology, weather), route
 // auto-detection, climb/turn computation, threshold breach evaluation,
-// breadcrumb archival, split paces, and grade; and the interval controller's
-// progress snapshot for the live broker.
+// breadcrumb archival, split paces, and grade.
 
 extension WorkoutAIContextBuilder {
     /// The per-turn locals `buildContext` derives before assembling the snapshot.
@@ -523,45 +522,5 @@ extension WorkoutAIContextBuilder {
         guard let startBaro = baro.last(where: { $0.timestamp <= startFix.timestamp }),
               let endBaro = baro.last else { return endFix.altitude - startFix.altitude }
         return endBaro.altitudeMeters - startBaro.altitudeMeters
-    }
-
-}
-
-extension WorkoutRecorder {
-    /// The user deleted the saved route `id`: when it is the one this
-    /// workout is following, the workout stops following it, so the coach
-    /// no longer names it and the session is not stamped with it ("the coach
-    /// stops recognising it on your workouts").
-    func forgetDeletedSavedRoute(_ id: UUID) {
-        guard route.savedRouteId == id else { return }
-        route.planned = nil
-        route.savedRouteId = nil
-        route.wasAutoDetected = false
-        route.direction = .forward
-        debugLog("[WorkoutRecorder] saved route \(id.uuidString.prefix(8)) deleted during the workout — no longer followed")
-    }
-}
-
-extension IntervalController {
-    /// Snapshot the IntervalController's current state for the AI broker
-    /// each tick. Returns nil when no plan is bound or the plan has
-    /// finished (so the AI doesn't see a stale step from a prior plan).
-    /// `nextStepLabel` peeks one ahead so the assistant can answer "what's
-    /// after this?" without needing the whole plan.
-    func liveProgressSnapshot() -> AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot? {
-        guard let step = currentStep, !isFinished else { return nil }
-        let stepLabel = step.intervalAILabel
-        // The next step's label, or nil after the last step.
-        let nextLabel: String? = peekNextStep()?.intervalAILabel
-        let remaining: Int? = step.durationSec.map { max(0, $0 - stepElapsedSec) }
-        return AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot(
-            currentStepNumber: stepNumber,
-            totalSteps: totalSteps,
-            currentStepLabel: stepLabel,
-            stepElapsedSec: stepElapsedSec,
-            stepRemainingSec: remaining,
-            nextStepLabel: nextLabel,
-            isFinished: isFinished
-        )
     }
 }

@@ -6,7 +6,7 @@ import UIKit
 
 // Recap-card generation, PDF mail/share and the share-sheet rows. These
 // produce artifacts the user sends elsewhere; the cards in
-// `FitnessPostSummaryView+Cards.swift` are what the screen renders.
+// `FitnessSummaryCards+Cards.swift` are what the screen renders.
 
 extension FitnessSummaryCards {
 

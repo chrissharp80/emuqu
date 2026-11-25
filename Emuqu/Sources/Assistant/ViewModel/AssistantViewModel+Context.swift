@@ -2,7 +2,7 @@ import Foundation
 
 // Conversation summarization, token-aware truncation, auto-fact extraction and
 // the announce-but-don't-call detector. These shape what the model is
-// *given*; the tool-use dispatch loop in `AssistantViewModel+Tools.swift`
+// *given*; the tool-use dispatch loop in `AssistantToolRunner+Tools.swift`
 // acts on what it returns.
 
 extension AssistantViewModel {

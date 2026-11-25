@@ -87,7 +87,7 @@ In order:
 7. A stream already running → `queueBehindStream` stores the message in `pendingSendOnFinish` (latest wins) → `.queued`.
 8. `dispatchToProvider` appends the user turn, sets `nextSendIsVoice`, prewarms Apple's model when Apple may be routed to, and calls `dispatch()`.
 
-### 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`
+### 3.3 `dispatch()` — `AssistantTurnRouter+Routing.swift`
 
 `dispatch()` lives on `AssistantTurnRouter` (the view-model forwards to it).
 
@@ -105,7 +105,7 @@ In order:
 5. Drops the assistant turn if it ended empty; if this is still the current generation, sets the "No answer came back from the AI" error when the turn was dropped with no error set and was not stopped (`reportEmptyReply`, so voice mode speaks its recovery line), clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled` and the reply completed normally).
 6. `finishStream(generation:)`, which dispatches a message queued during the stream.
 
-### 3.4 `runToolUseLoop` — `AssistantViewModel+Tools.swift`
+### 3.4 `runToolUseLoop` — `AssistantToolRunner+Tools.swift`
 
 Each round calls `provider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)` and consumes the stream:
 
@@ -238,7 +238,7 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ## 7. AssistantSystemPrompt — Cache-aware composition
 
-**Files:** `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift` (composition), `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift` (`base` and the overlays).
+**Files:** `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt.swift` (composition), `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt+Text.swift` (`base` and the overlays).
 
 `composeSplit(...)` returns `Composed` with a `stable` and a `variable` half. `compose(...)` returns `combinedWithMarker`: the two halves joined by `Composed.cacheSplitMarker`. Anthropic splits on the marker and caches the stable block; the other providers strip it.
 
@@ -265,7 +265,7 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ## 8. Routing — `TurnRouter` and `SmartProviderRouter`
 
-**Files:** `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` (pure decision, tested by `TurnRouterTests`), `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift` (`resolveProviderForThisTurn` gathers inputs), `Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift`, `Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift`, `Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift`.
+**Files:** `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` (pure decision, tested by `TurnRouterTests`), `Emuqu/Sources/Assistant/ViewModel/AssistantTurnRouter+Routing.swift` (`resolveProviderForThisTurn` gathers inputs), `Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift`, `Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift`, `Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift`.
 
 ### 8.1 Tiers and modes
 
@@ -376,7 +376,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 ### 13.4 Prompt-level boundary
 
-`base` in `AIProvider+SystemPromptText.swift` opens with an information-access principle: answer general health and physiology questions factually rather than deflecting to "ask your doctor". A narrow MEDICAL BOUNDARY follows: no personal diagnosis, a fixed reply that points to a clinician or emergency services for red-flag symptoms, the same injury reply as the guard, and a crisis-line reply for self-harm. The local guard in §13.1 still applies if the prompt is ignored.
+`base` in `AssistantSystemPrompt+Text.swift` opens with an information-access principle: answer general health and physiology questions factually rather than deflecting to "ask your doctor". A narrow MEDICAL BOUNDARY follows: no personal diagnosis, a fixed reply that points to a clinician or emergency services for red-flag symptoms, the same injury reply as the guard, and a crisis-line reply for self-harm. The local guard in §13.1 still applies if the prompt is ignored.
 
 ---
 

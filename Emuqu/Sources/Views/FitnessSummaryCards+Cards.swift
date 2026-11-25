@@ -7,7 +7,7 @@ import SwiftUI
 // Physiology, splits, route history, coach report, save route, export
 // and recap-share cards. The two cards that rewrite the archived workout
 // (re-smooth elevation, re-analyze α1) are in
-// FitnessPostSummaryView+Rewrites.swift.
+// FitnessSummaryCards+Rewrites.swift.
 
 extension FitnessSummaryCards {
 

@@ -127,7 +127,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     ///
     /// One lock for the whole append: taking and releasing `lock` several
     /// times across `appendIncremental`, with file I/O in between each pair,
-    /// leaves the read-modify-write non-atomic. `WorkoutRecorder+Ticker` drives it
+    /// leaves the read-modify-write non-atomic. `WorkoutTicker+Tick` drives it
     /// from `Task.detached` on every 1 Hz tick, and detached tasks are
     /// unordered relative to each other, so two overlapping calls interleave.
     ///

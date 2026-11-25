@@ -39,7 +39,7 @@ ALLOWLIST=(
     # WatchConnectivityBridge+Session: WCSession's reply handler is not
     # declared Sendable; the box carries it to the main actor and back.
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift"
-    "Emuqu/Sources/Storage/Archive.swift"
+    "Emuqu/Sources/Storage/SessionArchive.swift"
     "Emuqu/Sources/Storage/RawRRBackup.swift"
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift"
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift"

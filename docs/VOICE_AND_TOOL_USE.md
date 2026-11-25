@@ -251,7 +251,7 @@ full instructions and lean on prompt caching.
    structured `FactValue`.
 3. The result goes back in a continuation message. The model either asks
    for another tool (chained lookup) or composes a text answer.
-4. Hard cap: **8 tool calls per turn** (`AssistantViewModel+Tools.maxToolCallsPerTurn`).
+4. Hard cap: **8 tool calls per turn** (`AssistantToolRunner+Tools.maxToolCallsPerTurn`).
    On the 9th the resolver returns a synthetic
    `{"status":"missing","reason":"tool budget exceeded"}`, and we give the
    model one more pass to compose a closing sentence before force-exiting

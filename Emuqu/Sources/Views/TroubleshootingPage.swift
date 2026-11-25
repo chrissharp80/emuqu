@@ -3,7 +3,7 @@ import UIKit
 
 // The Troubleshooting page: problem reports, crash report, reanalysis and,
 // behind Advanced Diagnostics, the engineering read-outs. Its actions live in
-// SettingsPages+DiagnosticActions.swift.
+// TroubleshootingPage+DiagnosticActions.swift.
 
 // MARK: - Troubleshooting Page (consumer-facing)
 
