@@ -154,7 +154,11 @@ struct CompactToolRouter {
             let capped = purpose.count > 170 ? String(purpose.prefix(170)) + "…" : purpose
             return "- \(spec.name): \(capped)"
         }
-        return """
+        return capabilityIndexHeader + "\n\n" + lines.joined(separator: "\n")
+    }
+
+    /// The instructions above the tool list in `capabilityIndex()`.
+    private static let capabilityIndexHeader = """
         # What you can retrieve (data tools)
         These tools fetch the user's OWN data from the app. For ANY question about \
         the user's recovery, HRV, sleep, vitals, training load, trajectory, workouts, \
@@ -167,10 +171,7 @@ struct CompactToolRouter {
         the app can't do something. Every pace comes with a `…pace_display` field \
         already in the user's units ("9:07 /mi"): say that one, never convert \
         `…pace_sec_per_km` yourself.
-
-        \(lines.joined(separator: "\n"))
         """
-    }
 
     // MARK: - Read tool catalog
 
