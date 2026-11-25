@@ -231,4 +231,28 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
         let result = try XCTUnwrap(TrainingLoadPrecedence.stored(meta, ftp: .init(running: 250, cycling: nil)))
         XCTAssertEqual(result.value, 70)
     }
+
+    /// A workout whose file cannot be read still counts toward the load,
+    /// from its index entry's span and mean heart rate, instead of dropping
+    /// out of the load frozen into the night's score.
+    func testAnUnreadableWorkoutIsCountedFromItsIndexEntry() throws {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let entry = SessionArchiveEntry(
+            sessionId: UUID(), date: start, endDate: start.addingTimeInterval(45 * 60),
+            fileHash: "", filePath: "", meanHR: 142, sessionType: .workout
+        )
+        let summary = try XCTUnwrap(HealthKitManager.WorkoutSummary.summaryFromIndex(entry))
+        XCTAssertEqual(summary.durationMinutes, 45, accuracy: 0.01)
+        XCTAssertEqual(summary.averageHR, 142)
+    }
+
+    /// Without a span or heart rate there is nothing to count from.
+    func testAnIndexEntryWithoutHeartRateIsNotGuessedAt() {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let entry = SessionArchiveEntry(
+            sessionId: UUID(), date: start, endDate: start.addingTimeInterval(45 * 60),
+            fileHash: "", filePath: "", sessionType: .workout
+        )
+        XCTAssertNil(HealthKitManager.WorkoutSummary.summaryFromIndex(entry))
+    }
 }

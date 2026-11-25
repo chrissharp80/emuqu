@@ -1,11 +1,12 @@
 name: CI
 
-# Runs the macOS build, the unit suite and Thread Sanitizer on every pull
-# request and every push to main (scope `unit`). The repository is public and
-# these jobs use GitHub's standard macOS runner, on which public repositories
-# pay no Actions minutes; the billing figures below are what the same runs
-# cost on a private repository. The UI target (scope `full`, ~90 min) stays
-# manual and is what testflight.yml calls before a release.
+# Runs the macOS build, the unit suite with every coverage floor and Thread
+# Sanitizer on every pull request and every push to main (scope `unit`). The
+# UI target (scope `full`, ~2 h) runs every night on main, on demand, and from
+# testflight.yml before a release. The repository is public and these jobs use
+# GitHub's standard macOS runner, on which public repositories pay no Actions
+# minutes; the billing figures below are what the same runs cost on a private
+# repository.
 #
 # Reasoning and accepted trade-offs: docs/CI_POSTURE.md
 #
@@ -31,11 +32,13 @@ on:
   #
   # Pull requests and pushes to main carry no inputs, so `inputs.scope` is
   # empty there: the jobs gated on `scope != 'gates'` run, and the tests job
-  # takes the `unit` scope. Pick `full` by hand when a release needs the
-  # coverage floors and the UI flows.
+  # takes the `unit` scope. The nightly schedule takes `full`, so a change
+  # that breaks only a UI flow is caught the night it lands on main.
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "17 7 * * *"
   workflow_dispatch:
     inputs:
       scope:
@@ -63,7 +66,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # The nightly run has its own group, so a push to main does not cancel it.
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'run' }}
   cancel-in-progress: true
 
 jobs:
@@ -474,11 +478,8 @@ jobs:
   tests:
     name: Tests + coverage
     # Skipped for a `gates` run. On `unit` it runs the unit target only, which
-    # is ~10 of its ~88 minutes; `TEST_SCOPE` below is what selects that, and
-    # run_tests_with_coverage.sh skips the overall and logic coverage floors
-    # there, because they were calibrated against the full suite. The Views
-    # floor (.ci/min_coverage_views.txt) still applies on `unit`: snapshot
-    # tests in the unit target are what execute view bodies.
+    # is ~10 of its ~88 minutes; `TEST_SCOPE` below is what selects that. All
+    # three coverage floors (.ci/min_coverage*.txt) apply at either scope.
     if: inputs.scope != 'gates'
     runs-on: macos-26
     # A liveness ceiling: the repository is public, so standard runners bill
@@ -488,7 +489,7 @@ jobs:
     # 180 leaves room for the retry the script allows itself.
     timeout-minutes: 180
     env:
-      TEST_SCOPE: ${{ inputs.scope == 'full' && 'full' || 'unit' }}
+      TEST_SCOPE: ${{ (inputs.scope == 'full' || github.event_name == 'schedule') && 'full' || 'unit' }}
       # MIN_COVERAGE is deliberately NOT set here. The floors live in
       # `.ci/min_coverage.txt` (overall) and `.ci/min_coverage_logic.txt`
       # (logic layers, ex-Views), derived from measurement, then ratcheted, and

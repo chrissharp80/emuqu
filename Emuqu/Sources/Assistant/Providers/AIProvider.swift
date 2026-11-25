@@ -382,6 +382,10 @@ enum AIProviderError: LocalizedError {
     /// Like Apple's guardrail, it is shown as it is and never handed to
     /// another provider.
     case blockedReply(provider: ProviderID, reason: String)
+    /// The provider has no data-sharing consent at the moment a request
+    /// was about to leave: the user withdrew it during the turn, or it was
+    /// never given. Nothing was sent, and no other provider is tried.
+    case consentWithdrawn(ProviderID)
 
     /// True when this error came from Apple Intelligence's safety
     /// filter. A refusal is shown to the user as it is and never re-sent
@@ -418,7 +422,7 @@ enum AIProviderError: LocalizedError {
             // the chat. If the same error comes back from all
             // fallbacks, the user sees the original.
             return true
-        case .guardrailViolation, .blockedReply, .cancelled:
+        case .guardrailViolation, .blockedReply, .cancelled, .consentWithdrawn:
             return false
         }
     }
@@ -446,6 +450,8 @@ enum AIProviderError: LocalizedError {
         case let .blockedReply(provider, _):
             String(localized: "\(provider.displayName) declined to answer this. Try asking it another way.", bundle: bundle)
         case let .unknown(msg): Self.vendorText(msg) { msg }
+        case let .consentWithdrawn(provider):
+            String(localized: "Sharing with \(provider.displayName) is off, so nothing more was sent to it.", bundle: bundle)
         }
     }
 
@@ -736,9 +742,9 @@ protocol AIProvider {
 
     /// Optional cap on how many tool schemas this provider's API will accept
     /// in a single call. nil = no cap. Grok 4.1 Fast (and some other xAI
-    /// models) error 400 with "Maximum tools limit reached" past 200; we
-    /// trim the Fact Catalog by namespace priority before dispatch when the
-    /// cap is exceeded. See AssistantViewModel.factRegistryAndTools.
+    /// models) error 400 with "Maximum tools limit reached" past 200. A
+    /// list over the cap keeps its first entries
+    /// (`AssistantViewModel.trimTools`).
     var maxToolSchemaCount: Int? { get }
 
     /// Stream a response. The provider receives:
@@ -868,4 +874,15 @@ struct AIProviderServices: Sendable {
     var appleToolDispatcher: AppleToolDispatcher { container.providers.appleToolDispatcher }
     var keyboardPerfSignpost: KeyboardPerfSignpost { container.app.keyboardPerfSignpost }
     var settingsManager: SettingsManager { container.app.settingsManager }
+    @MainActor
+    var providerConsentTracker: ProviderConsentTracker { container.providers.providerConsentTracker }
+    @MainActor
+    var providerRegistry: ProviderRegistry { container.providers.providerRegistry }
+
+    /// Whether `provider` may receive a request now: it has data-sharing
+    /// consent and is not switched off in Settings → Flo.
+    @MainActor
+    func maySend(to provider: ProviderID) -> Bool {
+        !providerConsentTracker.requiresConsent(provider) && providerRegistry.isEnabled(provider)
+    }
 }

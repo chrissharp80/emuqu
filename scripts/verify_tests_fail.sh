@@ -1083,6 +1083,84 @@ mutate "interrupted_delete_left_outside_trash" "EmuquTests/ArchiveInterruptionTe
     "Emuqu/Sources/Storage/Archive.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive.swift');s=p.read_text();o='        store.finishInterruptedDeletes()\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
+# Consent is read as each cloud request leaves, not once per turn, or a
+# summary or tool round goes out after the user withdrew it.
+mutate "consent_checked_only_at_dispatch" "EmuquTests/ProviderConsentTrackerTests" \
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Providers/ProviderStream.swift');s=p.read_text();o='        try await requireConsent(for: provider, services: services)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# The generic CSV path must keep empty fields, or the column after an empty
+# one is read as RR.
+mutate "csv_empty_fields_dropped" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='                let columns = Self.fields(of: line, separator: separator)\n';assert s.count(o)==1;p.write_text(s.replace(o,'                let columns = line.split(separator: separator).map { String(\$0).trimmingCharacters(in: .whitespaces) }\n'))"
+
+# A session the history load could not read keeps the copy already shown.
+mutate "history_gap_drops_shown_copy" "EmuquTests/SessionDecodeTests" \
+    "Emuqu/Sources/Collection/SessionLoad.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SessionLoad.swift');s=p.read_text();o='let previous = Dictionary(earlier.map { (\$0.id, \$0) }, uniquingKeysWith: { first, _ in first })';assert s.count(o)==1;p.write_text(s.replace(o,'let previous = [UUID: HRVSession]()'))"
+
+# The crash handler's frame walk must stop at a link that leads back down
+# the stack, or a corrupt chain spins until the frame limit.
+mutate "frame_walk_follows_links_down" "EmuquTests/CrashFrameChainTests" \
+    "Emuqu/Sources/Utilities/CrashSignalHandler.c" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/CrashSignalHandler.c');s=p.read_text();o='        if (next <= fp) {\n';assert s.count(o)==1;p.write_text(s.replace(o,'        if (0) {\n'))"
+
+# A replacing baseline rebuild keeps the nights it could not read.
+mutate "baseline_rebuild_drops_unread_nights" "EmuquTests/BaselineTrackerTests" \
+    "Emuqu/Sources/Analysis/BaselineTracker.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/BaselineTracker.swift');s=p.read_text();o='historicalData = historicalData.filter { point in point.sessionId.map(unreadable.contains) ?? false }';assert s.count(o)==1;p.write_text(s.replace(o,'historicalData = []'))"
+
+# A pause backs the strap's downloaded beats up before the analysis.
+mutate "pause_leaves_strap_night_in_memory" "EmuquTests/StrapRecoveryFlowTests" \
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightGather.swift');s=p.read_text();o='        await collector.overnightStreaming.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
+
+# A Skip as the download finishes keeps the downloaded beats.
+mutate "late_skip_drops_download" "EmuquTests/StrapRecoveryFlowTests" \
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift');s=p.read_text();o='        collector.morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# Discard Night leaves nothing in the Trash.
+mutate "discard_leaves_night_in_trash" "EmuquTests/RecordingDiscardTests" \
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Discard.swift');s=p.read_text();o='        collector.archive.store.discardTrashed(id)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# A file the archive could not read is reported to the tool call resolving.
+mutate "failed_read_reported_as_no_data" "EmuquTests/SessionReadWatchTests" \
+    "Emuqu/Sources/Storage/Archive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive.swift');s=p.read_text();o='            SessionReadWatch.failures?.record()\n';assert s.count(o)==2;p.write_text(s.replace(o,''))"
+
+# An extraction still running stores nothing after a clear or Forget everything.
+mutate "auto_remember_ignores_clear" "EmuquTests/AutoRememberTests" \
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift');s=p.read_text();o='factsStore.extractionEpoch == epoch';assert s.count(o)==1;p.write_text(s.replace(o,'epoch == epoch'))"
+
+# A blank timestamp in an Emuqu export is worked out, not rejected.
+mutate "blank_emuqu_timestamp_rejected" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift');s=p.read_text();o=', !fields[tsIdx].isEmpty else';assert s.count(o)==1;p.write_text(s.replace(o,' else'))"
+
+# An edit from a device that missed a same-night fold keeps the folded beats.
+mutate "pull_drops_folded_beats" "EmuquTests/CloudKitSessionFreshnessTests" \
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSessionFreshness.swift');s=p.read_text();o='let kept = keepingBeatsOnlyHere(session, in: &merged)';assert s.count(o)==1;p.write_text(s.replace(o,'let kept = keepingBeatsOnlyHere(remote, in: &merged)'))"
+
+# An unreadable workout counts toward the load from its index entry.
+mutate "unreadable_workout_drops_from_load" "EmuquTests/TrainingLoadPrecedenceTests" \
+    "Emuqu/Sources/Collection/HealthDataTypes.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthDataTypes.swift');s=p.read_text();o='averageHR: meanHR, maxHR: nil';assert s.count(o)==1;p.write_text(s.replace(o,'averageHR: nil, maxHR: nil'))"
+
+# The score screen counts earlier nights it could not read.
+mutate "score_screen_hides_missing_nights" "EmuquTests/SessionDecodeTests" \
+    "Emuqu/Sources/Views/MorningResultsView+Parts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/MorningResultsView+Parts.swift');s=p.read_text();o='guard !shown.isEmpty else { return 0 }';assert s.count(o)==1;p.write_text(s.replace(o,'guard shown.isEmpty else { return 0 }'))"
+
+# Deleting the saved route a workout follows unbinds it.
+mutate "deleted_route_still_followed" "EmuquTests/SavedRouteDeletionTests" \
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Context.swift');s=p.read_text();o='guard plannedSavedRouteId == id else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard plannedSavedRouteId != id else { return }'))"
+
 echo
 echo "  $PASS caught, $FAIL survived, $INVALID did not compile, $SKIP skipped"
 # A share that ran nothing measured nothing.

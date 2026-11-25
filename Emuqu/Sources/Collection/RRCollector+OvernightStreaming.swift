@@ -422,7 +422,7 @@ extension OvernightStreamingCoordinator {
     /// beats it will be scored on. When the strap's beats were not used, or
     /// that backup cannot be written (it would replace a larger one), they get
     /// their own backup in Lost Sessions (`rescueDownloadedBeats`).
-    private func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
+    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
         guard let devicePoints, !devicePoints.isEmpty else { return }
         if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return }
         collector.morning.rescueDownloadedBeats(devicePoints, baseSession: baseSession)
@@ -574,8 +574,7 @@ extension OvernightStreamingCoordinator {
         collector.morningCoordination.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count)
         let recording = await downloadNight(since: baseSession.startDate, streamingCount: streamingPoints.count)
         guard collector.deviceFetchPolicy != .skipByUser else {
-            debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
-            await collector.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+            await keepDownloadSkipped(recording, baseSession: baseSession)
             return nil
         }
         guard let recording else {
@@ -583,6 +582,15 @@ extension OvernightStreamingCoordinator {
             return nil
         }
         return recording.points(onClockOf: baseSession.startDate)
+    }
+
+    /// A Skip that lands as the download finishes still has the beats, and
+    /// the download is already on record: they are kept, or the next arming
+    /// would clear the strap's only copy. The night uses the stream.
+    private func keepDownloadSkipped(_ recording: StrapRecording?, baseSession: HRVSession) async {
+        debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
+        collector.morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)
+        await collector.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// The night's Skip and its arming are read once, by the gate: both are

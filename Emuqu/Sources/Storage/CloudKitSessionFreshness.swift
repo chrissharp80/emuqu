@@ -240,17 +240,44 @@ enum CloudKitSessionFreshness {
     /// lock, so an edit saved while the iCloud copy was downloading is seen
     /// and kept. Nil when the local copy now wins; the archive is then
     /// rewritten unchanged.
+    ///
+    /// Beats only this copy holds survive the replacement
+    /// (`keepingBeatsOnlyHere`): the result then carries a new stamp, is
+    /// uploaded again, and `keptLocalBeats` is true.
     static func replaceIfStillNewer(
         _ sessionId: UUID, with remote: HRVSession, onTie: Decision = .keepLocal, in archive: SessionArchive
-    ) throws -> HRVSession? {
-        var replacement: HRVSession?
+    ) throws -> (session: HRVSession, keptLocalBeats: Bool)? {
+        var replacement: (session: HRVSession, keptLocalBeats: Bool)?
         try archive.update(sessionId, requestingReupload: false) { session in
             let decision = decide(localModifiedAt: session.modifiedAt, remoteModifiedAt: remote.modifiedAt, onTie: onTie)
             guard decision == .importRemote else { return }
-            session = replacing(session, with: remote)
-            replacement = session
+            var merged = replacing(session, with: remote)
+            let kept = keepingBeatsOnlyHere(session, in: &merged)
+            if kept { merged.modifiedAt = stamp() }
+            session = merged
+            replacement = (merged, kept)
         }
+        if replacement?.keptLocalBeats == true { archive.postReuploadRequest(for: sessionId) }
         return replacement
+    }
+
+    /// The beats of `local` that `merged` (the newer copy from iCloud) lacks,
+    /// put back into it. A same-night fold made here adds a second segment's
+    /// beats to the session; another device that edits the session (a tag, a
+    /// feeling) before it pulls the fold uploads a copy without them, and
+    /// last-writer-wins alone would drop those beats on every device. The
+    /// other device's edit is kept: tags, notes and imported metrics stay as
+    /// that copy has them, so a tag removed there is not added back. True
+    /// when beats were put back.
+    static func keepingBeatsOnlyHere(_ local: HRVSession, in merged: inout HRVSession) -> Bool {
+        guard (local.rrSeries?.points.count ?? 0) > (merged.rrSeries?.points.count ?? 0) else { return false }
+        let edits = (tags: merged.tags, notes: merged.notes, importedMetrics: merged.importedMetrics)
+        guard SessionMerger.mergeSessionData(from: local, into: &merged) else { return false }
+        merged.tags = edits.tags
+        merged.notes = edits.notes
+        merged.importedMetrics = edits.importedMetrics
+        debugLog("[CloudKit] Pull: kept the beats only this device holds in the newer iCloud copy", level: .info)
+        return true
     }
 
     private static func keepSleep(of local: HRVSession, in merged: inout HRVSession) {
@@ -321,11 +348,12 @@ extension CloudPullCoordinator {
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
             // The record's date is the one the next pull compares against.
             remote.modifiedAt = copy.modifiedAt
-            guard let replacement = try CloudKitSessionFreshness.replaceIfStillNewer(sessionId, with: remote, onTie: copy.onTie, in: manager.archive) else {
+            guard let (replacement, keptLocalBeats) = try CloudKitSessionFreshness.replaceIfStillNewer(sessionId, with: remote, onTie: copy.onTie, in: manager.archive) else {
                 debugLog("[CloudKit] Pull: kept \(sessionId.uuidString.prefix(8)) — it was edited here while the iCloud copy downloaded")
                 return RecordOutcome()
             }
-            manager.state.markUploaded(sessionId)
+            // With beats put back, this copy is newer than iCloud's and goes up again.
+            if !keptLocalBeats { manager.state.markUploaded(sessionId) }
             manager.state.noteRecordVersion(copy.version, of: sessionId)
             debugLog("[CloudKit] Pull: replaced \(sessionId.uuidString.prefix(8)) with the newer copy from iCloud")
             return RecordOutcome(backfillId: replacement.sleepSnapshot == nil ? sessionId : nil, refreshed: 1)

@@ -178,7 +178,26 @@ extension AssistantToolRunner {
             state.outbound.append(nudge)
             return false
         }
+        try requireConsentForTools(of: round.provider)
         return try await recordResolutions(thisRound, factRegistry: round.factRegistry, state: &state)
+    }
+
+    /// Tool calls run only while the provider that asked for them still has
+    /// data-sharing consent and is switched on. Web search, weather and
+    /// route lookups send the model's arguments to outside services, so a
+    /// withdrawal during the turn stops them as well as the next request.
+    private func requireConsentForTools(of provider: AIProvider) throws {
+        try Self.requireConsentForTools(of: provider.id, consent: owner.services.providerConsentTracker)
+        guard owner.registry.isEnabled(provider.id) else {
+            debugLog("[Assistant] tool calls not run — \(provider.id.rawValue) was switched off", level: .warning)
+            throw AIProviderError.consentWithdrawn(provider.id)
+        }
+    }
+
+    static func requireConsentForTools(of provider: ProviderID, consent: ProviderConsentTracker) throws {
+        guard consent.requiresConsent(provider) else { return }
+        debugLog("[Assistant] tool calls not run — \(provider.rawValue) has no data-sharing consent", level: .warning)
+        throw AIProviderError.consentWithdrawn(provider)
     }
 
     /// Resolve this round's tool calls into `state` and report whether the

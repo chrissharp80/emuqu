@@ -70,8 +70,8 @@ extension RRDataImporter {
     }
 
     static func flowHRVColumns(fromHeaderLine line: String) throws -> FlowHRVColumns {
-        let headers = line.lowercased().split(separator: ",")
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
+        // Empty fields kept, as in the rows, so an index names one column in both.
+        let headers = Self.fields(of: line.lowercased(), separator: ",")
         let column = { (name: String) in headers.lastIndex { $0.contains(name) } }
         guard let session = column("session_date"), let rr = column("rr_ms") else {
             throw ImportError.invalidFormat(String(localized: "Emuqu format requires session_date and rr_ms columns", bundle: LanguageManager.appBundle))
@@ -90,7 +90,7 @@ extension RRDataImporter {
         guard let typeIndex = columns.sessionType else { return [:] }
         var types: [String: SessionType] = [:]
         for line in dataLines {
-            let fields = line.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+            let fields = Self.fields(of: line, separator: ",")
             guard fields.count > max(columns.session, typeIndex),
                   let type = SessionType(rawValue: fields[typeIndex]) else { continue }
             types[fields[columns.session]] = type
@@ -118,7 +118,7 @@ extension RRDataImporter {
     ) throws -> [String: [(timestamp: Int64, rr: Int)]] {
         var groups: [String: [(timestamp: Int64, rr: Int)]] = [:]
         for line in dataLines {
-            let fields = line.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+            let fields = Self.fields(of: line, separator: ",")
             guard fields.count > max(columns.session, columns.rr) else { continue }
 
             let sessionKey = fields[columns.session]
@@ -155,11 +155,11 @@ extension RRDataImporter {
         return timestamp
     }
 
-    /// The row's `timestamp_ms`, or nil when the export has no such column
-    /// or the row stops short of it. A value that is not whole milliseconds
+    /// The row's `timestamp_ms`, or nil when the export has no such column,
+    /// or the row stops short of it or leaves it blank. A value that is not whole milliseconds
     /// ("1e30", "nan", "12.5") is an error, not a missing timestamp.
     private static func statedTimestamp(sessionKey: String, fields: [String], columns: FlowHRVColumns) throws -> Int64? {
-        guard let tsIdx = columns.timestamp, tsIdx < fields.count else { return nil }
+        guard let tsIdx = columns.timestamp, tsIdx < fields.count, !fields[tsIdx].isEmpty else { return nil }
         guard let timestamp = Int64(fields[tsIdx]) else {
             throw ImportError.invalidTimestamps(session: String(sessionKey.prefix(40)))
         }

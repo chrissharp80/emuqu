@@ -564,7 +564,7 @@ final class SessionArchive: @unchecked Sendable {
     }
 
     /// Ask CloudKit sync to upload this session again.
-    private func postReuploadRequest(for id: UUID) {
+    func postReuploadRequest(for id: UUID) {
         NotificationCenter.default.post(
             name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": Set([id])]
         )
@@ -593,6 +593,7 @@ final class SessionArchive: @unchecked Sendable {
             return try retrieve(id)
         } catch {
             debugLog("[SessionArchive] \(caller): failed to retrieve \(id.uuidString.prefix(8)): \(error)")
+            SessionReadWatch.failures?.record()
             return nil
         }
     }
@@ -603,6 +604,7 @@ final class SessionArchive: @unchecked Sendable {
             return try retrieveLightweight(id)
         } catch {
             debugLog("[SessionArchive] \(caller): failed to retrieve lightweight \(id.uuidString.prefix(8)): \(error)")
+            SessionReadWatch.failures?.record()
             return nil
         }
     }

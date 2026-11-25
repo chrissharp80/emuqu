@@ -230,6 +230,7 @@ extension AssistantViewModel {
         let provider: AIProvider = apple ? registry.apple : registry.activeProvider
         let model: ModelOption = apple ? AppleFoundationProvider.model : registry.activeModel
         guard mayExtractFacts(with: provider) else { return }
+        let epoch = factsStore.extractionEpoch
         let prompt = extractionPrompt(userText: userText, assistantText: assistantText)
         let stream = provider.send(
             messages: [ChatTurn(role: .user, text: prompt)], model: model, contextRendered: "",
@@ -237,7 +238,7 @@ extension AssistantViewModel {
         )
         guard let collected = await Self.collect(stream, timeoutSec: 8),
               let facts = Self.parseExtractedFacts(collected) else { return }
-        await MainActor.run { self.store(extractedFacts: facts) }
+        await MainActor.run { self.store(extractedFacts: facts, startedIn: epoch) }
     }
 
     /// The gates fact extraction passes before it sends anything, each
@@ -255,9 +256,15 @@ extension AssistantViewModel {
         return true
     }
 
-    /// Add every candidate that survives the auto-extract shape filter.
+    /// Add every candidate that survives the auto-extract shape filter,
+    /// unless, since the extraction started, auto-remember was switched off,
+    /// the memory was forgotten or the conversation cleared.
     @MainActor
-    private func store(extractedFacts facts: [String]) {
+    func store(extractedFacts facts: [String], startedIn epoch: Int) {
+        guard factsStore.autoExtractEnabled, factsStore.extractionEpoch == epoch else {
+            debugLog("[Assistant] extracted facts dropped — memory was cleared or auto-remember changed during the extraction")
+            return
+        }
         for fact in facts {
             let trimmed = fact.trimmingCharacters(in: .whitespacesAndNewlines)
             guard Self.factPassesAutoExtractFilter(trimmed) else { continue }

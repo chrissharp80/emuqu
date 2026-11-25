@@ -407,7 +407,8 @@ extension WorkoutSessionLifecycle {
     /// `BaselineTracker` scores a night against, and the Daily Loop picks its
     /// nights from these with the score's own rule
     /// (`BaselineTracker.baselineRMSSDs`), so its HRV baseline in the report
-    /// is the recovery score's.
+    /// is the recovery score's. A night that cannot be read still takes its
+    /// place in the window, as it keeps its reading in the score's baseline.
     @MainActor
     private static func recentOvernightSessions(
         archive: SessionArchive, reportedNightCutoff: Date, sleepSchedule: SleepSchedule
@@ -420,12 +421,26 @@ extension WorkoutSessionLifecycle {
         var baselineNights = Set<Date>()
         for entry in entries where entry.date < (reported?.date ?? .distantFuture) {
             guard baselineNights.count < baselineNightLimit else { break }
-            guard let night = archive.retrieveLightweightOrLog(entry.sessionId, caller: "CoachReport.baselineNights") else { continue }
-            nights.append(night)
-            let key = sleepSchedule.nightKey(for: night.startDate)
-            if key < reportedNight, BaselineTracker.isBaselineCandidate(night) { baselineNights.insert(key) }
+            let night = archive.retrieveLightweightOrLog(entry.sessionId, caller: "CoachReport.baselineNights")
+            if let night { nights.append(night) }
+            if let key = baselineNightKey(entry, read: night, sleepSchedule: sleepSchedule, before: reportedNight) {
+                baselineNights.insert(key)
+            }
         }
         return nights
+    }
+
+    /// The night `entry` adds to the baseline window, if any: the read
+    /// session's when the baseline admits it. An unreadable night the score's
+    /// baseline still holds keeps its place, by its index entry, so the report
+    /// does not reach further back than the score does.
+    private static func baselineNightKey(
+        _ entry: SessionArchiveEntry, read night: HRVSession?, sleepSchedule: SleepSchedule, before reportedNight: Date
+    ) -> Date? {
+        let key = sleepSchedule.nightKey(for: night?.startDate ?? entry.date)
+        guard key < reportedNight else { return nil }
+        guard let night else { return entry.hrvDataQuality == .insufficient ? nil : key }
+        return BaselineTracker.isBaselineCandidate(night) ? key : nil
     }
 
     /// The reported night when it ended today, else nil.

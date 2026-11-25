@@ -114,10 +114,18 @@ final class RecordingDiscardTests: XCTestCase {
         collector.streamingLifecycle.isPaused = true
         collector.sessionState.recordingPhase = .paused(sessionId: second.id)
 
+        let forgottenBefore = UserDefaults.standard.stringArray(forKey: ForgottenSessions.defaultsKey)
+        addTeardownBlock { UserDefaults.standard.set(forgottenBefore, forKey: ForgottenSessions.defaultsKey) }
+
         await collector.control.discardPausedRecording()
 
         XCTAssertFalse(isArchived(first.id))
         XCTAssertFalse(isArchived(second.id))
+        // "Nothing from it is saved … This can't be undone": not in the Trash,
+        // and never brought back by a pull of a copy iCloud still holds.
+        XCTAssertNil(archive.store.trashedSession(first.id), "a discarded night was left in the Trash")
+        XCTAssertNil(archive.store.trashedSession(second.id), "a discarded night was left in the Trash")
+        XCTAssertTrue(ForgottenSessions.ids.isSuperset(of: [first.id, second.id]))
         XCTAssertFalse(collector.streamingLifecycle.isPaused)
         XCTAssertNil(collector.streamingLifecycle.pausedSession)
         XCTAssertEqual(collector.sessionState.recordingPhase, .idle)

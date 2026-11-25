@@ -318,6 +318,55 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertEqual(collector.deviceFetchPolicy, .automatic, "the Skip would silently skip the next night")
     }
 
+    /// A Skip tapped as the download finishes: the beats already downloaded
+    /// are kept in a backup of their own, since the download is on record
+    /// and the next arming would otherwise clear the strap's only copy.
+    func testASkipAsTheDownloadFinishesKeepsTheDownloadedBeats() async {
+        let radio = FakeStrapRadio()
+        let start = Date().addingTimeInterval(-8 * 3600)
+        radio.setRecording(ongoing: true, entryId: exerciseId(start))
+        radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 500))
+        let collector = makeCollector(radio)
+        collector.polarManager.isRecordingOnDevice = true
+        collector.overnightRun.usesDeviceBackup = true
+        radio.onFetchExercise = { Task { @MainActor in collector.deviceFetchPolicy = .skipByUser } }
+
+        let points = await collector.overnightStreaming.fetchNightFromStrap(
+            baseSession: HRVSession(startDate: start), streamingPoints: [], isVeritySense: false
+        )
+
+        XCTAssertNil(points, "a skipped night must use the stream")
+        collector.rawBackup.waitForQueuedWork()
+        XCTAssertTrue(
+            collector.rawBackup.allBackups().contains { $0.points.count == 500 },
+            "the downloaded strap beats were thrown away"
+        )
+    }
+
+    /// A pause backs the strap's downloaded beats up before the analysis
+    /// runs, as the morning stop does: a crash during the analysis must not
+    /// leave the strap's night in memory only, with the download on record.
+    func testAPauseBacksUpTheDownloadedNightBeforeAnalysis() async {
+        let radio = FakeStrapRadio()
+        let start = Date().addingTimeInterval(-4 * 3600)
+        radio.setRecording(ongoing: true, entryId: exerciseId(start))
+        radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 3000))
+        let collector = makeCollector(radio)
+        collector.polarManager.isRecordingOnDevice = true
+        collector.overnightRun.usesDeviceBackup = true
+        let night = HRVSession(startDate: start)
+        collector.sessionState.currentSession = night
+
+        let gathered = await collector.morning.gatherOvernightData()
+
+        XCTAssertNotNil(gathered)
+        collector.rawBackup.waitForQueuedWork()
+        XCTAssertTrue(
+            collector.rawBackup.allBackups().contains { $0.points.count >= 3000 },
+            "the strap's night was held only in memory before the analysis"
+        )
+    }
+
     /// A pause whose download fails reports the strap's copy exactly as the
     /// morning does, rather than only logging it, and the copy shows as
     /// unrecovered.

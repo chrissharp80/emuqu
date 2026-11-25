@@ -151,7 +151,7 @@ struct PerformanceSettingsPage: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(String(localized: "Keep screen on during recording", bundle: bundle))
                 .font(.body)
-            Text(String(localized: "Default ON. The screen stays awake during overnight HRV recording, workouts, and Polar device downloads. Turn OFF to let iOS Auto-Lock kick in — saves battery on overnight sessions where the phone sits face-down and you're not watching the live HR display.", bundle: bundle))
+            Text(String(localized: "Default ON. The screen stays awake while a recording downloads from your Polar strap and during Get Me Back navigation, so iOS keeps the connection. Low Power Mode turns it off.", bundle: bundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
         }
@@ -252,7 +252,7 @@ struct PerformanceSettingsPage: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "iCloud sync", bundle: bundle))
                     .font(.body)
-                Text(String(localized: "Backs up sessions to your private iCloud container so they survive device changes. When OFF: no CloudKit network traffic, no sync banner, sessions stay device-local.", bundle: bundle))
+                Text(String(localized: "Backs up sessions to your private iCloud container so they survive device changes. When OFF: nothing new goes up or comes down, no sync banner, sessions stay on this device. The app still deletes from iCloud what you delete.", bundle: bundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }

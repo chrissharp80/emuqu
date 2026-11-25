@@ -215,7 +215,7 @@ struct PrivacyPolicyView: View {
                 String(localized: "Tavily may use parts of those queries to improve its search results.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on web search while using Claude, Anthropic runs the searches itself, with the queries the assistant writes.", bundle: LanguageManager.appBundle),
                 String(localized: "Weather during outdoor workouts is looked up with your location rounded to about 1 km, sent to MET Norway (the Norwegian Meteorological Institute), whose weather data the app uses under the CC BY 4.0 licence.", bundle: LanguageManager.appBundle),
-                String(localized: "Heat tracking uses only the weather saved with your workouts and sends nothing.", bundle: LanguageManager.appBundle),
+                String(localized: "Heat tracking uses the weather saved with your workouts. While it is on, the weather lookup above runs during outdoor workouts even when the assistant is off.", bundle: LanguageManager.appBundle),
                 String(localized: "Overpass, an OpenStreetMap service, receives approximate coordinates: for trail discovery, the centre of the search, rounded to about 100 m.", bundle: LanguageManager.appBundle),
                 String(localized: "For nearby roads it receives the centre of the 250 m square you are in during an outdoor workout, or of each turn of a saved route the assistant loads for you.", bundle: LanguageManager.appBundle),
                 String(localized: "Overpass is asked at overpass.private.coffee, or at overpass-api.de when that one does not answer. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),

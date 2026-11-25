@@ -41,7 +41,7 @@ struct HeatAcclimationCard: View {
     }
 
     private var optInExplanation: String {
-        String(localized: "Heat tracking estimates how adapted you are to heat from the temperature and humidity saved with your outdoor workouts when you recorded them. Workouts without saved weather are left out. Nothing is looked up or sent.", bundle: LanguageManager.appBundle)
+        String(localized: "Heat tracking estimates your heat adaptation from the weather saved with your outdoor workouts. While on, it looks up the weather during them (MET Norway, location rounded to about 1 km), even with the assistant off.", bundle: LanguageManager.appBundle)
     }
 
     /// Turning off also forgets the readout the cache persisted for cold

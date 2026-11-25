@@ -95,6 +95,39 @@ final class BaselineTrackerTests: XCTestCase {
                        "Anchor must reflect only the good days, unmoved by the insufficient 5 ms partial")
     }
 
+    /// A replacing rebuild that could not read some archived nights keeps
+    /// the readings the baseline held for them and replaces the rest from
+    /// what it read; a night no longer archived is gone.
+    func testAReplacingRebuildKeepsTheNightsItCouldNotRead() throws {
+        let tracker = makeTracker()
+        let sessions = (0 ..< 8).map { producerMockSession(daysAgo: $0, rmssd: 50) }
+        tracker.rebuildFromSessions(sessions, sleepSchedule: producerSchedule)
+        let unreadable = Set(sessions.prefix(3).map(\.id))
+        let discarded = sessions[7].id
+
+        tracker.reset(keepingReadingsOf: unreadable)
+        tracker.rebuildFromSessions(Array(sessions[3 ..< 7]), sleepSchedule: producerSchedule)
+
+        for id in unreadable { XCTAssertTrue(tracker.holdsReading(of: id), "an unread night was dropped") }
+        for session in sessions[3 ..< 7] { XCTAssertTrue(tracker.holdsReading(of: session.id)) }
+        XCTAssertFalse(tracker.holdsReading(of: discarded))
+        XCTAssertEqual(try XCTUnwrap(tracker.recoveryBaselineStats).daysInWindow, 7)
+    }
+
+    /// Every archived night unreadable: the baseline keeps them all instead
+    /// of saving an empty one.
+    func testAReplacingRebuildThatReadsNothingKeepsTheBaseline() {
+        let tracker = makeTracker()
+        let sessions = (0 ..< 8).map { producerMockSession(daysAgo: $0, rmssd: 50) }
+        tracker.rebuildFromSessions(sessions, sleepSchedule: producerSchedule)
+
+        tracker.reset(keepingReadingsOf: Set(sessions.map(\.id)))
+        tracker.rebuildFromSessions([], sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(tracker.daysCollected, 8)
+        XCTAssertNotNil(tracker.recoveryBaselineStats)
+    }
+
     // MARK: - Structural baseline admission
 
     /// Builds a session of an explicit duration with no organized-recovery

@@ -8,16 +8,17 @@ Every pull request and every push to `main` runs two workflows:
   and the Python ports of the analysis code against the Swift tests'
   expectations) on an **ubuntu** runner in a minute or two.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
-  macOS build, the unit suite with the Views coverage floor, and the unit suite
-  under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
+  macOS build, the unit suite with all three coverage floors, and the unit
+  suite under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
   parallel; a run takes 30 to 40 minutes, set by Thread Sanitizer and the tests
   job, which each take 20 to 40 minutes on a runner.
 
 `main` requires every job that runs on a pull request to pass, on a branch that is up to date with `main`, before anything merges: the `gates.yml` job ("Script gates (no Xcode)") and the five `ci.yml` jobs ("Lint + tech-debt budgets", "Strict concurrency enabled", "Release build", "Thread Sanitizer", "Tests + coverage").
 
 The repository is public, and standard GitHub-hosted runners cost public
-repositories no Actions minutes. The UI target and the full coverage floors
-(scope `full`, about two hours on current runners) run on demand and before every release.
+repositories no Actions minutes. The UI target (scope `full`, about two hours
+on current runners) runs every night on `main`, on demand, and before every
+release.
 
 ## What actually enforces quality here
 
@@ -209,7 +210,7 @@ not billed for these runners):
 |---|---|---|
 | `gates` (dispatch default) | lint, budgets, strict concurrency | ~14 |
 | `unit` | + unit suite and Thread Sanitizer | ~300 |
-| `full` | + UI target and the coverage floors | ~1080 |
+| `full` (nightly on `main`) | + UI target | ~1080 |
 
 macOS bills at 10x, and 66 of the tests job's 88 minutes are the UI target on
 its own — 61% of a whole run for the part least likely to catch a regression in
@@ -239,6 +240,7 @@ fails a raise that has no written justification.
 ## Where GitHub Actions is still used
 
 - Every pull request and push to `main`: `gates.yml` and `ci.yml` (`unit`).
+- Every night: `ci.yml` at scope `full` on `main`.
 - `testflight.yml` calls `ci.yml` as a reusable workflow at scope `full`, and
   `mutations.yml`, so a release cannot be cut without the full suite, UI target
   included, passing and every mutation caught first. Its deploy job runs in the `testflight` environment: only `main` can
@@ -254,22 +256,23 @@ fails a raise that has no written justification.
 ## What this posture does *not* claim
 
 - **The UI target does not run on every pull request.** A pull request gets the
-  macOS build, the unit suite with the Views coverage floor and Thread
-  Sanitizer; the UI flows and the overall and logic coverage floors run only at
-  scope `full`, on demand and before every release. A change that breaks only
-  a UI flow can reach `main` and is caught at the latest by the release gate.
+  macOS build, the unit suite with all three coverage floors and Thread
+  Sanitizer; the UI flows run at scope `full`, every night on `main`, on demand
+  and before every release. A change that breaks only a UI flow can reach
+  `main` and is caught by that night's run, and at the latest by the release
+  gate.
   `make ci` runs the full suite locally, which is a discipline, not an
   enforcement.
 - **The UI flows are not a required check.** `main` requires the
   `gates.yml` job and the five `ci.yml` jobs at scope `unit` (lint and
   budgets, strict concurrency, the Release build, Thread Sanitizer, tests with
-  coverage). The UI flows and the full coverage floors run only at scope
-  `full`.
+  coverage). The UI flows run only at scope `full`.
 
 ## For reviewers
 
-The macOS build, the unit suite and Thread Sanitizer run on every pull request
-and every push to `main`; the UI target runs on demand and before a release.
+The macOS build, the unit suite with its coverage floors and Thread Sanitizer
+run on every pull request and every push to `main`; the UI target runs every
+night on `main`, on demand, and before a release.
 `main` requires six checks to pass on a branch that is up to date with it:
 the Linux `gates.yml` job and the five `ci.yml` jobs.
 
@@ -287,8 +290,8 @@ stale claim dressed as a current one.
 
 If your finding is *"there is no evidence the checks pass"*, look at the `CI`
 run on the pull request, or on the commit for a push to `main`. Its run summary
-has one line per macOS job with the scope and the result. For the UI target
-and the full coverage floors, ask for a run at scope `full`.
+has one line per macOS job with the scope and the result. For the UI target,
+look at the latest nightly run or ask for a run at scope `full`.
 
 `sbom.spdx.json` covers the app and its 11
 resolved packages with versions, commit SHAs, Package URLs and licences, and

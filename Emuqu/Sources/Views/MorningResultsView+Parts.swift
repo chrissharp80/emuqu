@@ -59,3 +59,35 @@ extension MorningResultsView {
         )
     }
 }
+
+// MARK: - Nights the comparisons leave out
+
+extension MorningResultsView {
+    /// The earlier nights this screen's comparisons should hold (the
+    /// `recentSessionsContextLimit` overnight entries before the session, as
+    /// every caller loads them) that `shown` does not: their files could not
+    /// be read. Zero while nothing has loaded.
+    static func unreadablePriorNights(before session: HRVSession, shown: [HRVSession], entries: [SessionArchiveEntry]) -> Int {
+        guard !shown.isEmpty else { return 0 }
+        let shownIds = Set(shown.map(\.id))
+        return entries.filter { $0.sessionType == .overnight && $0.date < session.startDate }
+            .prefix(recentSessionsContextLimit)
+            .count { !shownIds.contains($0.sessionId) }
+    }
+
+    /// Said when some earlier nights could not be read, so the trend and
+    /// cause cards are not read as covering every recent night.
+    @ViewBuilder
+    var partialHistoryNotice: some View {
+        if Self.unreadablePriorNights(before: vm.displaySession, shown: recentSessions, entries: collector.archive.store.entries) > 0 {
+            Label {
+                Text(String(localized: "Some earlier nights couldn't be read, so comparisons with your recent nights leave them out.", bundle: LanguageManager.appBundle))
+            } icon: {
+                Image(systemName: "exclamationmark.triangle")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("results.partialHistory")
+        }
+    }
+}

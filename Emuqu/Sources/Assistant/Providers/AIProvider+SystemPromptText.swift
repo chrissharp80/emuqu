@@ -386,6 +386,11 @@ extension AssistantSystemPrompt {
       tooMuchData      — response too large (ask a narrower query).
       rateLimited      — this tool is exhausted for the turn.
       partialData      — composite: some children returned, others didn't.
+      unreadable       — the user HAS recordings here, but they could not be \
+    read just now. Say so and suggest trying again; never say they have no data.
+
+    A value carrying `unreadable_sessions` leaves that many recordings out: say \
+    its totals and lists may be incomplete.
 
     Report what's missing plainly ("I don't have your sleep for April 15") \
     and stop — do not speculate, do not pivot to a related metric, do not \

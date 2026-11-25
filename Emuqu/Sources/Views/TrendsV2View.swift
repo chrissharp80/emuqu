@@ -62,6 +62,9 @@ struct TrendsV2View: View {
     /// thread (~250ms freeze for 50+ sessions, multiple times per
     /// nav transition).
     @State private var allSessions: [HRVSession] = []
+    /// Archived sessions the last load could not read and had no earlier
+    /// copy of. Above zero, the screen says its trends leave some out.
+    @State private var unreadableCount = 0
     @State private var isLoadingSessions = false
     /// Set when a refresh is asked for while a load is running; the running
     /// load then loads again, so a save, delete or pull that lands mid-load
@@ -200,6 +203,7 @@ struct TrendsV2View: View {
 
     private var stack: some View {
         VStack(alignment: .leading, spacing: 22) {
+            partialHistoryNotice
             tagFilterChips
             rangeChips
             overallTrendCard
@@ -210,6 +214,22 @@ struct TrendsV2View: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 18)
+    }
+
+    /// Shown while some archived sessions could not be read, so a gap in
+    /// the charts is not taken for a gap in the recordings.
+    @ViewBuilder
+    private var partialHistoryNotice: some View {
+        if unreadableCount > 0 {
+            Label {
+                Text(String(localized: "Some recordings couldn't be read, so these trends leave them out.", bundle: LanguageManager.appBundle))
+            } icon: {
+                Image(systemName: "exclamationmark.triangle")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("trends.partialHistory")
+        }
     }
 
     /// Single calendar surface. The Sun–Sat month grid carries
@@ -262,10 +282,23 @@ struct TrendsV2View: View {
             // the main thread never blocks on disk during nav transition.
             // Nil once the view's task is cancelled (the screen went away):
             // the load stops and nothing partial replaces the sessions.
-            guard let loaded = await collector.allSessionsAsync() else { return }
-            allSessions = loaded
-            rebuildDerived()
+            guard let load = await collector.allSessionsAsync() else { return }
+            show(load)
         } while reloadRequested
+    }
+
+    /// Puts `load` on screen. A session it could not read keeps the copy
+    /// shown before (`SessionLoad.fillingGaps`); one with no earlier copy is
+    /// counted, and the screen says some are left out.
+    @MainActor
+    private func show(_ load: SessionLoad) {
+        let filled = load.fillingGaps(from: allSessions)
+        allSessions = filled.sessions
+        unreadableCount = filled.missing
+        if load.unreadableCount > 0 {
+            debugLog("[TrendsV2View] \(load.unreadableCount) sessions unreadable, \(filled.missing) left out", level: .warning)
+        }
+        rebuildDerived()
     }
 
     /// Soft-delete a session from the calendar's day sheet (moves it to Trash)

@@ -459,14 +459,25 @@ final class CrashLogManager: Sendable {
     /// no log at all, and sits until the watchdog kills it — the one outcome worse
     /// than having no handler.
     ///
-    /// The C handler calls only open/write/close, `backtrace`, `raise` and, when
-    /// a second thread crashes during the write, `pause`, and
+    /// The C handler calls only open/write/close, `raise` and, when a second
+    /// thread crashes during the write, a bounded `sleep`; it walks the
+    /// crashed thread's frame records itself (`emuqu_walk_frame_chain`) and
     /// emits raw return addresses; symbolication is an offline job and the file it
     /// writes explains how. The report is terse and it actually arrives.
     ///
     /// `NSSetUncaughtExceptionHandler` above keeps the full, PHI-scrubbed report:
     /// it runs during ordinary Objective-C exception unwinding, not in signal
     /// context, so allocation there is legitimate.
+    /// The frame walk the signal handler records, for tests: the return
+    /// addresses of the chain whose first record is at `fp`, within `stack`.
+    nonisolated static func frameChain(from fp: UInt, stack: Range<UInt>, max: Int) -> [UInt] {
+        var out = [UInt](repeating: 0, count: max)
+        let count = out.withUnsafeMutableBufferPointer { buffer in
+            Int(emuqu_walk_frame_chain(fp, stack.lowerBound, stack.upperBound, buffer.baseAddress, Int32(max)))
+        }
+        return Array(out.prefix(count))
+    }
+
     private func installSignalHandlers() {
         let installed = crashLogURL.withUnsafeFileSystemRepresentation { path -> Bool in
             guard let path else { return false }

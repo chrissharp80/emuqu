@@ -355,7 +355,7 @@ final class AnthropicProvider: KeyedCloudProvider, Sendable {
             )
         )
         try await Self.continuingPausedTurns(body, continuation: continuation) { request in
-            try await Self.perform(request, url: url, apiKey: apiKey, continuation: continuation)
+            try await Self.perform(request, url: url, apiKey: apiKey, services: services, continuation: continuation)
         }
     }
 
@@ -365,10 +365,11 @@ final class AnthropicProvider: KeyedCloudProvider, Sendable {
         _ body: RequestBody,
         url: URL,
         apiKey: String,
+        services: AIProviderServices,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws -> PausedTurn? {
         let request = try makeRequest(url: url, apiKey: apiKey, body: body)
-        let lines = try await ProviderHTTP.openStream(request, provider: .anthropic, failure: statusFailure(_:body:))
+        let lines = try await ProviderHTTP.openStream(request, provider: .anthropic, services: services, failure: statusFailure(_:body:))
         return try await consumeSSE(lines, continuation: continuation)
     }
 

@@ -242,10 +242,10 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
   graph, so a review that left them out fails instead of passing.
 - **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
 
-The macOS build, the unit suite and Thread Sanitizer run on every pull request
-on GitHub's standard macOS runner, which costs a public repository no Actions
-minutes. The UI target and the full coverage floors run on demand and before a
-release. The same scripts and budgets run locally with `make ci`.
+The macOS build, the unit suite with its coverage floors and Thread Sanitizer
+run on every pull request on GitHub's standard macOS runner, which costs a
+public repository no Actions minutes. The UI target runs every night on `main`,
+on demand, and before a release. The same scripts and budgets run locally with `make ci`.
 [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md) has the details, and
 `./scripts/evidence_report.sh` prints what is enforced right now.
 

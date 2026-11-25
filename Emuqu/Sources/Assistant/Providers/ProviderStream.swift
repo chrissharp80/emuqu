@@ -88,11 +88,19 @@ extension ProviderHTTP {
     /// the status is 2xx. A non-2xx reply throws `failure` of its status and
     /// the first 4 KB of its body (`errorBody`). A cancelled task throws
     /// `CancellationError` before the status is read.
+    ///
+    /// Consent and the provider's switch are read from `services` right
+    /// before the connection opens, so they hold for every request and not
+    /// only for the turn that started them: a summary, a tool round or a
+    /// coach line sent after the user withdrew consent or switched the
+    /// provider off throws `.consentWithdrawn` and sends nothing.
     static func openStream(
         _ request: URLRequest,
         provider: ProviderID,
+        services: AIProviderServices,
         failure: (_ status: Int, _ body: Data) -> AIProviderError
     ) async throws -> AsyncLineSequence<URLSession.AsyncBytes> {
+        try await requireConsent(for: provider, services: services)
         let (bytes, response) = try await connect(request, provider: provider)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
@@ -100,6 +108,15 @@ extension ProviderHTTP {
             throw failure(http.statusCode, body)
         }
         return bytes.lines
+    }
+
+    /// Throws `.consentWithdrawn` when `provider` has no data-sharing
+    /// consent now or is switched off.
+    static func requireConsent(for provider: ProviderID, services: AIProviderServices) async throws {
+        let allowed = await MainActor.run { services.maySend(to: provider) }
+        guard !allowed else { return }
+        debugLog("[AIStreamer] \(provider.rawValue) request not sent — no data-sharing consent, or switched off", level: .warning)
+        throw AIProviderError.consentWithdrawn(provider)
     }
 
     /// Opens the connection on the dedicated session, so a cellular blip

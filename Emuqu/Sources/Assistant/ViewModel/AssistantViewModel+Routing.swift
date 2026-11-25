@@ -627,9 +627,11 @@ extension AssistantTurnRouter {
     /// The query is the last user message plus the previous user turn, so
     /// multi-turn references ("what about the day before") match.
     ///
-    /// The caller applies the provider cap after this, so a cap tighter
-    /// than the schema still gets the ranked subset rather than an
-    /// arbitrary slice.
+    /// The caller applies the provider cap after this (`trimTools`, which
+    /// keeps the first entries). No provider's cap is below the compact
+    /// schema's size today, so the cap changes nothing; one that were would
+    /// cut the schema in its own order, since a list under `targetK` is not
+    /// ranked.
     private func retrieveTools(
         _ tools: [ToolSpec],
         registry: FactResolverRegistry,

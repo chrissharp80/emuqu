@@ -49,6 +49,49 @@ final class ProviderConsentTrackerTests: XCTestCase {
         try await super.tearDown()
     }
 
+    /// Opens `request` as Anthropic's stream does, off the main actor.
+    nonisolated private static func open(_ request: URLRequest) async throws {
+        try await Task.detached {
+            _ = try await ProviderHTTP.openStream(request, provider: .anthropic, services: AIProviderServices(.current)) { _, _ in .rateLimited }
+        }.value
+    }
+
+    /// Consent is read as each request leaves, not once per turn: a summary,
+    /// tool round or coach line sent after a withdrawal never connects.
+    func testARequestWithoutConsentIsNotSent() async throws {
+        let request = URLRequest(url: try XCTUnwrap(URL(string: "https://127.0.0.1:9/v1/messages")))
+        do {
+            try await Self.open(request)
+            XCTFail("The request was sent without consent")
+        } catch let AIProviderError.consentWithdrawn(provider) {
+            XCTAssertEqual(provider, .anthropic)
+        }
+    }
+
+    /// With consent the same request goes out (and fails to connect, as the
+    /// address serves nothing): the check stops only what it should.
+    func testARequestWithConsentIsSent() async throws {
+        ProviderConsentTracker.shared.acknowledge(.anthropic)
+        let request = URLRequest(url: try XCTUnwrap(URL(string: "https://127.0.0.1:9/v1/messages")))
+        do {
+            try await Self.open(request)
+        } catch AIProviderError.consentWithdrawn {
+            XCTFail("A consented request was refused")
+        } catch {}
+    }
+
+    /// Tool calls a model asked for are not run once its provider's consent
+    /// is gone: web search and route lookups send the model's arguments out.
+    func testToolCallsStopWhenConsentIsWithdrawn() throws {
+        ProviderConsentTracker.shared.acknowledge(.openai)
+        XCTAssertNoThrow(try AssistantToolRunner.requireConsentForTools(of: .openai, consent: .shared))
+        ProviderConsentTracker.shared.revoke(.openai)
+        XCTAssertThrowsError(try AssistantToolRunner.requireConsentForTools(of: .openai, consent: .shared)) { error in
+            guard case .consentWithdrawn(.openai) = error as? AIProviderError else { return XCTFail("threw \(error)") }
+        }
+        XCTAssertNoThrow(try AssistantToolRunner.requireConsentForTools(of: .apple, consent: .shared))
+    }
+
     func testAppleIntelligenceDoesNotRequireConsent() {
         // On-device — no data leaves the device, so consent isn't a gate.
         XCTAssertFalse(ProviderConsentTracker.shared.requiresConsent(.apple))

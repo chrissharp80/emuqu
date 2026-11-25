@@ -89,6 +89,10 @@ struct AssistantContext: Codable {
     /// renders from this context rather than from whatever the broker holds
     /// at render time. Nil outside a workout.
     var liveWorkoutSamples: [WorkoutSample]?
+    /// Recent archived sessions whose files could not be read for this
+    /// context. Above zero, `today` may not be the latest recording, and the
+    /// rendered state says so.
+    var unreadableRecentSessions = 0
 }
 
 // MARK: - Rendering
@@ -141,6 +145,7 @@ extension AssistantContext {
         let now = now ?? generatedAt
         var out: [String] = []
         if let line = todayLiveStateLine(now: now) { out.append(line) }
+        if let line = unreadableLine { out.append(line) }
         if let y = yesterday, let td = y.timeDomain {
             let rec = y.recoveryScore.map { "\(RecoveryScoreCalculator.displayScore($0 * 10))/100" } ?? "—"
             let label = Self.liveStateDayLabel(y, now: now)
@@ -151,6 +156,13 @@ extension AssistantContext {
             if !locBits.isEmpty { out.append("📍 LOCATION: " + locBits.joined(separator: ", ")) }
         }
         return out.joined(separator: "\n")
+    }
+
+    /// Said when recent recordings could not be read, so the model does not
+    /// tell the user a night they recorded is missing.
+    var unreadableLine: String? {
+        guard unreadableRecentSessions > 0 else { return nil }
+        return "NOTE: \(unreadableRecentSessions) recent recording(s) could not be read just now; a newer one than shown may exist. Never tell the user they did not record it."
     }
 
     /// "TODAY:" / "YESTERDAY:" only when the session woke today / yesterday;
@@ -833,6 +845,7 @@ extension AssistantContext {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         var out = ["=== Emuqu — User Context (compact) ==="]
+        out += unreadableLine.map { [$0] } ?? []
         out += liveWorkoutLines(formatter: formatter)
         out += liveHRVLines()
         out += ambientLocationLines(includeAmbientLocation: includeAmbientLocation)

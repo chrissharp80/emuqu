@@ -43,7 +43,7 @@ parts = re.split(r'\nmutate "', text)[1:]
 cases = []
 for part in parts:
     name = part.split('"', 1)[0]
-    pm = re.search(r'"(Emuqu/[^"]+\.swift)"', part)
+    pm = re.search(r'"(Emuqu/[^"]+\.(?:swift|c|h))"', part)
     # Two shapes: `o='ORIGINAL';assert s.count(o)` and inlined
     # `assert s.count('ORIGINAL')`. Handling only one of them lets a leak in
     # the other shape slip past.

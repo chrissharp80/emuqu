@@ -135,6 +135,29 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(intervals, [800, 750, 810])
     }
 
+    /// An empty field before the RR column keeps its place, so the RR value
+    /// is read from the RR column and not from the one after it.
+    func testParseCSV_anEmptyFieldDoesNotShiftTheRRColumn() throws {
+        let csv = "time,marker,rr_ms,rr_corrected_ms\n0,,812,790\n812,,830,805\n1642,start,845,820"
+        let (intervals, _, _) = try importer.parseCSV(csv)
+        XCTAssertEqual(intervals, [812, 830, 845])
+    }
+
+    /// A row too short to reach the header's RR column is skipped: its
+    /// other columns are not RR.
+    func testParseCSV_aRowShortOfTheRRColumnIsSkipped() throws {
+        let csv = "time,marker,rr_ms\n0,a,812\n812,790\n1602,b,830"
+        let (intervals, _, _) = try importer.parseCSV(csv)
+        XCTAssertEqual(intervals, [812, 830])
+    }
+
+    /// A quoted field holding the separator is one field.
+    func testParseCSV_aQuotedSeparatorStaysInItsField() throws {
+        let csv = "note,rr_ms\n\"walk, easy\",812\n\"rest\",830"
+        let (intervals, _, _) = try importer.parseCSV(csv)
+        XCTAssertEqual(intervals, [812, 830])
+    }
+
     func testParseCSV_emptyContent() throws {
         XCTAssertThrowsError(try importer.parseCSV(""))
     }
@@ -563,6 +586,17 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(points[0].t_ms, 0)
         XCTAssertEqual(points[1].t_ms, 800)
         XCTAssertEqual(points[2].t_ms, 1550)
+    }
+
+    /// An Emuqu export edited in a spreadsheet can leave a blank timestamp:
+    /// the RR value stays in its column and the timestamp is worked out from
+    /// the beats before it.
+    func testEmuquExportWithABlankTimestampKeepsItsBeats() throws {
+        let columns = try RRDataImporter.flowHRVColumns(fromHeaderLine: "session_date,timestamp_ms,rr_ms,session_type")
+        let rows: ArraySlice<String> = ["d1,,812,overnight", "d1,,830,overnight"]
+        let groups = try RRDataImporter.groupBeatsBySession(dataLines: rows, columns: columns)
+        XCTAssertEqual(groups["d1"]?.map(\.rr), [812, 830])
+        XCTAssertEqual(RRDataImporter.sessionTypesBySession(dataLines: rows, columns: columns)["d1"], .overnight)
     }
 
     // MARK: - parseCSVLine (quoted values)

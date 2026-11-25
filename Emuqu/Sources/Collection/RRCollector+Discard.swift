@@ -146,8 +146,14 @@ extension CollectorSessionControl {
         }
     }
 
-    /// The crash-recovery backup and the iCloud live backup of one session.
+    /// Every copy of one session left after its archive entry: the Trash
+    /// file a paused segment's delete leaves, the crash-recovery backup and
+    /// the iCloud live backup. The id is remembered as deleted forever
+    /// (`ForgottenSessions`), so a pull does not bring back a copy iCloud
+    /// still holds, and a live-backup delete that fails is retried.
     private func removeKeptCopies(of id: UUID) async {
+        ForgottenSessions.remember(id)
+        collector.archive.store.discardTrashed(id)
         _ = attempt("discard.rawBackup") { try collector.rawBackup.discardBackup(id) }
         await collector.cloudSyncManager.deleteLiveBackup(sessionId: id)
     }
