@@ -17,12 +17,25 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
         var value = 0
     }
 
+    /// Two threads of its own, not `DispatchQueue.concurrentPerform`. With work
+    /// this small, `concurrentPerform` can run every iteration on the calling
+    /// thread, and one thread writing alone is no race. Thread Sanitizer
+    /// reports two writes from different threads with nothing ordering them,
+    /// whether or not they overlap in time. Both threads start before the test
+    /// thread waits on either, so nothing orders one thread's writes with the
+    /// other's, and the race is there on every run.
     func testUnsynchronizedWritesRaceWhenTheCanaryIsRequested() {
         guard ProcessInfo.processInfo.environment["EMUQU_TSAN_CANARY"] == "1" else { return }
         let counter = UnsynchronizedCounter()
-        DispatchQueue.concurrentPerform(iterations: 1_000) { @Sendable _ in
-            counter.value += 1
+        let finished = DispatchSemaphore(value: 0)
+        for _ in 0..<2 {
+            Thread {
+                for _ in 0..<10_000 { counter.value += 1 }
+                finished.signal()
+            }.start()
         }
+        finished.wait()
+        finished.wait()
         // Reached only if Thread Sanitizer did not end the host on the race.
         XCTFail("The unsynchronized writes ran to the end (count \(counter.value)); Thread Sanitizer did not stop them.")
     }
