@@ -35,6 +35,8 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertTrue(composed.contains("field='segment_lookback_at_current_position'"))
         XCTAssertTrue(composed.contains("which='segment_compare'"))
         XCTAssertTrue(composed.contains("never tell the user it isn't"))
+        XCTAssertTrue(composed.contains("never say you can't make lists"))
+        XCTAssertTrue(composed.contains("`assistant_email_compose`"))
     }
 
     // MARK: - What the call returns

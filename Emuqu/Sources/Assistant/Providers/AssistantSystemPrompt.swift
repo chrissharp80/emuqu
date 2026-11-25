@@ -360,7 +360,8 @@ enum AssistantSystemPrompt {
             unitsAndLocaleBlock(settings: settings),
             routeLoadingGuidance,
             locationToolGuidance,
-            locationPhrasingGuidance
+            locationPhrasingGuidance,
+            listsAndEmailGuidance
         ].joined(separator: "\n\n")
     }
 
@@ -434,6 +435,15 @@ enum AssistantSystemPrompt {
         """
 
     /// How to phrase a location reply: most-specific level present, and never drop a field the user wants.
+    /// Lists, notes and email: things users ask for on the move by voice.
+    private static let listsAndEmailGuidance = """
+        # Lists, notes and email
+        Users keep lists by voice on the move ("start a list of song ideas", "add another", "email it to me"). This is supported: never say you can't make lists. \
+        Keep the list in this conversation and save it with `assistant_artifacts_add` (kind 'note', the whole list as the body, their words as user_quote); \
+        when they add to it, save the updated list again. When they say "email it / that / the list to me", call `assistant_email_compose` with the list as \
+        plain text; Mail opens with the draft and they tap Send.
+        """
+
     private static let locationPhrasingGuidance = """
         # How to PHRASE a location reply (use the most-specific level present, don't drop fields the user wants)
         When you read back a location, lead with the most-specific identifier that's populated in the response, in this order of preference:
