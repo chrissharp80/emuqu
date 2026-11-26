@@ -508,6 +508,18 @@ This project does not use:
   project. A deliberate sweep means raising the limit,
   running `make ci` against each bump, then setting it back.
 
+### Known advisories in dependencies
+
+- **GHSA-g454-wj9r-jpg4 (CVE-2023-39138), high: path traversal in Zip ≤ 2.1.2.**
+  `Zip.unzipFile` can write outside its destination folder for a crafted
+  archive, and no fixed release exists. Zip 2.1.2 arrives through
+  polar-ble-sdk, which calls it only to unpack a strap firmware package
+  (`PolarFirmwareUpdateUtils.unzipFirmwarePackage`, reached from
+  `updateFirmware`). Emuqu updates no strap firmware (Polar Flow and Polar
+  Beat do) and imports no Zip, so the vulnerable code never runs. The
+  dependency review allows this one advisory on that basis, and
+  `scripts/check_unreached_advisories.sh` fails CI the day the app reaches it.
+
 ### Software bill of materials
 
 `sbom.spdx.json` is an SPDX 2.3 document covering the 11 resolved Swift

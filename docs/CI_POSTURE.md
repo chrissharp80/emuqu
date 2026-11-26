@@ -74,7 +74,7 @@ baseline differs between them (below).
 | **Correctness traps** | Empty-range loops (`1 ..< count` on a possibly-empty collection), unchecked `Sendable`, strict-concurrency enablement, orphaned Swift files |
 | **Privacy & safety** | No health data in CloudKit, log redaction, no developer endpoint, privacy-manifest vocabulary, Info.plist key drift, FDA copy perimeter + runtime-guard sync |
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
-| **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved` |
+| **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved`, an advisory allowed as unreachable staying unreachable |
 | **Documentation** | Link and constant integrity |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views, and per area in `.ci/min_coverage_areas.txt`) |
 | **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gates_wired.sh` requires each to actually run in `ci.yml` |

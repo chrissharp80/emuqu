@@ -258,6 +258,13 @@ check "log_redaction/place_name" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedRoute(savedRoute: SavedRoute) { debugLog(\"route: \\(savedRoute.name)\") }'+chr(10))"
 
+# A call into Polar's firmware update reaches Zip's unzip, which an
+# allowance in security.yml says the app never does.
+check "unreached_advisories" \
+    "./scripts/check_unreached_advisories.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedFirmware(api: PolarBleApi) { _ = api.updateFirmware(\"id\") }'+chr(10))"
+
 # Where the user is, under a name that says so: a road and a grid cell.
 check "log_redaction/location_name" \
     "./scripts/check_log_redaction.sh" \

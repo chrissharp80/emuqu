@@ -221,6 +221,12 @@ jobs:
           # summary without blocking — this is a solo project and a blocking
           # gate nobody can override becomes a gate somebody disables.
           fail-on-severity: high
+          # Not affected, with the evidence: GHSA-g454-wj9r-jpg4 (Zip <= 2.1.2
+          # path traversal on unzip; no patched release exists) reaches the
+          # app only through polar-ble-sdk's firmware update, which the app
+          # never calls, and the app imports no Zip.
+          # scripts/check_unreached_advisories.sh fails the day that changes.
+          allow-ghsas: GHSA-g454-wj9r-jpg4
           # Copyleft licences would be a problem for App Store distribution.
           # Zip arrives transitively through polar-ble-sdk, so a licence
           # change upstream is a thing worth being told about.
