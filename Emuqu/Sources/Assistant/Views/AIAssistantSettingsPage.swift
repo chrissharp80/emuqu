@@ -109,6 +109,7 @@ struct APIKeyEditorView: View {
     @State var hasExistingKey: Bool = false
     @State var saveStatus: SaveStatus = .idle
     @State private var showWithdrawConfirm = false
+    @State private var showConsentSheet = false
     /// Observed rather than read through `.shared` at each call site: the row
     /// has to redraw the instant consent changes, and `acknowledgedProviders`
     /// already publishes exactly that.
@@ -159,7 +160,29 @@ struct APIKeyEditorView: View {
         }
     }
 
+    /// Tappable while not agreed: it opens the same disclosure the first send
+    /// shows, so the user can agree here instead of only by sending a message.
+    @ViewBuilder
     private var consentStatusRow: some View {
+        if consent.requiresConsent(provider.id) {
+            Button { showConsentSheet = true } label: { consentStatusLabel }
+                .foregroundStyle(.primary)
+                .sheet(isPresented: $showConsentSheet) { settingsConsentSheet }
+        } else {
+            consentStatusLabel
+        }
+    }
+
+    private var settingsConsentSheet: some View {
+        ProviderConsentSheet(
+            provider: provider.id,
+            onAccept: { consent.acknowledge(provider.id); onChange() },
+            onDecline: {},
+            fromSettings: true
+        )
+    }
+
+    private var consentStatusLabel: some View {
         LabeledContent {
             Text(consentStatusText).foregroundStyle(.secondary)
         } label: {

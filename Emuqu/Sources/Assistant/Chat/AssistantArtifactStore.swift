@@ -110,17 +110,21 @@ final class AssistantArtifactStore {
     private let unlockObservers = NotificationTokens()
     private let queue = DispatchQueue(label: "com.chrissharp.flowrecovery.assistant.artifacts", qos: .userInitiated)
 
-    private init() {
+    private convenience init() {
         let fm = FileManager.default
-        let dir: URL = {
-            if let group = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
-                return group.appendingPathComponent("Assistant", isDirectory: true)
-            }
-            return fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("Assistant", isDirectory: true)
-        }()
-        _ = attempt("AssistantArtifactStore.create") { try fm.createDirectory(at: dir, withIntermediateDirectories: true) }
-        fileURL = dir.appendingPathComponent("artifacts.json")
+        if let group = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
+            self.init(directory: group.appendingPathComponent("Assistant", isDirectory: true))
+        } else {
+            self.init(directory: fm.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Assistant", isDirectory: true))
+        }
+    }
+
+    /// A store kept in `directory`; the app's one is `shared`.
+    init(directory: URL) {
+        _ = attempt("AssistantArtifactStore.create") {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+        fileURL = directory.appendingPathComponent("artifacts.json")
         apply(readDisk())
         wireRecoveryOnUnlock()
     }
@@ -161,6 +165,17 @@ final class AssistantArtifactStore {
         reloadIfBlocked()
         guard let idx = artifacts.firstIndex(where: { $0.id == id }) else { return nil }
         artifacts[idx].status = status
+        artifacts[idx].updatedAt = Date()
+        persist()
+        return artifacts[idx]
+    }
+
+    /// Replace an artifact's text, as when a saved list grows.
+    @discardableResult
+    func updateBody(id: UUID, body: String) -> Artifact? {
+        reloadIfBlocked()
+        guard let idx = artifacts.firstIndex(where: { $0.id == id }) else { return nil }
+        artifacts[idx].body = body.trimmingCharacters(in: .whitespacesAndNewlines)
         artifacts[idx].updatedAt = Date()
         persist()
         return artifacts[idx]

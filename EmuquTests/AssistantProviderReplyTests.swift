@@ -96,7 +96,7 @@ final class AppleToolRankingTests: XCTestCase {
         let ranked = ToolRetriever.ranked(for: "ok thanks", tools: schema)
         XCTAssertEqual(Set(ranked.map(\.name)), Set(schema.map(\.name)))
         XCTAssertEqual(ranked.count, schema.count)
-        XCTAssertEqual(ranked.first?.name, "get_session", "with no match, the essentials lead in schema order")
+        XCTAssertEqual(ranked.first?.name, "find_data", "with no match, the essentials lead in schema order")
     }
 
     /// A tool too large for the room left is skipped, and smaller ones after

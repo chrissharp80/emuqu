@@ -611,7 +611,8 @@ extension WorkoutNamespace {
     }
 
     private static let workoutTimelineByDateDateDescription = """
-    [ANALYSIS-PRIMITIVE] Downsampled per-second timeline for a workout on the given date. Returns up to 200 time buckets, each carrying median HR, pace, cadence, altitude, computed grade percent, α1, and power for that bucket. \
+    [ANALYSIS-PRIMITIVE] Downsampled per-second timeline for a workout on the given date. Returns up to 200 time buckets, each carrying median HR, pace, cadence, altitude, computed grade percent, α1, and power for that bucket, \
+    plus `lat`/`lon` where the workout had GPS: to compare a climb with other runs over it, find the climb's buckets here and pass one bucket's 'lat,lon' to workout.segment_compare. \
     Use this for ANY analytical question that needs the time-series shape (not just aggregates): 'did my HR spike when I was flat or going downhill', 'where did pace drop on the climb', 'was α1 still healthy in the second half', \
     'where did cadence fall off as I tired', 'were there moments where power dropped but HR didn't'. The bucket_sec field in the response tells you the time span per bucket (varies by workout length so the cap stays at ~200 \
     records). Walk the array yourself — you have the resolution to find spikes, correlations, and segments without us pre-computing them. Returns notRecorded when the workout has no per-second stream (older sessions before late-April \
@@ -631,7 +632,12 @@ extension WorkoutNamespace {
         let sortedSamples = samples.sorted { $0.offsetSec < $1.offsetSec }
         let durationSec = max(sortedSamples.last?.offsetSec ?? 1, 1)
         let bucketSec = max(1, Int(ceil(Double(durationSec) / Double(maxBuckets))))
-        let bucketRecords = timelineBuckets(sortedSamples, bucketSec: bucketSec, maxBuckets: maxBuckets)
+        let track = session.workoutMetadata?.gpsPolyline.map {
+            GPXExporter.decode(polyline: $0, startDate: session.startDate, duration: session.duration)
+        } ?? []
+        let bucketRecords = timelineBuckets(sortedSamples, bucketSec: bucketSec, maxBuckets: maxBuckets).map {
+            withPosition($0, bucketSec: bucketSec, track: track, start: session.startDate)
+        }
         var envelope: [String: FactValue] = [
             "date": .date(session.startDate), "duration_sec": .integer(durationSec),
             "bucket_sec": .integer(bucketSec), "bucket_count": .integer(bucketRecords.count),
@@ -654,6 +660,22 @@ extension WorkoutNamespace {
             guard let bucket = grouped[idx], !bucket.isEmpty else { return nil }
             return .record(bucketRecord(bucket, startingAt: idx * bucketSec))
         }
+    }
+
+    /// A bucket with the GPS fix nearest its middle, so a climb found in
+    /// the timeline can be handed to `workout.segment_compare` as a point.
+    private static func withPosition(_ bucket: FactValue, bucketSec: Int, track: [CLLocation], start: Date) -> FactValue {
+        guard case var .record(rec) = bucket, case let .integer(offset) = rec["offset_sec"],
+              let fix = nearestFix(in: track, to: start.addingTimeInterval(Double(offset) + Double(bucketSec) / 2))
+        else { return bucket }
+        rec["lat"] = .double((fix.coordinate.latitude * 100_000).rounded() / 100_000)
+        rec["lon"] = .double((fix.coordinate.longitude * 100_000).rounded() / 100_000)
+        return .record(rec)
+    }
+
+    /// The fix taken closest to `time`; nil for an empty track.
+    private static func nearestFix(in track: [CLLocation], to time: Date) -> CLLocation? {
+        track.min { abs($0.timestamp.timeIntervalSince(time)) < abs($1.timestamp.timeIntervalSince(time)) }
     }
 
     /// One bucket's median metrics, keyed by its start offset.

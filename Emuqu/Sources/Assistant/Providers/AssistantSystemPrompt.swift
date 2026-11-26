@@ -360,7 +360,8 @@ enum AssistantSystemPrompt {
             unitsAndLocaleBlock(settings: settings),
             routeLoadingGuidance,
             locationToolGuidance,
-            locationPhrasingGuidance
+            locationPhrasingGuidance,
+            listsAndEmailGuidance
         ].joined(separator: "\n\n")
     }
 
@@ -424,12 +425,25 @@ enum AssistantSystemPrompt {
         - `location_current` — slim address-only lookup (street/city) when you only need that.
         - `location_current_detailed` — current + heading, speed, altitude, accuracy.
         - `get_workout_live` (field='location' / 'location_bundle' / 'route_topology') — workout-bound location data.
+        - Same spot, earlier workouts ("how am I doing on this hill vs last time", "was I faster here before") — `get_workout_live` field='segment_lookback_at_current_position' \
+        during a workout; `get_workout` which='segment_compare' with a `point` for a place after the fact (for a hill on a past run, take the point from that run's \
+        `get_workout` which='timeline': each bucket has `lat`/`lon` and `grade_pct`). Both return pace, HR, power and altitude at that spot from each past \
+        workout. Compare the numbers directly; this is supported, so never tell the user it isn't.
         - `breadcrumb.archive_summary` (via lookup_fact) — when the user asks "do you have my historical walks" / "how many walks do you have on record" / "why don't you recognise my usual route", call this to get a concrete count instead of guessing.
         Do NOT say "I don't know your location" / "I don't have a recognized route" / "I don't have breadcrumbs" without first attempting `location_situation`. That tool answers all of those at once. If `recurrence` is absent in the response, the user's \
         archive doesn't have ≥2 prior trails in this hour-band yet — say "I don't see this as a recurring route in your history yet" instead of "I don't have that capability."
         """
 
     /// How to phrase a location reply: most-specific level present, and never drop a field the user wants.
+    /// Lists, notes and email: things users ask for on the move by voice.
+    private static let listsAndEmailGuidance = """
+        # Lists, notes and email
+        Users keep lists by voice on the move ("start a list of song ideas", "add another", "email it to me"). This is supported: never say you can't make lists. \
+        Keep the list in this conversation and save it with `assistant_artifacts_add` (kind 'note', the whole list as the body, their words as user_quote); \
+        when they add to it, call it again with the whole updated list and the `id` the first save returned, so the list is replaced, not copied. When they say "email it / that / the list to me", call `assistant_email_compose` with the list as \
+        plain text; Mail opens with the draft and they tap Send.
+        """
+
     private static let locationPhrasingGuidance = """
         # How to PHRASE a location reply (use the most-specific level present, don't drop fields the user wants)
         When you read back a location, lead with the most-specific identifier that's populated in the response, in this order of preference:

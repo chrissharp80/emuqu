@@ -237,9 +237,12 @@ full instructions and lean on prompt caching.
    Two layers (Anthropic's "progressive disclosure" / just-in-time pattern):
    the full catalog is over 200 `FactEntry` keys, but the
    model is handed a **compact meta-schema** (`CompactToolRouter` —
-   `get_sleep`, `get_hrv`, `get_training_load`, … + `lookup_fact` for the
-   long tail), NOT every key. The typed meta-tools cover the common asks; any
-   remaining key is reachable by string via `lookup_fact`. The prompt itself
+   `get_sleep`, `get_hrv`, `get_training_load`, … + `find_data` and
+   `lookup_fact` for the long tail), NOT every key. The typed meta-tools cover
+   the common asks. `find_data` searches every catalog entry by plain words
+   and returns the `lookup_fact` key or the action tool that answers, so a
+   fact the typed tools don't name is still found. `FloDiscoverabilityTests`
+   fails if a catalog action can't be called or an entry can't be found. The prompt itself
    is small (~3 KB) and byte-identical every turn, so each provider's prompt
    cache hits on turn 2+.
 2. When you ask a question, the model replies with one or more
@@ -270,7 +273,7 @@ Apple's tool-use lives behind a thin adapter:
 - **[`AppleToolCatalog.wrap(_:handler:)`](../Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift)** —
   wraps each `ToolSpec` in a `Tool<Arguments, Output>` where
   `Arguments = AppleToolArgs(@Guide argumentsJSON: String)` and
-  `Output = String`. One adapter shape for the whole catalog (21 read tools plus up to 19 action tools);
+  `Output = String`. One adapter shape for the whole catalog (22 read tools plus up to 20 action tools);
   the adapter forwards `argumentsJSON` to the dispatcher.
 - **[`AppleToolDispatcher.shared`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)** —
   `@MainActor` singleton. Before each Apple-routed send,
