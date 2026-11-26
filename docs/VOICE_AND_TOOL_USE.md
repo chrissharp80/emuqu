@@ -102,9 +102,14 @@ author), no gate above 0 graded better and an embedding-only flag graded
 far worse; the simulator's word vectors are not the contextual embedder a
 phone uses.
 [`RouterEvalTests`](../EmuquTests/EvalUtterances.swift) grades the
-classifier on a held-out split (95% / 85% / 90% gates per slice, no
-medical misroute); the same author wrote that split and the markers, so
-its scores are an upper bound. No test or eval phrase may copy a
+classifier on a held-out split of 197 utterances by an author who saw
+neither the classifier nor the other utterances. It measures 75% /
+69% / 60% exact (voice-style / short / boundary), 77% / 77% / 69% on
+the routing tier, against targets of 95% / 85% / 90%, with no medical
+misroute; the floors are the measured scores. Most misses under-detect
+the web, which the cascade catches at run time: Apple's call to
+`web_search` hands the turn to a consented cloud provider that can
+search. No test or eval phrase may copy a
 prototype (`EvalPrototypeOverlapTests`).
 
 ### Voice-mode bypass
