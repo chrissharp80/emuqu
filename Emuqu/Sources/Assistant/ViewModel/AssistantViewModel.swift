@@ -34,7 +34,7 @@ final class ComposerState {
 /// turn, using the same provider, same history, same context.
 @Observable
 @MainActor
-final class AssistantViewModel {
+final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
 
     // MARK: - Published state
 

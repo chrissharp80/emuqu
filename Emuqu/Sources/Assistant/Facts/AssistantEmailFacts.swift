@@ -352,7 +352,8 @@ extension AssistantMemoryNamespace {
     Apple's MFMailComposeViewController so the user can review, edit recipients, and tap Send (or Cancel). Emuqu never sends mail directly. Body must be plain text: the composer shows it exactly as written, so Markdown symbols appear literally. The user \
     configures TWO sets of default recipients in Settings → Profile — one for RECOVERY emails (morning report, HRV/sleep) and one for TRAINING emails (workouts, sessions). Pass the `category` argument \
     to pick which defaults to use. ADDRESS BOOK: the user can save contacts (`assistant.contacts.list`); pass NAMES (e.g. 'chris, coach') in to/cc and the resolver will look them up. Mix names + explicit addresses freely. If \
-    a name is unknown or ambiguous, this action returns invalidParameter with a clear detail string — relay it to the user and ask them to clarify (or to add/disambiguate the contact). The same draft is staged once per turn: a repeat returns status=already_staged and opens no second composer. Echo a short confirmation to the user verbatim \
+    a name is unknown or ambiguous, this action returns invalidParameter with a clear detail string — relay it to the user and ask them to clarify (or to add/disambiguate the contact). \
+    The same draft is staged once per turn: a repeat returns status=already_staged and opens no second composer. Echo a short confirmation to the user verbatim \
     ('Draft ready — review the mail sheet and tap Send').
     """
 }

@@ -620,11 +620,20 @@ but the contract is stricter:
    message is not consent: "don't remember that I had knee surgery"
    contains the fact it refuses. A value the model took from a web page,
    an email or a tool result is shown to the user before it is saved. `assistant.email.compose` stages a draft only when
-   its `user_quote` appears in the user's latest message.
+   its `user_quote` appears in the user's latest message, and stages the same draft (recipients, subject and body) once
+   per turn: a repeat answers `status=already_staged` and opens no second composer (`AssistantEmailBridge.stageOncePerTurn`).
 8. **No retry elsewhere after a change.** Once a mutating tool
    (`AssistantToolRunner.mutatingToolNames`) has run in a turn, a provider
    failure ends the turn instead of handing it to another model, so the
-   action is not repeated.
+   action is not repeated. So does a fallback that ran one and then wrote no
+   reply: the reply gets a short note that an action ran, and the next
+   fallback does not start the turn over.
+9. **Consent is checked per call.** A tool call runs only while the
+   provider that asked for it has data-sharing consent and is switched on.
+   A call made after a withdrawal mid-batch gets a refusal as its result
+   and sends nothing, and the turn ends before anything goes back to the
+   model. Withdrawing consent also stops a turn streaming from that
+   provider, keeping the text already shown.
 
 The action entries the model can call are listed in
 `CompactToolRouter.allowedActionNames`: artifacts add / update_status,
