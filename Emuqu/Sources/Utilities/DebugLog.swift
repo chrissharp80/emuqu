@@ -106,6 +106,20 @@ final class DebugLogger {
         observeAppLifecycle()
     }
 
+    /// A logger holding `entries` in memory and nothing else: no log file is
+    /// read or written, no flush timer runs, no app-lifecycle observer is
+    /// added. The error catalog is the entries the app would catalog. For a
+    /// preview or test that shows the log screens fixed lines in place of the
+    /// process's own log.
+    nonisolated init(inMemory entries: [LogEntry]) {
+        queue = DispatchQueue(label: "com.hrv.debuglogger.inmemory", qos: .utility)
+        _persistentLoggingEnabled = false
+        persistentBox = OSAllocatedUnfairLock(initialState: false)
+        logFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("debug_log-\(UUID().uuidString).txt")
+        _entries = entries
+        _errorCatalog = entries.filter { Self.shouldCatalog(message: $0.message, level: $0.level) }
+    }
+
     /// Resolve the log file path once, preferring the shared app-group container
     /// so extensions write to the same file, then Documents, then the temporary
     /// directory.

@@ -103,8 +103,8 @@ extension SnapshotTesting {
     }
 
     /// A container over empty stores of the render's own (settings on
-    /// fresh-install defaults, an empty archive and baseline in a temporary
-    /// folder), put in force and in the environment for the render. A view
+    /// fresh-install defaults, an empty archive, baseline and training-load
+    /// cache in a temporary folder), put in force and in the environment for the render. A view
     /// rendered in a window runs its `onAppear` and `task` and reads the
     /// archive and settings it finds; without this it would draw whatever the
     /// simulator running the tests holds, which differs by machine and run.
@@ -115,9 +115,14 @@ extension SnapshotTesting {
         let settings = SettingsManager(settingsURL: directory.appendingPathComponent("user_settings.json"))
         let dependencies = AppDependencies()
         dependencies.overrides.settingsManager = settings
-        dependencies.overrides.sessionArchive = SessionArchive(directory: directory)
         dependencies.overrides.baselineTracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
         dependencies.overrides.archiveSignal = ArchiveSignal()
+        let archive = SessionArchive(directory: directory)
+        dependencies.overrides.sessionArchive = archive
+        dependencies.overrides.trainingMetricsCache = TrainingMetricsCache(
+            archive: { archive }, settings: { settings.settings },
+            persistenceURL: directory.appendingPathComponent("TrainingMetricsCache.json")
+        )
         return (dependencies, {
             _ = settings.flushPendingWritesSynchronously()
             do {

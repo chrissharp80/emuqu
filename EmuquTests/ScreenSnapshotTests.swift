@@ -26,20 +26,61 @@ final class ScreenSnapshotTests: XCTestCase {
         )
     }
 
-    // MARK: - Not pinned
+    // MARK: - History
     //
-    // A reference must be the same picture on every machine on every day.
-    // These screens draw something no fixture here controls, so they have no
-    // snapshot:
+    // The calendar opens on the month that contains today and rings today,
+    // so it is given a fixed today (`SnapshotFixtures.today`).
+
+    func testHistoryCalendarWithSessionsRenders() {
+        let sessions = (0 ..< 12).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
+        assertSnapshot(
+            of: NavigationStack {
+                HistoryCalendarView(allSessions: sessions, onDelete: { _ in false })
+            }
+            .environment(\.currentDate) { SnapshotFixtures.today },
+            named: "screen-history-calendar"
+        )
+    }
+
+    /// The empty calendar is what a new user sees, and it is the state most
+    /// likely to be broken by a change written against populated data.
+    func testHistoryCalendarEmptyRenders() {
+        assertSnapshot(
+            of: NavigationStack {
+                HistoryCalendarView(allSessions: [], onDelete: { _ in false })
+            }
+            .environment(\.currentDate) { SnapshotFixtures.today },
+            named: "screen-history-calendar-empty"
+        )
+    }
+
+    // MARK: - Settings subpages
     //
-    // - `HistoryCalendarView` opens on the month that contains today, so its
-    //   picture changes every month.
-    // - `ErrorCatalogView` and `DebugLogView` list the process's own log, which
-    //   the tests running before them write to, with the time each line was
-    //   written.
-    // - `CrashLogView` reads the crash reports on the device running the tests.
-    // - `PermissionsSettingsPage` shows the Apple Health authorization the
-    //   simulator happens to hold.
+    // Reached rarely, so rarely looked at, and the diagnostic ones are what a
+    // user opens when something has already gone wrong. The log screens read
+    // a logger holding fixed lines (`SnapshotFixtures.loggedDependencies`),
+    // not the process's own log, which the tests before them write to.
+
+    func testErrorCatalogRenders() {
+        assertSnapshot(
+            of: NavigationStack { ErrorCatalogView() }
+                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
+            named: "screen-error-catalog"
+        )
+    }
+
+    func testDebugLogRenders() {
+        assertSnapshot(
+            of: NavigationStack { DebugLogView() }
+                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
+            named: "screen-debug-log"
+        )
+    }
+
+    // Not pinned: `CrashLogView` reads the crash report file at a fixed path
+    // on the device running the tests, and `PermissionsSettingsPage` shows the
+    // Apple Health authorization the simulator happens to hold. Neither has a
+    // source a test can hand it.
 
     // MARK: - Safety
 

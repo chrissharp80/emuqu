@@ -17,6 +17,8 @@ import SwiftUI
 /// weights belong to RecoveryScoreDetailView (D2), not here.
 struct DashboardV2View: View {
     @Environment(\.dependencies) var dependencies
+    /// Today, as the recent-days strip and the night-age captions count it.
+    @Environment(\.currentDate) var currentDate
     let sessions: [HRVSession]
     /// True total of sessions in the archive — `sessions` above is the
     /// 35-most-recent slice MainTabView passes

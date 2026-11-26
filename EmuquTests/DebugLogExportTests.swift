@@ -47,3 +47,22 @@ final class DebugLogExportTests: XCTestCase {
         XCTAssertTrue(source.contains("planted read failure"), source)
     }
 }
+
+/// A logger built from fixed lines shows those lines and catalogs the ones
+/// the app would, and leaves the process's log alone.
+@MainActor
+final class InMemoryDebugLoggerTests: XCTestCase {
+    func testItHoldsTheLinesItIsGivenAndCatalogsTheProblems() {
+        let at = Date(timeIntervalSince1970: 1_622_534_400)
+        let entries: [DebugLogger.LogEntry] = [
+            .init(timestamp: at, message: "[Archive] Loaded", category: "SessionArchive", level: .info),
+            .init(timestamp: at, message: "[Sync] Upload failed", category: "CloudKit", level: .error),
+            .init(timestamp: at, message: "⚠️ low battery", category: "Polar", level: .info)
+        ]
+        let logger = DebugLogger(inMemory: entries)
+        XCTAssertEqual(logger.entries.map(\.message), entries.map(\.message))
+        XCTAssertEqual(logger.errorCatalog.map(\.message), ["[Sync] Upload failed", "⚠️ low battery"])
+        XCTAssertFalse(logger.persistentLoggingEnabled, "a fixture logger must never write a log file")
+        XCTAssertFalse(logger === DebugLogger.shared)
+    }
+}

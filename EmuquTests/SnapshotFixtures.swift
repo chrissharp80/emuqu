@@ -16,6 +16,11 @@ enum SnapshotFixtures {
     /// 08:00:00 UTC on 1 June 2021.
     static let anchor = Date(timeIntervalSince1970: 1_622_534_400)
 
+    /// Noon in America/Chicago on 1 June 2021, after the fixture overnight
+    /// ends: the "today" a screen that lays itself out from today is given
+    /// (`EnvironmentValues.currentDate`).
+    static let today = anchor.addingTimeInterval(9 * 3600)
+
     static let sessionId =
         UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE") ?? UUID()
 
@@ -197,12 +202,13 @@ extension SnapshotFixtures {
     /// with a baseline of its own there too: the dashboard gates its verdict
     /// on the baseline's night count, which the app's baseline would set to
     /// whatever the simulator running the tests has recorded.
+    /// A test that needs nights in the baseline passes a tracker of its own.
     @MainActor
-    static func collector() -> RRCollector {
+    static func collector(baselineTracker: BaselineTracker? = nil) -> RRCollector {
         let archive = SessionArchive(directory: emptyArchiveDirectory)
         let hermetic = AppDependencies()
         hermetic.overrides.sessionArchive = archive
-        hermetic.overrides.baselineTracker = BaselineTracker(
+        hermetic.overrides.baselineTracker = baselineTracker ?? BaselineTracker(
             baselineFile: emptyArchiveDirectory.appendingPathComponent("HRVBaseline.json")
         )
         return RRCollector(
@@ -244,5 +250,28 @@ extension XCTestCase {
             if let dashboard = saved.dashboard { cache.setDashboard(dashboard) }
             if let fitness = saved.fitness { cache.setFitness(fitness) }
         }
+    }
+}
+
+// MARK: - Log screens
+
+extension SnapshotFixtures {
+    /// A container whose debug logger holds a few fixed lines, two of them
+    /// problems the error catalog lists, in place of the process's own log.
+    @MainActor
+    static func loggedDependencies() -> AppDependencies {
+        let entries: [DebugLogger.LogEntry] = [
+            .init(timestamp: anchor.addingTimeInterval(60), message: "[Archive] Loaded 12 sessions from archive",
+                  category: "SessionArchive", level: .info),
+            .init(timestamp: anchor.addingTimeInterval(120), message: "[Baseline] Loaded 12 data points, baseline: available",
+                  category: "BaselineTracker", level: .info),
+            .init(timestamp: anchor.addingTimeInterval(180), message: "[HealthKit] Sleep query returned no samples for the night",
+                  category: "HealthKitManager", level: .warning),
+            .init(timestamp: anchor.addingTimeInterval(240), message: "[CloudKit] Upload failed: the network is unavailable",
+                  category: "CloudKitSyncManager", level: .error)
+        ]
+        let dependencies = AppDependencies()
+        dependencies.overrides.debugLogger = DebugLogger(inMemory: entries)
+        return dependencies
     }
 }
