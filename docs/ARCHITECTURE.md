@@ -1515,7 +1515,8 @@ Post-summary and the epic α1 report live in
   root. IF (Intensity Factor) = NP / FTP. Variability Index = NP / avg
   power. A 0 W reading counts as a reading (coasting); foot-pod power older
   than 5 s is no reading (`FootPodManager.currentPowerWatts`,
-  `powerStaleAfter`). Computed at session finalize when both a power source (Stryd
+  `powerStaleAfter`), and so is PM5 stroke power or stroke rate older than
+  8 s (`Concept2Manager.currentPowerWatts`, `strokeStaleAfter`). Computed at session finalize when both a power source (Stryd
   RSC / FTMS / PM5 / CPS) and the matching FTP (`runningFTPWatts` or
   `cyclingFTPWatts` in `UserSettings`) are present. Returns nil
   otherwise — no fabricated denominators.

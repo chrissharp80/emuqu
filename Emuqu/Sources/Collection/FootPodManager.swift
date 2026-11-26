@@ -84,6 +84,42 @@ extension BLEPeripheralConnecting {
     }
 }
 
+/// The measurement subscriptions a BLE sensor link is waiting on, from
+/// service discovery to the notification-state answer for each
+/// characteristic. A link counts as connected only once a subscription is
+/// confirmed; when every awaited step has failed and none is confirmed, the
+/// link can deliver nothing and is ended rather than left looking connected.
+struct BLESubscriptionTally {
+    /// Characteristics whose notifications the sensor confirmed.
+    private(set) var confirmed: Set<CBUUID> = []
+    private var awaited = 0
+
+    /// A fresh link: nothing confirmed, nothing awaited.
+    mutating func reset() {
+        confirmed = []
+        awaited = 0
+    }
+
+    /// Discovery found `steps` services, each now looked into.
+    mutating func expect(_ steps: Int) {
+        awaited = steps
+    }
+
+    /// One awaited step finished and opened `next` further ones (a service's
+    /// characteristics found, each now subscribing; zero when it failed).
+    /// True when nothing is awaited and nothing is confirmed.
+    mutating func settle(opening next: Int = 0) -> Bool {
+        awaited = max(0, awaited - 1) + next
+        return awaited == 0 && confirmed.isEmpty
+    }
+
+    /// The sensor confirmed notifications on `characteristic`.
+    mutating func confirm(_ characteristic: CBUUID) {
+        confirmed.insert(characteristic)
+        awaited = max(0, awaited - 1)
+    }
+}
+
 @Observable
 @MainActor
 final class FootPodManager: NSObject, BLEPeripheralConnecting {
@@ -202,12 +238,11 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// left alone, so the app doesn't hold a connection request open for a
     /// sensor nobody is using.
     @ObservationIgnored private var workoutHoldsLink = false
-    @ObservationIgnored private var rscMeasurementChar: CBCharacteristic?
-    @ObservationIgnored private var powerMeasurementChar: CBCharacteristic?
-    /// FTMS Indoor Bike Data characteristic — present on smart trainers /
-    /// indoor bikes that broadcast power via FTMS instead of (or in
-    /// addition to) the CPS path.
-    @ObservationIgnored private var indoorBikeDataChar: CBCharacteristic?
+    /// The linked sensor's advertised name, for status lines and the
+    /// remembered-device list.
+    @ObservationIgnored private var linkedName: String?
+    /// The measurement subscriptions the linked sensor is setting up.
+    @ObservationIgnored private var subscriptions = BLESubscriptionTally()
     /// Pending reconnect when central starts in `.poweredOff` then powers on.
     var pendingReconnectId: String?
     /// Suppress scan during connect so we don't thrash the central.
@@ -233,11 +268,13 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     nonisolated static let indoorBikeDataChar_UUID = CBUUID(string: "2AD2")
 
     private let knownDevicesKey = "fitness.footpod.knownDevices"
+    private let defaults: UserDefaults
 
     // MARK: - Init
 
     /// Reads the remembered devices only; the central is built on first use.
-    override init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         super.init()
         loadKnownDevices()
     }
@@ -314,7 +351,9 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         if let p = activePeripheral {
             centralIfCreated?.cancelPeripheralConnection(p)
         }
-        // Teardown state here too in case the cancellation callback is slow.
+        // Teardown state here too: the cancellation's own callback is for a
+        // device no longer linked, so it changes nothing.
+        lastStatusLine = String(localized: "Disconnected", bundle: LanguageManager.appBundle)
         cleanupAfterDisconnect()
     }
 
@@ -325,14 +364,36 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     // MARK: - Internal
 
+    /// Links `peripheral`, cancelling the connection to any other sensor
+    /// first: one foot pod at a time, and a link left open to the previous
+    /// one would keep its callbacks coming.
     func attach(peripheral: CBPeripheral) {
+        if let previous = activePeripheral, previous.identifier != peripheral.identifier {
+            centralIfCreated?.cancelPeripheralConnection(previous)
+        }
+        claimLink(peripheral.identifier, name: peripheral.name)
         activePeripheral = peripheral
-        linkedDeviceId = peripheral.identifier.uuidString
         peripheral.delegate = self
-        connectionState = .connecting
-        let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
-        lastStatusLine = String(localized: "Connecting to \(name)…", bundle: LanguageManager.appBundle)
         central.connect(peripheral, options: nil)
+    }
+
+    /// Makes `id` the sensor this manager answers to. Every connection,
+    /// discovery and measurement callback checks the device it is about
+    /// against this, so a late callback from a sensor switched away from
+    /// cannot change the linked one's state. Switching drops the previous
+    /// sensor's readings.
+    func claimLink(_ id: UUID, name: String?) {
+        if let linkedDeviceId, linkedDeviceId != id.uuidString { cleanupAfterDisconnect() }
+        linkedDeviceId = id.uuidString
+        linkedName = name
+        connectionState = .connecting
+        let shown = name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
+        lastStatusLine = String(localized: "Connecting to \(shown)…", bundle: LanguageManager.appBundle)
+    }
+
+    /// Whether `id` is the sensor connected or being connected now.
+    func isLinked(_ id: UUID) -> Bool {
+        linkedDeviceId == id.uuidString
     }
 
     /// The odometer reading survives a link loss mid-workout (the pod keeps
@@ -342,9 +403,8 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     private func cleanupAfterDisconnect() {
         activePeripheral = nil
         linkedDeviceId = nil
-        rscMeasurementChar = nil
-        powerMeasurementChar = nil
-        indoorBikeDataChar = nil
+        linkedName = nil
+        subscriptions.reset()
         instantaneousSpeedMS = nil
         cadenceStepsPerMin = nil
         strideLengthMeters = nil
@@ -354,9 +414,10 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         connectionState = .disconnected
     }
 
-    private func rememberDevice(peripheral: CBPeripheral, supportsPower: Bool) {
-        let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? String(localized: "Foot pod", bundle: LanguageManager.appBundle)
+    private func rememberLinkedDevice() {
+        guard let id = linkedDeviceId else { return }
+        let name = linkedName ?? String(localized: "Foot pod", bundle: LanguageManager.appBundle)
+        let supportsPower = !subscriptions.confirmed.isDisjoint(with: [Self.cyclingPowerMeasurementChar_UUID, Self.indoorBikeDataChar_UUID])
         let entry = KnownFootPod(id: id, name: name, supportsPower: supportsPower)
         var list = knownDevices
         list.removeAll { $0.id == id }
@@ -368,11 +429,11 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     private func saveKnownDevices() {
         guard let data = attempt("footPod.knownDevices.encode", { try JSONEncoder().encode(knownDevices) }) else { return }
-        UserDefaults.standard.set(data, forKey: knownDevicesKey)
+        defaults.set(data, forKey: knownDevicesKey)
     }
 
     private func loadKnownDevices() {
-        guard let data = UserDefaults.standard.data(forKey: knownDevicesKey),
+        guard let data = defaults.data(forKey: knownDevicesKey),
               let list = try? JSONDecoder().decode([KnownFootPod].self, from: data)
         else { return }
         knownDevices = list
@@ -458,10 +519,7 @@ extension FootPodManager: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
-            self.connectionState = .connected
-            self.expectsLink = true
-            let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
-            self.lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
+            guard self.linkConnected(peripheral.identifier) else { return }
             peripheral.delegate = self
             peripheral.discoverServices([Self.runningSpeedCadenceService, Self.cyclingPowerService, Self.fitnessMachineService])
         }
@@ -472,18 +530,16 @@ extension FootPodManager: CBCentralManagerDelegate {
         didFailToConnect peripheral: CBPeripheral,
         error: Error?
     ) {
-        let err = error?.localizedDescription ?? String(localized: "unknown error", bundle: LanguageManager.appBundle)
         Task { @MainActor in
-            self.lastStatusLine = String(localized: "Connect failed: \(err)", bundle: LanguageManager.appBundle)
-            self.cleanupAfterDisconnect()
-            if self.expectsLink, self.workoutHoldsLink { self.retryConnect(peripheral) }
+            guard self.linkFailedToConnect(peripheral.identifier, error: error) else { return }
+            self.retryConnect(peripheral)
         }
     }
 
     /// A reconnect that failed mid-workout is asked for again after a short
-    /// pause (a failure can come back at once, so not in a tight loop);
-    /// before, the first failure ended pace, cadence and power for the rest
-    /// of the workout.
+    /// pause (a failure can come back at once, so not in a tight loop), so
+    /// one failure does not end pace, cadence and power for the rest of the
+    /// workout.
     @MainActor
     private func retryConnect(_ peripheral: CBPeripheral) {
         debugLog("[FootPod] Reconnect failed mid-workout — asking again")
@@ -500,12 +556,116 @@ extension FootPodManager: CBCentralManagerDelegate {
         error: Error?
     ) {
         Task { @MainActor in
-            self.lastStatusLine = String(localized: "Disconnected", bundle: LanguageManager.appBundle)
-            self.cleanupAfterDisconnect()
-            guard self.expectsLink, self.workoutHoldsLink else { return }
-            debugLog("[FootPod] Link dropped mid-workout — reconnecting")
+            guard self.linkDropped(peripheral.identifier) else { return }
             self.attach(peripheral: peripheral)
         }
+    }
+}
+
+// MARK: - Link lifecycle
+
+/// What each delegate callback does to this manager's state, keyed by the
+/// device it is about. The delegate methods hand CoreBluetooth the follow-up
+/// (discover, subscribe, reconnect) when these say to; tests drive these
+/// directly with made-up device ids.
+extension FootPodManager {
+    /// The link to `id` is up; measurements are set up next. The state stays
+    /// `.connecting` until a subscription is confirmed. False when `id` is not
+    /// the linked sensor.
+    func linkConnected(_ id: UUID) -> Bool {
+        guard isLinked(id) else { return false }
+        expectsLink = true
+        subscriptions.reset()
+        return true
+    }
+
+    /// The connection to `id` failed. True when it should be asked for again
+    /// (mid-workout).
+    func linkFailedToConnect(_ id: UUID, error: Error?) -> Bool {
+        guard isLinked(id) else { return false }
+        lastStatusLine = Self.connectFailedLine(error)
+        cleanupAfterDisconnect()
+        return expectsLink && workoutHoldsLink
+    }
+
+    /// The link to `id` dropped. True when it should be asked for again
+    /// (a drop mid-workout that nobody asked for).
+    func linkDropped(_ id: UUID) -> Bool {
+        guard isLinked(id) else { return false }
+        lastStatusLine = String(localized: "Disconnected", bundle: LanguageManager.appBundle)
+        cleanupAfterDisconnect()
+        guard expectsLink, workoutHoldsLink else { return false }
+        debugLog("[FootPod] Link dropped mid-workout: reconnecting")
+        return true
+    }
+
+    /// Service discovery on `id` finished with `recognised` measurement
+    /// services. True when their characteristics should be looked up; with
+    /// none, or on an error, the link ends.
+    func linkFoundServices(_ id: UUID, recognised: Int, error: Error?) -> Bool {
+        guard isLinked(id) else { return false }
+        guard error == nil, recognised > 0 else {
+            endFailedLink(error)
+            return false
+        }
+        subscriptions.expect(recognised)
+        return true
+    }
+
+    /// One service's lookup on `id` found `measurements`. True when they
+    /// should be subscribed to; when the lookup failed and nothing else is
+    /// pending or confirmed, the link ends.
+    func linkFoundCharacteristics(_ id: UUID, measurements: [CBUUID], error: Error?) -> Bool {
+        guard isLinked(id) else { return false }
+        let found = error == nil ? measurements.count : 0
+        if subscriptions.settle(opening: found) { endFailedLink(error) }
+        return found > 0
+    }
+
+    /// The sensor answered a subscription request. A confirmed one makes the
+    /// link connected and remembers the device; when every request failed,
+    /// the link ends, since recording would receive nothing.
+    func linkNotificationChanged(_ id: UUID, characteristic: CBUUID, isNotifying: Bool, error: Error?) {
+        guard isLinked(id) else { return }
+        guard error == nil, isNotifying else {
+            if subscriptions.settle() { endFailedLink(error) }
+            return
+        }
+        subscriptions.confirm(characteristic)
+        connectionState = .connected
+        let name = linkedName ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
+        lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
+        rememberLinkedDevice()
+    }
+
+    /// A measurement notification from `id`; one from any other device is
+    /// dropped, so a sensor switched away from cannot fill in this one's
+    /// readings.
+    func receivedMeasurement(_ data: Data, characteristic: CBUUID, from id: UUID) {
+        guard isLinked(id) else { return }
+        switch characteristic {
+        case Self.rscMeasurementChar_UUID: parseRSC(data: data)
+        case Self.cyclingPowerMeasurementChar_UUID: parsePower(data: data)
+        case Self.indoorBikeDataChar_UUID: parseIndoorBikeData(data: data)
+        default: break
+        }
+    }
+
+    /// A link that cannot deliver measurements is ended rather than left
+    /// showing connected; mid-workout it is asked for again, as after a
+    /// failed connect.
+    private func endFailedLink(_ error: Error?) {
+        let peripheral = activePeripheral
+        if let peripheral { centralIfCreated?.cancelPeripheralConnection(peripheral) }
+        lastStatusLine = Self.connectFailedLine(error)
+        cleanupAfterDisconnect()
+        guard expectsLink, workoutHoldsLink, let peripheral else { return }
+        retryConnect(peripheral)
+    }
+
+    private static func connectFailedLine(_ error: Error?) -> String {
+        let err = error?.localizedDescription ?? String(localized: "unknown error", bundle: LanguageManager.appBundle)
+        return String(localized: "Connect failed: \(err)", bundle: LanguageManager.appBundle)
     }
 }
 
@@ -514,15 +674,17 @@ extension FootPodManager: CBCentralManagerDelegate {
 extension FootPodManager: CBPeripheralDelegate {
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         Task { @MainActor in
-            Self.discoverMeasurementCharacteristics(on: peripheral)
+            let services = (peripheral.services ?? []).filter { Self.measurementCharacteristic(for: $0.uuid) != nil }
+            guard self.linkFoundServices(peripheral.identifier, recognised: services.count, error: error) else { return }
+            Self.discoverMeasurementCharacteristics(on: peripheral, in: services)
         }
     }
 
     /// Only the measurement characteristic of each recognised service is
-    /// requested — discovering everything wakes characteristics we never read.
+    /// requested: discovering everything wakes characteristics we never read.
     @MainActor
-    private static func discoverMeasurementCharacteristics(on peripheral: CBPeripheral) {
-        for service in peripheral.services ?? [] {
+    private static func discoverMeasurementCharacteristics(on peripheral: CBPeripheral, in services: [CBService]) {
+        for service in services {
             guard let characteristic = measurementCharacteristic(for: service.uuid) else { continue }
             peripheral.discoverCharacteristics([characteristic], for: service)
         }
@@ -530,7 +692,7 @@ extension FootPodManager: CBPeripheralDelegate {
 
     /// The one measurement characteristic we care about on each supported
     /// service; nil for any other service the peripheral happens to advertise.
-    private static func measurementCharacteristic(for serviceUUID: CBUUID) -> CBUUID? {
+    nonisolated private static func measurementCharacteristic(for serviceUUID: CBUUID) -> CBUUID? {
         switch serviceUUID {
         case runningSpeedCadenceService: return rscMeasurementChar_UUID
         case cyclingPowerService: return cyclingPowerMeasurementChar_UUID
@@ -545,38 +707,24 @@ extension FootPodManager: CBPeripheralDelegate {
         error: Error?
     ) {
         Task { @MainActor in
-            guard let characteristics = service.characteristics else { return }
-            let supportsPower = self.bindMeasurementCharacteristics(characteristics, on: peripheral)
-            // Remember the device once we've seen its characteristics so the
-            // supportsPower flag is accurate.
-            let hasAny = self.rscMeasurementChar != nil || self.powerMeasurementChar != nil || self.indoorBikeDataChar != nil
-            guard hasAny else { return }
-            let hasPower = self.powerMeasurementChar != nil || self.indoorBikeDataChar != nil
-            self.rememberDevice(peripheral: peripheral, supportsPower: supportsPower || hasPower)
+            let wanted = Self.measurementCharacteristic(for: service.uuid)
+            let found = (service.characteristics ?? []).filter { $0.uuid == wanted }
+            let id = peripheral.identifier
+            guard self.linkFoundCharacteristics(id, measurements: found.map(\.uuid), error: error) else { return }
+            for characteristic in found { peripheral.setNotifyValue(true, for: characteristic) }
         }
     }
 
-    /// Subscribe to whichever measurement characteristics this service exposes,
-    /// returning whether any of them carries power.
-    @MainActor
-    private func bindMeasurementCharacteristics(_ characteristics: [CBCharacteristic], on peripheral: CBPeripheral) -> Bool {
-        var supportsPower = false
-        for ch in characteristics {
-            switch ch.uuid {
-            case Self.rscMeasurementChar_UUID:
-                rscMeasurementChar = ch
-            case Self.cyclingPowerMeasurementChar_UUID:
-                powerMeasurementChar = ch
-                supportsPower = true
-            case Self.indoorBikeDataChar_UUID:
-                indoorBikeDataChar = ch
-                supportsPower = true
-            default:
-                continue
-            }
-            peripheral.setNotifyValue(true, for: ch)
+    nonisolated func peripheral(
+        _ peripheral: CBPeripheral,
+        didUpdateNotificationStateFor characteristic: CBCharacteristic,
+        error: Error?
+    ) {
+        let uuid = characteristic.uuid
+        let isNotifying = characteristic.isNotifying
+        Task { @MainActor in
+            self.linkNotificationChanged(peripheral.identifier, characteristic: uuid, isNotifying: isNotifying, error: error)
         }
-        return supportsPower
     }
 
     nonisolated func peripheral(
@@ -587,13 +735,7 @@ extension FootPodManager: CBPeripheralDelegate {
         guard let data = characteristic.value else { return }
         let uuid = characteristic.uuid
         Task { @MainActor in
-            if uuid == Self.rscMeasurementChar_UUID {
-                self.parseRSC(data: data)
-            } else if uuid == Self.cyclingPowerMeasurementChar_UUID {
-                self.parsePower(data: data)
-            } else if uuid == Self.indoorBikeDataChar_UUID {
-                self.parseIndoorBikeData(data: data)
-            }
+            self.receivedMeasurement(data, characteristic: uuid, from: peripheral.identifier)
         }
     }
 
