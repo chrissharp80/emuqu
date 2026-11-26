@@ -551,6 +551,10 @@ enum EvalUtterances {
         u("year to date how many miles have i run", .boundary, depth)
     ]
 
+    static let all: [Utterance] = tuning + heldOut
+}
+
+extension EvalUtterances {
     // MARK: - Held-out split
 
     /// Written by an author who saw neither the classifier, its markers and
@@ -763,8 +767,6 @@ enum EvalUtterances {
         u("ابحث عن صالة رياضية قريبة مفتوحة الآن", .boundary, web, "ar"),
         u("Добавь Ивана в контакты", .boundary, tools, "ru")
     ]
-
-    static let all: [Utterance] = tuning + heldOut
 }
 
 /// `RouterEvalTests` grades the classifier against the labels, per split and
