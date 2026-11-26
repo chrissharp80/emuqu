@@ -120,6 +120,7 @@ final class DebugLogger {
         _persistentLoggingEnabled = false
         persistentBox = OSAllocatedUnfairLock(initialState: false)
         logFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("debug_log-\(UUID().uuidString).txt")
+        logFile = BoundedLogFile(url: logFileURL, bound: Self.maxFileSize, trimTarget: Self.maxFileSize / 2)
         _entries = entries
         _errorCatalog = entries.filter { Self.shouldCatalog(message: $0.message, level: $0.level) }
     }
