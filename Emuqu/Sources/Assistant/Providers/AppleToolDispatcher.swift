@@ -49,6 +49,11 @@ final class AppleToolDispatcher {
     private var currentRegistry: FactResolverRegistry?
     /// Tool calls since the last `setRegistry` or `setToolOutputAllowance`.
     private var callsThisTurn = 0
+    /// Whether this turn has called a tool that changes the user's data or the
+    /// app's state (`AssistantToolRunner.mutatingToolNames`). Counted when the
+    /// call is made, as the cloud loop counts its rounds, and kept across
+    /// attempts: only a new turn (`setRegistry`) clears it.
+    private(set) var ranMutatingTool = false
     /// What tool results may still take of Apple's window this attempt.
     private var outputAllowance = AppleContextCompactor.ToolOutputAllowance.unsized
     /// Tools that would send the user's words to a third party Apple's path
@@ -63,6 +68,7 @@ final class AppleToolDispatcher {
     func setRegistry(_ registry: FactResolverRegistry?) {
         currentRegistry = registry
         callsThisTurn = 0
+        ranMutatingTool = false
     }
 
     /// Start one attempt at the turn: `AppleFoundationProvider` sizes what
@@ -111,7 +117,10 @@ final class AppleToolDispatcher {
             return .missing(reason: .invalidParameter, detail: "web search isn't available on the on-device model")
         }
         callsThisTurn += 1
-        guard callsThisTurn > AssistantToolRunner.maxToolCallsPerTurn else { return nil }
+        guard callsThisTurn > AssistantToolRunner.maxToolCallsPerTurn else {
+            if AssistantToolRunner.mutatingToolNames.contains(name) { ranMutatingTool = true }
+            return nil
+        }
         return .missing(reason: .rateLimited, detail: "tool budget exceeded for this turn — answer with what you have")
     }
 }

@@ -409,3 +409,123 @@ extension TurnRouterTests {
         XCTAssertGreaterThan(message.count, reason.count + ProviderID.anthropic.displayName.count, message)
     }
 }
+
+// MARK: - Fallback to Apple
+
+/// A turn that fails over to Apple Intelligence keeps the tools it would have
+/// on an Apple turn of its own, and a failure after Apple ran a mutating tool
+/// is not handed on to another model.
+@MainActor
+final class AppleFallbackToolTests: XCTestCase {
+    private func makeViewModel() -> AssistantViewModel {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AppleFallbackToolTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        return AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+    }
+
+    /// The reserved reply's id, after a question and an empty reply.
+    private func reserveTurn(in viewModel: AssistantViewModel) -> UUID {
+        let reply = ChatTurn(role: .assistant, text: "")
+        viewModel.turns = [ChatTurn(role: .user, text: "Email me today's recovery report"), reply]
+        return reply.id
+    }
+
+    func testAnAppleFallbackGetsTheTurnsToolsAndCanCallThem() async {
+        let viewModel = makeViewModel()
+        let turnID = reserveTurn(in: viewModel)
+        let (registry, tools) = viewModel.factRegistryAndTools()
+        let recorder = FallbackRecorder()
+        let apple = ScriptedProvider(id: .apple, recorder: recorder, toolCall: ("get_recovery", "{}"), failure: nil)
+
+        let ending = await viewModel.tools.tryFallbacks(
+            [(apple, AppleFoundationProvider.model)], outbound: viewModel.turns, tools: tools,
+            factRegistry: registry, turnID: turnID, voiceMode: false
+        )
+
+        XCTAssertEqual(ending, .answered)
+        XCTAssertEqual(recorder.sentTools, tools.count, "Apple fell back without the turn's tools")
+        XCTAssertTrue(recorder.sentDataBlock, "Apple fell back without its data block")
+        XCTAssertFalse(recorder.toolResult?.contains("has no registry") ?? true, "Apple's tool call had no registry: \(recorder.toolResult ?? "none")")
+    }
+
+    func testAFailureAfterAppleRanAMutatingToolEndsTheChain() async {
+        let viewModel = makeViewModel()
+        let turnID = reserveTurn(in: viewModel)
+        let (registry, tools) = viewModel.factRegistryAndTools()
+        let recorder = FallbackRecorder()
+        let apple = ScriptedProvider(
+            id: .apple, recorder: recorder, toolCall: ("assistant_memory_add", "not json"), failure: .network("offline")
+        )
+        let next = ScriptedProvider(id: .anthropic, recorder: FallbackRecorder(), toolCall: nil, failure: nil)
+
+        let ending = await viewModel.tools.tryFallbacks(
+            [(apple, AppleFoundationProvider.model), (next, AppleFoundationProvider.model)], outbound: viewModel.turns,
+            tools: tools, factRegistry: registry, turnID: turnID, voiceMode: false
+        )
+
+        XCTAssertEqual(ending, .blocked, "a turn that ran a mutating tool was handed on")
+        XCTAssertEqual(next.recorder.sends, 0)
+    }
+}
+
+/// What a scripted provider was sent, and what its tool call returned.
+@MainActor
+private final class FallbackRecorder {
+    var sends = 0
+    var sentTools = 0
+    var sentDataBlock = false
+    var toolResult: String?
+}
+
+/// A provider that records its send, optionally calls one tool through
+/// `AppleToolDispatcher`, then fails or answers "Done.".
+private struct ScriptedProvider: AIProvider {
+    let id: ProviderID
+    let recorder: FallbackRecorder
+    let toolCall: (name: String, args: String)?
+    let failure: AIProviderError?
+    var availableModels: [ModelOption] { [AppleFoundationProvider.model] }
+    var requiresKey: Bool { false }
+    var isAvailable: Bool { true }
+
+    func send(
+        messages _: [ChatTurn], model _: ModelOption, contextRendered _: String, systemPrompt: String,
+        tools: [ToolSpec], toolRounds _: [[ToolExchange]]
+    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        let (recorder, call, failure) = (recorder, toolCall, failure)
+        let toolCount = tools.count
+        let hasDataBlock = systemPrompt.contains("# Current data")
+        return AsyncThrowingStream { continuation in
+            Task { @MainActor in
+                recorder.sends += 1
+                recorder.sentTools = toolCount
+                recorder.sentDataBlock = hasDataBlock
+                if let call { recorder.toolResult = await Self.dispatch(call) }
+                if let failure { return continuation.finish(throwing: failure) }
+                continuation.yield(.textDelta("Done."))
+                continuation.yield(.done)
+                continuation.finish()
+            }
+        }
+    }
+
+    @MainActor
+    private static func dispatch(_ call: (name: String, args: String)) async -> String {
+        do {
+            return try await AppDependencies.current.providers.appleToolDispatcher.dispatch(name: call.name, argumentsJSON: call.args)
+        } catch {
+            return "threw: \(error)"
+        }
+    }
+}
