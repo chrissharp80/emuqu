@@ -246,17 +246,6 @@ extension SnapshotFixtures {
 }
 
 extension XCTestCase {
-    /// The assistant's data-handling notice, accepted or not, for this test;
-    /// restored afterwards. Also kept in `UserDefaults`; it decides whether
-    /// the coach opens on the notice or on its home.
-    @MainActor
-    func useAssistantDisclaimerAccepted(_ value: Bool) {
-        let model = AppDependencies.current.assistant.assistantViewModel
-        let saved = model.hasAcceptedDisclaimer
-        model.hasAcceptedDisclaimer = value
-        addTeardownBlock { @MainActor in model.hasAcceptedDisclaimer = saved }
-    }
-
     /// Puts `SettingsManager.shared` on fresh-install defaults for this test
     /// and restores the settings it found afterwards. The settings manager has
     /// no injectable instance, so this is how a snapshot stops depending on

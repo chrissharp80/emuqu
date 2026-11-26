@@ -25,19 +25,10 @@ final class RemainingScreenSnapshotTests: XCTestCase {
         (0 ..< 8).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
     }
 
-    // Not snapshot-tested: the main tab shell, the history list, the biometrics and wearables settings and the trail picker. The layout includes system navigation
+    // Not snapshot-tested: the main tab shell, the history list, the biometrics and wearables settings, the trail picker and the coach's home. The layout includes system navigation
     // chrome (large titles, sheet bars, the tab bar) that settles at different
     // offsets with timing, the content is static or covered by the component
     // snapshots, and the behaviour is covered by unit and UI tests.
-
-    /// The coach's home, after the data-handling notice has been accepted.
-    func testCoachHomeRenders() {
-        useAssistantDisclaimerAccepted(true)
-        assertSnapshot(
-            of: hosted(CoachHomeV2View(scrollToBottomSignal: UUID())),
-            named: "screen-coach-home"
-        )
-    }
 
     func testSessionHRVDetailRenders() {
         assertSnapshot(
