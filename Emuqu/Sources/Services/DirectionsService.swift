@@ -111,12 +111,8 @@ enum DirectionsService {
         from origin: CLLocationCoordinate2D, to destCoord: CLLocationCoordinate2D, mode: Mode
     ) async throws -> MKRoute {
         let request = MKDirections.Request()
-        // Typed one step at a time: nested, the overloaded initializers can
-        // take the type-checker past CI's time limit on a slow runner.
-        let sourcePlacemark: MKPlacemark = MKPlacemark(coordinate: origin)
-        let destinationPlacemark: MKPlacemark = MKPlacemark(coordinate: destCoord)
-        request.source = MKMapItem(placemark: sourcePlacemark)
-        request.destination = MKMapItem(placemark: destinationPlacemark)
+        request.source = mapItem(at: origin)
+        request.destination = mapItem(at: destCoord)
         request.transportType = mode.transportType
         request.requestsAlternateRoutes = false
         let response = try await MKDirections(request: request).calculate()
@@ -124,6 +120,18 @@ enum DirectionsService {
             throw DirectionsError.noRoute
         }
         return route
+    }
+
+    /// A map item at `coordinate`. iOS 26 builds it from a location, as
+    /// MapKit now asks; earlier systems from a placemark. MKPlacemark's
+    /// overloaded initializers, deprecated in iOS 26, were what took the
+    /// type-checker past CI's limit on a slow runner.
+    private static func mapItem(at coordinate: CLLocationCoordinate2D) -> MKMapItem {
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        if #available(iOS 26.0, *) {
+            return MKMapItem(location: location, address: nil)
+        }
+        return MKMapItem(placemark: MKPlacemark(coordinate: location.coordinate, addressDictionary: nil))
     }
 
     // MARK: - Destination resolvers
