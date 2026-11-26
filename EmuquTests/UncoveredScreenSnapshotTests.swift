@@ -37,7 +37,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             .environment(ArchiveSignal())
             .environment(MorningCoordination())
@@ -73,7 +73,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     // MARK: - Sensors
 
     func testSensorManagementRenders() {
-        assertSnapshot(of: hosted(SensorManagementSheet(polarManager: PolarManager(), onDismiss: {})), named: "uncovered-sensor-management")
+        assertSnapshot(of: hosted(SensorManagementSheet(polarManager: SnapshotFixtures.polarManager(), onDismiss: {})), named: "uncovered-sensor-management")
     }
 
     func testOnboardingSensorPageRenders() {
@@ -101,7 +101,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: hosted(OvernightStreamingStatus(
                 streamingLifecycle: lifecycle,
-                polarManager: PolarManager(),
+                polarManager: SnapshotFixtures.polarManager(),
                 strapBackup: .recording
             )),
             named: "uncovered-overnight-streaming-status"
@@ -109,7 +109,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     }
 
     func testDeviceInfoPanelRenders() {
-        assertSnapshot(of: hosted(DeviceInfoPanelObserving(polarManager: PolarManager())), named: "uncovered-device-info-panel")
+        assertSnapshot(of: hosted(DeviceInfoPanelObserving(polarManager: SnapshotFixtures.polarManager())), named: "uncovered-device-info-panel")
     }
 
     // MARK: - Detail and troubleshooting screens

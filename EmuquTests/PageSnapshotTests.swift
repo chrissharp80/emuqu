@@ -17,7 +17,7 @@ final class PageSnapshotTests: XCTestCase {
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             .environment(ArchiveSignal())
             .environment(MorningCoordination())
@@ -33,7 +33,9 @@ final class PageSnapshotTests: XCTestCase {
         assertSnapshot(of: hosted(TrashView()), named: "page-trash")
     }
 
+    /// As a new user meets it: the first-launch gate, before acceptance.
     func testHealthDisclaimerRenders() {
+        useHealthDisclaimerAccepted(false)
         assertSnapshot(of: hosted(HealthDisclaimerView()), named: "page-health-disclaimer")
     }
 

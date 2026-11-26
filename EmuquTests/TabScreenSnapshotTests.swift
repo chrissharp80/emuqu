@@ -31,7 +31,7 @@ final class TabScreenSnapshotTests: XCTestCase {
             .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             // SwiftUI fatal-errors when a view reads an `@EnvironmentObject`
             // nothing supplied — `PurchaseStatusView` inside Settings reads

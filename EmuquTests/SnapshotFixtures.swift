@@ -212,7 +212,7 @@ extension SnapshotFixtures {
             baselineFile: emptyArchiveDirectory.appendingPathComponent("HRVBaseline.json")
         )
         return RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
+            polarManager: polarManager(), healthKit: HealthKitManager.forTests(),
             archive: archive,
             baselineTracker: hermetic.collection.baselineTracker,
             settingsManager: AppDependencies.current.app.settingsManager,
@@ -221,7 +221,54 @@ extension SnapshotFixtures {
     }
 }
 
+extension SnapshotFixtures {
+    /// A Polar manager that knows no strap and has never connected one. A new
+    /// manager loads the pairings saved on the device, which on a test host
+    /// are whatever the suites run before it paired; they are cleared here in
+    /// memory only, so nothing saved is changed.
+    @MainActor
+    static func polarManager() -> PolarManager {
+        let polar = PolarManager()
+        polar.pairings.knownDevices = []
+        polar.pairings.lastConnectedTime = nil
+        return polar
+    }
+
+    /// The sync manager a container over `emptyArchiveDirectory` builds: its
+    /// upload queue sits beside that archive, so it holds nothing. The app's
+    /// counts the uploads other suites queued.
+    @MainActor
+    static func syncManager() -> CloudKitSyncManager {
+        let hermetic = AppDependencies()
+        hermetic.overrides.sessionArchive = SessionArchive(directory: emptyArchiveDirectory)
+        return hermetic.storage.cloudKitSyncManager
+    }
+}
+
 extension XCTestCase {
+    /// The health disclaimer, accepted or not, for this test; restored
+    /// afterwards. The flag is kept in `UserDefaults`, so on a test host it
+    /// holds whatever that simulator or an earlier suite left, and it decides
+    /// whether the disclaimer is shown as the first-launch gate.
+    @MainActor
+    func useHealthDisclaimerAccepted(_ value: Bool) {
+        let settings = SettingsManager.shared
+        let saved = settings.hasAcceptedDisclaimer
+        settings.hasAcceptedDisclaimer = value
+        addTeardownBlock { @MainActor in settings.hasAcceptedDisclaimer = saved }
+    }
+
+    /// The assistant's data-handling notice, accepted or not, for this test;
+    /// restored afterwards. Also kept in `UserDefaults`; it decides whether
+    /// the coach opens on the notice or on its home.
+    @MainActor
+    func useAssistantDisclaimerAccepted(_ value: Bool) {
+        let model = AppDependencies.current.assistant.assistantViewModel
+        let saved = model.hasAcceptedDisclaimer
+        model.hasAcceptedDisclaimer = value
+        addTeardownBlock { @MainActor in model.hasAcceptedDisclaimer = saved }
+    }
+
     /// Puts `SettingsManager.shared` on fresh-install defaults for this test
     /// and restores the settings it found afterwards. The settings manager has
     /// no injectable instance, so this is how a snapshot stops depending on

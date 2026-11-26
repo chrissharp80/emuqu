@@ -57,8 +57,18 @@ final class BigScreenSnapshotTests: XCTestCase {
         XCTAssertTrue(AppDependencies.current.app.settingsManager === dependencies.app.settingsManager)
     }
 
+    /// An accepted overnight as the report opens it: with the sleep frozen at
+    /// acceptance. Without a frozen snapshot the screen asks HealthKit for the
+    /// night's sleep, and what comes back (an estimate, nothing, or no access)
+    /// depends on the simulator running the tests.
+    private func acceptedOvernight() -> HRVSession {
+        var session = SnapshotFixtures.overnightSession()
+        session.sleepSnapshot = SnapshotFixtures.sleepData()
+        return session
+    }
+
     func testMorningResultsRenders() {
-        let session = SnapshotFixtures.overnightSession()
+        let session = acceptedOvernight()
         let recent = (1 ... 5).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
         assertSnapshot(
             of: environment(
@@ -80,7 +90,7 @@ final class BigScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: environment(
                 MorningResultsView(
-                    session: SnapshotFixtures.overnightSession(),
+                    session: acceptedOvernight(),
                     result: SnapshotFixtures.analysisResult(),
                     recentSessions: [],
                     onDiscard: {}

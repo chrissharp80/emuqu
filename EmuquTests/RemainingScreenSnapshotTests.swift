@@ -15,7 +15,7 @@ final class RemainingScreenSnapshotTests: XCTestCase {
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             .environment(ArchiveSignal())
             .environment(MorningCoordination())
@@ -60,7 +60,9 @@ final class RemainingScreenSnapshotTests: XCTestCase {
         assertSnapshot(of: hosted(WearablesSettingsPage()), named: "screen-wearables-settings")
     }
 
+    /// The coach's home, after the data-handling notice has been accepted.
     func testCoachHomeRenders() {
+        useAssistantDisclaimerAccepted(true)
         assertSnapshot(
             of: hosted(CoachHomeV2View(scrollToBottomSignal: UUID())),
             named: "screen-coach-home"

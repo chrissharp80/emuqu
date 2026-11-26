@@ -180,9 +180,11 @@ final class ChartScreenSnapshotTests: XCTestCase {
         assertSnapshot(of: hosted(ReportsListView()), named: "screen-reports-list")
     }
 
-    func testPaywallRenders() {
-        assertSnapshot(of: hosted(PaywallView()), named: "screen-paywall")
-    }
+    // The paywall has no snapshot: its button shows the price StoreKit
+    // returns ("Unlock for $9.99") or "Purchase" when it returns no product,
+    // and which one a test host gets depends on whether that simulator has a
+    // StoreKit test configuration in force. Pinning it needs an
+    // `SKTestSession` over `Configuration.storekit` in the test bundle.
 
     func testMetricInfoSheetRenders() {
         assertSnapshot(of: hosted(MetricInfoSheet(metricLabel: "RMSSD")), named: "sheet-metric-info")
