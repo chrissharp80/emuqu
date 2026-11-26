@@ -594,7 +594,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         let entry = try archive.archive(session)
 
         // Sanity: the file on disk should be encrypted (starts with the "FR" magic).
-        let fileURL = archive.resolveFileURL(for: entry)
+        let fileURL = archive.state.resolveFileURL(for: entry)
         let onDisk = try Data(contentsOf: fileURL)
         XCTAssertTrue(ArchiveStore.looksEncrypted(onDisk), "Archived session should be encrypted on disk")
 
@@ -855,7 +855,7 @@ extension ArchiveIntegrityTests {
         try SessionArchive.indexEncoder.encode(archive.store.entries).write(to: indexURL)
 
         let reopened = reopenedArchive()
-        reopened.resealPlainIndexIfNeeded()
+        reopened.state.resealPlainIndexIfNeeded()
 
         XCTAssertTrue(ArchiveStore.looksEncrypted(try Data(contentsOf: indexURL)))
         XCTAssertNotNil(reopenedArchive().entryById(session.id))

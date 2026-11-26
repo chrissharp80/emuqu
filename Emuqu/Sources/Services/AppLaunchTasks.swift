@@ -442,7 +442,7 @@ extension EmuquApp {
         let coord = launchServices.launchCoordinator()
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
             NSLog("[App][bg] archive migrations — start")
-            archiveRef.upgradeExistingFileProtection()
+            archiveRef.state.upgradeExistingFileProtection()
             archiveRef.migrations.runDeferredMigrations()
             await collectorJob.recovery.permanentlyDelete(archiveRef.store.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")

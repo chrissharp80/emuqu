@@ -47,7 +47,7 @@ final class RecoveredWorkoutReviewTests: XCTestCase {
         let collector = RRCollector.withoutCloudAcceptance(polarManager: PolarManager(), archive: archive)
         let workout = recoveredWorkout()
         let entry = try archive.archive(workout, skipSameNightMerge: true)
-        try FileManager.default.removeItem(at: archive.resolveFileURL(for: entry))
+        try FileManager.default.removeItem(at: archive.state.resolveFileURL(for: entry))
         let card = review(of: workout)
         collector.morningCoordination.recoveredWorkoutReview = card
 

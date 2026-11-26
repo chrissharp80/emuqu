@@ -8,7 +8,7 @@ extension ArchiveStore {
     /// Where deleted sessions' files wait until they are restored or deleted
     /// for good.
     var trashDirectory: URL {
-        archive.archiveDirectory.appendingPathComponent("Trash", isDirectory: true)
+        state.archiveDirectory.appendingPathComponent("Trash", isDirectory: true)
     }
 
     private func trashURL(for id: UUID) -> URL {
@@ -17,7 +17,7 @@ extension ArchiveStore {
 
     /// Where duplicate cleanup moves the files of the sessions it retires.
     var quarantineDirectory: URL {
-        archive.archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
+        state.archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
     }
 
     /// The session's files held outside the index: its Trash file and every
@@ -25,7 +25,7 @@ extension ArchiveStore {
     /// when the quarantine folder exists but cannot be listed, so a caller
     /// cannot take "none" for an answer it does not have.
     func parkedCopies(of id: UUID) -> [URL]? {
-        let fm = archive.fileManager
+        let fm = state.fileManager
         let trashed = [trashURL(for: id)].filter { fm.fileExists(atPath: $0.path) }
         guard fm.fileExists(atPath: quarantineDirectory.path) else { return trashed }
         guard let names = attempt("Archive.listQuarantine", { try fm.contentsOfDirectory(atPath: quarantineDirectory.path) }) else {
@@ -51,7 +51,7 @@ extension ArchiveStore {
     /// nothing to keep, and is not an error: an index entry whose file is gone
     /// must still be deletable.
     func moveToTrash(_ fileURL: URL, id: UUID) throws {
-        let fm = archive.fileManager
+        let fm = state.fileManager
         guard fm.fileExists(atPath: fileURL.path) else { return }
         try fm.createDirectory(at: trashDirectory, withIntermediateDirectories: true)
         let destination = trashURL(for: id)
@@ -64,9 +64,9 @@ extension ArchiveStore {
     /// deleted before the trash kept files (or the file cannot be read).
     func trashedSession(_ id: UUID) -> HRVSession? {
         let url = trashURL(for: id)
-        guard archive.fileManager.fileExists(atPath: url.path) else { return nil }
+        guard state.fileManager.fileExists(atPath: url.path) else { return nil }
         do {
-            let plaintext = try Self.plaintextBytes(Data(contentsOf: url), id: id, encryption: archive.encryption)
+            let plaintext = try Self.plaintextBytes(Data(contentsOf: url), id: id, encryption: state.encryption)
             return try SessionArchive.sessionDecoder.decode(HRVSession.self, from: plaintext)
         } catch {
             debugLog("[Archive] ⚠️ Trashed session \(id.uuidString.prefix(8)) could not be read: \(error)", level: .warning)
@@ -76,9 +76,9 @@ extension ArchiveStore {
 
     /// Ids of every session file held in the trash.
     var trashedIds: Set<UUID> {
-        guard archive.fileManager.fileExists(atPath: trashDirectory.path) else { return [] }
+        guard state.fileManager.fileExists(atPath: trashDirectory.path) else { return [] }
         do {
-            let names = try archive.fileManager.contentsOfDirectory(atPath: trashDirectory.path)
+            let names = try state.fileManager.contentsOfDirectory(atPath: trashDirectory.path)
             return Set(names.compactMap { UUID(uuidString: ($0 as NSString).deletingPathExtension) })
         } catch {
             debugLog("[Archive] ⚠️ Could not list the trash: \(error)", level: .warning)
@@ -102,7 +102,7 @@ extension ArchiveStore {
 
     private func trashFileDate(_ id: UUID) -> Date? {
         do {
-            return try archive.fileManager.attributesOfItem(atPath: trashURL(for: id).path)[.modificationDate] as? Date
+            return try state.fileManager.attributesOfItem(atPath: trashURL(for: id).path)[.modificationDate] as? Date
         } catch {
             return nil
         }
@@ -123,12 +123,12 @@ extension ArchiveStore {
     /// (logged), or the leftover is kept because it may be a live file.
     @discardableResult
     func discardTrashed(_ id: UUID) -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         let trashFile = trashURL(for: id)
         guard entryById(id) == nil else { return removeQuietly(trashFile, id: id) }
-        let hadTrashFile = archive.fileManager.fileExists(atPath: trashFile.path)
-        let tombstoned = archive.deletedSessionIds.contains(id)
+        let hadTrashFile = state.fileManager.fileExists(atPath: trashFile.path)
+        let tombstoned = state.deletedSessionIds.contains(id)
         guard removeLeftover(of: id, tombstoned: tombstoned), removeQuietly(trashFile, id: id) else { return false }
         if hadTrashFile || tombstoned, parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
         return true
@@ -141,17 +141,17 @@ extension ArchiveStore {
     /// delete would have, unless the Trash already holds a copy. Nothing moves
     /// while the index did not load, when an unlisted file may be live.
     func finishInterruptedDeletes() {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        guard !archive.indexReadFailed, !archive.indexDecodeFailed,
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        guard !state.indexReadFailed, !state.indexDecodeFailed,
               let names = attempt("Archive.listForInterruptedDeletes", {
-                  try archive.fileManager.contentsOfDirectory(atPath: archive.archiveDirectory.path)
+                  try state.fileManager.contentsOfDirectory(atPath: state.archiveDirectory.path)
               }) else { return }
         for name in names where name.hasSuffix(".json") {
             guard let id = UUID(uuidString: String(name.dropLast(".json".count))),
-                  archive.deletedSessionIds.contains(id), entryById(id) == nil,
-                  !archive.fileManager.fileExists(atPath: trashURL(for: id).path) else { continue }
-            let file = archive.archiveDirectory.appendingPathComponent(name)
+                  state.deletedSessionIds.contains(id), entryById(id) == nil,
+                  !state.fileManager.fileExists(atPath: trashURL(for: id).path) else { continue }
+            let file = state.archiveDirectory.appendingPathComponent(name)
             attempt("Archive.finishInterruptedDelete") { try moveToTrash(file, id: id) }
             debugLog("[Archive] \(id.uuidString.prefix(8)) was left in the archive folder by an interrupted delete — moved to the Trash", level: .warning)
         }
@@ -162,17 +162,17 @@ extension ArchiveStore {
     /// be the session's live file. True when no such file remains. Caller
     /// holds `archiveLock`.
     private func removeLeftover(of id: UUID, tombstoned: Bool) -> Bool {
-        let leftover = archive.archiveDirectory.appendingPathComponent("\(id.uuidString).json")
-        guard archive.fileManager.fileExists(atPath: leftover.path) else { return true }
-        guard tombstoned, !archive.indexReadFailed, !archive.indexDecodeFailed else { return false }
+        let leftover = state.archiveDirectory.appendingPathComponent("\(id.uuidString).json")
+        guard state.fileManager.fileExists(atPath: leftover.path) else { return true }
+        guard tombstoned, !state.indexReadFailed, !state.indexDecodeFailed else { return false }
         return removeQuietly(leftover, id: id)
     }
 
     /// Removes `url` if it is there; false (logged) when the removal failed.
     private func removeQuietly(_ url: URL, id: UUID) -> Bool {
-        guard archive.fileManager.fileExists(atPath: url.path) else { return true }
+        guard state.fileManager.fileExists(atPath: url.path) else { return true }
         do {
-            try archive.fileManager.removeItem(at: url)
+            try state.fileManager.removeItem(at: url)
             return true
         } catch {
             debugLog("[Archive] ⚠️ Could not remove \(url.lastPathComponent) of deleted session \(id.uuidString.prefix(8)): \(error)", level: .warning)

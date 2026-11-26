@@ -6,16 +6,31 @@ import Foundation
 ///
 /// ## Why this is not on `SessionArchive`
 ///
-/// As an 887-line extension it would be. The split makes `SessionArchive` a facade over a store: the type callers
-/// hold keeps the API — `entries`, `delete`, `exists`, `updateTags` — and this
-/// owns how any of it reaches the filesystem. That is a boundary worth having
-/// on its own terms, not just for the line count: the encryption fallback, the
+/// The split makes `SessionArchive` a facade over a store: the type callers
+/// hold keeps the API (`entries`, `delete`, `exists`, `updateTags`) and this
+/// owns how any of it reaches the filesystem. The encryption fallback, the
 /// index rollback and the tombstones all live here, and none of them are the
 /// archive's interface.
 ///
-/// The coupling was measured before the move: 25 members of the archive, mostly
-/// the lock, the index and the directory URLs.
+/// It is given the archive's index state (`ArchiveIndexState`: the directory,
+/// the lock, the key, the merge settings and the in-memory index), not the
+/// archive, so it depends on that small set and nothing else, and the archive
+/// is not reachable from here.
 struct ArchiveStore {
-    let archive: SessionArchive
+    let state: ArchiveIndexState
 
+    /// A full read under the lock, counted for the read-health card
+    /// (`ArchiveIndexState.countRead`). `SessionArchive.retrieve` is this.
+    func retrieveCounted(_ id: UUID) throws -> HRVSession? {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        do {
+            let session = try _retrieve(id)
+            state.countRead(failure: nil)
+            return session
+        } catch {
+            state.countRead(failure: error)
+            throw error
+        }
+    }
 }

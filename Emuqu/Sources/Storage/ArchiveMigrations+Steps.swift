@@ -41,7 +41,7 @@ extension ArchiveMigrations {
     /// more than a few milliseconds (eliminates "hang detected" warnings).
     func runDeferredMigrations() {
         reencryptPendingSessions(in: archive)
-        archive.resealPlainIndexIfNeeded()
+        archive.state.resealPlainIndexIfNeeded()
         migrateRecoveryScores()
         migrateEndDates()
         migrateMetrics()
@@ -122,7 +122,7 @@ extension ArchiveMigrations {
     ) -> Int {
         if UserDefaults.standard.bool(forKey: flag) { return 0 }
         archive.archiveLock.lock()
-        let workItems = archive.index.filter(needsWork).map { ($0, archive.resolveFileURL(for: $0)) }
+        let workItems = archive.state.index.filter(needsWork).map { ($0, archive.state.resolveFileURL(for: $0)) }
         archive.archiveLock.unlock()
         var patches: [(UUID, SessionArchiveEntry)] = []
         var loadedAll = true
@@ -162,12 +162,12 @@ extension ArchiveMigrations {
         guard !patches.isEmpty else { return }
         archive.archiveLock.lock()
         for (id, patchedEntry) in patches {
-            if let idx = archive.index.firstIndex(where: { $0.sessionId == id }),
-               archive.index[idx].fileHash == patchedEntry.fileHash {
-                archive.index[idx] = patchedEntry
+            if let idx = archive.state.index.firstIndex(where: { $0.sessionId == id }),
+               archive.state.index[idx].fileHash == patchedEntry.fileHash {
+                archive.state.index[idx] = patchedEntry
             }
         }
-        do { try archive.saveIndex() } catch { debugLog("[Archive] Failed to save index after \(label): \(error)") }
+        do { try archive.state.saveIndex() } catch { debugLog("[Archive] Failed to save index after \(label): \(error)") }
         archive.archiveLock.unlock()
     }
 
@@ -341,7 +341,7 @@ extension ArchiveMigrations {
     ///    retired this pass. The tombstone deletes the copy on every device,
     ///    so content left on it is lost everywhere.
     func removeDuplicates() {
-        guard archive.sessionMergeModeProvider() != .off else { return }
+        guard archive.state.mergeSettings.mode() != .off else { return }
         let (quarantineWork, changedKeepers) = duplicateQuarantineWork()
         // Posted outside the lock phase 1 held, as every archive change is.
         if !changedKeepers.isEmpty {
@@ -408,19 +408,19 @@ extension ArchiveMigrations {
     /// without them, and throws; the stored index then still names the
     /// files, so the caller moves them back.
     private func retireQuarantined(_ ids: Set<UUID>) throws {
-        let preIndex = archive.index
-        let preDeleted = archive.deletedSessionIds
-        archive.index.removeAll { ids.contains($0.sessionId) }
-        archive.deletedSessionIds.formUnion(ids)
+        let preIndex = archive.state.index
+        let preDeleted = archive.state.deletedSessionIds
+        archive.state.index.removeAll { ids.contains($0.sessionId) }
+        archive.state.deletedSessionIds.formUnion(ids)
         do {
-            try archive.saveDeletedIndex()
-            try archive.saveIndex()
+            try archive.state.saveDeletedIndex()
+            try archive.state.saveIndex()
         } catch {
-            archive.index = preIndex
-            archive.deletedSessionIds = preDeleted
-            archive.sortedEntriesCache = nil
-            archive.sessionIdLookup = nil
-            attempt("Archive.dedupe.rollbackTombstones") { try archive.saveDeletedIndex() }
+            archive.state.index = preIndex
+            archive.state.deletedSessionIds = preDeleted
+            archive.state.sortedEntriesCache = nil
+            archive.state.sessionIdLookup = nil
+            attempt("Archive.dedupe.rollbackTombstones") { try archive.state.saveDeletedIndex() }
             throw error
         }
         // Dated like any deletion: an undated tombstone loses to a restore
@@ -444,11 +444,11 @@ extension ArchiveMigrations {
             } == nil
         }.map(\.id))
         guard !stranded.isEmpty else { return }
-        archive.index.removeAll { stranded.contains($0.sessionId) }
-        archive.deletedSessionIds.formUnion(stranded)
+        archive.state.index.removeAll { stranded.contains($0.sessionId) }
+        archive.state.deletedSessionIds.formUnion(stranded)
         stranded.forEach(ArchiveStore.recordDeletionTime)
-        attempt("Archive.dedupe.retireStrandedTombstones") { try archive.saveDeletedIndex() }
-        if attempt("Archive.dedupe.retireStrandedIndex", { try archive.saveIndex() }) == nil {
+        attempt("Archive.dedupe.retireStrandedTombstones") { try archive.state.saveDeletedIndex() }
+        if attempt("Archive.dedupe.retireStrandedIndex", { try archive.state.saveIndex() }) == nil {
             debugLog("[Archive] ⚠️ index still names \(stranded.count) quarantined file(s) on disk until the next save", level: .error)
         }
     }
@@ -462,13 +462,13 @@ extension ArchiveMigrations {
     private func duplicateQuarantineWork() -> (work: [(id: UUID, url: URL, hash: String)], changedKeepers: Set<UUID>) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        let overnightEntries = archive.index.filter { $0.sessionType == .overnight }
+        let overnightEntries = archive.state.index.filter { $0.sessionType == .overnight }
         let retirements = Self.duplicateRetirements(
             overnightEntries: overnightEntries,
             linkedIds: Self.linkedSessionIdSet(in: overnightEntries),
-            schedule: archive.sleepScheduleProvider(),
+            schedule: archive.state.mergeSettings.sleepSchedule(),
             now: Date(),
-            mergeMode: archive.sessionMergeModeProvider()
+            mergeMode: archive.state.mergeSettings.mode()
         )
         let entriesById = Dictionary(
             overnightEntries.map { ($0.sessionId, $0) },
@@ -476,7 +476,7 @@ extension ArchiveMigrations {
         )
         let carried = carryUserContent(to: retirements)
         let work = carried.retirable.compactMap { id in
-            entriesById[id].map { (id: id, url: archive.resolveFileURL(for: $0), hash: $0.fileHash) }
+            entriesById[id].map { (id: id, url: archive.state.resolveFileURL(for: $0), hash: $0.fileHash) }
         }
         return (work, carried.changedKeepers)
     }
@@ -815,10 +815,10 @@ extension ArchiveMigrations {
     private func relinkWorkItems() -> [RelinkWork] {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        let sleepSchedule = archive.sleepScheduleProvider()
-        let overnightEntries = archive.index.filter { $0.sessionType == .overnight }
+        let sleepSchedule = archive.state.mergeSettings.sleepSchedule()
+        let overnightEntries = archive.state.index.filter { $0.sessionType == .overnight }
         let grouped = Dictionary(grouping: overnightEntries) { sleepSchedule.overnightWindowStart(relativeTo: $0.date) }
-        let gap = archive.sessionMergeModeProvider() == .off ? 0 : archive.mergeGapProvider()
+        let gap = archive.state.mergeSettings.mode() == .off ? 0 : archive.state.mergeSettings.gap()
         let now = Date()
         return grouped.values
             .filter { $0.count > 1 && !Self.hasRecentEntry($0, now: now) }
@@ -833,7 +833,7 @@ extension ArchiveMigrations {
         guard sorted.count > 1, let latestEntry = sorted.last else { return nil }
         return RelinkWork(
             parentEntry: latestEntry,
-            fileURL: archive.resolveFileURL(for: latestEntry),
+            fileURL: archive.state.resolveFileURL(for: latestEntry),
             otherIds: sorted.dropLast().map(\.sessionId)
         )
     }
@@ -857,14 +857,14 @@ extension ArchiveMigrations {
     private func relinkUnderLock(_ work: RelinkWork) -> RelinkResult? {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        guard let idx = archive.index.firstIndex(where: { $0.sessionId == work.parentEntry.sessionId }),
-              archive.index[idx].fileHash == work.parentEntry.fileHash,
+        guard let idx = archive.state.index.firstIndex(where: { $0.sessionId == work.parentEntry.sessionId }),
+              archive.state.index[idx].fileHash == work.parentEntry.fileHash,
               let prior = priorFile(for: work),
               let result = relink(work) else { return nil }
-        let preIndex = archive.index
-        archive.index[idx] = Self.relinked(archive.index[idx], result: result)
+        let preIndex = archive.state.index
+        archive.state.index[idx] = Self.relinked(archive.state.index[idx], result: result)
         do {
-            try archive.saveIndex()
+            try archive.state.saveIndex()
         } catch {
             debugLog("[Archive] ⚠️ Failed to save index after re-linking \(result.sessionId.uuidString.prefix(8)) — previous file restored: \(error)", level: .warning)
             archive.store.rollBackWrite(to: preIndex, filePath: work.fileURL, prior: prior, id: result.sessionId)

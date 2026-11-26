@@ -12,7 +12,7 @@ extension SessionArchive {
     func healInterruptedRewrites() {
         // With no index loaded every session reads as unarchived: the
         // markers wait for a launch that has one.
-        guard !indexReadFailed, !indexDecodeFailed else { return }
+        guard !state.indexReadFailed, !state.indexDecodeFailed else { return }
         let names: [String]
         do {
             names = try fileManager.contentsOfDirectory(atPath: archiveDirectory.path)
