@@ -59,11 +59,13 @@ enum GPXImporter {
     static let maxPoints = 200_000
 
     /// The contents of a picked GPX file, refused before reading when it is
-    /// larger than `maxFileBytes`.
+    /// larger than `maxFileBytes`, and as unreadable when its size cannot be
+    /// read: a file of unknown size is not loaded whole.
     nonisolated static func readFile(at url: URL) throws -> Data {
-        if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > maxFileBytes {
-            throw ImportError.tooLarge
+        guard let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+            throw ImportError.invalidXML
         }
+        guard size <= maxFileBytes else { throw ImportError.tooLarge }
         let data = try Data(contentsOf: url)
         guard data.count <= maxFileBytes else { throw ImportError.tooLarge }
         return data
@@ -158,8 +160,18 @@ enum GPXImporter {
     /// that rebuilds a workout read out of Apple Health, because a GPX file and
     /// an HKWorkout carry the same two signals (a timestamped track and
     /// timestamped heart rates) in different wrappers.
-    static func buildSession(from parsed: ImportedWorkoutTrack) -> HRVSession {
-        ImportedWorkoutBuilder.buildSession(from: parsed, source: .gpxFile)
+    /// A file spanning more than `ImportedWorkoutBuilder.maximumDurationSeconds`
+    /// throws `.tooLarge`. One that ends before it starts cannot come from
+    /// `parse` (its start is the earliest time, its end the latest) and
+    /// throws `.noTimestamps`.
+    static func buildSession(from parsed: ImportedWorkoutTrack) throws -> HRVSession {
+        do {
+            return try ImportedWorkoutBuilder.buildSession(from: parsed, source: .gpxFile)
+        } catch ImportedWorkoutBuilder.InvalidSpan.tooLong {
+            throw ImportError.tooLarge
+        } catch {
+            throw ImportError.noTimestamps
+        }
     }
 
     /// The sport a `<type>` label names. Matched by word stems, not raw

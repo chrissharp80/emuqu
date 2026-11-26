@@ -12,10 +12,9 @@ extension RRDataImporter {
     func parseCSV(_ content: String) throws -> ([Int], [String: String], Date?) {
         // Comments go before the header is looked for, so a leading comment
         // is never taken for the header and the RR column is still found.
-        let lines = Self.recordLines(of: content, quoteAware: csvRecords)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && !Self.isComment($0) }
-        guard let headerLine = lines.first else {
+        let lines = Self.dataLines(of: content, quoteAware: Self.quotesPairUp(in: content))
+            .filter { !Self.isComment($0) }
+        guard let headerLine = lines.first(where: { _ in true }) else {
             throw ImportError.noRRData
         }
         let separator = Self.detectSeparator(firstLine: headerLine)
@@ -23,35 +22,58 @@ extension RRDataImporter {
         let rrColumn = hasHeader
             ? Self.rrColumnIndex(inHeaderLine: headerLine, separator: separator)
             : nil
-        let values = rrValues(
+        let values = try rrValues(
             from: lines.dropFirst(hasHeader ? 1 : 0), separator: separator, rrColumn: rrColumn
         )
         return (values, [:], nil)
     }
 
-    /// The RR column of each data line, in milliseconds.
-    private func rrValues(from lines: ArraySlice<String>, separator: Character, rrColumn: Int?) -> [Int] {
-        lines
-            .compactMap { line -> Int? in
-                let columns = Self.fields(of: line, separator: separator)
-                return Self.rrValue(fromColumns: columns, rrColumnIndex: rrColumn, convert: convertToMilliseconds)
-            }
-            // Zero, negative or absurd values ("1e30") are not beats, and
-            // would overflow the running time sums downstream.
-            .filter { Self.storableRRRange.contains($0) }
+    /// The RR column of each data line, in milliseconds. Zero, negative or
+    /// absurd values ("1e30") are not beats, and would overflow the running
+    /// time sums downstream, so they are dropped.
+    private func rrValues(from lines: some Sequence<String>, separator: Character, rrColumn: Int?) throws -> [Int] {
+        var values: [Int] = []
+        for line in lines {
+            let columns = Self.fields(of: line, separator: separator)
+            guard let value = Self.rrValue(fromColumns: columns, rrColumnIndex: rrColumn, convert: convertToMilliseconds),
+                  Self.storableRRRange.contains(value) else { continue }
+            try Self.appendBeat(value, to: &values)
+        }
+        return values
+    }
+
+    /// Appends one beat, or throws `.tooLarge` once `values` holds
+    /// `maxBeatsPerRecording`: the file holds more beats than one recording
+    /// `validate` accepts, so the rest of it is not read.
+    static func appendBeat(_ value: Int, to values: inout [Int], limit: Int = maxBeatsPerRecording) throws {
+        guard values.count < limit else { throw ImportError.tooLarge }
+        values.append(value)
     }
 
     // MARK: - parseCSV helpers
 
-    /// The file's records. Quote-aware only when its quotes pair up: one
-    /// stray `"` (in a comment, a device name) would otherwise make every
-    /// line after it one record and import nothing, so an odd count splits
-    /// on plain line breaks.
-    static func recordLines(of content: String, quoteAware: (String) -> [String]) -> [String] {
-        guard content.count(where: { $0 == "\"" }).isMultiple(of: 2) else {
-            return content.components(separatedBy: .newlines)
-        }
-        return quoteAware(content)
+    /// The file's records, trimmed, with blank ones skipped, read one at a
+    /// time so a parser can stop at its bound without the whole file split
+    /// into an array first.
+    static func dataLines(
+        of content: String, quoteAware: Bool
+    ) -> LazyFilterSequence<LazyMapSequence<ImportRecords, String>> {
+        ImportRecords(content: content, quoteAware: quoteAware).lazy
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Whether the file's double quotes pair up. Records are read
+    /// quote-aware only then: one stray `"` (in a comment, a device name)
+    /// would otherwise make every line after it one record and import
+    /// nothing, so an odd count splits on plain line breaks.
+    static func quotesPairUp(in content: String) -> Bool {
+        content.utf8.count(where: { $0 == UInt8(ascii: "\"") }).isMultiple(of: 2)
+    }
+
+    /// The file's first line, untrimmed, read without splitting the rest.
+    static func firstLine(of content: String) -> String {
+        ImportRecords(content: content, quoteAware: false).first(where: { _ in true }) ?? ""
     }
 
     /// A `#` or `//` comment line, which no CSV or text format here reads.
@@ -138,14 +160,16 @@ extension RRDataImporter {
     // MARK: - Plain Text Parsing
 
     func parsePlainText(_ content: String) throws -> [Int] {
-        let lines = content.components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && !Self.isComment($0) }
-        return lines.flatMap { line in
-            // Handle space-separated values on same line
-            line.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ";" })
-                .compactMap { validRRValue(in: $0) }
+        let lines = Self.dataLines(of: content, quoteAware: false).filter { !Self.isComment($0) }
+        var values: [Int] = []
+        for line in lines {
+            // Space-, comma- or semicolon-separated values on one line.
+            let tokens = line.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ";" })
+            for value in tokens.lazy.compactMap(validRRValue(in:)) {
+                try Self.appendBeat(value, to: &values)
+            }
         }
+        return values
     }
 
     /// One whitespace- or delimiter-separated token as an RR value in
@@ -158,30 +182,6 @@ extension RRDataImporter {
         guard let value = Double(token), value.isFinite else { return nil }
         let converted = convertToMilliseconds(value)
         return Self.storableRRRange.contains(converted) ? converted : nil
-    }
-
-    /// The file's records: its lines, except that a newline inside a quoted
-    /// field (an Elite HRV Notes or Tags value) stays in its record instead
-    /// of splitting it in two. As in `fields(of:separator:)`, a quote opens a
-    /// field only at its start, so a quote inside a value (5'10") does not
-    /// join the lines after it.
-    func csvRecords(_ content: String) -> [String] {
-        var records: [String] = []
-        var current = ""
-        var inQuotes = false
-        var atFieldStart = true
-        for char in content {
-            if char == "\"", inQuotes || atFieldStart { inQuotes.toggle() }
-            atFieldStart = !inQuotes && (char.isNewline || ",;\t".contains(char) || (atFieldStart && char.isWhitespace))
-            if char.isNewline, !inQuotes {
-                records.append(current)
-                current = ""
-            } else {
-                current.append(char)
-            }
-        }
-        records.append(current)
-        return records
     }
 
     func parseCSVLine(_ line: String) -> [String] {
@@ -263,4 +263,76 @@ extension RRDataImporter {
             return formatter
         }
     }()
+}
+
+// MARK: - Records
+
+extension RRDataImporter {
+    /// The records of an import file, one at a time. A record ends at a line
+    /// feed or carriage return, so "\r\n" leaves an empty record between the
+    /// two, which every parser skips as blank. When `quoteAware`, a line
+    /// break inside a quoted field (an Elite HRV Notes or Tags value) stays
+    /// in its record instead of splitting it in two. As in
+    /// `fields(of:separator:)`, a quote opens a field only at its start, so a
+    /// quote inside a value (5'10") does not join the lines after it.
+    struct ImportRecords: Sequence {
+        let content: String
+        let quoteAware: Bool
+
+        func makeIterator() -> Iterator {
+            Iterator(content: content, quoteAware: quoteAware)
+        }
+
+        struct Iterator: IteratorProtocol {
+            private let content: String
+            private let quoteAware: Bool
+            private var position: String.Index
+            private var finished = false
+
+            init(content: String, quoteAware: Bool) {
+                self.content = content
+                self.quoteAware = quoteAware
+                position = content.startIndex
+            }
+
+            mutating func next() -> String? {
+                guard !finished else { return nil }
+                let utf8 = content.utf8
+                let end = Self.recordEnd(in: utf8, from: position, quoteAware: quoteAware)
+                let record = String(content[position ..< end])
+                if end == utf8.endIndex { finished = true } else { position = utf8.index(after: end) }
+                return record
+            }
+
+            /// Where the record starting at `start` ends: its line break, or
+            /// the end of the file. Every byte the scan acts on is ASCII, so
+            /// the index it returns is always a character boundary.
+            private static func recordEnd(
+                in utf8: String.UTF8View, from start: String.Index, quoteAware: Bool
+            ) -> String.Index {
+                var scan = QuoteScan()
+                var index = start
+                while index != utf8.endIndex, !scan.endsRecord(at: utf8[index], quoteAware: quoteAware) {
+                    index = utf8.index(after: index)
+                }
+                return index
+            }
+        }
+
+        /// Whether the scan is inside a quoted field, and whether the next
+        /// byte starts a field (where a quote opens one).
+        private struct QuoteScan {
+            private var inQuotes = false
+            private var atFieldStart = true
+
+            mutating func endsRecord(at byte: UInt8, quoteAware: Bool) -> Bool {
+                let isLineBreak = byte == UInt8(ascii: "\n") || byte == UInt8(ascii: "\r")
+                guard quoteAware else { return isLineBreak }
+                if byte == UInt8(ascii: "\""), inQuotes || atFieldStart { inQuotes.toggle() }
+                let isSeparator = byte == UInt8(ascii: ",") || byte == UInt8(ascii: ";") || byte == UInt8(ascii: "\t")
+                atFieldStart = !inQuotes && (isLineBreak || isSeparator || (atFieldStart && byte == UInt8(ascii: " ")))
+                return isLineBreak && !inQuotes
+            }
+        }
+    }
 }
