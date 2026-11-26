@@ -31,9 +31,9 @@ enum TurnRouter {
         /// provider may receive PHI/PII (consent recorded, or exempt
         /// like on-device Apple).
         let isConsented: Bool
-        /// Snapshot of `AssistantTurnRouter.providerSupportsTools(_:)`:
-        /// whether the provider can run the action tools.
-        let supportsTools: Bool
+        /// Snapshot of `AssistantTurnRouter.providerCanSearchWeb(_:)`:
+        /// whether the provider may run the `web_search` tool.
+        let canSearchWeb: Bool
         /// `availableModels.first(where: \.isDefault) ?? availableModels.first`
         /// — the model resolution every bypass / override branch uses.
         let defaultOrFirstModel: ModelOption?
@@ -65,9 +65,9 @@ enum TurnRouter {
         /// land on (the proposal, plus `.auto` when a cap downgrade is
         /// possible).
         let mappings: [SmartProviderRouter.Tier: MappingSnapshot]
-        /// `AssistantTurnRouter.messageRequiresTools` over the latest
+        /// `AssistantTurnRouter.messageNeedsWebSearch` over the latest
         /// user message; false when the conversation has none.
-        let messageRequiresTools: Bool
+        let messageNeedsWebSearch: Bool
     }
 
     struct Inputs: Equatable {
@@ -209,7 +209,7 @@ enum TurnRouter {
         logLines.append(mapping.collapsed
             ? "[SmartRouter] tier=\(finalTier) collapsed to \(mapping.providerID.rawValue) (no distinct provider available)"
             : "[SmartRouter] tier=\(finalTier) → \(mapping.providerID.rawValue):\(mapping.model.apiID)")
-        if let override = actionIntentOverride(inputs: inputs, stage: stage, mapping: mapping, logLines: &logLines) {
+        if let override = webSearchOverride(inputs: inputs, stage: stage, mapping: mapping, logLines: &logLines) {
             return Decision(providerID: override.id, model: override.model, tier: finalTier, logLines: logLines)
         }
         return Decision(
@@ -236,46 +236,37 @@ enum TurnRouter {
         )
     }
 
-    /// Action-intent override. AppleFoundationProvider's
-    /// `send(...)` discards the `tools` argument, so Apple Intelligence
-    /// can't call any of our action tools (assistant_email_compose,
-    /// assistant_contacts_add, directions_routeTo, web_search, etc.).
-    /// Without this override, the user asking "email this to me"
-    /// routes to Apple (Quick tier or Auto-classified-as-quick) →
-    /// Coach has no email tool → Coach denies the capability we
-    /// explicitly registered. Bug report: "Coach
-    /// incorrectly denied having email capability."
+    /// Web-search override. Apple Intelligence calls the app's tools
+    /// (`AppleToolDispatcher`), all but `web_search`: the query would go to
+    /// Tavily, which only the cloud providers' consent sheet discloses. A
+    /// turn that asks for a web search and resolved to Apple goes to the
+    /// first consented cloud instead, keeping its tier so the chat bubble's
+    /// tier indicator shows the swap. Every other tool request stays where
+    /// the tier put it.
     ///
-    /// When an action verb is in the message AND the resolved
-    /// provider can't actually call tools, fall back to whichever
-    /// tool-capable provider the user has configured. The chat
-    /// bubble's tier indicator shows the override happened so the
-    /// user can see why their Quick-mode turn went to Anthropic.
-    ///
-    /// Consented clouds only (same rationale as the
-    /// voice-mode bypass): this override runs when the active provider is
-    /// Apple, so the unconsented vendor would never have shown its
-    /// disclosure sheet.
-    private static func actionIntentOverride(
+    /// Consented clouds only (same rationale as the voice-mode bypass): this
+    /// override runs when the active provider is Apple, so an unconsented
+    /// vendor would never have shown its disclosure sheet.
+    private static func webSearchOverride(
         inputs: Inputs,
         stage: TierStage,
         mapping: MappingSnapshot,
         logLines: inout [String]
     ) -> (id: ProviderID, model: ModelOption)? {
-        let mappingSupportsTools = inputs.providers[mapping.providerID]?.supportsTools ?? true
-        guard !mappingSupportsTools, stage.messageRequiresTools,
+        let mappingCanSearchWeb = inputs.providers[mapping.providerID]?.canSearchWeb ?? true
+        guard !mappingCanSearchWeb, stage.messageNeedsWebSearch,
               let fallbackID = firstConsentedCloud(inputs: inputs),
               let fallbackModel = inputs.providers[fallbackID]?.defaultOrFirstModel
         else { return nil }
-        logLines.append("[SmartRouter] action intent — \(mapping.providerID.rawValue) lacks tools; overriding to \(fallbackID.rawValue):\(fallbackModel.apiID)")
+        logLines.append("[SmartRouter] web search: \(mapping.providerID.rawValue) can't search the web; overriding to \(fallbackID.rawValue):\(fallbackModel.apiID)")
         return (fallbackID, fallbackModel)
     }
 
     // MARK: Shared helpers
 
     /// First available, consented, non-Apple cloud in registry
-    /// enumeration order — the shared predicate of the voice-mode
-    /// bypass fallback and the action-intent override.
+    /// enumeration order: the shared predicate of the voice-mode
+    /// bypass fallback and the web-search override.
     private static func firstConsentedCloud(inputs: Inputs) -> ProviderID? {
         inputs.providerOrder.first { id in
             guard id != .apple, let state = inputs.providers[id] else { return false }
@@ -323,6 +314,42 @@ extension TurnRouter {
         case .onDeviceOnly: chain.filter { $0.0.id == .apple }
         case .anyAccepted: chain
         }
+    }
+}
+
+// MARK: - Web-search escalation
+
+extension TurnRouter {
+    /// What lets a turn reach the web, read when it is dispatched.
+    struct WebSearchAccess: Equatable {
+        /// Settings → Flo → Web search.
+        let isEnabled: Bool
+        /// A Tavily key is saved, so every cloud model can run `web_search`;
+        /// without one only Anthropic can, through its server-side search.
+        let hasTavilyKey: Bool
+    }
+
+    /// The model an Apple turn moves to when Apple's model asks for
+    /// `web_search`, which it cannot run: the classifier and
+    /// `messageNeedsWebSearch` miss many questions that need the web, and the
+    /// model's own call is the reliable sign. Nil keeps the turn on Apple,
+    /// whose model then gets a refusal note.
+    ///
+    /// The same rules as the web-search override (`webSearchOverride`): only
+    /// while Apple is the selected model and the mode routes (every mode but
+    /// Manual, where the turn stays with the pick), and only to the first
+    /// available, consented cloud in registry order. That cloud must also be
+    /// able to search: web search is on, and a Tavily key is saved or the
+    /// cloud is Anthropic.
+    static func webSearchEscalation(inputs: Inputs, access: WebSearchAccess) -> (id: ProviderID, model: ModelOption)? {
+        guard access.isEnabled, inputs.selectedProviderID == .apple, inputs.routingMode != .manual else { return nil }
+        let target = inputs.providerOrder.first { id in
+            guard id != .apple, let state = inputs.providers[id] else { return false }
+            return state.isAvailable && state.isConsented && state.canSearchWeb
+                && (access.hasTavilyKey || id == .anthropic)
+        }
+        guard let target, let model = inputs.providers[target]?.defaultOrFirstModel else { return nil }
+        return (target, model)
     }
 }
 

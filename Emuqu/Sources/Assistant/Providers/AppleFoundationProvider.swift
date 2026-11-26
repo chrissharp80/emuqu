@@ -299,13 +299,22 @@ final class AppleFoundationProvider: AIProvider {
         }
     #endif
 
+    /// The attempt to retry with after `attempt` overflowed Apple's window,
+    /// or nil when there is none. A turn that has already called a tool that
+    /// changes the user's data (`AssistantToolRunner.mutatingToolNames`) is
+    /// not retried: the second attempt would make that call again.
+    static func retryAfterOverflow(_ attempt: AppleContextCompactor.Attempt, ranMutatingTool: Bool) -> AppleContextCompactor.Attempt? {
+        ranMutatingTool ? nil : attempt.afterOverflow
+    }
+
     // MARK: - Private (iOS 26+)
 
     #if canImport(FoundationModels)
         /// Run the turn as `.full`; when that overflows Apple's window before
         /// any reply text reached the user, drop the session and run it once
         /// more as `.trimmed`. An overflow after text was shown is not retried:
-        /// a second answer would be appended to the first.
+        /// a second answer would be appended to the first. Nor is one after a
+        /// tool changed the user's data (`retryAfterOverflow`).
         @available(iOS 26, *)
         private static func runAttempts(
             services: AIProviderServices,
@@ -341,7 +350,8 @@ final class AppleFoundationProvider: AIProvider {
                 try await runStream(turnPlan, continuation: continuation)
                 return nil
             } catch where isContextOverflow(error) {
-                guard let next = attempt.afterOverflow else { throw error }
+                let changed = await MainActor.run { services.appleToolDispatcher.ranMutatingTool }
+                guard let next = retryAfterOverflow(attempt, ranMutatingTool: changed) else { throw error }
                 debugLog("[AppleFoundation] context overflow on the \(attempt) attempt; retrying \(next) on a fresh session", level: .warning)
                 await sharedCache.invalidate()
                 return next
@@ -444,11 +454,11 @@ final class AppleFoundationProvider: AIProvider {
             let allowance = lease.followUpToolBudget.map {
                 AppleContextCompactor.ToolOutputAllowance(remaining: $0, perCallCap: plan.allowance.perCallCap)
             } ?? plan.allowance
-            let dispatcher = await toolDispatcher(for: plan, allowance: allowance)
+            let tooling = await toolDispatcher(for: plan, allowance: allowance)
             debugLog("[AppleFoundation] session: \(plan.tools.count)/\(plan.allToolCount) tools ~\(plan.toolTokens) tokens, prefix ~\(plan.prefixTokens), tool results ≤\(allowance.remaining), isFresh=\(lease.isFresh)")
             let stream = lease.session.streamResponse(to: promptText, options: replyOptions)
-            let reply = try await relay(stream, to: continuation)
-            let toolTokens = await dispatcher?.toolTokensSpent ?? 0
+            let reply = try await relay(stream, to: continuation, gate: tooling?.gate)
+            let toolTokens = await tooling?.dispatcher.toolTokensSpent ?? 0
             await sharedCache.record(
                 lease.session, promptTokens: AppleContextCompactor.estimateTokens(promptText),
                 toolTokens: toolTokens, replyTokens: AppleContextCompactor.estimateTokens(reply),
@@ -467,18 +477,22 @@ final class AppleFoundationProvider: AIProvider {
             return await sharedCache.lease(for: request(for: plan, followUp: followUp))
         }
 
-        /// The tool dispatcher, given this attempt's allowance, for a chat
-        /// turn; nil for any other send, which has no tools and must not
-        /// reset the call count or allowance of a chat turn in flight.
+        /// The tool dispatcher, given this attempt's allowance, and the turn's
+        /// reply gate, for a chat turn; nil for any other send, which has no
+        /// tools and must not reset the call count or allowance of a chat turn
+        /// in flight.
         @available(iOS 26, *)
         private static func toolDispatcher(
             for plan: TurnPlan,
             allowance: AppleContextCompactor.ToolOutputAllowance
-        ) async -> AppleToolDispatcher? {
+        ) async -> (dispatcher: AppleToolDispatcher, gate: AppleReplyGate)? {
             guard plan.isChatTurn else { return nil }
-            let dispatcher = await MainActor.run { plan.services.appleToolDispatcher }
+            let services = plan.services
+            let (dispatcher, gate) = await MainActor.run {
+                (services.appleToolDispatcher, services.appleToolDispatcher.replyGate)
+            }
             await dispatcher.setToolOutputAllowance(allowance)
-            return dispatcher
+            return (dispatcher, gate)
         }
 
         /// What the plan asks of the session cache. `followUp` is the prompt
@@ -577,12 +591,20 @@ final class AppleFoundationProvider: AIProvider {
         /// Returns the whole generated reply, which is what the session now
         /// holds. A failure after text was shown comes out as
         /// `FailedAfterOutput`, so `runAttempts` does not retry it.
+        ///
+        /// A chat turn's text passes through its `gate` first: once the turn
+        /// escalated to another model (`AppleToolDispatcher`), no more of
+        /// Apple's reply is shown.
         @available(iOS 26, *)
         private static func relay(
             _ stream: some AsyncSequence<some Any, any Error>,
-            to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+            to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation,
+            gate: AppleReplyGate?
         ) async throws -> String {
-            var reply = AppleReplyRelay { continuation.yield(.textDelta($0)) }
+            var reply = AppleReplyRelay { delta in
+                guard gate?.admitText() ?? true else { return }
+                continuation.yield(.textDelta(delta))
+            }
             do {
                 for try await snapshot in stream {
                     try Task.checkCancellation()
@@ -662,13 +684,35 @@ final class AppleFoundationProvider: AIProvider {
         /// to another provider; anything else that isn't a `GenerationError`
         /// is logged and reported as a generic failure, which the chat may
         /// hand to another provider.
+        ///
+        /// A `web_search` call that escalated the turn
+        /// (`AppleWebSearchEscalation`) becomes `.needsWebSearch`
+        /// (`webSearchEscalation(in:)`).
         @available(iOS 26, *)
         private static func translate(_ error: Error) -> Error {
             if let partial = error as? FailedAfterOutput { return translate(partial.underlying) }
+            if let escalation = webSearchEscalation(in: error) { return escalation }
             guard let generationError = error as? LanguageModelSession.GenerationError else {
                 debugLog("[AppleFoundation] generation failed: \(error)", level: .warning)
                 return couldNotAnswer
             }
+            return translate(generationError)
+        }
+
+        /// `.needsWebSearch` when `error` is the escalation a `web_search`
+        /// call threw. Foundation Models wraps an error a tool throws in a
+        /// `LanguageModelSession.ToolCallError`, whose `underlyingError` is
+        /// the tool's own; the bare error is accepted as well.
+        @available(iOS 26, *)
+        static func webSearchEscalation(in error: Error) -> AIProviderError? {
+            let underlying = (error as? LanguageModelSession.ToolCallError)?.underlyingError ?? error
+            guard underlying is AppleWebSearchEscalation else { return nil }
+            debugLog("[AppleFoundation] turn escalated for a web search")
+            return .needsWebSearch
+        }
+
+        @available(iOS 26, *)
+        private static func translate(_ generationError: LanguageModelSession.GenerationError) -> Error {
             let bundle = LanguageManager.appBundle
             switch generationError {
             case .guardrailViolation, .refusal:

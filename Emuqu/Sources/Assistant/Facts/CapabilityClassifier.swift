@@ -13,56 +13,67 @@ import NaturalLanguage
 ///
 /// Why: asking *"how complex is this question?"* and optimising cost on
 /// the assumption that simple-looking questions need only simple models
-/// fails when a simple-looking question needs a tool the cheap model
-/// doesn't have. For example, the user asks *"can you see the top of the last
-/// hill"* — eight words, looks like a Quick lookup — but answering it
-/// requires a tool that fetches per-tick GPS + altitude samples from
-/// a workout JSON. Apple Intelligence (the Quick tier) discards the
-/// `tools` array; question is unanswerable.
+/// fails when a simple-looking question needs something the on-device model
+/// can't do. For example, *"what's the weather at the trailhead"* is six
+/// words and looks like a Quick lookup, but Apple Intelligence has no web
+/// search (`AppleToolDispatcher` refuses `web_search`), so on the device the
+/// question is unanswerable.
 ///
 /// The axes ask *"what does this question need?"*:
 ///
-/// 1. **`needsTools`** — explicit action verbs (email, directions,
+/// 1. **`needsTools`**: explicit action verbs (email, directions,
 ///    save route, list contacts) OR data lookups that go beyond the
-///    static context block (per-workout deep-dives, full archive
-///    history, route library mutations).
-/// 2. **`needsWeb`** — facts outside the user's own data (weather,
-///    news, product recommendations, "is X commercially licensable").
-/// 3. **`needsHistoricalDepth`** — comparisons against history older
+///    static context block (per-workout deep-dives, route library
+///    mutations).
+/// 2. **`needsWeb`**: facts outside the user's own data (weather,
+///    news, product recommendations, "is X commercially licensable"),
+///    and explicit requests to search the web.
+/// 3. **`needsHistoricalDepth`**: comparisons against history older
 ///    than the static 14-workout context block ("trend over 8 weeks",
 ///    "month-over-month", "since I started").
-/// 4. **`needsSpeculation`** — speculative reasoning that on-device
+/// 4. **`needsSpeculation`**: speculative reasoning that on-device
 ///    Apple Intelligence's safety guardrail typically refuses, but
 ///    that the app's `MedicalQueryGuard` permits ("best guess on…",
 ///    "how long will I live", "what if I rest").
 ///
-/// Tier resolution truth table:
-///   • any one flag set  → `.auto` (mid-tier cloud — Grok, then DeepSeek, when consented)
-///   • two or more flags → `.deep` (the user's cloud primary, else the mid-tier cloud)
-///   • zero flags        → `.quick` (Apple, fits in 4K window)
+/// Tools alone keep a question on the device. Apple Intelligence calls the
+/// app's tools through `LanguageModelSession(tools:)` (`AppleToolAdapter`,
+/// `AppleToolDispatcher`): every read and action tool but `web_search`,
+/// the descriptions ranked against the question and cut to what its window
+/// holds (`AppleFoundationProvider.fittingTools`). What it can't do is
+/// search the web, hold history past its 4,096-token window, or answer what
+/// its guardrail refuses: the other three axes.
 ///
-/// The classifier reuses the same `NLContextualEmbedding` asset
-/// `SmartProviderRouter` already loads. Cosine similarity to
-/// per-axis prototype centroids; threshold per axis is 0.55 (raised
-/// from the prior router's 0.40 based on the research's TIAGE-style
-/// hysteresis recommendation — at 0.40 we'd false-positive on every
-/// question that mentions a number).
+/// Tier resolution truth table:
+///   • none of web / depth / speculation → `.quick` (Apple, tools or not)
+///   • one of them                         → `.auto` (mid-tier cloud: Grok, then DeepSeek, when consented)
+///   • two or more flags, tools included   → `.deep` (the user's cloud primary, else the mid-tier cloud)
+///
+/// The flags come from the phrase patterns of `CapabilityMarkers`. An
+/// optional embedding gate (`embeddingGate`) can also require each English
+/// flag's cosine to its axis's prototype centroid (embeddings from
+/// `SentenceEmbedder`) to reach a threshold. The eval (`RouterEvalTests`)
+/// grades this classifier on a held-out split and calibrates the gate on a
+/// separate tuning split.
 @MainActor
 final class CapabilityClassifier {
-    /// The sentence embedder the prototype matching uses: the one
-    /// `SmartProviderRouter` owns, so the embedding asset loads once.
-    private let embedder: @MainActor (String) -> [Double]?
+    /// The sentence embedder the prototype matching uses.
+    private let embedder: SentenceEmbedder
 
-    init(embed: @escaping @MainActor (String) -> [Double]?) {
-        self.embedder = embed
+    init(embedder: SentenceEmbedder) {
+        self.embedder = embedder
     }
 
-    /// Cosine similarity threshold per axis. The research recommends
-    /// calibrating against a 200-utterance held-out set; 0.55 is the
-    /// initial value pre-calibration. Lower → more false positives →
-    /// more cost. Higher → more false negatives → user asks for X,
-    /// Apple says it can't — the frustration this routing exists to avoid.
-    private static let axisThreshold: Double = 0.55
+    /// The cosine an English marker's axis needs from the embedding; 0
+    /// turns the gate off. Calibrated on the eval's tuning split
+    /// (`RouterEvalTests.testTheEmbeddingIsCalibratedOnTheTuningSplit`):
+    /// no gate above 0 grades it better, and letting an unmarked axis fire
+    /// on its cosine alone grades it far worse at every threshold tried.
+    /// Those cosines come from the word vectors the simulator loads; a phone
+    /// with the assets uses the contextual embedder, which the eval cannot
+    /// measure, so the embedding plays no part until it can be calibrated
+    /// on that embedder.
+    static let embeddingGate: Double = 0
 
     /// The four capability axes.
     enum Axis: String, CaseIterable {
@@ -79,12 +90,13 @@ final class CapabilityClassifier {
         let needsHistoricalDepth: Bool
         let needsSpeculation: Bool
 
-        /// Map the four flags onto a router tier.
+        /// Map the four flags onto a router tier. Only the axes Apple
+        /// Intelligence can't serve on the device move a turn off it; once one
+        /// has, a tool need counts toward Deep like any other flag.
         var requiredTier: SmartProviderRouter.Tier {
-            let count = [needsTools, needsWeb, needsHistoricalDepth, needsSpeculation].filter { $0 }.count
-            if count >= 2 { return .deep }
-            if count >= 1 { return .auto }
-            return .quick
+            let offDevice = [needsWeb, needsHistoricalDepth, needsSpeculation].filter { $0 }.count
+            guard offDevice > 0 else { return .quick }
+            return offDevice + (needsTools ? 1 : 0) >= 2 ? .deep : .auto
         }
 
         /// Compact debug string for telemetry.
@@ -99,55 +111,47 @@ final class CapabilityClassifier {
 
         static let none = Requirement(needsTools: false, needsWeb: false, needsHistoricalDepth: false, needsSpeculation: false)
 
-        /// Every axis open: the keyword gate for non-English input, where
-        /// the English keyword lists can't apply.
-        static let allAxes = Requirement(needsTools: true, needsWeb: true, needsHistoricalDepth: true, needsSpeculation: true)
     }
 
     // MARK: - Public API
 
     /// Classify a single user message into a capability requirement.
-    /// Stateless — caller (SmartProviderRouter) layers stickiness.
+    /// Stateless; the caller (`SmartProviderRouter`) layers stickiness.
     ///
-    /// An embedding-only path over-triggers on plain lookups:
-    /// *"what's my recovery score"* embeds close to the
-    /// historical-depth prototypes (the word "recovery" is a strong
-    /// shared term) and a single Quick lookup gets escalated to Deep.
-    /// Hence **keyword-gated embedding**:
-    /// a capability axis only fires if BOTH the embedding cosine
-    /// crosses the threshold AND at least one keyword marker for that
-    /// axis is present. Eliminates false positives from semantic-
-    /// adjacency on shared domain vocabulary while still catching
-    /// paraphrases the keyword list would miss.
+    /// A message `MedicalQueryGuard` refuses is answered on the device
+    /// before any routing, so it raises no flag. Otherwise the phrase
+    /// patterns of `CapabilityMarkers` raise the flags, in English and the
+    /// languages the app ships, and a statement raises none.
     ///
-    /// The keyword lists are English. When the message is confidently
-    /// in another language, no keyword can hit, so the gate is lifted
-    /// and the embedding score alone decides each axis — otherwise a
-    /// Spanish "envía un correo" would never reach a provider with tools.
-    ///
-    /// On older OS where `NLContextualEmbedding` is unavailable, the
-    /// keyword heuristic is the sole signal — same conservative
-    /// false-negative bias.
+    /// For English text with an embedding, a flag also needs its prototype
+    /// centroid's cosine to reach `embeddingGate`, which drops a marker
+    /// matched by shared domain vocabulary. The gate is calibrated on the
+    /// eval's tuning split (`RouterEvalTests.testTheEmbeddingGateIsCalibratedOnTheTuningSplit`);
+    /// at 0 it is off. Text in another language is never gated: the
+    /// embedder is English.
     func classify(_ message: String) -> Requirement {
-        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !trimmed.isEmpty else { return .none }
+        classify(message, embeddingGate: Self.embeddingGate)
+    }
 
-        let english = Self.isLikelyEnglish(trimmed)
-        let kw = english ? keywordHeuristic(trimmed) : .allAxes
-
-        // Embedding path: gate each axis on a corresponding keyword
-        // hit. If keyword AND embedding both think the axis applies,
-        // it does; for non-English input the gate is open, so the
-        // embedding decides alone.
-        if let scores = embeddingClassify(trimmed) {
-            return Requirement(
-                needsTools: kw.needsTools && scores[.tools, default: 0] >= Self.axisThreshold,
-                needsWeb: kw.needsWeb && scores[.web, default: 0] >= Self.axisThreshold,
-                needsHistoricalDepth: kw.needsHistoricalDepth && scores[.historicalDepth, default: 0] >= Self.axisThreshold,
-                needsSpeculation: kw.needsSpeculation && scores[.speculation, default: 0] >= Self.axisThreshold
-            )
+    /// `classify(_:)` with the embedding settings given, for the calibration.
+    /// `embeddingRaise` above 0 lets an English axis with no marker fire
+    /// when its cosine reaches it.
+    func classify(_ message: String, embeddingGate gate: Double, embeddingRaise raise: Double = 0) -> Requirement {
+        guard MedicalQueryGuard.classify(message) == nil else { return .none }
+        let markers = CapabilityMarkers.requirement(of: message)
+        let text = CapabilityMarkers.normalized(message)
+        guard gate > 0 || raise > 0, !CapabilityMarkers.isStatement(text), Self.isLikelyEnglish(text),
+              let scores = embeddingClassify(text) else { return markers }
+        let decide = { (marked: Bool, axis: Axis) -> Bool in
+            let score = scores[axis, default: 0]
+            return marked ? score >= gate : raise > 0 && score >= raise
         }
-        return english ? kw : .none
+        return Requirement(
+            needsTools: decide(markers.needsTools, .tools),
+            needsWeb: decide(markers.needsWeb, .web),
+            needsHistoricalDepth: decide(markers.needsHistoricalDepth, .historicalDepth),
+            needsSpeculation: decide(markers.needsSpeculation, .speculation)
+        )
     }
 
     /// True unless the language recognizer is confident the text is in
@@ -163,25 +167,18 @@ final class CapabilityClassifier {
 
     // MARK: - Embedding path
 
-    /// Reuses the embedder from `SmartProviderRouter` — the asset
-    /// download is shared at the OS level (`NLContextualEmbedding(language:)`
-    /// is a singleton-like accessor) so we don't pay double initialization.
-    private func embed(_ text: String) -> [Double]? {
-        embedder(text)
-    }
-
     /// Cached prototype centroids — computed once on first
     /// classification.
     private lazy var prototypeCentroids: [Axis: [Double]] = {
         var out: [Axis: [Double]] = [:]
         for (axis, phrases) in Self.prototypes {
-            out[axis] = EmbeddingCentroid.mean(of: phrases.compactMap { embed($0) })
+            out[axis] = EmbeddingCentroid.mean(of: phrases.compactMap { embedder.embed($0) })
         }
         return out
     }()
 
     private func embeddingClassify(_ text: String) -> [Axis: Double]? {
-        guard let q = embed(text) else { return nil }
+        guard let q = embedder.embed(text) else { return nil }
         let centroids = prototypeCentroids
         // A query and centroids from different embedders cannot be compared
         // (cosine would read 0 on every axis); the keyword result stands.
@@ -193,106 +190,19 @@ final class CapabilityClassifier {
         return scores
     }
 
-    // MARK: - Keyword heuristic fallback
-    //
-    // Used when the embedder isn't available (asset still downloading
-    // on first launch, older device). Conservative — false-negative bias.
-    // The thresholds for the embedder are stricter; here we only trip
-    // when the marker is unambiguous. Markers match whole words only, so
-    // "wind" is not found in "window" nor "stock" in "stockings".
-
-    private func keywordHeuristic(_ text: String) -> Requirement {
-        Requirement(
-            needsTools: Self.toolMarkers.contains { Self.contains(text, phrase: $0) } || Self.asksToEmail(text),
-            needsWeb: Self.webMarkers.contains { Self.contains(text, phrase: $0) },
-            needsHistoricalDepth: Self.depthMarkers.contains { Self.contains(text, phrase: $0) },
-            needsSpeculation: Self.speculationMarkers.contains { Self.contains(text, phrase: $0) }
-        )
-    }
-
-    /// Whether `phrase` occurs in `text` as whole words: a letter or digit
-    /// at the phrase's edge must not run on into a neighbouring one.
-    static func contains(_ text: String, phrase: String) -> Bool {
-        var searchStart = text.startIndex
-        while let found = text.range(of: phrase, range: searchStart ..< text.endIndex) {
-            let before = found.lowerBound > text.startIndex ? text[text.index(before: found.lowerBound)] : nil
-            let after = found.upperBound < text.endIndex ? text[found.upperBound] : nil
-            if isBoundary(before, edge: phrase.first), isBoundary(after, edge: phrase.last) { return true }
-            searchStart = text.index(after: found.lowerBound)
-        }
-        return false
-    }
-
-    /// True when `neighbour` cannot extend the word `edge` ends: no
-    /// neighbour, an edge that is not itself a letter or digit, or a
-    /// neighbour that is neither.
-    private static func isBoundary(_ neighbour: Character?, edge: Character?) -> Bool {
-        guard let neighbour, let edge, edge.isLetter || edge.isNumber else { return true }
-        return !(neighbour.isLetter || neighbour.isNumber)
-    }
-
-    /// "Email" is a request only in the imperative or as a noun being
-    /// asked for ("email today's report", "can you email it", "send an
-    /// email"); a statement like "i did email yesterday" asks for nothing.
-    private static func asksToEmail(_ text: String) -> Bool {
-        text.hasPrefix("email ") || emailRequestMarkers.contains { contains(text, phrase: $0) }
-    }
-
-    private static let emailRequestMarkers: [String] = [
-        "an email", "please email", "you email", "email this", "email that",
-        "email it", "email me", "email to "
-    ]
-
-    private static let toolMarkers: [String] = [
-        "send a", "send me", "compose", "draft a",
-        "directions", "navigate", "lead me", "route me", "take me back", "head back",
-        "save route", "save this route", "rename route", "save as a route",
-        "as a route", // catches "save this workout as a route called X"
-        "add contact", "remove contact", "list contacts", "list my contacts",
-        "search the web", "look up online", "google", "search for"
-    ]
-
-    private static let webMarkers: [String] = [
-        "weather", "raining", "temperature outside", "wind",
-        // "News" only as something asked about: "the news is good" is
-        // conversation, "what does the news say" is a lookup.
-        "the news say", "in the news", "news about", "news on", "news today",
-        // "Latest" alone is a data lookup ("what's my latest HRV").
-        "any news", "latest news", "latest research", "what's new",
-        "commercially licensable", "license", "buy", "purchase",
-        "is open", "open now", "open today",
-        "currency", "exchange rate", "stock", "price of"
-    ]
-
-    private static let depthMarkers: [String] = [
-        "last month", "past month", "this month",
-        "8 weeks", "12 weeks", "quarter",
-        "since i started", "since february", "since january",
-        "trend over", "month-over-month", "year-over-year", "compared to a",
-        "across the past", "across the last", "year ago"
-    ]
-
-    private static let speculationMarkers: [String] = [
-        "predict", "best guess", "guess", "speculate",
-        "how long will", "how long am i", "how long do i have",
-        // Bare "would i" / "could i" also open ordinary requests
-        // ("could i see my HRV"); these forms ask about an outcome.
-        "what if i", "would i improve", "would i get", "would i be", "could i ever", "will i ever",
-        "if i kept", "if i continue", "if i keep"
-    ]
-
     // MARK: - Prototype phrases per axis
     //
     // Hand-curated; calibrate the threshold against a held-out eval
     // set after collecting real voice transcripts.
     // Tests in `CapabilityClassifierTests` exercise the contract.
 
-    private static let prototypes: [Axis: [String]] = [
+    /// Internal so the eval can check its utterances are not these phrases.
+    nonisolated static let prototypes: [Axis: [String]] = [
         .tools: [
-            "Email this report to my coach.",
+            "Send the recovery summary off by email.",
             "Send me yesterday's recovery summary in an email.",
             "Lead me back to where I parked the car.",
-            "Navigate me to the nearest hospital.",
+            "Give me turn-by-turn directions to the hospital.",
             "Take me back to the start of this trail.",
             "Save this workout as a route called Morning Loop.",
             "Rename Daily 1 to Sunset Loop.",
@@ -311,7 +221,7 @@ final class CapabilityClassifier {
             "Search the web for endurance-training plans."
         ],
         .historicalDepth: [
-            "How does this month compare to last month?",
+            "Is this month better or worse than the one before it?",
             "What's my recovery trend over the last 8 weeks?",
             "Since I started running again in January, how have I improved?",
             "Compare my heart rate response to high-intensity weeks across the past two months.",

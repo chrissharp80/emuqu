@@ -26,36 +26,47 @@ extension RRDataImporter {
     /// Old format: datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr,rr_min_ms,rr_max_ms,file
     /// New format: Member,Type,Position,Breathing Pattern,Date Time Start,Date Time End,Duration,Tags,Notes,Value 1,Value 2,Value 3,HRV,Morning Readiness,Balance,HRV CV,HR,lnRmssd,Rmssd,Nn50,Pnn50,Sdnn,Low Frequency Power,High Frequency Power,LF/HF Ratio,Total Power
     func parseEliteHRVSummary(_ content: String, fileName: String) throws -> EliteHRVSummaryResult {
-        let lines = Self.recordLines(of: content, quoteAware: csvRecords)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        guard lines.count >= 2 else {
+        let lines = Self.dataLines(of: content, quoteAware: Self.quotesPairUp(in: content))
+        guard let headerLine = lines.first(where: { _ in true }),
+              lines.dropFirst().contains(where: { _ in true }) else {
             throw ImportError.noRRData
         }
         // Quote-aware, like the rows, so a quoted header lines up with them.
-        let headers = parseCSVLine(lines[0].lowercased())
+        let headers = parseCSVLine(headerLine.lowercased())
         let indices = resolveEliteHRVColumns(headers: headers)
         guard let rmssdIdx = indices.rmssd else {
             let found = headers.joined(separator: ", ")
             throw ImportError.invalidFormat(String(localized: "Elite HRV format requires an RMSSD column (found headers: \(found))", bundle: LanguageManager.appBundle))
         }
-        let sessions = parseEliteHRVRows(lines.dropFirst(), indices: indices, rmssdIdx: rmssdIdx)
+        let sessions = try parseEliteHRVRows(lines.dropFirst(), indices: indices, rmssdIdx: rmssdIdx)
         guard !sessions.isEmpty else {
             throw ImportError.noRRData
         }
         return EliteHRVSummaryResult(sessions: sessions, originalFileName: fileName)
     }
 
+    /// The most rows an Elite HRV summary import reads. Each row is one
+    /// reading a few minutes long: one every 15 minutes, all day, every day
+    /// for ten years is 96 x 3,650 = 350,400 rows.
+    static let maxEliteSummaryRows = 350_400
+
     /// Every data row that yields a session, with a log line for the rows
-    /// skipped for having no usable date, RMSSD or heart rate.
+    /// skipped for having no usable date, RMSSD or heart rate. Throws
+    /// `.tooLarge`, without reading further, at a row past
+    /// `maxEliteSummaryRows`.
     private func parseEliteHRVRows(
-        _ rows: ArraySlice<String>, indices: EliteHRVColumnIndices, rmssdIdx: Int
-    ) -> [EliteHRVSummaryResult.SessionSummary] {
-        let sessions = rows.compactMap {
-            parseEliteHRVRow(columns: parseCSVLine($0), indices: indices, rmssdIdx: rmssdIdx)
+        _ rows: some Sequence<String>, indices: EliteHRVColumnIndices, rmssdIdx: Int
+    ) throws -> [EliteHRVSummaryResult.SessionSummary] {
+        var sessions: [EliteHRVSummaryResult.SessionSummary] = []
+        var rowCount = 0
+        for row in rows {
+            rowCount += 1
+            guard rowCount <= Self.maxEliteSummaryRows else { throw ImportError.tooLarge }
+            guard let session = parseEliteHRVRow(columns: parseCSVLine(row), indices: indices, rmssdIdx: rmssdIdx) else { continue }
+            sessions.append(session)
         }
-        if sessions.count < rows.count {
-            debugLog("[Import] Elite HRV: skipped \(rows.count - sessions.count) of \(rows.count) rows with no usable date, RMSSD or heart rate")
+        if sessions.count < rowCount {
+            debugLog("[Import] Elite HRV: skipped \(rowCount - sessions.count) of \(rowCount) rows with no usable date, RMSSD or heart rate")
         }
         return sessions
     }

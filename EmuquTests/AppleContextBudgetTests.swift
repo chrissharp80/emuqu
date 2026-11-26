@@ -188,6 +188,16 @@ final class AppleContextBudgetTests: XCTestCase {
         XCTAssertNil(Compactor.Attempt.trimmed.afterOverflow)
     }
 
+    /// An overflow after a tool changed the user's data is not retried: the
+    /// trimmed attempt would make the same call again (a second email, a
+    /// second save).
+    @MainActor
+    func testAnOverflowAfterAChangeIsNotRetried() {
+        XCTAssertEqual(AppleFoundationProvider.retryAfterOverflow(.full, ranMutatingTool: false), .trimmed)
+        XCTAssertNil(AppleFoundationProvider.retryAfterOverflow(.full, ranMutatingTool: true))
+        XCTAssertNil(AppleFoundationProvider.retryAfterOverflow(.trimmed, ranMutatingTool: false))
+    }
+
     /// The retry asks for strictly less of the window on every axis.
     func testTrimmedAttemptAsksForLessOfTheWindow() {
         let full = Compactor.Attempt.full

@@ -188,6 +188,14 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830, 845])
     }
 
+    /// A quote that opens a field and never closes (a note cut off by the
+    /// exporting app) leaves the quotes unpaired, so the file is read line
+    /// by line: the rows after it still import.
+    func testParseCSV_anUnclosedQuotedFieldDoesNotSwallowTheRowsAfterIt() throws {
+        let csv = "rr_ms,note\n812,\"strap slipped\n830,ok\n845,ok"
+        XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830, 845])
+    }
+
     /// A quote that opens an Elite HRV note and never closes loses only its
     /// own row: the sessions after it still import.
     func testParseEliteHRV_anUnclosedQuoteDoesNotSwallowLaterSessions() throws {
@@ -682,5 +690,76 @@ final class RRDataImporterTests: XCTestCase {
         let columns = importer.parseCSVLine(line)
         XCTAssertEqual(columns.count, 3)
         XCTAssertEqual(columns[0], "Doe, John")
+    }
+}
+
+// MARK: - Bounded reading
+
+extension RRDataImporterTests {
+    /// A file whose size cannot be read is refused, not loaded whole.
+    func testAFileWhoseSizeCannotBeReadIsRefused() {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("missing-\(UUID().uuidString).csv")
+        XCTAssertThrowsError(try RRDataImporter.requireImportableSize(at: url))
+    }
+
+    /// One beat more than a single recording can hold, as `count` lines of `row`.
+    private static func rows(_ row: String, count: Int = 2_688_001) -> String {
+        String(repeating: row + "\n", count: count)
+    }
+
+    private func assertTooLarge<T>(_ expression: @autoclosure () throws -> T, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertThrowsError(try expression(), file: file, line: line) { error in
+            guard case .tooLarge = error as? RRDataImporter.ImportError else {
+                return XCTFail("threw \(error)", file: file, line: line)
+            }
+        }
+    }
+
+    /// Text with more beats than one recording can hold is refused while it
+    /// is read, instead of being collected whole and judged afterwards.
+    func testPlainTextWithMoreBeatsThanOneRecordingIsRefused() {
+        assertTooLarge(try importer.parsePlainText(Self.rows("800")))
+    }
+
+    func testCSVWithMoreBeatsThanOneRecordingIsRefused() {
+        assertTooLarge(try importer.parseCSV("rr_ms\n" + Self.rows("800")))
+    }
+
+    /// Timestamps that all sit at zero pass the span check, so the session's
+    /// beat count is what stops the read.
+    func testAnEmuquSessionWithMoreBeatsThanOneRecordingIsRefused() {
+        let csv = "session_date,timestamp_ms,rr_ms\n" + Self.rows("2026-01-25_0443,0,800")
+        assertTooLarge(try importer.parseFlowHRVMultiSession(csv, fileName: "export.csv"))
+    }
+
+    func testAnEliteSummaryWithMoreRowsThanTheLimitIsRefused() {
+        let csv = "datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr\n" + Self.rows("x", count: 350_401)
+        assertTooLarge(try importer.parseEliteHRVSummary(csv, fileName: "e.csv"))
+    }
+
+    /// The beat bound is the most a recording `validate` accepts can hold:
+    /// a week of beats at the shortest physiological interval, with up to a
+    /// quarter more outside the range.
+    func testTheBeatBoundIsWhatTheLongestAcceptedRecordingHolds() {
+        XCTAssertEqual(RRDataImporter.maxBeatsPerRecording, 2_688_000)
+        XCTAssertEqual(RRDataImporter.maxSingleRecordingBytes, 2_688_000 * 64)
+    }
+
+    func testJSONWithMoreValuesThanTheBoundIsRefusedBeforeDecoding() {
+        assertTooLarge(try RRDataImporter.requireJSONValueCount("[800,810,820,830]", maxValues: 3))
+        XCTAssertNoThrow(try RRDataImporter.requireJSONValueCount("[800,810,820,830]", maxValues: 5))
+    }
+
+    func testSingleRecordingTextPastTheByteCapIsRefused() {
+        assertTooLarge(try RRDataImporter.requireSingleRecordingSize("800\n810\n", maxBytes: 7))
+        XCTAssertNoThrow(try RRDataImporter.requireSingleRecordingSize("800\n810\n", maxBytes: 8))
+    }
+
+    /// The record reader splits quote-aware records the way the parsers
+    /// read them: a line break inside a quoted field stays in its record.
+    func testRecordsKeepALineBreakInsideAQuotedField() {
+        let records = Array(RRDataImporter.ImportRecords(content: "a,\"x\ny\"\r\nb", quoteAware: true))
+        XCTAssertEqual(records, ["a,\"x\ny\"", "", "b"])
+        XCTAssertEqual(Array(RRDataImporter.ImportRecords(content: "a\nb\n", quoteAware: false)), ["a", "b", ""])
     }
 }

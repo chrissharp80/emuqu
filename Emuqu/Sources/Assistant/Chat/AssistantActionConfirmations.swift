@@ -18,8 +18,7 @@ import Foundation
 // shown, or `lifetime` passing, and the request lapses. One request is
 // pending at a time; a new one replaces it.
 // Writes whose content the model supplies (a memory fact, a contact, an
-// address, a route name) take the same step when that content is not in the
-// user's own latest message (`DestructiveActionContext.gateUnlessUserStated`).
+// address, a route name, a saved artifact) take the same step every time.
 
 /// A destructive action the assistant has asked the user to confirm.
 struct PendingAssistantAction: Equatable, Sendable {
@@ -83,7 +82,7 @@ final class AssistantActionConfirmations {
         else { return false }
         let (prompt, request) = (turns[replyIndex - 1], turns[..<(replyIndex - 1)].last { $0.role == .user })
         guard prompt.role == .assistant, prompt.id == pending.promptTurnID, request?.id == pending.requestTurnID else { return false }
-        return AffirmationReply.isExplicitYes(turns[replyIndex].text)
+        return AffirmationReply.isExplicitYes(turns[replyIndex].text, question: pending.question)
     }
 
     /// When a reply ends: shows the question of a request made during this
@@ -106,20 +105,26 @@ final class AssistantActionConfirmations {
 
 // MARK: - AffirmationReply
 
-/// Whether a chat message is a short, explicit "yes": at most `maxWords`
-/// words, opening with an affirmation in one of the app's languages, and
-/// with no negation or hedge anywhere in it. "Yes, clear it" and "ja bitte"
-/// confirm; "yes but not now", "no", "summarize this article" and a pasted
-/// paragraph that happens to contain "yes" do not.
+/// Whether a chat message is a short, explicit "yes" to the app's
+/// `question`: at most `maxWords` words, opening with an affirmation in one
+/// of the app's languages, with no negation anywhere in it, and every other
+/// word an affirmation, a polite filler or a word of the question itself.
+/// "Yes, delete it" and "ja bitte" confirm "Delete all 3 saved memory
+/// facts?"; "yes but not now", "yes, maybe later", "yes tomorrow", "no" and
+/// a pasted paragraph that happens to contain "yes" do not. A word that is
+/// none of those can put the action off or change it, and the app cannot
+/// tell which, so it is not taken as consent.
 enum AffirmationReply {
     static let maxWords = 5
 
-    static func isExplicitYes(_ text: String) -> Bool {
+    static func isExplicitYes(_ text: String, question: String? = nil) -> Bool {
         let words = tokens(text)
         guard let first = words.first, words.count <= maxWords else { return false }
         guard !words.contains(where: { negations.contains($0) }) else { return false }
         let opening = words.prefix(2).joined(separator: " ")
-        return affirmations.contains(first) || affirmations.contains(opening)
+        guard affirmations.contains(first) || affirmations.contains(opening) else { return false }
+        let allowed = affirmationWords.union(fillers).union(tokens(question ?? ""))
+        return words.allSatisfy { allowed.contains($0) }
     }
 
     /// Lowercased words, split on whitespace, punctuation and symbols.
@@ -139,6 +144,19 @@ enum AffirmationReply {
         "sì", "certo", "confermo", "conferma",
         "kyllä", "joo", "vahvista",
         "да", "подтверждаю", "نعم", "はい", "네", "예", "是", "是的", "好的", "确认", "对"
+    ]
+
+    /// Every word of every affirmation, so "go ahead" and "d'accord" are
+    /// whole.
+    private static let affirmationWords = Set(affirmations.flatMap { $0.split(separator: " ").map(String.init) })
+
+    /// Politeness and pointing words that add nothing to a yes. Each entry
+    /// appears once.
+    private static let fillers: Set<String> = [
+        "please", "thanks", "thank", "you", "it", "that", "this", "them", "all", "now", "right", "away",
+        "bitte", "danke", "gerne", "graag", "dank", "je", "tak", "takk", "tack", "gjerne", "gärna", "kiitos", "þakka", "þér", "fyrir",
+        "por", "favor", "gracias", "obrigado", "obrigada", "merci", "s", "il", "te", "vous", "plaît", "plait", "grazie", "prego",
+        "спасибо", "пожалуйста", "شكرا", "من", "فضلك", "お願いします", "ありがとう", "부탁해요", "감사합니다", "请", "谢谢"
     ]
 
     private static let negations: Set<String> = [

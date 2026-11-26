@@ -180,15 +180,25 @@ extension HealthWorkoutImporter {
             return .failure(reason)
         }
         let track = await rebuiltTrack(startDate: startDate, sport: sport, end: end, steps: steps)
-        var session = ImportedWorkoutBuilder.buildSession(
-            from: track,
-            source: .appleHealthSamples,
-            replacing: existingID
-        )
+        guard var session = Self.builtSession(from: track, replacing: existingID) else {
+            return .failure(.noActivityAfterStart)
+        }
         await applyRebuiltDistance(from: startDate, to: end, sport: sport, to: &session)
         await applyRebuiltSignals(from: startDate, to: end, sport: sport, to: &session)
         debugLog("[HealthImport] rebuilt \(sport.rawValue) \(startDate)…\(end) — \(Int(end.timeIntervalSince(startDate)))s, \(Int(session.workoutMetadata?.distanceMeters ?? 0))m")
         return .success(session)
+    }
+
+    /// The rebuilt track as a session, or nil when the builder refuses its
+    /// span. A bout ends after its start and within `maxBoutDuration`, so a
+    /// refusal means there is no movement after the start to build from.
+    nonisolated private static func builtSession(from track: ImportedWorkoutTrack, replacing existingID: UUID?) -> HRVSession? {
+        do {
+            return try ImportedWorkoutBuilder.buildSession(from: track, source: .appleHealthSamples, replacing: existingID)
+        } catch {
+            debugLog("[HealthImport] rebuilt bout cannot be built: \(error)", level: .warning)
+            return nil
+        }
     }
 
     /// When the activity stopped, preferring Apple's own judgement over ours.

@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Bridge between Apple's
 /// `LanguageModelSession(tools:)` mechanism and our
@@ -20,9 +21,19 @@ import Foundation
 /// **Privacy.** The model runs on-device, but some tools reach the network:
 /// location names and directions come from Apple's geocoder and MapKit, as
 /// on every provider. Web search would send the query to Tavily, which only
-/// the cloud providers' consent sheet discloses (Apple has none), so it is
-/// refused here. Calls go through CompactToolRouter, which
-/// honors the same `MedicalQueryGuard` perimeter the rest of the app uses.
+/// the cloud providers' consent sheet discloses (Apple has none), so Apple
+/// never runs it. When the turn may move to a consented cloud model that can
+/// search (`armWebSearchEscalation`), the call ends the Apple attempt with
+/// `AppleWebSearchEscalation` and the chat runs the turn on that model;
+/// otherwise the model gets a refusal note and answers without it. Calls go
+/// through CompactToolRouter, which honors the same `MedicalQueryGuard`
+/// perimeter the rest of the app uses.
+///
+/// **Escalation.** It happens only before any of the reply reached the user
+/// and before a tool that changes the user's data ran this turn: the cloud
+/// model starts the turn over, and would repeat both. `AppleReplyGate`
+/// decides which of the two comes first, the reply's first shown text or the
+/// escalation, and once the turn has escalated no further tool call runs.
 ///
 /// **Budget.** The same per-turn tool-call limit as the cloud tool loop
 /// (`AssistantToolRunner.maxToolCallsPerTurn`), counted from each
@@ -49,8 +60,21 @@ final class AppleToolDispatcher {
     private var currentRegistry: FactResolverRegistry?
     /// Tool calls since the last `setRegistry` or `setToolOutputAllowance`.
     private var callsThisTurn = 0
+    /// Whether this turn has called a tool that changes the user's data or the
+    /// app's state (`AssistantToolRunner.mutatingToolNames`). Counted when the
+    /// call is made, as the cloud loop counts its rounds, and kept across
+    /// attempts: only a new turn (`setRegistry`) clears it.
+    private(set) var ranMutatingTool = false
     /// What tool results may still take of Apple's window this attempt.
     private var outputAllowance = AppleContextCompactor.ToolOutputAllowance.unsized
+    /// Whether a `web_search` call may end the Apple attempt so the turn runs
+    /// on a cloud model that can search. Set per turn by the chat
+    /// (`AssistantTurnRouter.publishAppleDispatcher`); `setRegistry` clears it.
+    private var escalatesWebSearch = false
+    /// Orders the reply's first shown text against an escalation, for the
+    /// turn `setRegistry` started. `AppleFoundationProvider` passes every
+    /// reply delta through it.
+    private(set) var replyGate = AppleReplyGate()
     /// Tools that would send the user's words to a third party Apple's path
     /// has not disclosed.
     private static let refusedTools: Set<String> = ["web_search"]
@@ -63,6 +87,22 @@ final class AppleToolDispatcher {
     func setRegistry(_ registry: FactResolverRegistry?) {
         currentRegistry = registry
         callsThisTurn = 0
+        ranMutatingTool = false
+        escalatesWebSearch = false
+        replyGate = AppleReplyGate()
+    }
+
+    /// Allow or forbid this turn's `web_search` call to move the turn to a
+    /// cloud model. Called after `setRegistry`, which forbids it.
+    func armWebSearchEscalation(_ armed: Bool) {
+        escalatesWebSearch = armed
+    }
+
+    /// Whether a `web_search` call escalates: the turn may move to a model
+    /// that can search, and no tool that changes the user's data ran this
+    /// turn. Whether reply text was shown first is `AppleReplyGate`'s part.
+    static func escalatesWebSearch(armed: Bool, ranMutatingTool: Bool) -> Bool {
+        armed && !ranMutatingTool
     }
 
     /// Start one attempt at the turn: `AppleFoundationProvider` sizes what
@@ -83,12 +123,16 @@ final class AppleToolDispatcher {
     /// rendered result as a string the model can read back. Errors
     /// from the underlying router are stringified — callers (Apple
     /// `Tool.call`) expect a string response and can't surface
-    /// typed errors back to the model anyway.
+    /// typed errors back to the model anyway. The one error thrown is
+    /// `AppleWebSearchEscalation`, which ends the Apple attempt
+    /// (`escalateIfAllowed`).
     func dispatch(name: String, argumentsJSON: String) async throws -> String {
         guard let registry = currentRegistry else {
             return #"{"error":"tool dispatcher has no registry — call setRegistry before invoking the model","tool":"\#(name)"}"#
         }
         outputAllowance.charge(name + argumentsJSON)
+        if Self.refusedTools.contains(name) { try escalateIfAllowed() }
+        if replyGate.hasEscalated { return Self.afterEscalationNote }
         if let refusal = refusal(for: name) {
             let note = refusal.toToolResultJSON()
             outputAllowance.charge(note)
@@ -104,6 +148,22 @@ final class AppleToolDispatcher {
         return outputAllowance.admit(value.toToolResultJSON())
     }
 
+    /// Ends the Apple attempt with `AppleWebSearchEscalation` when the turn may
+    /// move to a model that can search and no reply text has been shown;
+    /// returns, so the call gets the refusal note, otherwise.
+    private func escalateIfAllowed() throws {
+        guard Self.escalatesWebSearch(armed: escalatesWebSearch, ranMutatingTool: ranMutatingTool),
+              replyGate.claimEscalation() else { return }
+        debugLog("[AppleTools] web_search requested; ending the Apple attempt so a model that can search answers")
+        throw AppleWebSearchEscalation()
+    }
+
+    /// The result of a call made after the turn escalated, which does not run:
+    /// the turn starts over on another model.
+    private static let afterEscalationNote = FactValue.missing(
+        reason: .invalidParameter, detail: "this turn is moving to another model"
+    ).toToolResultJSON()
+
     /// Counts the call, and returns why it may not run: a tool Apple's path
     /// does not offer, or a spent per-turn budget.
     private func refusal(for name: String) -> FactValue? {
@@ -111,7 +171,54 @@ final class AppleToolDispatcher {
             return .missing(reason: .invalidParameter, detail: "web search isn't available on the on-device model")
         }
         callsThisTurn += 1
-        guard callsThisTurn > AssistantToolRunner.maxToolCallsPerTurn else { return nil }
+        guard callsThisTurn > AssistantToolRunner.maxToolCallsPerTurn else {
+            if AssistantToolRunner.mutatingToolNames.contains(name) { ranMutatingTool = true }
+            return nil
+        }
         return .missing(reason: .rateLimited, detail: "tool budget exceeded for this turn — answer with what you have")
+    }
+}
+
+/// Thrown from Apple's `web_search` tool call when the turn moves to a cloud
+/// model that can search (`AppleToolDispatcher.escalateIfAllowed`).
+/// Foundation Models ends the generation with a
+/// `LanguageModelSession.ToolCallError` carrying it, which
+/// `AppleFoundationProvider` reports as `AIProviderError.needsWebSearch`.
+struct AppleWebSearchEscalation: Error {}
+
+/// Decides, for one Apple turn, whether reply text reaches the user or the
+/// turn escalates to another model: whichever claims the gate first. Once
+/// text was shown the turn cannot escalate (the other model's answer would
+/// follow Apple's), and once it escalated no more Apple text is shown, so the
+/// user sees only the answer of the model that took the turn. Shared between
+/// the dispatcher on the main actor and the provider's stream.
+final class AppleReplyGate: Sendable {
+    private enum Phase {
+        case open, shown, escalated
+    }
+
+    private let phase = OSAllocatedUnfairLock(initialState: Phase.open)
+
+    /// True when reply text may be shown; the first true closes the gate to
+    /// an escalation.
+    func admitText() -> Bool {
+        phase.withLock { phase in
+            if phase == .open { phase = .shown }
+            return phase == .shown
+        }
+    }
+
+    /// True when the turn may escalate; the first true stops any further
+    /// reply text.
+    func claimEscalation() -> Bool {
+        phase.withLock { phase in
+            if phase == .open { phase = .escalated }
+            return phase == .escalated
+        }
+    }
+
+    /// Whether the turn has escalated.
+    var hasEscalated: Bool {
+        phase.withLock { $0 == .escalated }
     }
 }

@@ -47,32 +47,34 @@ exists only with a cloud model selected, where no routing runs.
 
 | Mode | What it does (Apple selected) |
 | --- | --- |
-| **Quick** | Every chip turn stays on Apple Intelligence (on-device, free, fastest). Apple's safety filter may still refuse some health-adjacent prompts. |
+| **Quick** | Every chip turn stays on Apple Intelligence (on-device, free, fastest), except web searches, which go to a consented cloud provider that can search. Apple's safety filter may still refuse some health-adjacent prompts. |
 | **Auto** | Session-sticky **capability classifier**. Apple when zero capability flags fire; otherwise the mid-tier cloud: xAI Grok, then DeepSeek, whichever the user has added a key for and accepted the consent sheet of. Apple when neither is consented. |
 | **Deep** | Every chip turn takes the same consented mid-tier cloud as Auto; Apple only when none is consented. |
 | **Manual** | Every turn → whatever you picked in the model picker (escape hatch). No routing logic runs. |
 
-In Quick, Auto and Deep, voice turns and action requests Apple can't
-serve (email, directions, web search…; with no composer these arrive by
-voice, which the voice bypass already routes) go to the first cloud provider
-in registry order whose consent sheet the user accepted, if any;
-otherwise they stay on Apple.
+In Quick, Auto and Deep, voice turns and web searches go to the first
+cloud provider in registry order whose consent sheet the user accepted,
+if any; otherwise they stay on Apple. Apple runs the app's other tools
+itself (email, contacts, directions, the route library), so those
+requests stay on the device. A web search the classifier missed is
+caught when Apple asks for `web_search` (web-search escalation, below).
 
 ### Capability-axis classifier
 
 The router asks *"what does this question NEED?"* rather than how
-complex it looks, because a simple-looking question can need a tool the
-cheap model doesn't have ("can you see the top of the last hill?" is
-eight words but requires per-tick GPS + altitude). It scores four
-orthogonal binary axes, each gated by both a keyword marker AND embedding cosine
-similarity ≥ 0.55 to a per-axis prototype centroid:
+complex it looks, because a simple-looking question can need something
+the on-device model can't do ("what's the weather at the trailhead?" is
+six words but needs a web search, which Apple's path refuses). It scores four
+orthogonal binary axes, each read from phrase patterns
+(`CapabilityMarkers`) in English and the languages the app ships:
 
 1. **`needsTools`** — explicit action verbs (email, directions, save
    route, list contacts) OR data lookups beyond the static context
    block (per-workout deep-dives, full archive history, route library
    mutations).
 2. **`needsWeb`** — facts outside the user's own data (weather, news,
-   product recommendations, "is X commercially licensable?").
+   product recommendations, "is X commercially licensable?"), and
+   explicit requests to search the web.
 3. **`needsHistoricalDepth`** — comparisons against history older than
    the static 14-workout context block ("trend over 8 weeks",
    "month-over-month", "since I started").
@@ -82,19 +84,34 @@ similarity ≥ 0.55 to a per-axis prototype centroid:
 
 Truth table → tier:
 
+Apple Intelligence calls every app tool but `web_search` itself, so
+`needsTools` alone keeps a turn on the device. Only web, depth and
+speculation move it off:
+
 | Flags set | Tier | Provider (Apple selected) |
 | --- | --- | --- |
-| 0 | `.quick` | Apple (on-device) |
-| 1 | `.auto` | Consented Grok, then DeepSeek; else Apple |
-| ≥ 2 | `.deep` | Same as `.auto` (never a weaker model than a one-flag question) |
+| None of web / depth / speculation (tools or not) | `.quick` | Apple (on-device) |
+| One of them, and no other flag | `.auto` | Consented Grok, then DeepSeek; else Apple |
+| At least one of them, and two or more flags in all (tools counted) | `.deep` | Same as `.auto` (never a weaker model than a one-flag question) |
 
-The keyword gate is critical. Embedding-only over-triggered on plain
-lookups ("what's my recovery score" embeds close to history-depth
-prototypes — the word "recovery" is shared vocabulary), so an axis
-fires only when **both** signals agree. Tests in
-[`CapabilityClassifierTests`](../EmuquTests/CapabilityClassifierTests.swift)
-enforce the contract (19 cases including the "recovery score" false
-positive).
+A statement that holds a marker word ("the weather was perfect for my
+run yesterday", "this month I ran a lot") raises no flag, and neither
+does a message `MedicalQueryGuard` refuses. An embedding gate (cosine to
+per-axis prototype centroids) is available but off: calibrated on the
+eval's tuning split (including 181 utterances by an independent
+author), no gate above 0 graded better and an embedding-only flag graded
+far worse; the simulator's word vectors are not the contextual embedder a
+phone uses.
+[`RouterEvalTests`](../EmuquTests/EvalUtterances.swift) grades the
+classifier on a held-out split of 197 utterances by an author who saw
+neither the classifier nor the other utterances. It measures 75% /
+69% / 60% exact (voice-style / short / boundary), 77% / 77% / 69% on
+the routing tier, against targets of 95% / 85% / 90%, with no medical
+misroute; the floors are the measured scores. Most misses under-detect
+the web, which the cascade catches at run time: Apple's call to
+`web_search` hands the turn to a consented cloud provider that can
+search. No test or eval phrase may copy a
+prototype (`EvalPrototypeOverlapTests`).
 
 ### Voice-mode bypass
 
@@ -126,23 +143,41 @@ single model for the duration of a voice session.
    lookup to the Deep tier.
 4. **Otherwise sticky-up** — keep the higher tier.
 
-### Action-intent override
+### Web-search override
 
 Apple Intelligence gets the tools that fit its budget through
-`LanguageModelSession(tools:)`, but for routing `providerSupportsTools`
-is false for Apple, so when `messageRequiresTools(text)` detects an
-explicit action verb and the turn resolved to Apple, it goes to the
-first consented cloud provider in registry order instead. No consented
-cloud → it stays on Apple.
+`LanguageModelSession(tools:)` and runs all of them but `web_search`,
+which `AppleToolDispatcher` refuses (the query would go to Tavily,
+which only the cloud consent sheet discloses). `providerCanSearchWeb`
+is false for Apple, so when `messageNeedsWebSearch(text)` detects a web
+search and the turn resolved to Apple, it goes to the first consented
+cloud provider in registry order instead. No consented cloud → it stays
+on Apple. Email, contacts, directions and route requests stay on Apple.
+
+### Web-search escalation
+
+The phrase patterns miss many questions that need the web ("is there a
+half marathon in portland in march", "magnesium for sleep", "Wird es
+morgen früh regnen?"), so they reach Apple. When Apple's model then calls
+`web_search`, that call is the signal: `TurnRouter.webSearchEscalation`
+picks the model the override above would, with the same limits (Apple
+selected, any mode but Manual, the first available consented cloud),
+plus two more: web search is on in Settings, and that cloud can search
+(a Tavily key is saved, or it is Anthropic). `AppleToolDispatcher` ends
+the Apple attempt only if none of Apple's reply has been shown
+(`AppleReplyGate`) and no tool that changes the user's data ran this
+turn; the chat then runs the turn on that cloud model, and the bubble
+shows only its answer. In every other case Apple's model gets the
+refusal note and answers without the web. A refusal from Apple's
+guardrail is never sent to another model.
 
 ### Embedding fallback chain
 
-`NLContextualEmbedding(language: .english)` when assets are loaded →
-`NLEmbedding.wordEmbedding(for: .english)` → keyword-only path. Asset
-download (~50 MB) runs once on first launch via
-`Task.detached { try? await e.requestAssets() }`; until the model is
-resident the keyword path classifies adequately (false-negative bias —
-prefers Quick over Deep when uncertain).
+For the optional gate, `SentenceEmbedder` uses
+`NLContextualEmbedding(language: .english)` when assets are loaded, then
+`NLEmbedding.wordEmbedding(for: .english)`. Asset download (~50 MB) runs
+once on first launch via `Task.detached { try? await e.requestAssets() }`.
+With the gate off, the markers decide alone.
 
 ### Adversarial-spend cap
 
@@ -567,21 +602,24 @@ but the contract is stricter:
    pending request (`AssistantActionConfirmations`) and returns
    `status=confirmation_required` with an app-written `ask_user` question.
    The same call made again runs only when the user's message directly after
-   the request is a short, explicit yes (`AffirmationReply`, at most five
-   words, no negation, affirmations in the shipped languages). Another
+   the request is a short, explicit yes (`AffirmationReply`: at most five
+   words, opening with an affirmation in a shipped language, no negation,
+   and every other word an affirmation, a polite filler or a word of the
+   app's question, so "yes, maybe later" does not confirm). Another
    reply, an intervening turn or ten minutes cancels it. The `user_quote`
    check alone is not authorization: an instruction in a web result or a
    pasted email can make the model quote any span of the user's message.
    `assistant.memory.restore` undoes the last confirmed wipe until the app
    quits.
-7. **What the user did not say is confirmed first.** `assistant.memory.add`,
-   `assistant.contacts.add`, `location.set_address` and
+7. **What the model would save is confirmed first.** `assistant.memory.add`,
+   `assistant.contacts.add`, `assistant.artifacts.add`,
+   `assistant.artifacts.update_status`, `location.set_address` and
    `routes.library.rename` change nothing on the first call, and answer
-   `confirmation_required` the same way, whenever a value they would write
-   is not, as whole words, in the user's own latest message
-   (`DestructiveActionContext.gateUnlessUserStated`). A value the model
-   took from a web page, an email or a tool result is shown to the user
-   before it is saved. `assistant.email.compose` stages a draft only when
+   `confirmation_required` the same way, every time
+   (`DestructiveActionContext.gate`). Finding the value in the user's
+   message is not consent: "don't remember that I had knee surgery"
+   contains the fact it refuses. A value the model took from a web page,
+   an email or a tool result is shown to the user before it is saved. `assistant.email.compose` stages a draft only when
    its `user_quote` appears in the user's latest message.
 8. **No retry elsewhere after a change.** Once a mutating tool
    (`AssistantToolRunner.mutatingToolNames`) has run in a turn, a provider
@@ -868,7 +906,7 @@ are designed to respect user-reported observations.
 **Routing & cache strategy items live:**
 
 - Capability-axis classifier
-  (4 axes × keyword-gated embedding ≥ 0.55 threshold per axis)
+  (4 axes read from phrase patterns; embedding gate calibrated, off)
 - Routing (Quick / Auto / Deep) acts only while Apple is the selected
   model; any other pick answers every turn
 - Voice-mode bypass — with Apple selected, voice → first consented

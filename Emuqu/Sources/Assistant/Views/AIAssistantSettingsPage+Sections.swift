@@ -213,7 +213,7 @@ extension AIAssistantSettingsPage {
     var routingFooter: some View {
         Text(String(localized: """
             Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice \
-            turns and requests to send email, get directions or search the web go to a cloud model whose \
+            turns and web searches go to a cloud model whose \
             data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. \
             If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've \
             accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch.

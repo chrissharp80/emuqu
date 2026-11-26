@@ -53,6 +53,33 @@ final class AppDependenciesTests: XCTestCase {
         XCTAssertTrue(dependencies.storage.sessionDeletion.cloudKit.archive === archive, "a deletion acts on two archives")
     }
 
+    /// A container that substitutes the archive and the settings hands out
+    /// a context source over that archive and those settings, the same one
+    /// on every read and the one the chat it serves reads, so the assistant's
+    /// nested services come from the same container as its direct ones.
+    func testTheContextSourceReadsTheArchiveAndSettingsTheContainerSubstitutes() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let archive = SessionArchive(directory: directory)
+        let settings = SettingsManager(settingsURL: directory.appendingPathComponent("user_settings.json"))
+        addTeardownBlock { @MainActor in
+            _ = settings.flushPendingWritesSynchronously()
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        let dependencies = AppDependencies()
+        dependencies.overrides.sessionArchive = archive
+        dependencies.overrides.settingsManager = settings
+
+        let source = dependencies.assistant.assistantContextSource
+        XCTAssertTrue(source.services.sessionArchive === archive, "the context source reads the app's archive, not the container's")
+        XCTAssertTrue(source.services.settingsManager === settings, "the context source reads the app's settings, not the container's")
+        XCTAssertTrue(dependencies.assistant.assistantContextSource === source, "each read built another source")
+        XCTAssertTrue(ChatServices(dependencies).assistantContextSource === source, "the chat reads another container's source")
+    }
+
     func testLaunchServicesResolveTheContainersSubstitutes() {
         let box = RecorderBox(services: WorkoutServices(.current))
         let dependencies = AppDependencies()

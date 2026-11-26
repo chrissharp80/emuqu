@@ -5,7 +5,24 @@ import Foundation
 extension RRDataImporter {
     // MARK: - JSON Parsing
 
+    /// The most JSON values a beat can take: a sample object with a few
+    /// fields ({"rr": 812, "t": 0, "hr": 74}) is one object and three
+    /// values, and 8 leaves room for more.
+    static let maxJSONValuesPerBeat = 8
+
+    /// Throws `.tooLarge` when `content` holds more JSON values than
+    /// `maxValues`, before the decoder builds an object for every one. Every
+    /// value but the outermost follows a `[`, `{` or `,`, so their count
+    /// bounds the values (commas inside strings only raise it).
+    static func requireJSONValueCount(
+        _ content: String, maxValues: Int = maxBeatsPerRecording * maxJSONValuesPerBeat
+    ) throws {
+        let openers = content.utf8.count { $0 == UInt8(ascii: ",") || $0 == UInt8(ascii: "[") || $0 == UInt8(ascii: "{") }
+        guard openers < maxValues else { throw ImportError.tooLarge }
+    }
+
     func parseJSON(_ content: String) throws -> ([Int], [String: String], Date?) {
+        try Self.requireJSONValueCount(content)
         guard let data = content.data(using: .utf8) else {
             throw ImportError.unreadableFile
         }

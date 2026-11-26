@@ -61,6 +61,55 @@ final class VoiceConversationControllerTests: XCTestCase {
         XCTAssertEqual(controllerChunker.finalize(), "Next up: walk home")
         XCTAssertNil(controllerChunker.finalize(), "finalize empties the buffer")
     }
+
+    // MARK: - Turn ownership
+
+    /// A WhisperKit transcription still running when the user ends voice
+    /// belongs to the ended session. Ending cancels it, and when it returns
+    /// after a fresh start its text is dropped: the new session's transcript
+    /// keeps the user's new words and nothing reaches the chat.
+    func testATranscriptionFinishingAfterStopAndRestartIsDropped() async {
+        let controller = VoiceConversationController(services: VoiceServices(AppDependencies()))
+        let held = HeldTranscription()
+        let turnsBefore = controller.assistantViewModel.turns.count
+        controller.state = .listening
+        controller.audio.transcribeTurn { await held.transcribe() }
+        let oldTranscription = controller.transcriptionTask
+        for _ in 0..<100 where !held.isWaiting { await Task.yield() }
+        XCTAssertTrue(held.isWaiting, "the transcription is running when voice ends")
+
+        controller.stop()
+        XCTAssertNil(controller.transcriptionTask, "stop lets go of the turn's transcription")
+        controller.state = .listening
+        controller.partialTranscript = "how far have I run"
+        held.release("the old question")
+        await oldTranscription?.value
+
+        XCTAssertTrue(held.wasCancelled, "stop cancels the transcription")
+        XCTAssertEqual(controller.partialTranscript, "how far have I run")
+        XCTAssertEqual(controller.state, .listening)
+        XCTAssertEqual(controller.assistantViewModel.turns.count, turnsBefore, "the old text is not sent")
+    }
+}
+
+/// A transcription that returns only when the test releases it.
+@MainActor
+private final class HeldTranscription {
+    private var continuation: CheckedContinuation<String, Never>?
+    private(set) var wasCancelled = false
+
+    var isWaiting: Bool { continuation != nil }
+
+    func transcribe() async -> String {
+        let text = await withCheckedContinuation { continuation = $0 }
+        wasCancelled = Task.isCancelled
+        return text
+    }
+
+    func release(_ text: String) {
+        continuation?.resume(returning: text)
+        continuation = nil
+    }
 }
 
 /// The queue coach lines wait in behind the conversation.

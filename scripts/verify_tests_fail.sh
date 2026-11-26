@@ -1087,7 +1087,7 @@ mutate "consent_checked_only_at_dispatch" "EmuquTests/ProviderConsentTrackerTest
 # one is read as RR.
 mutate "csv_empty_fields_dropped" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='                let columns = Self.fields(of: line, separator: separator)\n';assert s.count(o)==1;p.write_text(s.replace(o,'                let columns = line.split(separator: separator).map { String(\$0).trimmingCharacters(in: .whitespaces) }\n'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='            let columns = Self.fields(of: line, separator: separator)\n';assert s.count(o)==1;p.write_text(s.replace(o,'            let columns = line.split(separator: separator).map { String(\$0).trimmingCharacters(in: .whitespaces) }\n'))"
 
 # A session the history load could not read keeps the copy already shown.
 mutate "history_gap_drops_shown_copy" "EmuquTests/SessionDecodeTests" \
@@ -1158,7 +1158,7 @@ mutate "deleted_route_still_followed" "EmuquTests/SavedRouteDeletionTests" \
 # A leading comment is never taken for the CSV header.
 mutate "csv_comment_taken_for_header" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='            .filter { !\$0.isEmpty && !Self.isComment(\$0) }\n        guard let headerLine';assert s.count(o)==1;p.write_text(s.replace(o,'            .filter { !\$0.isEmpty }\n        guard let headerLine'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='            .filter { !Self.isComment(\$0) }\n        guard let headerLine';assert s.count(o)==1;p.write_text(s.replace(o,'            .filter { _ in true }\n        guard let headerLine'))"
 
 # Plain text and CSV keep the same beats.
 mutate "plain_text_drops_artifact_beats" "EmuquTests/RRDataImporterTests" \
@@ -1183,7 +1183,7 @@ mutate "pull_undoes_unlink" "EmuquTests/CloudKitSessionFreshnessTests" \
 # One stray quote must not join the rest of a CSV into one record.
 mutate "csv_stray_quote_swallows_file" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='.isMultiple(of: 2) else {';assert s.count(o)==1;p.write_text(s.replace(o,'.isMultiple(of: 1) else {'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='quoteAware: Self.quotesPairUp(in: content))\n            .filter';assert s.count(o)==1;p.write_text(s.replace(o,'quoteAware: true)\n            .filter'))"
 
 # A Health copy of a workout wins over an index estimate of it.
 mutate "index_estimate_beats_health_copy" "EmuquTests/TrainingLoadPrecedenceTests" \
@@ -1200,7 +1200,7 @@ mutate "nested_walk_replaces_estimate" "EmuquTests/TrainingLoadPrecedenceTests" 
 
 mutate "elite_stray_quote_swallows_file" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift');s=p.read_text();o='Self.recordLines(of: content, quoteAware: csvRecords)';assert s.count(o)==1;p.write_text(s.replace(o,'csvRecords(content)'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift');s=p.read_text();o='quoteAware: Self.quotesPairUp(in: content)';assert s.count(o)==1;p.write_text(s.replace(o,'quoteAware: true'))"
 
 mutate "blank_fact_reported_as_failure" "EmuquTests/UserFactsStoreTests" \
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift" \

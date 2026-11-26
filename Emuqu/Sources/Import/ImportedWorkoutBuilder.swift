@@ -102,33 +102,60 @@ enum ImportedWorkoutBuilder {
         }
     }
 
+    /// Why a track cannot be built into a workout.
+    enum InvalidSpan: Error, Equatable {
+        /// The track ends before it starts.
+        case endsBeforeStart
+        /// The track is longer than `maximumDurationSeconds`.
+        case tooLong
+    }
+
+    /// The longest workout an import builds, one sample a second: 48 hours.
+    static let maximumDurationSeconds = 48 * 3_600
+
     /// Build a finished `HRVSession` so the archive accepts an import
     /// identically to a native workout. Per-second samples are reconstructed
     /// from HR + cadence + track so the charts and the map have something to
-    /// draw.
+    /// draw, and the session ends where its last sample is.
     /// `replacing` reuses an existing session's id so the rebuild REPLACES the
     /// stub a crashed recording left behind, instead of leaving the user with a
     /// one-second ghost sitting next to the hour it should have been.
+    /// Throws `InvalidSpan` for a track that ends before it starts or runs
+    /// past `maximumDurationSeconds`; nothing is built for it.
     static func buildSession(
         from track: ImportedWorkoutTrack,
         source: Source,
         replacing existingID: UUID? = nil
-    ) -> HRVSession {
+    ) throws -> HRVSession {
         let ordered = track.timeOrdered()
-        let duration = clampedDurationSeconds(from: ordered.startDate, to: ordered.endDate)
+        let duration = try durationSeconds(from: ordered.startDate, to: ordered.endDate)
         let samples = perSecondSamples(from: ordered, duration: duration)
         return session(from: ordered, samples: samples, source: source, replacing: existingID)
     }
 
-    /// The length, in whole seconds, an import builds for a workout from
-    /// `start` to `end`: never negative, and capped at 48 h. A single bogus
-    /// <time> (e.g. an epoch-1970 trackpoint in an otherwise-2026 file, which
-    /// the parser accepts) would otherwise make the length ~1.7 billion
-    /// seconds → an effectively infinite loop allocating billions of samples
-    /// → OOM crash. Anything that reports an import's length uses this, so it
-    /// states the length the session was built with.
-    static func clampedDurationSeconds(from start: Date, to end: Date) -> Int {
-        min(max(0, Int(end.timeIntervalSince(start))), 48 * 3_600)
+    /// The length, in whole seconds, of a workout from `start` to `end`.
+    /// Throws for one that ends before it starts, or is longer than
+    /// `maximumDurationSeconds`: a single bogus <time> (an epoch-1970
+    /// trackpoint in an otherwise-2026 file, which the parser accepts) makes
+    /// a span of decades, and building it would allocate a sample for every
+    /// second. Cutting the samples short would leave a session whose dates
+    /// claim a length its samples do not have, so the track is refused.
+    static func durationSeconds(from start: Date, to end: Date) throws -> Int {
+        guard end >= start else { throw InvalidSpan.endsBeforeStart }
+        let seconds = Int(end.timeIntervalSince(start))
+        guard seconds <= maximumDurationSeconds else { throw InvalidSpan.tooLong }
+        return seconds
+    }
+
+    /// Whether `durationSeconds(from:to:)` accepts this span, so a source can
+    /// leave out a workout that cannot be built before offering it.
+    static func canBuild(from start: Date, to end: Date) -> Bool {
+        do {
+            _ = try durationSeconds(from: start, to: end)
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Collapse HR/cadence samples onto per-second keys.

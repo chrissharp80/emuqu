@@ -70,13 +70,13 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     /// A workout rebuilt from Apple Health's passive samples carries Health's
     /// own heart rate, distance and effort. Exporting it writes the workout
     /// and nothing else, so none of those reach Health again as Emuqu's.
-    func testWorkoutRebuiltFromAppleHealthWritesNoSampleSeries() {
+    func testWorkoutRebuiltFromAppleHealthWritesNoSampleSeries() throws {
         let track = ImportedWorkoutTrack(
             startDate: start, endDate: start.addingTimeInterval(600), track: [],
             heartRateSamples: [(start.addingTimeInterval(5), 110), (start.addingTimeInterval(300), 128)],
             cadenceSamples: [], sport: .walk
         )
-        let rebuilt = ImportedWorkoutBuilder.buildSession(from: track, source: .appleHealthSamples)
+        let rebuilt = try ImportedWorkoutBuilder.buildSession(from: track, source: .appleHealthSamples)
         XCTAssertNil(rebuilt.healthKitExportedAt, "the rebuilt workout itself is still exported")
         let options = HealthKitWorkoutExport.sampleOptions(for: rebuilt, bodyWeightKg: 75, writesHeartRate: true)
         XCTAssertFalse(options.writesHeartRate)

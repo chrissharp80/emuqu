@@ -287,7 +287,7 @@ extension WorkoutLiveCoachingNamespace {
             [ACTION] Forward-geocode a free-text address the user TOLD you (e.g. 'I'm at the corner of Elm and 5th in Springfield', 'I'm at Lakeside Park entrance'). Apple's geocoder resolves loose natural-language queries — most corner-of \
             / landmark / address phrasings work. On success, the resolved road / city / state / country override the ambient road context so all subsequent live-location reads (and your own next-turn answers) reflect what the user said. \
             Use this when `workout.live.location.road` returns missing or stale and the user provides a verbal location. Returns the resolved address record on success; returns invalidParameter when the geocoder \
-            can't match or can't be reached, and notRecorded when it doesn't answer in time (retry, don't ask the user to rephrase). When the address is not in the user's own words from their latest message, the first call \
+            can't match or can't be reached, and notRecorded when it doesn't answer in time (retry, don't ask the user to rephrase). The first call \
             changes nothing and returns status=confirmation_required with an ask_user question: ask it and end your reply; call again with the same address only if their next message is a plain yes.
             """,
             parameters: [
@@ -316,13 +316,12 @@ extension WorkoutLiveCoachingNamespace {
         }
     }
 
-    /// The answer asking the user first when `query` is not in their own
-    /// latest message (`DestructiveActionContext.gateUnlessUserStated`), else
-    /// nil. An address the model took from what it read (a web page, a route
-    /// or road name) would move every later location answer.
+    /// The answer asking the user first, else nil once they confirmed this
+    /// address. An address the model took from what it read (a web page, a
+    /// route or road name) would move every later location answer.
     @MainActor private func addressUnconfirmed(_ query: String) -> FactValue? {
-        AssistantMemoryNamespace.DestructiveActionContext.live(services).gateUnlessUserStated(
-            [query], action: "location.set_address", target: query,
+        AssistantMemoryNamespace.DestructiveActionContext.live(services).gate(
+            action: "location.set_address", target: query,
             question: String(localized: "Set your location to “\(query)”?", bundle: LanguageManager.appBundle)
         )
     }

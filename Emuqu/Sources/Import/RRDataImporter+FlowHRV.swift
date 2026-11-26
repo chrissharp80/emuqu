@@ -11,10 +11,8 @@ extension RRDataImporter {
     /// Workouts are skipped: their exercise RR is not a resting reading and
     /// the export carries none of their workout details.
     func parseFlowHRVMultiSession(_ content: String, fileName: String) throws -> FlowHRVMultiSessionResult {
-        let lines = content.components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        guard let headerLine = lines.first, lines.count >= 2 else {
+        let lines = Self.dataLines(of: content, quoteAware: false)
+        guard let headerLine = lines.first(where: { _ in true }), lines.dropFirst().contains(where: { _ in true }) else {
             throw ImportError.noRRData
         }
         let columns = try Self.flowHRVColumns(fromHeaderLine: headerLine)
@@ -27,7 +25,7 @@ extension RRDataImporter {
 
     /// Every importable session in the file, oldest first.
     private func flowHRVSessions(
-        dataLines: ArraySlice<String>,
+        dataLines: some Sequence<String>,
         columns: FlowHRVColumns
     ) throws -> [FlowHRVMultiSessionResult.SessionRRData] {
         let sessionGroups = try Self.groupBeatsBySession(dataLines: dataLines, columns: columns)
@@ -84,7 +82,7 @@ extension RRDataImporter {
     /// The `session_type` each session was exported with, keyed by its
     /// `session_date`. Empty for older exports without the column.
     static func sessionTypesBySession(
-        dataLines: ArraySlice<String>,
+        dataLines: some Sequence<String>,
         columns: FlowHRVColumns
     ) -> [String: SessionType] {
         guard let typeIndex = columns.sessionType else { return [:] }
@@ -106,24 +104,37 @@ extension RRDataImporter {
         return false
     }
 
+    /// The most beats a multi-session import reads: `maxFileBytes` of the
+    /// shortest row any export writes for a beat, a 15-character session
+    /// date, a comma, a one-digit RR and a line break (18 bytes), so about
+    /// 14.9 million.
+    static let maxExportBeats = maxFileBytes / 18
+
     /// Groups beats by their `session_date` value. Throws
     /// `invalidTimestamps` for the first beat whose timestamp cannot belong
     /// to one recording: the file is damaged or hand-made, and nothing in it
-    /// can be trusted to be what was recorded. Beats are kept across the
-    /// whole `storableRRRange`, as the archive stored them; values outside
-    /// the physiological range are for artifact detection to judge.
+    /// can be trusted to be what was recorded. Throws `.tooLarge`, without
+    /// reading further, at a session past `maxBeatsPerRecording` beats or a
+    /// file past `maxExportBeats`. Beats are kept across the whole
+    /// `storableRRRange`, as the archive stored them; values outside the
+    /// physiological range are for artifact detection to judge.
     static func groupBeatsBySession(
-        dataLines: ArraySlice<String>,
-        columns: FlowHRVColumns
+        dataLines: some Sequence<String>,
+        columns: FlowHRVColumns,
+        maxBeatsPerSession: Int = maxBeatsPerRecording
     ) throws -> [String: [(timestamp: Int64, rr: Int)]] {
         var groups: [String: [(timestamp: Int64, rr: Int)]] = [:]
+        var total = 0
         for line in dataLines {
             let fields = Self.fields(of: line, separator: ",")
             guard fields.count > max(columns.session, columns.rr) else { continue }
 
             let sessionKey = fields[columns.session]
             guard let rrValue = Int(fields[columns.rr]).flatMap(storableRR) else { continue }
-
+            total += 1
+            guard total <= maxExportBeats, groups[sessionKey, default: []].count < maxBeatsPerSession else {
+                throw ImportError.tooLarge
+            }
             let timestamp = try beatTimestamp(
                 sessionKey: sessionKey, fields: fields, columns: columns, groups: groups
             )

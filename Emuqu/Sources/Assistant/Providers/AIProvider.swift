@@ -393,6 +393,12 @@ enum AIProviderError: LocalizedError {
     /// was about to leave: the user withdrew it during the turn, or it was
     /// never given. Nothing was sent, and no other provider is tried.
     case consentWithdrawn(ProviderID)
+    /// Apple Intelligence asked for `web_search` before any of its reply was
+    /// shown, and the turn may move to a consented cloud model that can
+    /// search (`AppleToolDispatcher`). The chat runs the turn on that model
+    /// (`AssistantTurnRouter.escalateForWebSearch`) instead of handing it to
+    /// the failure fallback chain, so it is not `isFallbackable`.
+    case needsWebSearch
 
     /// True when this error came from Apple Intelligence's safety
     /// filter. A refusal is shown to the user as it is and never re-sent
@@ -429,7 +435,7 @@ enum AIProviderError: LocalizedError {
             // the chat. If the same error comes back from all
             // fallbacks, the user sees the original.
             return true
-        case .guardrailViolation, .blockedReply, .cancelled, .consentWithdrawn:
+        case .guardrailViolation, .blockedReply, .cancelled, .consentWithdrawn, .needsWebSearch:
             return false
         }
     }
@@ -459,6 +465,8 @@ enum AIProviderError: LocalizedError {
         case let .unknown(msg): Self.vendorText(msg) { msg }
         case let .consentWithdrawn(provider):
             String(localized: "Sharing with \(provider.displayName) is off, so nothing more was sent to it.", bundle: bundle)
+        case .needsWebSearch:
+            String(localized: "Apple Intelligence couldn't answer that. Try again, or ask it another way.", bundle: bundle)
         }
     }
 
