@@ -551,6 +551,19 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         }
     }
 
+    /// A word of `body` the user's `message` names it by: one of at least
+    /// four letters, other than a filler word. Without one, the whole body,
+    /// which a message that only says "mark it resolved" does not contain:
+    /// the status word alone does not say WHICH saved item the user meant,
+    /// so a change to an item they did not name waits for their yes.
+    static func wordNaming(_ body: String, in message: String?) -> String {
+        let words = normalizedForQuote(body).split(separator: " ").map(String.init)
+            .filter { $0.count >= 4 && !fillerWords.contains($0) }
+        return words.first { isStated($0, in: message) } ?? body
+    }
+
+    private static let fillerWords: Set<String> = ["that", "this", "with", "from", "have", "when", "what", "into", "about", "them", "they", "there"]
+
     /// The question the app shows before an artifact's status changes, in
     /// the user's language.
     private static func statusQuestion(_ status: AssistantArtifactStore.Status, body: String) -> String {
@@ -574,7 +587,8 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         }
         let question = statusQuestion(status, body: existing.body)
         let target = id.uuidString + status.rawValue
-        if let unconfirmed = context.gateUnlessUserStated([status.rawValue], action: "assistant.artifacts.update_status", target: target, question: question) {
+        let stated = [status.rawValue, wordNaming(existing.body, in: context.turns.last { $0.role == .user }?.text)]
+        if let unconfirmed = context.gateUnlessUserStated(stated, action: "assistant.artifacts.update_status", target: target, question: question) {
             return unconfirmed
         }
         guard let updated = store.updateStatus(id: id, status: status) else {

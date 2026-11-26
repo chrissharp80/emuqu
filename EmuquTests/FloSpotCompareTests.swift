@@ -206,6 +206,24 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertEqual(store.list(includeResolved: true).first?.status, .open)
     }
 
+    /// "Mark the uphill alert bug resolved" names one item. A call that
+    /// resolves a different one has the status word but not the item, and
+    /// waits for the user's yes.
+    func testAStatusForAnItemTheUserDidNotNameWaitsForTheirYes() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
+        _ = store.add(kind: .bug, body: "HR alert fires uphill")
+        let other = store.add(kind: .feature, body: "Coach voice too loud")
+        viewModel.turns = [ChatTurn(role: .user, text: "Mark the uphill alert bug resolved")]
+        let changed = await router.resolveTool(
+            name: "assistant_artifacts_update_status",
+            argsJSON: #"{"id":"\#(other.id.uuidString)","status":"resolved","user_quote":"Mark the uphill alert bug resolved"}"#
+        )
+        guard case let .record(record) = changed, case .string("confirmation_required") = record["status"] else { return XCTFail("changed unasked: \(changed)") }
+        XCTAssertEqual(store.list(includeResolved: true).first { $0.id == other.id }?.status, .open)
+    }
+
     func testAStatusTheUserSaidChangesAtOnce() async throws {
         let harness = artifactHarness()
         defer { harness.installed.end() }
