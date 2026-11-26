@@ -13,7 +13,7 @@ import XCTest
 final class ChartScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(ArchiveSignal())
@@ -50,8 +50,10 @@ final class ChartScreenSnapshotTests: XCTestCase {
     private func recentWorkouts() -> [LoadTrajectoryView.RecentWorkout] {
         var out: [LoadTrajectoryView.RecentWorkout] = []
         for i in 0 ..< 4 {
-            let offset: TimeInterval = Double(-i) * 86_400
-            let date = SnapshotFixtures.anchor.addingTimeInterval(offset)
+            // Counted back from now, not from the frozen anchor: each row
+            // says how long ago it was ("3 days ago"), and an anchored date
+            // reads "5 years ago", a label that changes as the years pass.
+            let date = Date().addingTimeInterval(-Double(i + 3) * 86_400 - 3_600)
             let minutes: Int = 40 + i * 5
             let trimp: Double = 80 - Double(i) * 6
             out.append(
@@ -116,6 +118,28 @@ final class ChartScreenSnapshotTests: XCTestCase {
         )
     }
 
+    /// A full baseline (thirty fixture nights) in a folder of this test's own,
+    /// so the dashboard shows its verdict rather than "Building your baseline".
+    /// Full, not just past 14 nights: between 14 and 28 the dashboard shows a
+    /// one-time toast and records in UserDefaults that it has.
+    private func establishedBaseline() -> BaselineTracker {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DashboardBaseline-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        let tracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+        let nights = (0 ..< 30).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
+        tracker.rebuildFromSessions(nights, sleepSchedule: SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8))
+        return tracker
+    }
+
+    /// Given a fixed today (`SnapshotFixtures.today`): the recent-days strip
+    /// and the night-age captions are counted from today.
     func testDashboardRenders() {
         assertSnapshot(
             of: hosted(
@@ -127,13 +151,16 @@ final class ChartScreenSnapshotTests: XCTestCase {
                     onStartRecording: {},
                     onViewReport: { _ in }
                 )
-            ),
+                .environment(SnapshotFixtures.collector(baselineTracker: establishedBaseline()))
+            )
+            .environment(\.currentDate) { SnapshotFixtures.today },
             named: "screen-dashboard"
         )
     }
 
     /// A brand-new install: no readings at all.
     func testDashboardEmptyRenders() {
+        useEmptyDashboardCache()
         assertSnapshot(
             of: hosted(
                 DashboardV2View(

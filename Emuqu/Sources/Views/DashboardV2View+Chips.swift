@@ -17,14 +17,14 @@ extension DashboardV2View {
     }
 
     private var hrvChip: some View {
-        ContributorChip(variant: hrvVariant, state: hrvState, compact: true, recordedAgo: nightAgeLabel(for: latestOvernightComplete)) {
+        ContributorChip(variant: hrvVariant, state: hrvState, compact: true, recordedAgo: nightAgeLabel(for: latestOvernightComplete, now: currentDate())) {
             dependencies.services.validationTelemetry.recordChipTap(.hrv)
             navTarget = .hrv
         }
     }
 
     private var sleepChip: some View {
-        ContributorChip(variant: sleepVariant, state: sleepState, compact: true, recordedAgo: nightAgeLabel(for: sleepChipSession)) {
+        ContributorChip(variant: sleepVariant, state: sleepState, compact: true, recordedAgo: nightAgeLabel(for: sleepChipSession, now: currentDate())) {
             dependencies.services.validationTelemetry.recordChipTap(.sleep)
             navTarget = .sleep
         }
@@ -279,7 +279,7 @@ extension DashboardV2View {
             // Day with a reading → same destination as tapping
             // the hero medallion: Recovery Score detail.
             onViewReport(session)
-        } else if cal.isDateInToday(day.date) {
+        } else if cal.isDate(day.date, inSameDayAs: currentDate()) {
             // Today's empty card → start a reading. This makes
             // the strip's today slot match the hero's
             // empty-state behavior ("Take a reading" CTA).
@@ -308,13 +308,13 @@ extension DashboardV2View {
     /// strip the moment they load.
     private func recentDaySource() -> [DashboardSessionPolicy.RecentDay] {
         guard sessions.isEmpty else {
-            return DashboardSessionPolicy.recentDays(from: sessions, today: Date(), calendar: .current)
+            return DashboardSessionPolicy.recentDays(from: sessions, today: currentDate(), calendar: .current)
         }
         if let cachedDays = cachedDashboard?.recentDays {
             return cachedDays.map(Self.recentDay(fromCached:))
         }
         if let seed = seedSummary { return seed.recentDays }
-        return DashboardSessionPolicy.recentDays(from: sessions, today: Date(), calendar: .current)
+        return DashboardSessionPolicy.recentDays(from: sessions, today: currentDate(), calendar: .current)
     }
 
     private static func recentDay(fromCached cached: UIStateCache.RecentDaySnapshot) -> DashboardSessionPolicy.RecentDay {

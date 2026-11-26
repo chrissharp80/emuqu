@@ -14,7 +14,7 @@ import XCTest
 final class DashboardChipSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         view
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
     }
 
@@ -37,7 +37,7 @@ final class DashboardChipSnapshotTests: XCTestCase {
             ContributorChip(variant: .vitals(status: .elevated, leadVital: "17.8 br/min"))
             ContributorChip(variant: .load(verdict: .building, subline: "CTL 55 · ramp 4.2"))
         }
-        let host = UIHostingController(rootView: row.environment(RRCollector(dependencies: .current)).environment(SettingsManager.shared))
+        let host = UIHostingController(rootView: row.environment(SnapshotFixtures.collector()).environment(SettingsManager.shared))
         let fitted = host.sizeThatFits(in: CGSize(width: available, height: 200))
         XCTAssertLessThanOrEqual(fitted.width, available)
     }

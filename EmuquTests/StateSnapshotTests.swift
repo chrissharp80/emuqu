@@ -17,7 +17,7 @@ import XCTest
 final class StateSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         view
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
     }
 
