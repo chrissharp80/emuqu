@@ -392,6 +392,7 @@ extension VoiceAudioPipeline {
     @MainActor
     func beginUserTurn() async {
         resetTurnAccumulators()
+        let turn = controller.userTurnGeneration
         do {
             try await startAudioEngineAndRecognizer()
         } catch {
@@ -401,6 +402,9 @@ extension VoiceAudioPipeline {
             return
         }
         guard !stateMovedOnDuringRestart() else { return }
+        // A later turn (or a stop and a fresh start) began during the
+        // restart, and that turn arms the recogniser itself.
+        guard turn == controller.userTurnGeneration else { return }
         // Fresh recognition request resets the transcript the engine holds.
         startFreshRecognitionTask()
         armSilenceTimer()
@@ -429,7 +433,9 @@ extension VoiceAudioPipeline {
 
     /// Everything a new turn has to forget: VAD voice + silence accumulators,
     /// the transcript-growth tracker behind the stalled-transcript backup, the
-    /// turn-start stamp for the 30 s max-duration watchdog, and the empty-
+    /// turn-start stamp for the 30 s max-duration watchdog, the turn
+    /// generation that late results from earlier turns are checked against
+    /// (`userTurnGeneration`), and the empty-
     /// re-arm counter (capped across CONSECUTIVE empties, not lifetime, so a
     /// new user-driven turn always gets the full retry budget).
     @MainActor
@@ -440,6 +446,7 @@ extension VoiceAudioPipeline {
         controller.lastTranscriptGrowthAt = nil
         controller.lastTranscriptLength = 0
         controller.turnStartedAt = Date()
+        controller.userTurnGeneration += 1
         controller.firstPartialRestartsThisTurn = 0
         controller.consecutiveEmptyReArms = 0
     }
