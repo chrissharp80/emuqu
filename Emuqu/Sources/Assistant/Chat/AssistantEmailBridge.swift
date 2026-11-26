@@ -59,7 +59,39 @@ final class AssistantEmailBridge {
 
     var pendingDraft: AssistantEmailDraft?
 
+    /// What the assistant staged since `beginTurn()`: recipients, subject and
+    /// body, so one turn never raises the composer twice for the same email.
+    @ObservationIgnored private var stagedThisTurn: [DraftContent] = []
+
+    private struct DraftContent: Equatable {
+        let subject: String
+        let body: String
+        let recipients: [String]
+        let ccRecipients: [String]
+
+        init(_ draft: AssistantEmailDraft) {
+            (subject, body, recipients, ccRecipients) = (draft.subject, draft.body, draft.recipients, draft.ccRecipients)
+        }
+    }
+
     private init() {}
+
+    /// Starts a chat turn's ledger. Called once per dispatched turn, so a
+    /// fallback that starts the turn over on another model shares it, while
+    /// a new message or a regeneration may stage the same email again.
+    func beginTurn() {
+        stagedThisTurn = []
+    }
+
+    /// Stages `draft` for the assistant unless the same email was already
+    /// staged this turn. Returns false, staging nothing, for a repeat.
+    func stageOncePerTurn(_ draft: AssistantEmailDraft) -> Bool {
+        let content = DraftContent(draft)
+        guard !stagedThisTurn.contains(content) else { return false }
+        stagedThisTurn.append(content)
+        stage(draft)
+        return true
+    }
 
     /// Stage a draft for presentation. Called by the AI's email-compose
     /// action. The app's root view observes `pendingDraft` (Observation)

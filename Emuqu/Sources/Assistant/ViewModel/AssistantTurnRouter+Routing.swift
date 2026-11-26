@@ -245,6 +245,7 @@ extension AssistantTurnRouter {
         owner.streamGeneration += 1
         let myGeneration = owner.streamGeneration
         owner.streamTask?.cancel()
+        owner.streamingTurn = AssistantViewModel.StreamingTurn(turnID: turnID, provider: provider.id)
         owner.streamTask = Task { [weak owner, provider, model] in
             await owner?.router.runDispatchedTurn(
                 provider: provider, model: model, voiceMode: voiceMode,
@@ -584,6 +585,7 @@ extension AssistantTurnRouter {
         }
         let (factRegistry, allTools) = self.owner.factRegistryAndTools()
         factRegistry.beginTurn()
+        owner.services.facts.assistantEmailBridge.beginTurn()
         let tools = AssistantViewModel.trimTools(
             retrieveTools(allTools, registry: factRegistry, outbound: outbound),
             to: provider.maxToolSchemaCount
@@ -721,15 +723,17 @@ extension AssistantTurnRouter {
     ///
     /// Returns true when the reply completed normally: the tool loop
     /// finished, or a fallback answered in its place. A stopped, refused or
-    /// failed turn returns false.
+    /// failed turn returns false, and so does one that ran a mutating tool
+    /// and wrote no reply, which gets a note instead
+    /// (`AssistantToolRunner.noteActionWithoutReply`).
     func runStreamWithErrorPolicy(_ attempt: StreamAttempt) async -> Bool {
         do {
-            try await owner.tools.runToolUseLoop(
+            let ranAction = try await owner.tools.runToolUseLoop(
                 provider: attempt.provider, model: attempt.model, outbound: attempt.outbound,
                 systemPrompt: attempt.systemPrompt, tools: attempt.tools,
                 factRegistry: attempt.factRegistry, turnID: attempt.turnID
             )
-            return true
+            return !(ranAction && owner.tools.noteActionWithoutReply(turnID: attempt.turnID))
         } catch let error where AssistantToolRunner.isStop(error) {
             // swallow-ok: cancellation is the expected outcome of the user tapping
             // stop; the partial response is kept and the streaming flag is dropped
@@ -740,7 +744,7 @@ extension AssistantTurnRouter {
         } catch let error as AIProviderError where error.isFallbackable {
             return await handleFallbackableFailure(error, attempt: attempt)
         } catch {
-            await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
+            owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
             return false
         }
     }
@@ -774,7 +778,7 @@ extension AssistantTurnRouter {
             turnID: attempt.turnID, voiceMode: attempt.voiceMode
         )
         if ending == .failed {
-            await owner.tools.handleStreamFailure(error: AIProviderError.needsWebSearch, turnID: attempt.turnID)
+            owner.tools.handleStreamFailure(error: AIProviderError.needsWebSearch, turnID: attempt.turnID)
         }
         return ending == .answered
     }
@@ -814,7 +818,7 @@ extension AssistantTurnRouter {
         debugLog("[Assistant] primary \(attempt.provider.id.rawValue):\(attempt.model.apiID) failed (\(error.localizedDescription)) — \(chain.count) fallback(s) allowed", level: .warning)
         guard !chain.isEmpty else {
             let failure = PickedModelFailure(providerID: attempt.provider.id, underlying: error)
-            await owner.tools.handleStreamFailure(error: failure, turnID: attempt.turnID)
+            owner.tools.handleStreamFailure(error: failure, turnID: attempt.turnID)
             return false
         }
         let ending = await owner.tools.tryFallbacks(
@@ -822,7 +826,7 @@ extension AssistantTurnRouter {
             tools: attempt.tools, factRegistry: attempt.factRegistry,
             turnID: attempt.turnID, voiceMode: attempt.voiceMode
         )
-        if ending == .failed { await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID) }
+        if ending == .failed { owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID) }
         return ending == .answered
     }
 
