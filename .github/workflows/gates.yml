@@ -61,7 +61,7 @@ jobs:
         run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_privacy_manifest_vocabulary.sh && ./scripts/check_infoplist_key_drift.sh
 
       - name: Documentation, SBOM, no phone-home, pinned packages
-        run: make doc-links sbom-guard sbom-check no-phone-home xcodebuild-pinned-guard
+        run: make doc-links sbom-guard sbom-check unreached-advisories-guard no-phone-home xcodebuild-pinned-guard
 
       - name: The Python ports still reproduce the Swift test expectations
         # The whitepapers' cross-implementation check (Tools/validation):

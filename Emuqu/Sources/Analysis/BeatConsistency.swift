@@ -550,15 +550,10 @@ enum BeatConsistency {
 
     // MARK: - Statistics
 
-    /// Plain median. Average of the two middle elements on even counts.
+    /// The median of `values` (`Statistics.median`), zero when there are
+    /// none: a window with no beats has no spread for the features built on it.
     static func median(_ values: [Double]) -> Double {
-        guard !values.isEmpty else { return 0 }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
-        if sorted.count.isMultiple(of: 2) {
-            return (sorted[mid - 1] + sorted[mid]) / 2
-        }
-        return sorted[mid]
+        Statistics.median(values) ?? 0
     }
 
     /// Winsorized MAD scaled to stddev-equivalent:

@@ -149,6 +149,39 @@ read_number() {
     printf '%s' "$raw"
 }
 
+# Succeeds when stdin is a keyed floor file: comment lines and at least one
+# "<key> <number>" line, nothing else.
+keyed_floors() {
+    python3 -c '
+import re, sys
+lines = [l.split() for l in sys.stdin if l.strip() and not l.lstrip().startswith("#")]
+ok = lines and all(len(f) == 2 and re.fullmatch(r"[0-9]+(\.[0-9]+)?", f[1]) for f in lines)
+sys.exit(0 if ok else 1)'
+}
+
+# Prints "<key> <baseline> -> <current>" for each key of keyed floor file $1
+# (baseline text) whose floor is lower, or gone, in $2 (current text).
+keyed_loosenings() {
+    python3 -c '
+import sys
+def floors(text):
+    out = {}
+    for line in text.splitlines():
+        fields = line.split()
+        if len(fields) == 2 and not line.lstrip().startswith("#"):
+            try:
+                out[fields[0]] = float(fields[1])
+            except ValueError:
+                pass
+    return out
+before, after = floors(sys.argv[1]), floors(sys.argv[2])
+for key, value in before.items():
+    if key not in after:
+        print(f"{key} {value:g} -> (removed)")
+    elif after[key] < value:
+        print(f"{key} {value:g} -> {after[key]:g}")' "$1" "$2"
+}
+
 # Succeeds when moving from $2 (baseline) to $3 (current) loosens budget $1.
 # awk, not `(( ))`: bash arithmetic is integer-only and rejects 43.5.
 loosens() {
@@ -186,6 +219,16 @@ while IFS= read -r file; do
     # A file that did not exist at the baseline is a new budget, not a raise.
     previous_raw="$(git show "${BASE_REF}:${file}" 2>/dev/null || true)"
     [[ -n "$previous_raw" ]] || continue
+    # A keyed floor file (`min_coverage_areas.txt`: one "<area> <floor>" per
+    # line) is compared area by area: an area whose floor fell, or that was
+    # removed, loosens it.
+    if is_floor "$file" && keyed_floors <<< "$previous_raw" >/dev/null; then
+        compared=$((compared + 1))
+        while IFS= read -r change; do
+            [[ -n "$change" ]] && report_loosened "$file" "$change"
+        done < <(keyed_loosenings "$previous_raw" "$(cat "$file" 2>/dev/null || true)")
+        continue
+    fi
     if ! previous="$(read_number "$previous_raw")"; then
         not_budgets+=("$file"); continue
     fi

@@ -139,8 +139,8 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             "latest_date": .string(FactValue.localISO8601(dates.last ?? Date())),
             "unique_buckets": .integer(bucketCounts.count),
             "buckets_meeting_recurrence_threshold": .integer(bucketCounts.values.filter { $0 >= 2 }.count),
-            "median_trail_duration_seconds": .double(median(trailDurations(archive))),
-            "median_trail_path_length_meters": .double(median(archive.map { $0.walkedTrailLengthMeters() }.sorted()))
+            "median_trail_duration_seconds": .double(Statistics.median(trailDurations(archive)) ?? 0),
+            "median_trail_path_length_meters": .double(Statistics.median(archive.map { $0.walkedTrailLengthMeters() }) ?? 0)
         ])
     }
 
@@ -158,12 +158,6 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             guard trail.origin != nil, trail.fixes.count >= 5 else { return }
             dict[RecurrenceClassifier.bucketKey(for: trail), default: 0] += 1
         }
-    }
-
-    private func median(_ sorted: [Double]) -> Double {
-        guard !sorted.isEmpty else { return 0 }
-        let m = sorted.count / 2
-        return sorted.count.isMultiple(of: 2) ? (sorted[m - 1] + sorted[m]) / 2 : sorted[m]
     }
 
     private static let breadcrumbArchiveSummaryDescription = """

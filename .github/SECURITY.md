@@ -502,15 +502,31 @@ This project does not use:
   disabled (`open-pull-requests-limit: 0`) because, while CI was manual-only,
   the PRs accumulated unvalidated — see [`docs/CI_POSTURE.md`](../docs/CI_POSTURE.md).
   Dependabot **security** updates and repository alerts remain enabled, which is
-  the part worth an interruption. A deliberate sweep means raising the limit,
+  the part worth an interruption. The Swift packages reach those alerts through
+  the SBOM `security.yml` submits to the dependency graph on every push to
+  `main` and weekly, since GitHub reads no Package.resolved inside an Xcode
+  project. A deliberate sweep means raising the limit,
   running `make ci` against each bump, then setting it back.
+
+### Known advisories in dependencies
+
+- **GHSA-g454-wj9r-jpg4 (CVE-2023-39138), high: path traversal in Zip ≤ 2.1.2.**
+  `Zip.unzipFile` can write outside its destination folder for a crafted
+  archive, and no fixed release exists. Zip 2.1.2 arrives through
+  polar-ble-sdk, which calls it only to unpack a strap firmware package
+  (`PolarFirmwareUpdateUtils.unzipFirmwarePackage`, reached from
+  `updateFirmware`). Emuqu updates no strap firmware (Polar Flow and Polar
+  Beat do) and imports no Zip, so the vulnerable code never runs. The
+  dependency review allows this one advisory on that basis, and
+  `scripts/check_unreached_advisories.sh` fails CI the day the app reaches it.
 
 ### Software bill of materials
 
 `sbom.spdx.json` is an SPDX 2.3 document covering the 11 resolved Swift
 packages, generated from `Package.resolved` by `scripts/generate_sbom.py`. Each
 entry carries its version, its resolved commit SHA as a checksum, a Package URL
-for vulnerability matching, and a declared licence.
+of the `swift` type the GitHub Advisory Database matches Swift advisories on,
+and a declared licence.
 
 It is **deterministic** — the same lockfile always produces a byte-identical
 document, so it can be committed without generating diff noise — and

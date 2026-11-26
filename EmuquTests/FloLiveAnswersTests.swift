@@ -188,12 +188,23 @@ final class FloLiveAnswersTests: XCTestCase {
         try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: true, pausedAtStop: true))
     }
 
-    func testWithoutFixTimesAPauseStillPairsByDistance() throws {
+    func testWithoutFixTimesAPauseStillPairsByAltitude() throws {
         try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: false, pausedAtStop: true))
     }
 
-    func testADistanceThatDisagreesWithTheTrackPairsNothing() throws {
-        let session = stopAndClimbSession(recordFixTimes: false, pausedAtStop: false, sampleDistanceScale: 1.5)
+    /// Sample distance is the larger of GPS and pedometer: a pedometer that
+    /// counted 100 m before the GPS locked and reads 25 % long throws a match
+    /// by distance off, and the fixes' altitudes still place every one.
+    func testAPedometerLedDistanceDoesNotMovePairingByAltitude() throws {
+        try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: false, pausedAtStop: false, sampleDistance: { $0 * 1.25 + 100 }))
+    }
+
+    func testWithoutAltitudesTheFixesArePlacedByDistance() throws {
+        try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: false, pausedAtStop: true, samplesCarryAltitude: false))
+    }
+
+    func testWithoutAltitudesADistanceThatDisagreesWithTheTrackPairsNothing() throws {
+        let session = stopAndClimbSession(recordFixTimes: false, pausedAtStop: false, sampleDistance: { $0 * 1.5 }, samplesCarryAltitude: false)
         let built = try XCTUnwrap(PlaceHistory.track(from: session))
         XCTAssertTrue(built.points.allSatisfy { $0.heartRate == nil })
     }
@@ -236,23 +247,27 @@ final class FloLiveAnswersTests: XCTestCase {
     /// The stop-then-climb walk recorded: fixes every 10 s on the move and
     /// every 60 s while stopped, so evenly spread times would misplace them,
     /// and a sample every second, none while paused when the stop was a pause.
-    private func stopAndClimbSession(recordFixTimes: Bool, pausedAtStop: Bool, sampleDistanceScale: Double = 1) -> HRVSession {
+    /// Each sample carries the latest fix's altitude, as the recorder's do,
+    /// and `sampleDistance` of the metres walked.
+    private func stopAndClimbSession(
+        recordFixTimes: Bool, pausedAtStop: Bool, sampleDistance: (Double) -> Double = { $0 }, samplesCarryAltitude: Bool = true
+    ) -> HRVSession {
         let start = Date().addingTimeInterval(-86_400)
         var fixes: [CLLocation] = []
         var samples: [WorkoutSample] = []
         for second in 0..<1_000 {
             let (along, heartRate) = stopAndClimb(at: second)
             let stopped = (300..<600).contains(second)
-            let altitude = 150 + min(max(along, 0), 300) / 10
             if second.isMultiple(of: stopped ? 60 : 10) {
                 let coordinate = CLLocationCoordinate2D(latitude: foot.latitude + along / metersPerDegree, longitude: foot.longitude)
+                let altitude = 150 + min(max(along, 0), 300) / 10 + Double(second % 7) * 0.3
                 fixes.append(CLLocation(coordinate: coordinate, altitude: altitude, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: start.addingTimeInterval(Double(second))))
             }
             if stopped, pausedAtStop { continue }
             samples.append(WorkoutSample(
                 offsetSec: pausedAtStop && second >= 600 ? second - 300 : second, heartRate: heartRate,
-                distanceMeters: (along + 900) * sampleDistanceScale, paceSecPerKm: stopped ? nil : 333,
-                cadenceStepsPerMin: nil, altitudeMeters: altitude, alpha1: nil, mets: nil, powerWatts: nil
+                distanceMeters: sampleDistance(along + 900), paceSecPerKm: stopped ? nil : 333,
+                cadenceStepsPerMin: nil, altitudeMeters: samplesCarryAltitude ? fixes.last?.altitude : nil, alpha1: nil, mets: nil, powerWatts: nil
             ))
         }
         var session = HRVSession(startDate: start, tags: [], sessionType: .workout)

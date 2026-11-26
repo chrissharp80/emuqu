@@ -145,6 +145,7 @@ struct AppDependencies: Sendable {
             var watchConnectivityBridge: WatchConnectivityBridge?
             var cloudKitSettingsSync: CloudKitSettingsSync?
             var cloudKitSyncManager: CloudKitSyncManager?
+            var derivedCloudKitSyncManager: CloudKitSyncManager?
             var encryptionManager: EncryptionManager?
             var sessionArchive: SessionArchive?
             var uiStateCache: UIStateCache?
@@ -424,6 +425,13 @@ struct AppDependencies: Sendable {
         var cloudKitSyncManager: CloudKitSyncManager? {
             get { values.withLock { $0.cloudKitSyncManager } }
             set { values.withLock { $0.cloudKitSyncManager = newValue } }
+        }
+        /// The sync manager this container built over its own archive or
+        /// settings (`StorageServices.cloudKitSyncManager`), kept so every
+        /// read gets the same one.
+        var derivedCloudKitSyncManager: CloudKitSyncManager? {
+            get { values.withLock { $0.derivedCloudKitSyncManager } }
+            set { values.withLock { $0.derivedCloudKitSyncManager = newValue } }
         }
         var encryptionManager: EncryptionManager? {
             get { values.withLock { $0.encryptionManager } }
@@ -830,10 +838,24 @@ struct StorageServices: Sendable {
         if let substitute = overrides.cloudKitSettingsSync { return substitute }
         return CloudKitSettingsSync.shared
     }
+    /// The app's sync manager, unless the container substitutes the archive
+    /// or the settings: then one built over them, once per container, so a
+    /// test's archive is the one its uploads, pulls and deletes act on rather
+    /// than the app's (`CloudKitSyncManager.shared` is built over the app's
+    /// archive and settings). Its bookkeeping sits beside that archive, never
+    /// in the app's sync-state file.
     @MainActor
     var cloudKitSyncManager: CloudKitSyncManager {
         if let substitute = overrides.cloudKitSyncManager { return substitute }
-        return CloudKitSyncManager.shared
+        guard overrides.sessionArchive != nil || overrides.settingsManager != nil else { return CloudKitSyncManager.shared }
+        if let derived = overrides.derivedCloudKitSyncManager { return derived }
+        let archive = sessionArchive
+        let derived = CloudKitSyncManager(
+            settingsManager: UtilityServices(overrides: overrides).settingsManager, archive: archive,
+            settingsSync: cloudKitSettingsSync, syncStateURL: archive.archiveDirectory.appendingPathComponent("sync_state.json")
+        )
+        overrides.derivedCloudKitSyncManager = derived
+        return derived
     }
     var encryptionManager: EncryptionManager {
         if let substitute = overrides.encryptionManager { return substitute }

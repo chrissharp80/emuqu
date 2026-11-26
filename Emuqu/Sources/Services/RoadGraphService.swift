@@ -273,7 +273,9 @@ actor RoadGraphService {
         do {
             data = try await overpass.post(query: query, timeout: requestTimeoutSec)
         } catch {
-            debugLog("[RoadGraph] fetch failed for \(cellKey): \(error)", level: .info)
+            // The cell key is a 250 m square of where the user is, so the
+            // log leaves it out.
+            debugLog("[RoadGraph] tile fetch failed: \(error)", level: .info)
             return nil
         }
         guard let tile = Self.parse(
@@ -283,7 +285,7 @@ actor RoadGraphService {
         cache[cellKey] = tile
         evictOldestTilesIfNeeded()
         let secs = String(format: "%.3f", Date().timeIntervalSince(started))
-        debugLog("[RoadGraph] tile \(cellKey) fetched in \(secs)s — \(tile.segments.count) segments, \(tile.nodes.count) nodes", level: .info)
+        debugLog("[RoadGraph] tile fetched in \(secs)s — \(tile.segments.count) segments, \(tile.nodes.count) nodes", level: .info)
         return tile
     }
 

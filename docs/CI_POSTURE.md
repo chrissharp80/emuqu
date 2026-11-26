@@ -8,7 +8,7 @@ Every pull request and every push to `main` runs two workflows:
   and the Python ports of the analysis code against the Swift tests'
   expectations) on an **ubuntu** runner in a minute or two.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
-  macOS build, the unit suite with all three coverage floors, and the unit
+  macOS build, the unit suite with every coverage floor, and the unit
   suite under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
   parallel; a run takes 30 to 40 minutes, set by Thread Sanitizer and the tests
   job, which each take 20 to 40 minutes on a runner.
@@ -29,7 +29,7 @@ make ci
 ```
 
 That runs **every gate, the Release build, the unit suite under Thread
-Sanitizer, and the full test suite** (UI target and all three coverage floors)
+Sanitizer, and the full test suite** (UI target and every coverage floor)
 — the identical scripts CI invokes, against the identical budget files in
 `.ci/`. It costs nothing, and Thread Sanitizer and the UI target make it the
 slow part of a day. It is a discipline, not an enforcement: nothing records
@@ -74,9 +74,9 @@ baseline differs between them (below).
 | **Correctness traps** | Empty-range loops (`1 ..< count` on a possibly-empty collection), unchecked `Sendable`, strict-concurrency enablement, orphaned Swift files |
 | **Privacy & safety** | No health data in CloudKit, log redaction, no developer endpoint, privacy-manifest vocabulary, Info.plist key drift, FDA copy perimeter + runtime-guard sync |
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
-| **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved` |
+| **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved`, an advisory allowed as unreachable staying unreachable |
 | **Documentation** | Link and constant integrity |
-| **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views) |
+| **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views, and per area in `.ci/min_coverage_areas.txt`) |
 | **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
 
 The last row is the one that matters most. A gate that passes because it is
@@ -249,15 +249,17 @@ fails a raise that has no written justification.
   Store Connect secrets live there. The deploy job's own `if:` requires `main`
   too, and its last step removes the signing keychain and keys whatever the
   outcome.
-- `security.yml` (CodeQL and dependency review) is run on demand when a
-  security pass is wanted. The dependency review fails unless every package
-  pinned in `Package.resolved` is in the repository's dependency-graph SBOM,
-  since a graph without them would review nothing for them.
+- `security.yml` runs on every pull request, every push to `main`, weekly and
+  on demand. It submits `sbom.spdx.json` to the dependency graph (GitHub reads
+  no Package.resolved inside an Xcode project, so without it the Swift
+  packages get no alerts), runs CodeQL over the Swift, and on a pull request
+  reviews the dependency changes between its base and head. A manual review
+  of two refs still fails unless every pinned package is in the graph.
 
 ## What this posture does *not* claim
 
 - **The UI target does not run on every pull request.** A pull request gets the
-  macOS build, the unit suite with all three coverage floors and Thread
+  macOS build, the unit suite with every coverage floor and Thread
   Sanitizer; the UI flows run at scope `full`, every night on `main`, on demand
   and before every release. A change that breaks only a UI flow can reach
   `main` and is caught by that night's run, and at the latest by the release

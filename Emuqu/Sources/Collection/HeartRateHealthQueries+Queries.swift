@@ -46,7 +46,7 @@ extension HeartRateHealthQueries {
         }
         let bpm = HKUnit.count().unitDivided(by: .minute())
         // Median for robustness against spikes (activity, stress, etc.)
-        return Self.median(samples.map { $0.quantity.doubleValue(for: bpm) })
+        return Statistics.median(samples.map { $0.quantity.doubleValue(for: bpm) })
     }
 
     /// Query daytime resting HR from the user's configured awake window before
@@ -97,13 +97,6 @@ extension HeartRateHealthQueries {
             },
             onTimeout: { .success([]) }
         )
-    }
-
-    nonisolated private static func median(_ values: [Double]) -> Double? {
-        let sorted = values.sorted()
-        guard !sorted.isEmpty else { return nil }
-        let mid = sorted.count / 2
-        return sorted.count.isMultiple(of: 2) ? (sorted[mid - 1] + sorted[mid]) / 2.0 : sorted[mid]
     }
 
     /// Fetch heart rate samples during a recording period with detailed metadata

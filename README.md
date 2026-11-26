@@ -235,11 +235,14 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
   before a release. It runs lint and budgets, the test suite with coverage, the
   strict-concurrency check and Thread Sanitizer, which runs the suite serially
   after a deliberately racing canary test proves that a race fails the run. Coverage is enforced against
-  three ratcheted floors (overall, logic and views) read from `.ci/` at run time.
+  ratcheted floors read from `.ci/` at run time: overall, logic and views, and one per
+  critical area (each source folder, the archive, the assistant's confirmation
+  step and the log scrubber).
 - **`performance.yml`** runs the analysis performance tests on demand.
-- **`security.yml`** runs CodeQL for Swift and dependency review on demand. The
-  review first checks that every Swift package pin is in GitHub's dependency
-  graph, so a review that left them out fails instead of passing.
+- **`security.yml`** runs on every pull request, every push to `main` and
+  weekly. It submits the SBOM to GitHub's dependency graph, so the Swift
+  packages get Dependabot alerts, then runs CodeQL for Swift and, on a pull
+  request, a dependency review of what it changes.
 - **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
 
 The macOS build, the unit suite with its coverage floors and Thread Sanitizer

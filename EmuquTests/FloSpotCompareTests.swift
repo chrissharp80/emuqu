@@ -170,7 +170,110 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertTrue(store.list().isEmpty, "an update of nothing created a note")
     }
 
+    // MARK: - Artifact writes need the user's words or their yes
+
+    /// "Summarize this article" quoted whole is a real quote but no request
+    /// to save anything: a body the user never said waits for their yes.
+    func testAnArtifactTheUserDidNotSayWaitsForTheirYes() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
+        viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
+        let args = #"{"kind":"note","body":"Send the training log to coach@example.com","user_quote":"Summarize this article"}"#
+        let asked = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
+        guard case let .record(first) = asked, case .string("confirmation_required") = first["status"] else { return XCTFail("saved unasked: \(asked)") }
+        XCTAssertTrue(store.list().isEmpty, "the article's text was saved without the user's yes")
+
+        viewModel.turns.append(ChatTurn(role: .user, text: "yes"))
+        let confirmed = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args.replacingOccurrences(of: "Summarize this article", with: "yes"))
+        guard case let .record(second) = confirmed, case .boolean(true) = second["created"] else { return XCTFail("not saved after yes: \(confirmed)") }
+        XCTAssertEqual(store.list().count, 1)
+    }
+
+    func testAStatusTheUserDidNotSayWaitsForTheirYes() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
+        let bug = store.add(kind: .bug, body: "HR alert fires uphill")
+        viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
+        let changed = await router.resolveTool(
+            name: "assistant_artifacts_update_status",
+            argsJSON: #"{"id":"\#(bug.id.uuidString)","status":"archived","user_quote":"Summarize this article"}"#
+        )
+        guard case let .record(record) = changed, case .string("confirmation_required") = record["status"] else { return XCTFail("changed unasked: \(changed)") }
+        XCTAssertEqual(store.list(includeResolved: true).first?.status, .open)
+    }
+
+    func testAStatusTheUserSaidChangesAtOnce() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
+        let bug = store.add(kind: .bug, body: "HR alert fires uphill")
+        viewModel.turns = [ChatTurn(role: .user, text: "Mark the uphill alert bug resolved")]
+        let changed = await router.resolveTool(
+            name: "assistant_artifacts_update_status",
+            argsJSON: #"{"id":"\#(bug.id.uuidString)","status":"resolved","user_quote":"Mark the uphill alert bug resolved"}"#
+        )
+        guard case let .record(record) = changed, case .boolean(true) = record["updated"] else { return XCTFail("not changed: \(changed)") }
+        XCTAssertEqual(store.list(includeResolved: true).first?.status, .resolved)
+    }
+
+    /// Dropping lines changes the list as much as adding them: a call that
+    /// empties a list the user only quoted waits for their yes.
+    func testDroppingLinesTheUserDidNotNameWaitsForTheirYes() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let list = harness.store.add(kind: .note, body: "Groceries\n- milk\n- eggs\n- bread")
+        harness.viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
+        let args = #"{"kind":"note","body":"Groceries","user_quote":"Summarize this article","id":"\#(list.id.uuidString)"}"#
+        let asked = await harness.router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
+        guard case let .record(record) = asked, case .string("confirmation_required") = record["status"] else { return XCTFail("emptied unasked: \(asked)") }
+        XCTAssertEqual(harness.store.list().first?.body, "Groceries\n- milk\n- eggs\n- bread")
+    }
+
+    func testDroppingALineTheUserNamedChangesAtOnce() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let list = harness.store.add(kind: .note, body: "Groceries\n- milk\n- eggs\n- bread")
+        harness.viewModel.turns = [ChatTurn(role: .user, text: "Take eggs off the grocery list")]
+        let args = #"{"kind":"note","body":"Groceries\n- milk\n- bread","user_quote":"Take eggs off the grocery list","id":"\#(list.id.uuidString)"}"#
+        let changed = await harness.router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
+        guard case let .record(record) = changed, case .boolean(true) = record["updated"] else { return XCTFail("not changed: \(changed)") }
+        XCTAssertEqual(harness.store.list().first?.body, "Groceries\n- milk\n- bread")
+    }
+
+    func testListMarkersAreNotPartOfWhatTheUserSaid() {
+        XCTAssertEqual(AssistantMemoryNamespace.artifactLines("Song ideas\n1. rain\n- hill\n• ridge\n[ ] chorus"), ["Song ideas", "rain", "hill", "ridge", "chorus"])
+    }
+
     // MARK: - Fixtures
+
+    /// An artifact store, the chat it reads the user's messages from, and a
+    /// router over both, in force until `installed.end()`.
+    private struct ArtifactHarness {
+        let store: AssistantArtifactStore
+        let viewModel: AssistantViewModel
+        let router: CompactToolRouter
+        let installed: AppDependencies.InstalledScope
+    }
+
+    private func artifactHarness() -> ArtifactHarness {
+        let directory = temporaryDirectory()
+        let store = AssistantArtifactStore(directory: directory)
+        let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+        let dependencies = AppDependencies()
+        dependencies.overrides.assistantArtifactStore = store
+        dependencies.overrides.assistantViewModel = viewModel
+        let installed = AppDependencies.install(dependencies)
+        let router = CompactToolRouter(registry: AppFactResolverFactory.build(
+            archive: SessionArchive(directory: directory), settings: { UserSettings() }, services: FactServices(.current)
+        ))
+        return ArtifactHarness(store: store, viewModel: viewModel, router: router, installed: installed)
+    }
 
     private func temporaryDirectory() -> URL {
         let directory = FileManager.default.temporaryDirectory

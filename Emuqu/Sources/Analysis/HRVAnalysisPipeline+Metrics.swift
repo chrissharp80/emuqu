@@ -12,10 +12,10 @@ extension HRVAnalysisPipeline {
     // MARK: - Pure Computation Helpers
 
     /// Compute median heart rate from clean RR intervals (non-positive
-    /// intervals skipped), with the shared `RecurrenceClassifier.median`.
+    /// intervals skipped), with the shared `Statistics.median`.
     /// Pure function: takes values in, returns value out.
     static func nocturnalMedianHR(from cleanRRs: [Double]) -> Double? {
-        RecurrenceClassifier.median(cleanRRs.compactMap { $0 > 0 ? 60000.0 / $0 : nil })
+        Statistics.median(cleanRRs.compactMap { $0 > 0 ? 60000.0 / $0 : nil })
     }
 
     /// Compute nocturnal HR dip percentage.

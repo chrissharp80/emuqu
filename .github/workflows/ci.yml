@@ -341,6 +341,11 @@ jobs:
       - name: SBOM drift (Package.resolved vs in-app acknowledgements)
         run: ./scripts/check_sbom_drift.sh
 
+      # security.yml allows a dependency advisory only where the app cannot
+      # reach the vulnerable code; this fails the day it can.
+      - name: Allowed advisories stay unreachable
+        run: ./scripts/check_unreached_advisories.sh
+
       # The refactor spec's "never log sensitive user data"
       # rule was the only perimeter in this repo without an automated gate.
       - name: Log redaction guard

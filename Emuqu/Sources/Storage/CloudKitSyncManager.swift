@@ -571,15 +571,17 @@ final class CloudKitSyncManager {
     /// rewritten session files in place — their CloudKit copies are now stale
     /// and must be cleared from the uploaded-set so the next sync pushes the
     /// fixed versions).
+    /// Kept in `observers` with the account-change observer, so a manager
+    /// that goes away (a test's, a preview's) takes its registration with it.
     private func observeReuploadSignals() {
-        NotificationCenter.default.addObserver(
+        observers.add(NotificationCenter.default.addObserver(
             forName: .flowRecoveryArchiveSessionsNeedReupload,
             object: nil,
             queue: nil
         ) { [weak self] note in
             guard let ids = note.userInfo?["sessionIds"] as? Set<UUID> else { return }
             Task { [weak self] in await self?.markSessionsForReupload(ids) }
-        }
+        })
     }
 
     /// Mark a batch of sessions as needing re-upload. Called after migrations

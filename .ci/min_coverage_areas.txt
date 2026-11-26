@@ -1,0 +1,31 @@
+# Line-coverage floors for the areas whose failures cost the most: what keeps
+# the user's data (Storage), what decides whether the assistant may change it
+# (the confirmation step and the actions behind it), and what keeps personal
+# data out of logs (DebugLog's scrubber). One per line: a path prefix under
+# Emuqu/Sources/, then the floor in percent. scripts/check_coverage.sh fails
+# when an area falls below its floor, which an overall or logic number can
+# hide behind gains elsewhere.
+#
+# Measured on main at e3fca376 (CI run 45742214618), each set one point under
+# the measurement so run-to-run variation does not fail a pull request. Ratchet
+# up as tests land; never lower one to make a change pass.
+Analysis/ 78
+Assistant/ 49
+Collection/ 45
+Export/ 73
+Import/ 60
+Models/ 73
+Services/ 52
+Storage/ 65
+Utilities/ 56
+ViewModels/ 60
+Storage/SessionArchive 78
+Storage/ArchiveStore 85
+Storage/EncryptionManager 82
+Storage/RawRRBackup 79
+Storage/CloudKitSync 43
+Assistant/Chat/AssistantActionConfirmations.swift 99
+Assistant/Facts/AssistantConfirmationFacts.swift 84
+Assistant/Facts/AssistantMemoryFacts.swift 67
+Assistant/Facts/AssistantEmailFacts.swift 27
+Utilities/DebugLog.swift 61
