@@ -639,7 +639,9 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
 2. **Deterministic shortcut** — for a voice turn while no reply is streaming,
    `DeterministicIntent.tryMatch` catches the 14 highest-frequency factual
    queries with a fact-catalog read + template, **zero tokens**, before the
-   consent check and any LLM call.
+   consent check and any LLM call. During a workout 7 live patterns
+   (`DeterministicIntent+Live.swift`) are tried first, answered from the live
+   snapshot.
 3. **Route** — `dispatch()` calls `resolveProviderForThisTurn()`
    (`AssistantTurnRouter+Routing.swift`, pure core in `TurnRouter`). The
    `RoutingMode` acts only while Apple Intelligence is the selected model; with

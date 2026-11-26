@@ -66,6 +66,9 @@ enum DeterministicIntent {
         let now: Date
         let archive: SessionArchive
         let userSettings: UserSettings
+        /// The workout in progress, when there is one: the live patterns
+        /// (`livePatterns`) answer from it and are tried first.
+        var liveWorkout: AssistantContext.LiveWorkoutSnapshot?
     }
 
     /// One pattern + handler. `triggers` are case-folded, accent-
@@ -419,7 +422,7 @@ enum DeterministicIntent {
     /// punctuation-stripped at the edges, then regex-anchored against
     /// each pattern's triggers. First match wins.
     static func tryMatch(_ utterance: String, in context: MatchContext) -> String? {
-        guard let match = matchedPattern(for: utterance) else { return nil }
+        guard let match = matchedPattern(for: utterance, live: context.liveWorkout != nil) else { return nil }
         let pattern = match.pattern
         guard let answer = pattern.handler(match.normalized, context) else {
             // Pattern matched but data not ready — fall through.
@@ -434,10 +437,11 @@ enum DeterministicIntent {
     /// normalized utterance, with that normalized text; nil for an empty
     /// utterance or no match. The matching half of `tryMatch`, before any
     /// handler runs.
-    static func matchedPattern(for utterance: String) -> (pattern: Pattern, normalized: String)? {
+    static func matchedPattern(for utterance: String, live: Bool = false) -> (pattern: Pattern, normalized: String)? {
         let normalized = normalize(utterance)
         guard !normalized.isEmpty else { return nil }
-        guard let pattern = patterns.first(where: { matches($0, normalized) }) else { return nil }
+        let candidates = live ? livePatterns + patterns : patterns
+        guard let pattern = candidates.first(where: { matches($0, normalized) }) else { return nil }
         return (pattern, normalized)
     }
 

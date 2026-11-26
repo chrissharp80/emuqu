@@ -129,10 +129,15 @@ struct UserSettings: Codable, Equatable {
     /// divides by and raising it would shift every historical training-load
     /// figure.
     var effectiveLTHR: Int {
-        // Under the field's 80 bpm minimum reads as unset, as for max HR.
-        if let user = lactateThresholdHR, user >= MaxHeartRate.minimumUserEntered { return user }
+        if hasUserLTHR, let user = lactateThresholdHR { return user }
         let fromMax = Int(Double(effectiveMaxHR) * 0.88)
         return max(120, fromMax)
+    }
+
+    /// True when `effectiveLTHR` is the user's own entry, not the estimate.
+    /// Under the field's 80 bpm minimum reads as unset, as for max HR.
+    var hasUserLTHR: Bool {
+        (lactateThresholdHR ?? 0) >= MaxHeartRate.minimumUserEntered
     }
 
     /// Functional Threshold Power in watts — the highest average power the

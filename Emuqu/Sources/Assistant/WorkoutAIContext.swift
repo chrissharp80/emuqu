@@ -355,6 +355,17 @@ struct WorkoutAIContext: Equatable {
     /// the band".
     let thresholdBreachSec: [UUID: Int]
 
+    // MARK: Ground ahead, from past workouts
+
+    /// The climb ahead that the user's past GPS workouts heading this way
+    /// agree on, with the heart-rate rise it took them (`LivePlaceMemory`).
+    /// Nil with no such history, or while the user stands still.
+    var historyClimbAhead: PlaceHistory.ClimbAhead?
+    /// `UserSettings.effectiveLTHR`, and whether the user entered it (false:
+    /// the 0.88 × max estimate).
+    var thresholdHeartRate: Int?
+    var thresholdHeartRateIsUserSet = false
+
     struct UpcomingClimb: Equatable {
         let distanceMeters: Double
         let gradePercent: Double

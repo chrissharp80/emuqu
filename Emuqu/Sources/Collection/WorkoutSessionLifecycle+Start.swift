@@ -191,6 +191,7 @@ extension WorkoutSessionLifecycle {
         routeGuidance.savedRouteId = nil
         routeGuidance.wasAutoDetected = false
         routeGuidance.nextDetectionAtMeters = 0
+        routeGuidance.places.reset()
         coaching.gradeMemo = nil
     }
 
