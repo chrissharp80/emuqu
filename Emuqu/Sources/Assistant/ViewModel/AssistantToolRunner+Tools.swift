@@ -119,9 +119,17 @@ extension AssistantToolRunner {
     ) async throws -> Bool {
         do {
             return try await runOneRound(round, state: &state, grokQuirks: &grokQuirks)
-        } catch let error as AIProviderError where error.isFallbackable && Self.ranMutatingTool(state.toolRounds) {
+        } catch let error as AIProviderError where error.isFallbackable && ranMutatingTool(round.provider, state.toolRounds) {
             throw PickedModelFailure(providerID: round.provider.id, underlying: error)
         }
+    }
+
+    /// Whether this round's provider has run a mutating tool this turn: in
+    /// the tool loop's rounds, or, on Apple, which runs its tools inside the
+    /// session, through `AppleToolDispatcher`.
+    private func ranMutatingTool(_ provider: AIProvider, _ toolRounds: [[ToolExchange]]) -> Bool {
+        if Self.ranMutatingTool(toolRounds) { return true }
+        return provider.id == .apple && owner.services.appleToolDispatcher.ranMutatingTool
     }
 
     /// Everything the tool loop carries between rounds.
@@ -764,6 +772,13 @@ extension AssistantToolRunner {
     /// The fallback's own run: its system prompt, then the tool loop, which
     /// streams its answer into the reserved turn.
     ///
+    /// Every provider gets the turn's tools, Apple included: Apple calls them
+    /// through `AppleToolDispatcher`, which holds the turn's registry for the
+    /// length of the fallback, as on an Apple turn of its own
+    /// (`AssistantTurnRouter.publishAppleDispatcher`). Without them an action
+    /// or data request that fell back could not be served, and a model with
+    /// no tools can claim it did something it did not.
+    ///
     /// Each fallback gets the history re-cut to ITS budget
     /// (`fallbackOutbound`), not the primary's: an Apple primary's 1,200-token
     /// window would otherwise starve a cloud fallback.
@@ -776,9 +791,12 @@ extension AssistantToolRunner {
         turnID: UUID,
         voiceMode: Bool
     ) async throws {
-        let supportsTools = !tools.isEmpty && provider.id != .apple
+        let supportsTools = !tools.isEmpty && factRegistry != nil
         let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
         debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
+        let dispatcher = provider.id == .apple && supportsTools ? owner.services.appleToolDispatcher : nil
+        dispatcher?.setRegistry(factRegistry)
+        defer { dispatcher?.setRegistry(nil) }
         try await runToolUseLoop(
             provider: provider, model: model,
             outbound: fallbackOutbound(for: provider, turnID: turnID, primaryOutbound: outbound), systemPrompt: prompt,
@@ -860,9 +878,9 @@ extension AssistantToolRunner {
         )
     }
 
-    /// Match the main dispatch path: cloud providers
-    /// skip compactRender (tools deliver the data); only Apple
-    /// gets the rendered dump because it has a tighter context
+    /// Match the main dispatch path: cloud providers with tools
+    /// skip compactRender (tools deliver the data); Apple, tools or
+    /// not, gets the rendered dump because it has a tighter context
     /// window and benefits from being pre-briefed. Without this,
     /// a fallback from Apple → cloud pays the compactRender
     /// tax twice (once at the originally-attempted Apple turn,
@@ -875,7 +893,7 @@ extension AssistantToolRunner {
     /// (disclosure-matched gate, same rule as `renderLiveStateForCloud`).
     /// Apple keeps it: the render never leaves the device there.
     private func fallbackContextRender(provider: AIProvider, supportsTools: Bool) async -> String {
-        guard !supportsTools else { return "" }
+        guard !supportsTools || provider.id == .apple else { return "" }
         let ctx = await owner.contextSource.currentContext()
         return ctx.compactRender(includeAmbientLocation: provider.id == .apple || ctx.liveWorkout != nil)
     }

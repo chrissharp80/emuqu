@@ -648,7 +648,7 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
    any other model selected, every turn goes to that model. With Apple selected:
    Manual keeps every turn on Apple; a voice turn goes to the first consented
    cloud provider in registry order (Apple if none); otherwise Quick → Apple,
-   Auto → `CapabilityClassifier` (4 keyword-gated embedding axes) →
+   Auto → `CapabilityClassifier` (4 axes read from phrase patterns) →
    `SmartProviderRouter` tier (session-sticky), Deep → the same consented
    mid-tier cloud as Auto. `TierProviderMapper` maps the mid tier to consented
    Grok, then DeepSeek, else Apple. If the tier lands on Apple and the message

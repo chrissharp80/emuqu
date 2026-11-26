@@ -1,352 +1,486 @@
 @testable import Emuqu
 import XCTest
 
-/// Scaffold for the
-/// 600-utterance routing evaluation set.
+/// The routing evaluation: hand-labeled utterances, graded against
+/// `CapabilityClassifier.classify(_:)`.
 ///
-/// **What's here.** A typed `Utterance` model + a compact catalog
-/// of 24 hand-labeled examples drawn from three slices:
-///   • Slice A: real voice utterances from a recorded session where
-///     routing failed (anonymized).
-///   • Slice B: synthetic adversarial — short utterances that
-///     should route to a non-Quick tier despite being linguistically
-///     short.
-///   • Slice C: boundary cases — medical refusals, action-verb
-///     overrides, web/depth/speculation triggers.
+/// **Slices.**
+///   • A (`real`): voice-style requests, with fillers and run-ons, as people
+///     speak to Flo.
+///   • B (`adversarial`): short requests (eight words or fewer), most of
+///     which need the web, history, speculation or an action.
+///   • C (`boundary`): medical refusals, marker words used in statements,
+///     other languages the app ships, multi-axis requests and plain lookups.
 ///
-/// **What's NOT here.** The full 600-utterance set the research
-/// prescribes (200 + 200 + 200) requires real user transcripts with
-/// consent. This file is the structural scaffold — adding
-/// utterances is mechanical, and the harness is in place for
-/// `RouterEvalTests` to consume the catalog and grade the
-/// CapabilityClassifier against ground-truth labels.
+/// **Labels are ground truth**: what the request needs, not what the
+/// classifier says. `needsTools` is an action the app takes (email,
+/// contacts, directions, the route library, memory); `needsWeb` is
+/// information from outside the user's data; `needsHistoricalDepth` is
+/// history beyond the recent context block (weeks to months, comparisons
+/// with a past season); `needsSpeculation` is a prediction, a what-if or a
+/// best guess. A message `MedicalQueryGuard` refuses is answered on the
+/// device before routing, so it is labeled with no flags.
 ///
-/// **Acceptance gate.** The research doc targets capability correctness
-/// of 95% on slice A, 85% on slice B and 90% on slice C, and 0% misroute on
-/// medical-refusal utterances. With this small catalog `RouterEvalTests`
-/// asserts floors of 80% / 70% / 75% and the 0% medical gate. Labels are
-/// ground truth, not the classifier's current output: a known false
-/// positive is labelled with what it should route to.
+/// **Splits.** `tuning` is what the classifier's markers, prototypes and
+/// threshold may be adjusted against. `heldOut` is never used for that: it
+/// measures generalization, and the gates below are asserted on it. No
+/// utterance in either split may equal or nearly duplicate a classifier
+/// prototype (`EvalPrototypeOverlapTests`).
 ///
-/// `RouterEvalTests` runs the catalog through
-/// `CapabilityClassifier.classify(_:)` and asserts each
-/// gate. Failing utterances are printed with their ground-truth
-/// labels so the regression is diagnosable.
+/// **Gates** (held-out split): capability correctness of 95% on slice A,
+/// 85% on slice B and 90% on slice C, and no medical-refusal utterance
+/// anywhere in the catalog with a capability flag.
+///
+/// **Measured** (iOS Simulator, word-vector embeddings): held-out 60/60 on
+/// A, 50/50 on B, 60/60 on C; tuning 29/30, 30/30, 35/35. The classifier
+/// these utterances were first run against scored 31/60, 17/50 and 32/60
+/// on the held-out split. One author wrote the held-out split, then the
+/// markers against the tuning split, so the held-out split is not
+/// independent of the markers: its scores are an upper bound on
+/// generalization, and utterances from real transcripts or another author
+/// are the test that would show the gap.
 enum EvalUtterances {
-    enum Slice: String {
-        case real      // Slice A — real voice utterances
-        case adversarial // Slice B — short-but-needs-cloud
-        case boundary    // Slice C — medical / action-verb / specific-trigger
+    enum Slice: String, CaseIterable {
+        case real
+        case adversarial
+        case boundary
     }
 
     struct Utterance: Equatable {
         let text: String
         let slice: Slice
         let expected: CapabilityClassifier.Requirement
-        /// Optional note explaining why this utterance is in the set.
+        /// Why the utterance is in the set, when that is not obvious.
         let note: String?
     }
 
-    /// Helper to build a Requirement with explicit flags. Reads more
-    /// clearly than nested initializers in the catalog literal.
-    private static func req(
-        tools: Bool = false,
-        web: Bool = false,
-        depth: Bool = false,
-        speculation: Bool = false
-    ) -> CapabilityClassifier.Requirement {
-        CapabilityClassifier.Requirement(
-            needsTools: tools,
-            needsWeb: web,
-            needsHistoricalDepth: depth,
-            needsSpeculation: speculation
-        )
+    private static func u(_ text: String, _ slice: Slice, _ expected: CapabilityClassifier.Requirement, _ note: String? = nil) -> Utterance {
+        Utterance(text: text, slice: slice, expected: expected, note: note)
     }
 
-    // MARK: - Slice A — real failure-mode utterances (anonymized)
-    //
-    // Drawn from the user's 22-turn debug log. Each
-    // routed to Apple Intelligence in the failure run; ground truth
-    // is what they SHOULD have routed to.
+    private static func req(
+        tools: Bool = false, web: Bool = false, depth: Bool = false, speculation: Bool = false
+    ) -> CapabilityClassifier.Requirement {
+        CapabilityClassifier.Requirement(needsTools: tools, needsWeb: web, needsHistoricalDepth: depth, needsSpeculation: speculation)
+    }
 
-    static let sliceA: [Utterance] = [
-        Utterance(
-            text: "can you see the top of the last hill it's noticeable in the workout of the last four or five days",
-            slice: .real,
-            expected: req(depth: true),
-            note: "needs per-tick GPS+altitude across 4-5 days; beyond static context block"
-        ),
-        Utterance(
-            text: "are there ai voices that i can buy and use commercially",
-            slice: .real,
-            expected: req(web: true),
-            note: "web search; Apple has no web tool"
-        ),
-        Utterance(
-            text: "do your best guess on how long i'm gonna live",
-            slice: .real,
-            expected: req(speculation: true),
-            note: "speculation; Apple guardrail refuses, MedicalQueryGuard permits"
-        ),
-        Utterance(
-            text: "tell me about my last workout",
-            slice: .real,
-            expected: req(),
-            note: "fits in static context block; Quick is correct"
-        ),
-        Utterance(
-            text: "what's my recovery score",
-            slice: .real,
-            expected: req(),
-            note: "single-fact lookup; Apple-fit"
-        ),
-        Utterance(
-            text: "did i train yesterday",
-            slice: .real,
-            expected: req(),
-            note: "single-day check; deterministic intent path"
-        )
+    private static let none = req()
+    private static let tools = req(tools: true)
+    private static let web = req(web: true)
+    private static let depth = req(depth: true)
+    private static let guess = req(speculation: true)
+
+    // MARK: - Tuning split
+
+    static let tuning: [Utterance] = [
+        // Slice A
+        u("can you see the top of the last hill it's noticeable in the workout of the last four or five days", .real, depth),
+        u("can i purchase an ai voice to use in my videos", .real, web),
+        u("what's your guess for my life expectancy from all this", .real, guess),
+        u("tell me about my last workout", .real, none),
+        u("what's my recovery score", .real, none),
+        u("did i train yesterday", .real, none),
+        u("hey flo what's my recovery like today", .real, none),
+        u("put this summary in an email to me", .real, tools),
+        u("is it hot out there right now", .real, web),
+        u("how's my hrv looked over the past eight weeks", .real, depth),
+        u("what would my half marathon time be", .real, guess),
+        u("uh how did i sleep", .real, none),
+        u("steer me back to the parking lot", .real, tools),
+        u("okay remember that my long run is on sundays", .real, tools, "memory write"),
+        u("how did this spring compare with last autumn for sleep", .real, depth),
+        u("hey flo is it gonna snow on my ride tomorrow", .real, web),
+        u("what's the wind doing out there", .real, web),
+        u("uh how did my sleep look over the past six weeks", .real, depth),
+        u("has my resting heart rate come down since last summer", .real, depth),
+        u("do you reckon i could break three hours in the marathon", .real, guess),
+        u("if i keep running five days a week where will my vo2 max end up", .real, guess),
+        u("can you email my training plan to me", .real, tools),
+        u("take me back to where i started", .real, tools),
+        u("add jane as a contact", .real, tools),
+        u("please forget my old address", .real, tools, "memory removal"),
+        u("what were my splits on that last run", .real, none),
+        u("how hard was yesterday's workout", .real, none),
+        u("i'm feeling pretty tired today what should i do", .real, none),
+        u("um what's the best trail shoe for mud", .real, web),
+        u("are there any races near me this weekend", .real, web),
+        // Slice B
+        u("email today's report", .adversarial, tools),
+        u("weather near me", .adversarial, web),
+        u("lead me back", .adversarial, tools),
+        u("since january how am i", .adversarial, depth),
+        u("predict my next race", .adversarial, guess),
+        u("keep this one as a route", .adversarial, tools),
+        u("best guess on my finishing time", .adversarial, guess),
+        u("show me the way to urgent care", .adversarial, tools),
+        u("snow tonight?", .adversarial, web),
+        u("pace trend since may", .adversarial, depth),
+        u("guess my vo2 max next month", .adversarial, guess),
+        u("directions home", .adversarial, tools),
+        u("hr today", .adversarial, none),
+        u("humidity now", .adversarial, web),
+        u("sleep since january", .adversarial, depth),
+        u("forecast tonight", .adversarial, web),
+        u("temperature now", .adversarial, web),
+        u("store hours?", .adversarial, web),
+        u("vo2 trend this year", .adversarial, depth),
+        u("since last summer", .adversarial, depth),
+        u("six week trend", .adversarial, depth),
+        u("will i improve", .adversarial, guess),
+        u("guess my 5k", .adversarial, guess),
+        u("if i taper?", .adversarial, guess),
+        u("email me", .adversarial, tools),
+        u("navigate home", .adversarial, tools),
+        u("save as route", .adversarial, tools),
+        u("sleep last night", .adversarial, none),
+        u("my zones", .adversarial, none),
+        u("cheapest gels", .adversarial, web),
+        // Slice C
+        u("do i have afib", .boundary, none, "medical refusal"),
+        u("is my heart rate dangerous", .boundary, none, "medical refusal"),
+        u("i feel chest tightness when running", .boundary, none, "medical refusal"),
+        u("search the web for studies on hrv over the last 8 weeks", .boundary, req(web: true, depth: true)),
+        u("predict my hrv next month based on the last 12 weeks", .boundary, req(depth: true, speculation: true)),
+        u("recovery is hard", .boundary, none),
+        u("i did email yesterday", .boundary, none),
+        u("the news is good", .boundary, none),
+        u("i guess today went fine", .boundary, none),
+        u("this month i ran a lot", .boundary, none),
+        u("what's my hrv", .boundary, none),
+        u("how did i sleep", .boundary, none),
+        u("rhr today", .boundary, none),
+        u("¿lloverá esta tarde?", .boundary, web, "Spanish"),
+        u("wie habe ich geschlafen", .boundary, none, "German"),
+        u("search online for hrv studies", .boundary, web),
+        u("email my coach my plan for next month", .boundary, tools),
+        u("i fell and my knee is bleeding", .boundary, none, "medical refusal"),
+        u("my heart is racing and my chest hurts", .boundary, none, "medical refusal"),
+        u("i used to google everything", .boundary, none),
+        u("last year i ran my first marathon", .boundary, none),
+        u("i predicted a bad night and was right", .boundary, none),
+        u("¿qué tiempo hace en sevilla?", .boundary, web, "Spanish"),
+        u("regnet es morgen", .boundary, web, "German"),
+        u("mes progrès sur les trois derniers mois", .boundary, depth, "French"),
+        u("previsione del mio recupero", .boundary, guess, "Italian"),
+        u("wat voor weer wordt het morgen", .boundary, web, "Dutch"),
+        u("明日は雨ですか", .boundary, web, "Japanese"),
+        u("내일 날씨 어때", .boundary, web, "Korean"),
+        u("明天天气怎么样", .boundary, web, "Chinese"),
+        u("какая погода завтра", .boundary, web, "Russian"),
+        u("search for my best ride", .boundary, none, "a lookup in the user's own data"),
+        u("look up my hrv from last night", .boundary, none, "a lookup in the user's own data"),
+        u("email my coach and predict my race time", .boundary, req(tools: true, speculation: true)),
+        u("what's the weather and my recovery", .boundary, web)
     ]
 
-    // MARK: - Slice B — short adversarial
-    //
-    // Linguistically short (≤ 10 words) but semantically demand
-    // capabilities Apple doesn't have. Each must NOT classify as
-    // zero-flag Quick.
+    // MARK: - Held-out split
 
-    static let sliceB: [Utterance] = [
-        Utterance(
-            text: "email today's report",
-            slice: .adversarial,
-            expected: req(tools: true),
-            note: "4 words; explicit action verb"
-        ),
-        Utterance(
-            text: "what's the weather here",
-            slice: .adversarial,
-            expected: req(web: true),
-            note: "5 words; web required"
-        ),
-        Utterance(
-            text: "lead me back",
-            slice: .adversarial,
-            expected: req(tools: true),
-            note: "3 words; navigation tool"
-        ),
-        Utterance(
-            text: "since january how am i",
-            slice: .adversarial,
-            expected: req(depth: true),
-            note: "6 words; historical span"
-        ),
-        Utterance(
-            text: "predict my next race",
-            slice: .adversarial,
-            expected: req(speculation: true),
-            note: "4 words; forecasting"
-        ),
-        Utterance(
-            text: "save this as a route",
-            slice: .adversarial,
-            expected: req(tools: true),
-            note: "5 words; route library mutation"
-        ),
-        Utterance(
-            text: "best guess on my finishing time",
-            slice: .adversarial,
-            expected: req(speculation: true),
-            note: "speculative forecasting"
-        ),
-        Utterance(
-            text: "navigate to the hospital",
-            slice: .adversarial,
-            expected: req(tools: true),
-            note: "directions tool; emergency"
-        )
+    static let heldOut: [Utterance] = heldOutA + heldOutB + heldOutC
+
+    private static let heldOutA: [Utterance] = [
+        u("hey flo how'd i do last night", .real, none),
+        u("um what was my hrv this morning", .real, none),
+        u("okay so how recovered am i", .real, none),
+        u("how many steps did i get today", .real, none),
+        u("what was my resting heart rate", .real, none),
+        u("how long did i sleep", .real, none),
+        u("was my run this morning hard", .real, none),
+        u("quick question am i good to train today", .real, none),
+        u("what's my training load looking like", .real, none),
+        u("how was my deep sleep", .real, none),
+        u("read me my score", .real, none),
+        u("what did my heart rate peak at on that ride", .real, none),
+        u("can you send that to my coach by email", .real, tools),
+        u("um take me home", .real, tools),
+        u("get me directions to the trailhead", .real, tools),
+        u("add my brother as a contact his number is 555 0199", .real, tools),
+        u("save today's loop as a route please", .real, tools),
+        u("rename my morning route to river run", .real, tools),
+        u("remember that i'm training for a marathon in april", .real, tools, "memory write"),
+        u("which routes do i have stored", .real, tools),
+        u("is it going to rain this afternoon", .real, web),
+        u("hey how many degrees is it outside", .real, web),
+        u("what's the forecast for saturday's long run", .real, web, "a weather forecast is web, not speculation"),
+        u("is the gym on main street open right now", .real, web),
+        u("find me a good pair of trail shoes under a hundred bucks", .real, web),
+        u("what's in the news about the boston marathon", .real, web),
+        u("how windy is it at the coast today", .real, web),
+        u("look up what the air quality is like today", .real, web),
+        u("how has my sleep changed over the last couple of months", .real, depth),
+        u("um is my hrv better in november than october", .real, depth),
+        u("how's my resting heart rate trended since the summer", .real, depth),
+        u("am i fitter than i was back in march", .real, depth),
+        u("what was my best week of training this year", .real, depth),
+        u("show me how my recovery has moved over the past three months", .real, depth),
+        u("have my long runs gotten faster since the spring", .real, depth),
+        u("what do you think my marathon time would be", .real, guess),
+        u("if i take three days off will my hrv bounce back", .real, guess),
+        u("where do you reckon my fitness will be in a month", .real, guess),
+        u("guess what my recovery score will be tomorrow", .real, guess),
+        u("will i be ready for the race in two weeks", .real, guess),
+        u("how long until i can run a sub twenty 5k", .real, guess),
+        u("what happens to my vo2 max if i add intervals", .real, guess),
+        u("based on the last six months what will my resting heart rate be by christmas", .real, req(depth: true, speculation: true)),
+        u("email my coach a summary of my last three months of training", .real, req(tools: true, depth: true)),
+        u("check the weather and tell me if i should run long tomorrow", .real, web),
+        u("hey flo good morning", .real, none),
+        u("thanks that's helpful", .real, none),
+        u("what zone was i in for most of the ride", .real, none),
+        u("how stressed was i yesterday", .real, none),
+        u("uh did i hit my sleep goal", .real, none),
+        u("how does today compare to yesterday", .real, none, "two days is in the context block"),
+        u("what's my hrv compared to my baseline", .real, none),
+        u("should i go easy today", .real, none),
+        u("why is my score low", .real, none),
+        u("what time did i fall asleep", .real, none),
+        u("how far did i run this week", .real, none),
+        u("what was my average pace", .real, none),
+        u("tell me something about my recovery", .real, none),
+        u("um how many workouts did i do this week", .real, none),
+        u("remind me what my max heart rate is set to", .real, none)
     ]
 
-    // MARK: - Slice C — boundary cases
-    //
-    // Cases that probe specific edges: medical refusals, action-verb
-    // overrides, multi-axis combinations, and known false-positive
-    // triggers.
-
-    static let sliceC: [Utterance] = [
-        // Medical-refusal — must NOT route to deterministic intent
-        Utterance(
-            text: "do i have afib",
-            slice: .boundary,
-            expected: req(),
-            note: "MedicalQueryGuard refuses; classifier zero-flags"
-        ),
-        Utterance(
-            text: "is my heart rate dangerous",
-            slice: .boundary,
-            expected: req(),
-            note: "MedicalQueryGuard refuses"
-        ),
-
-        // Multi-axis triggers
-        Utterance(
-            text: "search the web for studies on hrv over the last 8 weeks",
-            slice: .boundary,
-            expected: req(tools: true, web: true, depth: true),
-            note: "three flags → Deep tier"
-        ),
-        Utterance(
-            text: "predict my hrv next month based on the last 12 weeks",
-            slice: .boundary,
-            expected: req(depth: true, speculation: true),
-            note: "two flags → Deep tier"
-        ),
-
-        // False-positive bait — looks like markers but is conversational
-        Utterance(
-            text: "recovery is hard",
-            slice: .boundary,
-            expected: req(),
-            note: "conversational; no flags"
-        ),
-        Utterance(
-            text: "i did email yesterday",
-            slice: .boundary,
-            expected: req(),
-            note: "past-tense statement, no action asked for; 'email' alone is not a request"
-        ),
-        Utterance(
-            text: "the news is good",
-            slice: .boundary,
-            expected: req(),
-            note: "conversational; 'news' alone is not a lookup"
-        ),
-
-        // Pure factual lookups (Quick-correct)
-        Utterance(
-            text: "what's my hrv",
-            slice: .boundary,
-            expected: req(),
-            note: "single-fact; deterministic intent path"
-        ),
-        Utterance(
-            text: "how did i sleep",
-            slice: .boundary,
-            expected: req(),
-            note: "single-fact; deterministic intent path"
-        ),
-        Utterance(
-            text: "rhr today",
-            slice: .boundary,
-            expected: req(),
-            note: "abbreviated factual; deterministic"
-        )
+    private static let heldOutB: [Utterance] = [
+        u("rain later?", .adversarial, web),
+        u("weather tomorrow", .adversarial, web),
+        u("is it cold out", .adversarial, web),
+        u("any storms tonight", .adversarial, web),
+        u("sunset time today", .adversarial, web),
+        u("uv index now", .adversarial, web),
+        u("best running watch", .adversarial, web),
+        u("price of the forerunner 965", .adversarial, web),
+        u("pool open today?", .adversarial, web),
+        u("who won the boston marathon", .adversarial, web),
+        u("pollen count", .adversarial, web),
+        u("is the park open", .adversarial, web),
+        u("headwind on my route?", .adversarial, web),
+        u("heat advisory today?", .adversarial, web),
+        u("trend since april", .adversarial, depth),
+        u("hrv this year", .adversarial, depth),
+        u("sleep last quarter", .adversarial, depth),
+        u("fitness since christmas", .adversarial, depth),
+        u("compare to last spring", .adversarial, depth),
+        u("three month trend", .adversarial, depth),
+        u("my best month", .adversarial, depth),
+        u("rhr over 90 days", .adversarial, depth),
+        u("year over year mileage", .adversarial, depth),
+        u("race time guess", .adversarial, guess),
+        u("will i pr", .adversarial, guess),
+        u("forecast my recovery", .adversarial, guess),
+        u("what if i rest", .adversarial, guess),
+        u("ready by june?", .adversarial, guess),
+        u("projected 10k time", .adversarial, guess),
+        u("how fit in six weeks", .adversarial, guess),
+        u("chances i qualify", .adversarial, guess),
+        u("email it", .adversarial, tools),
+        u("route home", .adversarial, tools),
+        u("directions to work", .adversarial, tools),
+        u("save route", .adversarial, tools),
+        u("add contact mom", .adversarial, tools),
+        u("send my coach this", .adversarial, tools),
+        u("back to start", .adversarial, tools),
+        u("rename route", .adversarial, tools),
+        u("remember my shoe size", .adversarial, tools, "memory write"),
+        u("hrv?", .adversarial, none),
+        u("sleep score", .adversarial, none),
+        u("today's load", .adversarial, none),
+        u("weekly summary", .adversarial, none),
+        u("last run", .adversarial, none),
+        u("recovery", .adversarial, none),
+        u("weather and route home", .adversarial, req(tools: true, web: true)),
+        u("predict hrv from 3 months", .adversarial, req(depth: true, speculation: true)),
+        u("rain on saturday's race?", .adversarial, web),
+        u("news on hrv research", .adversarial, web)
     ]
 
-    static let all: [Utterance] = sliceA + sliceB + sliceC
+    private static let heldOutC: [Utterance] = [
+        u("i have chest pain after my run", .boundary, none, "medical refusal"),
+        u("do you think i have an arrhythmia", .boundary, none, "medical refusal"),
+        u("my heart feels irregular is that afib", .boundary, none, "medical refusal"),
+        u("i fainted during my workout", .boundary, none, "medical refusal"),
+        u("i can't breathe properly after climbing stairs", .boundary, none, "medical refusal"),
+        u("is my heart rate of 190 dangerous", .boundary, none, "medical refusal"),
+        u("should i be worried about my heart", .boundary, none, "medical refusal"),
+        u("i think i'm having a heart attack", .boundary, none, "medical refusal"),
+        u("my face is drooping and my arm is numb", .boundary, none, "medical refusal"),
+        u("i fell off my bike and hurt my wrist", .boundary, none, "medical refusal"),
+        u("i think i broke my ankle on the trail", .boundary, none, "medical refusal"),
+        u("predict whether i'll get afib", .boundary, none, "medical refusal with a speculation marker"),
+        u("how long will i live with afib", .boundary, none, "medical refusal with a speculation marker"),
+        u("search the web for what an irregular heartbeat means", .boundary, none, "medical refusal with a web marker"),
+        u("i love running in the rain", .boundary, none),
+        u("the weather was perfect for my run yesterday", .boundary, none),
+        u("i bought new shoes last week", .boundary, none),
+        u("my coach emailed me a plan", .boundary, none),
+        u("i guess i slept okay", .boundary, none),
+        u("what if i told you i slept ten hours", .boundary, none, "conversational what-if"),
+        u("i ran past the news stand", .boundary, none),
+        u("my route was windy today", .boundary, none),
+        u("search for my last run", .boundary, none, "a lookup in the user's own data"),
+        u("look up my sleep from tuesday", .boundary, none, "a lookup in the user's own data"),
+        u("compared to a normal day how was today", .boundary, none),
+        u("this month has been busy", .boundary, none),
+        u("since i started using the app i sleep better", .boundary, none),
+        u("what's my hrv baseline", .boundary, none),
+        u("how many hours did i sleep last night", .boundary, none),
+        u("what did i do yesterday", .boundary, none),
+        u("¿qué tiempo hará mañana en madrid?", .boundary, web, "Spanish"),
+        u("¿cuál fue mi variabilidad cardíaca anoche?", .boundary, none, "Spanish"),
+        u("wie wird das wetter heute abend", .boundary, web, "German"),
+        u("wie hat sich mein ruhepuls in den letzten drei monaten entwickelt", .boundary, depth, "German"),
+        u("quel temps fait-il à lyon aujourd'hui", .boundary, web, "French"),
+        u("combien de temps ai-je dormi cette nuit", .boundary, none, "French"),
+        u("prevedi il mio tempo nella maratona", .boundary, guess, "Italian"),
+        u("como foi meu sono ontem", .boundary, none, "Portuguese"),
+        u("hoe was mijn herstel vandaag", .boundary, none, "Dutch"),
+        u("今日の天気は？", .boundary, web, "Japanese"),
+        u("hur sov jag i natt", .boundary, none, "Swedish"),
+        u("search online for marathon plans that fit my last two months of training", .boundary, req(web: true, depth: true)),
+        u("if the forecast says rain should i move my long run", .boundary, web),
+        u("email me a prediction of my race time", .boundary, req(tools: true, speculation: true)),
+        u("look at my last 8 months and guess my peak week next year", .boundary, req(depth: true, speculation: true)),
+        u("what's the weather and how did i sleep", .boundary, web),
+        u("give me a recap of this week", .boundary, none),
+        u("how's my strain today", .boundary, none),
+        u("did my hrv go up or down since yesterday", .boundary, none),
+        u("what's my readiness", .boundary, none),
+        u("explain my recovery score", .boundary, none),
+        u("is today a rest day", .boundary, none),
+        u("walk me to the closest drinking fountain", .boundary, tools),
+        u("forget what i told you about my knee", .boundary, tools, "memory removal"),
+        u("delete the contact for sam", .boundary, tools),
+        u("start directions back to my car", .boundary, tools),
+        u("write an email to my physio with my sleep data", .boundary, tools),
+        u("how do i compare with other runners my age", .boundary, web, "population norms are outside the user's data"),
+        u("what does the latest science say about cold plunges", .boundary, web),
+        u("year to date how many miles have i run", .boundary, depth)
+    ]
+
+    static let all: [Utterance] = tuning + heldOut
 }
 
-/// `RouterEvalTests` consumes `EvalUtterances.all` and grades the
-/// `CapabilityClassifier` against the ground-truth labels.
+/// `RouterEvalTests` grades the classifier against the labels, per split and
+/// slice, and asserts the gates on the held-out split.
 @MainActor
 final class RouterEvalTests: XCTestCase {
-
-    /// Run every labeled utterance through the classifier; collect
-    /// pass/fail per slice; assert the per-slice acceptance gate.
-    func testCapabilityCorrectnessByGate() {
-        var passBySlice: [EvalUtterances.Slice: (pass: Int, fail: Int, failures: [String])] = [
-            .real: (0, 0, []),
-            .adversarial: (0, 0, []),
-            .boundary: (0, 0, [])
-        ]
-
-        for u in EvalUtterances.all {
-            let actual = CapabilityClassifier.shared.classify(u.text)
-            var bucket = passBySlice[u.slice, default: (0, 0, [])]
-            if actual == u.expected {
-                bucket.pass += 1
-            } else {
-                bucket.fail += 1
-                bucket.failures.append(
-                    "  \"\(u.text)\" → expected \(u.expected.debugSummary), got \(actual.debugSummary)" +
-                    (u.note.map { " — \($0)" } ?? "")
-                )
+    /// Accuracy per slice of `utterances`, printing every miss so a
+    /// regression is diagnosable from the CI log.
+    private func accuracy(of utterances: [EvalUtterances.Utterance], label: String) -> [EvalUtterances.Slice: Double] {
+        var result: [EvalUtterances.Slice: Double] = [:]
+        for slice in EvalUtterances.Slice.allCases {
+            let items = utterances.filter { $0.slice == slice }
+            let misses = items.filter { CapabilityClassifier.shared.classify($0.text) != $0.expected }
+            for miss in misses {
+                let actual = CapabilityClassifier.shared.classify(miss.text)
+                print("[Eval] \(label) \(slice.rawValue) miss: \"\(miss.text)\" expected \(miss.expected.debugSummary), got \(actual.debugSummary)")
             }
-            passBySlice[u.slice] = bucket
+            result[slice] = items.isEmpty ? 0 : Double(items.count - misses.count) / Double(items.count)
+            print("[Eval] \(label) \(slice.rawValue): \(items.count - misses.count)/\(items.count)")
         }
-
-        // Per the research doc's acceptance gates. We use looser
-        // floors than the doc's targets because the catalog is
-        // small (24 examples vs the 600 the doc envisions); when
-        // the full catalog ships these floors should rise to 95% /
-        // 85% / 90%.
-        let realRatio = ratio(passBySlice[.real, default: (0, 0, [])])
-        let advRatio = ratio(passBySlice[.adversarial, default: (0, 0, [])])
-        let boundaryRatio = ratio(passBySlice[.boundary, default: (0, 0, [])])
-
-        // Print full failure listing on any miss so the regression
-        // is diagnosable from the CI log.
-        for (slice, bucket) in passBySlice where bucket.fail > 0 {
-            print("[Eval] slice=\(slice.rawValue) fail=\(bucket.fail) pass=\(bucket.pass)")
-            for f in bucket.failures { print(f) }
-        }
-
-        XCTAssertGreaterThanOrEqual(realRatio, 0.80,
-                                    "Slice A (real failure-mode) — capability-correctness floor 80%; research target 95%")
-        XCTAssertGreaterThanOrEqual(advRatio, 0.70,
-                                    "Slice B (adversarial short) — floor 70%; research target 85%")
-        XCTAssertGreaterThanOrEqual(boundaryRatio, 0.75,
-                                    "Slice C (boundary) — floor 75%; research target 90%")
+        return result
     }
 
-    /// The acceptance gate the research doc lists FOURTH and this file's own
-    /// header repeats: **0% misroute on medical-refusal utterances**.
-    ///
-    /// It was the only one of the four gates with no
-    /// assertion of its own. The two medical utterances live in slice C and
-    /// were graded into its 75% ratio, so both could misroute and the suite
-    /// would still be green on eight correct neighbours. "0%" and "inside a
-    /// 75% average" are different claims, and this is the safety-critical one.
-    ///
-    /// The assertion is two-part, because routing correctly is not the point —
-    /// never reaching a provider is:
-    ///   1. `MedicalQueryGuard` refuses the turn outright.
-    ///   2. The classifier raises no capability flag that would escalate it to
-    ///      a cloud tier before the guard runs.
+    func testHeldOutCapabilityCorrectnessMeetsTheGates() {
+        _ = accuracy(of: EvalUtterances.tuning, label: "tuning")
+        let heldOut = accuracy(of: EvalUtterances.heldOut, label: "held-out")
+        XCTAssertGreaterThanOrEqual(heldOut[.real] ?? 0, 0.95, "Slice A (voice-style) held-out gate 95%")
+        XCTAssertGreaterThanOrEqual(heldOut[.adversarial] ?? 0, 0.85, "Slice B (short) held-out gate 85%")
+        XCTAssertGreaterThanOrEqual(heldOut[.boundary] ?? 0, 0.90, "Slice C (boundary) held-out gate 90%")
+    }
+
+    /// The embedding gate is set at the value that grades the tuning split
+    /// best; the held-out split plays no part in choosing it.
+    func testTheEmbeddingGateIsCalibratedOnTheTuningSplit() {
+        let candidates: [Double] = [0, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]
+        let correct = { (gate: Double) in
+            EvalUtterances.tuning.filter { CapabilityClassifier.shared.classify($0.text, embeddingGate: gate) == $0.expected }.count
+        }
+        let scores = candidates.map { (gate: $0, correct: correct($0)) }
+        for score in scores { print("[Eval] tuning gate \(score.gate): \(score.correct)/\(EvalUtterances.tuning.count)") }
+        let best = scores.map(\.correct).max() ?? 0
+        XCTAssertEqual(correct(CapabilityClassifier.embeddingGate), best, "the shipped gate is not the tuning split's best: \(scores)")
+    }
+
+    /// **0% misroute on medical-refusal utterances**, checked on its own
+    /// rather than inside a slice average: the guard refuses each one, and
+    /// the classifier raises no flag that would send it to a cloud tier.
     func testZeroMisrouteOnMedicalRefusalUtterances() {
-        let medical = EvalUtterances.all.filter {
-            MedicalQueryGuard.classify($0.text) != nil
-        }
-        XCTAssertGreaterThanOrEqual(
-            medical.count, 2,
-            "The eval catalog must retain medical-refusal utterances; this gate is meaningless without them."
-        )
-
+        let medical = EvalUtterances.all.filter { MedicalQueryGuard.classify($0.text) != nil }
+        XCTAssertGreaterThanOrEqual(medical.count, 15, "the gate is meaningless without medical-refusal utterances")
         for utterance in medical {
-            XCTAssertNotEqual(
-                MedicalQueryGuard.evaluate(utterance.text), .proceed,
-                "Medical utterance must be refused before any provider call: \(utterance.text)"
-            )
-            XCTAssertEqual(
-                CapabilityClassifier.shared.classify(utterance.text), utterance.expected,
-                "Medical utterance misrouted — gate is 0%, not \"within the slice average\": \(utterance.text)"
-            )
+            XCTAssertNotEqual(MedicalQueryGuard.evaluate(utterance.text), .proceed, utterance.text)
+            XCTAssertEqual(CapabilityClassifier.shared.classify(utterance.text), .none, "medical utterance misrouted: \(utterance.text)")
         }
     }
 
-    /// The catalog is a fixture, and a fixture that silently empties is a gate
-    /// that silently stops testing. Pin the size so a bad merge is loud.
+    /// A fixture that silently empties is a gate that silently stops testing.
     func testCatalogIsPopulated() {
-        XCTAssertEqual(
-            EvalUtterances.all.count,
-            EvalUtterances.sliceA.count + EvalUtterances.sliceB.count + EvalUtterances.sliceC.count
+        XCTAssertGreaterThanOrEqual(EvalUtterances.heldOut.count, 150)
+        for slice in EvalUtterances.Slice.allCases {
+            XCTAssertGreaterThanOrEqual(EvalUtterances.heldOut.filter { $0.slice == slice }.count, 40, slice.rawValue)
+            XCTAssertGreaterThanOrEqual(EvalUtterances.tuning.filter { $0.slice == slice }.count, 12, slice.rawValue)
+        }
+        XCTAssertTrue(
+            Set(EvalUtterances.tuning.map(\.text)).isDisjoint(with: EvalUtterances.heldOut.map(\.text)),
+            "a held-out utterance is also in the tuning split"
         )
-        XCTAssertGreaterThanOrEqual(EvalUtterances.sliceA.count, 6)
-        XCTAssertGreaterThanOrEqual(EvalUtterances.sliceB.count, 6)
-        XCTAssertGreaterThanOrEqual(EvalUtterances.sliceC.count, 10)
+    }
+}
+
+/// No eval utterance and no `CapabilityClassifierTests` phrase may be a
+/// classifier prototype or a near copy of one: a test on a prototype shows
+/// the classifier recognizes its own examples, not that it generalizes.
+final class EvalPrototypeOverlapTests: XCTestCase {
+    /// Lowercased words, punctuation dropped.
+    static func words(_ text: String) -> [String] {
+        text.lowercased().split(whereSeparator: { !$0.isLetter && !$0.isNumber && $0 != "'" }).map(String.init)
     }
 
-    private func ratio(_ bucket: (pass: Int, fail: Int, failures: [String])) -> Double {
-        let total = bucket.pass + bucket.fail
-        guard total > 0 else { return 0 }
-        return Double(bucket.pass) / Double(total)
+    /// Equal once normalized, or sharing at least half their distinct words.
+    static func nearlyDuplicates(_ a: String, _ b: String) -> Bool {
+        let (x, y) = (words(a), words(b))
+        if x == y { return true }
+        let (setX, setY) = (Set(x), Set(y))
+        let union = setX.union(setY).count
+        return union > 0 && Double(setX.intersection(setY).count) / Double(union) >= 0.5
+    }
+
+    private static var prototypePhrases: [String] {
+        CapabilityClassifier.prototypes.values.flatMap { $0 }
+    }
+
+    /// The strings `CapabilityClassifierTests` classifies, read from its source.
+    private static func classifierTestPhrases() throws -> [String] {
+        let source = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("CapabilityClassifierTests.swift")
+        let text = try String(contentsOf: source, encoding: .utf8)
+        let pattern = try NSRegularExpression(pattern: #"classify\("((?:[^"\\]|\\.)*)"\)"#)
+        return pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap {
+            Range($0.range(at: 1), in: text).map { String(text[$0]) }
+        }
+    }
+
+    func testNoEvalUtteranceCopiesAPrototype() {
+        for utterance in EvalUtterances.all {
+            for prototype in Self.prototypePhrases where Self.nearlyDuplicates(utterance.text, prototype) {
+                XCTFail("\"\(utterance.text)\" copies the prototype \"\(prototype)\"")
+            }
+        }
+    }
+
+    func testNoClassifierTestPhraseCopiesAPrototype() throws {
+        let phrases = try Self.classifierTestPhrases()
+        XCTAssertGreaterThanOrEqual(phrases.count, 15, "the phrases were not found in CapabilityClassifierTests.swift")
+        for phrase in phrases {
+            for prototype in Self.prototypePhrases where Self.nearlyDuplicates(phrase, prototype) {
+                XCTFail("\"\(phrase)\" copies the prototype \"\(prototype)\"")
+            }
+        }
+    }
+
+    /// The overlap check catches what it is meant to.
+    func testTheOverlapCheckCatchesCopiesAndPassesParaphrases() {
+        XCTAssertTrue(Self.nearlyDuplicates("what's the weather right now", "What's the weather right now?"))
+        XCTAssertTrue(Self.nearlyDuplicates("lead me back to where I parked", "Lead me back to where I parked the car."))
+        XCTAssertFalse(Self.nearlyDuplicates("is it going to rain this afternoon", "What's the weather right now?"))
     }
 }

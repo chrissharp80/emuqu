@@ -30,20 +30,20 @@ final class CapabilityClassifierTests: XCTestCase {
     // MARK: - Tool-required
 
     func testEmailRequestNeedsTools() {
-        let req = CapabilityClassifier.shared.classify("email this report to my coach")
+        let req = CapabilityClassifier.shared.classify("fire off an email to my coach with today's numbers")
         XCTAssertTrue(req.needsTools, "Email action verb must set needsTools")
         XCTAssertEqual(req.requiredTier, .quick,
                        "Apple Intelligence calls the email tool itself; a tool need alone keeps the turn on it")
     }
 
     func testNavigationRequestNeedsTools() {
-        let req = CapabilityClassifier.shared.classify("lead me back to where I parked")
+        let req = CapabilityClassifier.shared.classify("guide me back to my car")
         XCTAssertTrue(req.needsTools, "Navigation action must set needsTools")
         XCTAssertEqual(req.requiredTier, .quick)
     }
 
     func testRouteSaveNeedsTools() {
-        let req = CapabilityClassifier.shared.classify("save this workout as a route called Morning Loop")
+        let req = CapabilityClassifier.shared.classify("keep this ride in my routes as Hill Repeats")
         XCTAssertTrue(req.needsTools)
         XCTAssertEqual(req.requiredTier, .quick)
     }
@@ -51,13 +51,13 @@ final class CapabilityClassifierTests: XCTestCase {
     // MARK: - Web-required
 
     func testWeatherNeedsWeb() {
-        let req = CapabilityClassifier.shared.classify("what's the weather right now")
+        let req = CapabilityClassifier.shared.classify("is it raining where i am")
         XCTAssertTrue(req.needsWeb)
         XCTAssertNotEqual(req.requiredTier, .quick)
     }
 
     func testProductSearchNeedsWeb() {
-        let req = CapabilityClassifier.shared.classify("are there AI voices I can buy and use commercially")
+        let req = CapabilityClassifier.shared.classify("where can i purchase a licensed voice for my podcast")
         // Apple Intelligence has no web-search tool and answers that it
         // can't help. This must escalate to a web-capable provider.
         XCTAssertTrue(req.needsTools || req.needsWeb,
@@ -68,31 +68,31 @@ final class CapabilityClassifierTests: XCTestCase {
     // MARK: - Speculation
 
     func testMortalitySpeculationNeedsSpeculation() {
-        let req = CapabilityClassifier.shared.classify("do your best guess on how long I'm gonna live")
+        let req = CapabilityClassifier.shared.classify("roughly how many years have i got left, take a guess")
         XCTAssertTrue(req.needsSpeculation,
                       "Mortality speculation must trigger speculation flag — Apple's guardrail refuses; cloud is permitted under MedicalQueryGuard")
         XCTAssertNotEqual(req.requiredTier, .quick)
     }
 
     func testForecastNeedsSpeculation() {
-        let req = CapabilityClassifier.shared.classify("predict what my recovery will look like next week")
+        let req = CapabilityClassifier.shared.classify("what will my recovery numbers be by next weekend")
         XCTAssertTrue(req.needsSpeculation)
     }
 
     func testWhatIfNeedsSpeculation() {
-        let req = CapabilityClassifier.shared.classify("what if I rested for five days straight, how would I respond")
+        let req = CapabilityClassifier.shared.classify("suppose i skip training all week, how would my body react")
         XCTAssertTrue(req.needsSpeculation)
     }
 
     // MARK: - Historical depth
 
     func testEightWeekTrendNeedsDepth() {
-        let req = CapabilityClassifier.shared.classify("explain my recovery trend over the last 8 weeks")
+        let req = CapabilityClassifier.shared.classify("walk me through how my recovery moved across the last two months")
         XCTAssertTrue(req.needsHistoricalDepth)
     }
 
     func testQuarterComparisonNeedsDepth() {
-        let req = CapabilityClassifier.shared.classify("across the past quarter, when did I peak")
+        let req = CapabilityClassifier.shared.classify("which week since july was my strongest")
         XCTAssertTrue(req.needsHistoricalDepth)
     }
 
@@ -157,7 +157,7 @@ final class CapabilityClassifierTests: XCTestCase {
     /// A web search is a tool Apple's path refuses, so asking for one is a
     /// web need, not a tool need.
     func testAskingForAWebSearchNeedsTheWeb() {
-        let req = CapabilityClassifier.shared.classify("search the web for endurance training plans")
+        let req = CapabilityClassifier.shared.classify("search the web for a beginner triathlon schedule")
         XCTAssertFalse(req.needsTools)
         XCTAssertNotEqual(req.requiredTier, .quick)
     }
@@ -176,6 +176,28 @@ final class CapabilityClassifierTests: XCTestCase {
             needsHistoricalDepth: true, needsSpeculation: true
         )
         XCTAssertEqual(req.requiredTier, .deep)
+    }
+
+    // MARK: - Markers and the medical guard
+
+    /// Every marker pattern compiles: one that does not would be dropped and
+    /// its axis would quietly stop matching it.
+    func testEveryMarkerPatternCompiles() {
+        XCTAssertEqual(CapabilityMarkers.tools.count, CapabilityMarkers.toolPatterns.count)
+        XCTAssertEqual(CapabilityMarkers.web.count, CapabilityMarkers.webPatterns.count)
+        XCTAssertEqual(CapabilityMarkers.depth.count, CapabilityMarkers.depthPatterns.count)
+        XCTAssertEqual(CapabilityMarkers.speculation.count, CapabilityMarkers.speculationPatterns.count)
+    }
+
+    /// A message the medical guard refuses never reaches a provider, so it
+    /// raises no flag, whatever marker it holds.
+    func testAMedicalRefusalRaisesNoFlag() {
+        XCTAssertEqual(CapabilityClassifier.shared.classify("predict whether my palpitations mean afib"), .none)
+    }
+
+    /// A remark with a marker word asks for nothing.
+    func testAStatementRaisesNoFlag() {
+        XCTAssertEqual(CapabilityClassifier.shared.classify("the rain held off for my whole run"), .none)
     }
 
     // MARK: - Empty / whitespace
