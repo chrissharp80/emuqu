@@ -23,7 +23,7 @@ final class WorkoutBackfillEligibilityTests: XCTestCase {
     }
 
     func testACompletedWorkoutIsEligible() {
-        XCTAssertTrue(HealthKitManager.needsBackfill(workout()))
+        XCTAssertTrue(HealthKitBackfill.needsBackfill(workout()))
     }
 
     /// HealthKit rejects a workout whose collection ends where
@@ -31,35 +31,35 @@ final class WorkoutBackfillEligibilityTests: XCTestCase {
     /// identically every time, so retrying can only ever fail again. A crashed
     /// recording can leave such a stub behind.
     func testAZeroLengthWorkoutIsNotEligible() {
-        XCTAssertFalse(HealthKitManager.needsBackfill(workout(durationSeconds: 0)))
+        XCTAssertFalse(HealthKitBackfill.needsBackfill(workout(durationSeconds: 0)))
     }
 
     func testABackwardsWorkoutIsNotEligible() {
-        XCTAssertFalse(HealthKitManager.needsBackfill(workout(durationSeconds: -60)))
+        XCTAssertFalse(HealthKitBackfill.needsBackfill(workout(durationSeconds: -60)))
     }
 
     /// One second forward is still forward. The guard rejects what HealthKit
     /// rejects, not everything that looks short — a genuinely brief recording
     /// belongs in Health like any other.
     func testAOneSecondWorkoutIsStillEligible() {
-        XCTAssertTrue(HealthKitManager.needsBackfill(workout(durationSeconds: 1)))
+        XCTAssertTrue(HealthKitBackfill.needsBackfill(workout(durationSeconds: 1)))
     }
 
     func testAWorkoutStillRecordingIsNotEligible() {
-        XCTAssertFalse(HealthKitManager.needsBackfill(workout(durationSeconds: nil)))
+        XCTAssertFalse(HealthKitBackfill.needsBackfill(workout(durationSeconds: nil)))
     }
 
     func testAnAlreadyExportedWorkoutIsNotEligible() {
-        XCTAssertFalse(HealthKitManager.needsBackfill(workout(exportedAt: Date())))
+        XCTAssertFalse(HealthKitBackfill.needsBackfill(workout(exportedAt: Date())))
     }
 
     func testAWorkoutPastItsRetryCeilingIsNotEligible() {
         let ceiling = HRVSession.healthKitExportRetryCeiling
-        XCTAssertTrue(HealthKitManager.needsBackfill(workout(failures: ceiling - 1)))
-        XCTAssertFalse(HealthKitManager.needsBackfill(workout(failures: ceiling)))
+        XCTAssertTrue(HealthKitBackfill.needsBackfill(workout(failures: ceiling - 1)))
+        XCTAssertFalse(HealthKitBackfill.needsBackfill(workout(failures: ceiling)))
     }
 
     func testASessionWithNoWorkoutMetadataIsNotEligible() {
-        XCTAssertFalse(HealthKitManager.needsBackfill(workout(metadata: nil)))
+        XCTAssertFalse(HealthKitBackfill.needsBackfill(workout(metadata: nil)))
     }
 }

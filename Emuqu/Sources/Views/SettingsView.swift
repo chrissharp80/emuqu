@@ -238,7 +238,7 @@ struct SettingsView: View {
                 Label(String(localized: "Training", bundle: LanguageManager.appBundle), systemImage: "figure.run")
             }
             .accessibilityIdentifier("settings.training")
-            NavigationLink { ModesSettingsPage() } label: {
+            NavigationLink { ModesSettingsPage(settingsManager: settingsManager) } label: {
                 Label(String(localized: "Modes", bundle: LanguageManager.appBundle), systemImage: "arrow.triangle.2.circlepath")
             }
             .accessibilityIdentifier("settings.modes")
@@ -491,7 +491,7 @@ struct SettingsView: View {
 #Preview {
     NavigationStack {
         SettingsView()
-            .environment(AppDependencies.current.app.settingsManager)
+            .environment(AppDependencies().app.settingsManager)
     }
 }
 
@@ -518,7 +518,7 @@ struct PermissionsSettingsPage: View {
     /// so a row reflects the user's answer straight away.
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var healthWrites: [HealthKitManager.WritePermission] = []
+    @State private var healthWrites: [HealthKitAuthorization.WritePermission] = []
     @State private var notifStatus: UNAuthorizationStatus = .notDetermined
     @State private var locationStatus: CLAuthorizationStatus = .notDetermined
     @State private var bluetoothStatus: CBManagerAuthorization = .notDetermined
@@ -576,7 +576,7 @@ struct PermissionsSettingsPage: View {
     private var reRequestHealthAccessButton: some View {
         Button {
             Task {
-                await dependencies.collection.healthKitManager.forceReauthorize()
+                await dependencies.collection.healthKitManager.authorization.forceReauthorize()
                 await reload()
             }
         } label: {
@@ -688,7 +688,7 @@ struct PermissionsSettingsPage: View {
 
     @MainActor
     private func reload() async {
-        healthWrites = dependencies.collection.healthKitManager.writePermissionSummary()
+        healthWrites = dependencies.collection.healthKitManager.authorization.writePermissionSummary()
         notifStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
         locationStatus = locationManager.authorizationStatus
         bluetoothStatus = CBCentralManager.authorization

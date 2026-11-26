@@ -242,7 +242,7 @@ struct SensorManagementSheet: View {
         } else if polarManager.connectionState == .connecting, polarManager.pendingDeviceId == device.id {
             polarManager.discovery.cancelConnection()
         }
-        polarManager.removeKnownDevice(id: device.id)
+        polarManager.pairings.removeKnownDevice(id: device.id)
     }
 
     private var reconnectButton2: some View {

@@ -20,8 +20,7 @@ struct SleepMergingConfig {
     let enhanceWithRR: Bool
 
     /// Build config from current user settings for a recording-scoped fetch.
-    static func fromSettings(recordingStart: Date, settingsManager: SettingsManager = AppDependencies.current.app.settingsManager) -> SleepMergingConfig {
-        let settings = settingsManager.settingsSnapshot
+    static func fromSettings(recordingStart: Date, settings: UserSettings) -> SleepMergingConfig {
         let schedule = settings.sleepSchedule
         return SleepMergingConfig(
             overnightWindowStart: schedule.overnightWindowStart(relativeTo: recordingStart),
@@ -33,9 +32,8 @@ struct SleepMergingConfig {
 
     /// Defaults for processing-only paths (last-night, trend) that don't have
     /// a recording to anchor on.
-    static func defaultProcessing(settingsManager: SettingsManager = AppDependencies.current.app.settingsManager) -> SleepMergingConfig {
-        let settings = settingsManager.settingsSnapshot
-        return SleepMergingConfig(
+    static func defaultProcessing(settings: UserSettings) -> SleepMergingConfig {
+        SleepMergingConfig(
             overnightWindowStart: .distantPast,
             overnightWindowEnd: .distantFuture,
             awakeGapSplitMinutes: settings.sleepSplitGapMinutes,

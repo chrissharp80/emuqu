@@ -6,7 +6,7 @@ import XCTest
 ///
 ///   • `WorkoutRecorder.HRArbitration.decide` — the per-tick HR-source
 ///     arbitration (wrist fallback) and the strap notice shown to the user,
-///     from `arbitrateHRSource` (WorkoutRecorder+Ticker.swift).
+///     from `arbitrateHRSource` (WorkoutTicker+Tick.swift).
 ///   • `WorkoutRecorder.deviceFetchDecision` — the expected-beats density
 ///     gate from `mergeWorkoutRRWithDeviceFetch` (WorkoutRecorder.swift).
 ///

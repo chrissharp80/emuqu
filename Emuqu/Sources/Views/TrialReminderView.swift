@@ -114,5 +114,5 @@ extension Notification.Name {
 
 #Preview {
     TrialReminderView()
-        .environment(AppDependencies.current.app.settingsManager)
+        .environment(AppDependencies().app.settingsManager)
 }

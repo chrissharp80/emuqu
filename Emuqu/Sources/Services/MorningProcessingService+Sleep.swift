@@ -71,10 +71,10 @@ extension MorningProcessingService {
     /// be grafted on (see SleepData.plausiblyBelongsToRecording).
     ///
     /// Cache-first read. The HK sleep observer
-    /// (HealthKitManager+Sleep.startObservingSleepData) warms SleepDataCache
+    /// (HealthWriteAndObserve.startObservingSleepData) warms SleepDataCache
     /// the moment Apple Watch syncs samples. This path must not bypass the
     /// cache the way `fetchSleepData(rrPoints:…)` intentionally does
-    /// (the `rrPoints`-supplied branch of `HealthKitManager+Sleep.fetchSleepData`) to force HR-validated
+    /// (the `rrPoints`-supplied branch of `SleepHealthQueries.fetchSleepData`) to force HR-validated
     /// boundaries. That precaution starves the user every morning: 15 × 2s
     /// polls running cold HKSampleQuery + SleepMergingPipeline +
     /// HRVSleepStageClassifier even when the observer had already done

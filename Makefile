@@ -7,7 +7,7 @@ PROJECT ?= Emuqu.xcodeproj
 # Package.resolved. Defined once, in scripts/lib/xcodebuild.sh.
 include scripts/lib/xcodebuild.sh
 
-.PHONY: coupling-budget validation-ports release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
+.PHONY: coupling-budget file-names validation-ports release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -32,6 +32,10 @@ debt-budget:
 # Hub back-references, service-locator reads and pass-through forwarders only fall.
 coupling-budget:
 	@./scripts/check_coupling_budget.sh
+
+# A `Type+Part.swift` file extends `Type`.
+file-names:
+	@./scripts/check_file_names.sh
 
 infoplist-guard:
 	@./scripts/check_no_health_data_in_cloudkit.sh
@@ -277,7 +281,7 @@ claims-gates: copy-perimeter perimeter-sync science-register scoring-governance 
 localization-gates: localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 # Shapes that crashed or broke a recording in the field, and the code rules
 # the compiler does not check.
-source-rules: logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard empty-range-guard spec-conformance
+source-rules: logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard empty-range-guard spec-conformance file-names
 # Services are built in the composition root and handed to what uses them.
 dependency-gates: shared-root-guard explicit-deps-guard
 # The concurrency escapes stay on their allowlist; Swift 6 mode stays on.

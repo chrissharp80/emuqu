@@ -7,7 +7,7 @@ import SwiftUI
 ///     rapid-increase copy; the score is unchanged)
 struct ModesSettingsPage: View {
     @Environment(\.dependencies) var dependencies
-    @Bindable var settingsManager: SettingsManager = AppDependencies.current.app.settingsManager
+    @Bindable var settingsManager: SettingsManager
 
     var body: some View {
         Form {

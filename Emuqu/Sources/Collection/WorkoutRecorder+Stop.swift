@@ -60,14 +60,14 @@ extension WorkoutRecorder {
         let stopDate = Date()
         lifecycle.pauseTimeline.resume(now: stopDate)
         let endHR = heartRateAtStop()
-        collectedPoints = await gatherFinalRRPoints(stopDate: stopDate)
+        capture.collectedPoints = await gatherFinalRRPoints(stopDate: stopDate)
         cancelStrapSubscriptionsAfterStop()
         let finished = await runFinalize(
-            rrPoints: collectedPoints, stopDate: stopDate, startedAt: finalizeStartedAt
+            rrPoints: capture.collectedPoints, stopDate: stopDate, startedAt: finalizeStartedAt
         )
         await settleAfterFinalize(finished: finished, startedAt: finalizeStartedAt)
         launchHRRCaptureAndRearchive(stopDate: stopDate, endHR: endHR, finished: finished)
-        endWorkoutCorrelation()
+        lifecycle.endWorkoutCorrelation()
     }
 
     /// The reference heart-rate recovery is measured from: the rate when
@@ -79,7 +79,7 @@ extension WorkoutRecorder {
     /// reading, else the last sampled one; 0 (no reading) skips the capture.
     private func heartRateAtStop() -> Int {
         if let current = workoutHR.currentHR, current > 0 { return current }
-        return workoutSamples.last(where: { $0.heartRate != nil })?.heartRate ?? 0
+        return capture.workoutSamples.last(where: { $0.heartRate != nil })?.heartRate ?? 0
     }
 
     /// Post-finalize housekeeping: battery accounting, breadcrumb archive,
@@ -106,7 +106,7 @@ extension WorkoutRecorder {
         await mergeWorkoutRRWithDeviceFetch(
             session: lifecycle.currentSession,
             streamingPoints: snapshotAndMergeRRBuffers(),
-            startDate: sessionStartDate ?? stopDate,
+            startDate: lifecycle.sessionStartDate ?? stopDate,
             stopDate: stopDate
         )
     }
@@ -116,6 +116,9 @@ extension WorkoutRecorder {
     private func runFinalize(rrPoints: [RRPoint], stopDate: Date, startedAt: Date) async -> HRVSession {
         debugLog("[Recorder.stop] step=finalizeSession (rrPoints=\(rrPoints.count), elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         let finished = await finalizer.finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
+        // Used once, by this finalize.
+        capture.wristHROffsets = []
+        lifecycle.liveSnapshotAtStop = nil
         debugLog("[Recorder.stop] step=finalizeSession done (elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         return finished
     }
@@ -143,7 +146,7 @@ extension WorkoutRecorder {
         // stale "you're still running" state after the workout ends. Its last
         // snapshot is kept first for the session's `aiContext`.
         let broker = services.liveWorkoutBroker
-        liveSnapshotAtStop = broker.currentSnapshot()
+        lifecycle.liveSnapshotAtStop = broker.currentSnapshot()
         broker.clear()
         releaseWorkoutCueAudioAndDiagnostics()
     }
@@ -170,25 +173,24 @@ extension WorkoutRecorder {
     /// Watch and none sources never started a stream; the snapshot is skipped.
     ///
     /// Also merges in any RR samples that arrived via the
-    /// Watch direct-strap fallback path (`watchRoutedRRBuffer`), sorted by
+    /// Watch direct-strap fallback path (`capture.watchRouted.points`), sorted by
     /// t_ms so a workout that bounced between iPhone-paired and Watch-routed
     /// strap connections still produces a single coherent RR series.
     func snapshotAndMergeRRBuffers() -> [RRPoint] {
         let merged = WorkoutRRMerge.merged(
             source: lifecycle.activeHRSource,
-            streaming: core.polarManager.streamedRRPoints,
-            watchRouted: watchRoutedRRBuffer
+            streaming: core.strapStream.streamedRRPoints,
+            watchRouted: capture.watchRouted.points
         )
-        if !watchRoutedRRBuffer.isEmpty {
-            debugLog("[Recorder.finalize] merged \(watchRoutedRRBuffer.count) Watch-routed RR points (total now \(merged.count))")
+        if !capture.watchRouted.points.isEmpty {
+            debugLog("[Recorder.finalize] merged \(capture.watchRouted.points.count) Watch-routed RR points (total now \(merged.count))")
         }
         return merged
     }
 
     /// stop() — cancels the HR subscription and clears the strap notice.
     func cancelStrapSubscriptionsAfterStop() {
-        hrSubscription?.cancel()
-        hrSubscription = nil
+        ticker.stopObservingHeartRate()
         lifecycle.strapNotice = nil
     }
 
@@ -201,7 +203,7 @@ extension WorkoutRecorder {
         if lifecycle.activeHRSource == .strap {
             let workoutHoursForBattery = Double(lifecycle.elapsedSeconds) / 3600.0
             await MainActor.run {
-                core.polarManager.battery.recordRecordingHours(workoutHoursForBattery)
+                core.strapBattery.recordRecordingHours(workoutHoursForBattery)
             }
         }
     }
@@ -230,11 +232,11 @@ extension WorkoutRecorder {
     /// stop() — clears per-workout recorder state after finalize.
     func resetRecorderStateAfterStop() {
         lifecycle.currentSession = nil
-        sessionStartDate = nil
+        lifecycle.sessionStartDate = nil
         lifecycle.elapsedSeconds = 0
         workoutHR.reset()
         motion.reset()
-        lastIngestedPointCount = 0
+        capture.lastIngestedPointCount = 0
         startedLocation?.reset()
         pedometer.reset()
         lifecycle.targetZone = nil
@@ -279,15 +281,16 @@ extension WorkoutRecorder {
     /// directly maps to a user-visible number they're waiting for.
     func launchHRRCaptureAndRearchive(stopDate: Date, endHR: Int, finished: HRVSession) {
         let captureService = HRRCaptureService(
-            polarManager: core.polarManager,
-            access: core.healthKit.access,
-            heartRate: core.healthKit.heartRate,
+            strapLink: core.strapLink, strapStream: core.strapStream,
+            access: core.healthAccess,
+            heartRate: core.heartRate,
             captureWindowSec: 120
         )
         let sessionId = finished.id
         let archive = core.archive
-        let polarRef = core.polarManager
-        let strap = lifecycle.activeHRSource == .strap ? (manager: polarRef, streamStart: polarRef.streamingStartTime) : nil
+        let stream = core.strapStream
+        let strap = lifecycle.activeHRSource == .strap
+            ? (stream: stream, discovery: core.strapDiscovery, streamStart: stream.streamingStartTime) : nil
         Task.detached(priority: .userInitiated) {
             await self.captureHRRAndRearchive(
                 captureService: captureService, stopDate: stopDate, endHR: endHR,
@@ -312,13 +315,13 @@ extension WorkoutRecorder {
         captureService: HRRCaptureService,
         stopDate: Date,
         endHR: Int,
-        strap: (manager: PolarManager, streamStart: Date?)?,
+        strap: (stream: StrapStreamSession, discovery: StrapDiscoveryCoordinator, streamStart: Date?)?,
         archive: SessionArchive,
         sessionId: UUID
     ) async {
         let samples = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
         if let strap {
-            await releaseStrapAfterHRR(strap.manager, workoutStreamStart: strap.streamStart)
+            await releaseStrapAfterHRR(strap.stream, discovery: strap.discovery, workoutStreamStart: strap.streamStart)
         }
         guard let finalSession = Self.rearchiveLoggingFailure(samples, archive: archive, sessionId: sessionId) else {
             await MainActor.run { self.showUnsavedHRR(samples, sessionId: sessionId) }
@@ -381,7 +384,7 @@ extension WorkoutRecorder {
     /// Now that HRR capture is done, finally tear down the strap
     /// stream. Doing it here (rather than at stop()) is what makes
     /// Tier 1 actually work — the capture loop needs
-    /// `polarManager.isStreaming == true` to sample HR at +60s / +120s.
+    /// `strapStream.isStreaming == true` to sample HR at +60s / +120s.
     ///
     /// The strap's BLE connection is released
     /// now that HRR is captured, even if voice chat is going. The
@@ -400,17 +403,17 @@ extension WorkoutRecorder {
     /// in its own HRR capture, and an RRCollector overnight or quick reading
     /// started meanwhile is buffering on the same manager.
     @MainActor
-    private func releaseStrapAfterHRR(_ polarRef: PolarManager, workoutStreamStart: Date?) {
+    private func releaseStrapAfterHRR(_ stream: StrapStreamSession, discovery: StrapDiscoveryCoordinator, workoutStreamStart: Date?) {
         guard lifecycle.phase != .recording, lifecycle.phase != .finalizing else {
             debugLog("[WorkoutRecorder] HRR window closed during a new workout — leaving the strap session running")
             return
         }
-        guard !polarRef.isStreaming || polarRef.streamingStartTime == workoutStreamStart else {
+        guard !stream.isStreaming || stream.streamingStartTime == workoutStreamStart else {
             debugLog("[WorkoutRecorder] HRR window closed while another session buffers on the strap — leaving it running")
             return
         }
-        _ = polarRef.stopStreaming()
-        polarRef.discovery.disconnect()
+        _ = stream.stopStreaming()
+        discovery.disconnect()
     }
 
     /// Auto-interject the HRR summary when the capture window

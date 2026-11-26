@@ -284,5 +284,5 @@ struct OnboardingProfilePage: View {
 
 #Preview {
     OnboardingProfilePage(advance: {})
-        .environment(AppDependencies.current.app.settingsManager)
+        .environment(AppDependencies().app.settingsManager)
 }

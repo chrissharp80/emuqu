@@ -167,21 +167,18 @@ enum WorkoutRecoveryService {
     /// backup, or no source says when it started) — the caller can then fall through to the existing
     /// HRV-style `recoverFromBackup` path.
     ///
-    /// The `.shared` defaults resolve INSIDE the function body. The
-    /// `@MainActor enum WorkoutRecoveryService` declaration forces any
-    /// default-arg expression to be evaluated in a nonisolated context — Swift
-    /// 6 strict-concurrency rejects that for `@MainActor`-isolated singletons.
-    /// The same workaround is documented on `WorkoutRecorder.init`'s
-    /// `AppDependencies.current.collection.footPodManager` resolution; using `nil` defaults here keeps the
-    /// call-site ergonomics identical.
+    /// The stores come from the caller: the archive and backups it reads
+    /// and writes, the saved routes a recovered route is matched against, and
+    /// the settings the analysis is run with.
     static func recover(
         sessionId: UUID,
         reason: PartialDataReason,
         archive: SessionArchive,
         rawBackup: RawRRBackup,
         cloudSyncManager: CloudKitSyncManager,
-        savedRouteStore: SavedRouteStore? = nil,
-        settingsManager: SettingsManager? = nil,
+        workoutTrackBackup: WorkoutTrackBackup,
+        savedRouteStore: SavedRouteStore,
+        settingsManager: SettingsManager,
         unitsPreference: UnitsPreference? = nil,
         strapRRPoints: [RRPoint]? = nil,
         /// When set, rebuild from EXACTLY these RR points (already merged +
@@ -211,8 +208,8 @@ enum WorkoutRecoveryService {
     ) async -> Outcome? {
         let deps = Dependencies(
             archive: archive, rawBackup: rawBackup, cloudSyncManager: cloudSyncManager,
-            savedRouteStore: savedRouteStore ?? AppDependencies.current.location.savedRouteStore,
-            settingsManager: settingsManager ?? AppDependencies.current.app.settingsManager,
+            workoutTrackBackup: workoutTrackBackup, savedRouteStore: savedRouteStore,
+            settingsManager: settingsManager,
             unitsPreference: unitsPreference ?? UnitsPreferenceStore.current.resolved
         )
         let overrides = Overrides(
@@ -231,6 +228,7 @@ enum WorkoutRecoveryService {
         let archive: SessionArchive
         let rawBackup: RawRRBackup
         let cloudSyncManager: CloudKitSyncManager
+        let workoutTrackBackup: WorkoutTrackBackup
         let savedRouteStore: SavedRouteStore
         let settingsManager: SettingsManager
         let unitsPreference: UnitsPreference
@@ -267,7 +265,7 @@ enum WorkoutRecoveryService {
     private static func prepare(
         sessionId: UUID, reason: PartialDataReason, deps: Dependencies, overrides: Overrides
     ) async -> Prepared? {
-        let trackBackup = AppDependencies.current.storage.workoutTrackBackup
+        let trackBackup = deps.workoutTrackBackup
         let rawBackup = deps.rawBackup
         let (workoutRecord, rrEntry) = await Task.detached(priority: .userInitiated) {
             (trackBackup.retrieve(sessionId), Self.loadRRBackup(rawBackup, sessionId: sessionId))
@@ -328,7 +326,7 @@ enum WorkoutRecoveryService {
     private static func carryArchived(into session: inout HRVSession, recovered: RecoveredWorkout, deps: Dependencies) {
         guard deps.archive.store.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
         Self.carryForward(from: archived, into: &session)
-        if Self.wasExportedByEmuqu(archived) { HealthKitManager.requestBackfillRescan() }
+        if Self.wasExportedByEmuqu(archived) { HealthKitBackfill.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }
         Self.attachAnalysisSnapshot(
             to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec,
@@ -461,7 +459,7 @@ enum WorkoutRecoveryService {
             try deps.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             deps.rawBackup.markAsArchived(session.id)
             if overrides.discardBackupsOnAccept {
-                AppDependencies.current.storage.workoutTrackBackup.discard(session.id)
+                deps.workoutTrackBackup.discard(session.id)
             }
             debugLog("[WorkoutRecovery] archived session \(session.id.uuidString.prefix(8)) sport=\(recovered.sport.rawValue) duration=\(Int(recovered.durationSec))s distance=\(Int(metadata.distanceMeters ?? 0))m TRIMP=\(Int(metadata.luciaTRIMP ?? 0))" + (metadata.extrapolatedTRIMP.map { " extrap=\(Int($0))" } ?? ""))
             let cloudSyncManager = deps.cloudSyncManager

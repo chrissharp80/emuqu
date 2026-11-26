@@ -809,7 +809,7 @@ extension MedicalTermLexicon {
     ///     perform, so refusing the question is right. But its patterns are
     ///     bare adjectives (`dangerous`, `gefährlich`, `farligt`) with no
     ///     assertion shape, and the app's own educational copy uses one in a
-    ///     negating construction — HelpContent+ScienceArticles.swift explains
+    ///     negating construction — HelpScienceCatalog.swift explains
     ///     that a jump in ACWR matters "not because the number is dangerous in
     ///     itself". An output rule here would rewrite a model correctly
     ///     restating the app's own methodology into a deflection, which is a

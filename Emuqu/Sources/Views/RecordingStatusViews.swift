@@ -11,8 +11,8 @@ struct DeviceInfoPanelObserving: View {
         DeviceInfoPanelView(
             deviceType: polarManager.connectedDeviceType,
             batteryLevel: polarManager.batteryLevel,
-            batteryLastChangedAt: polarManager.batteryLastChangedAt,
-            hoursRecordedSinceChange: polarManager.hoursRecordedSinceBatteryChanged,
+            batteryLastChangedAt: polarManager.battery.batteryLastChangedAt,
+            hoursRecordedSinceChange: polarManager.battery.hoursRecordedSinceBatteryChanged,
             specRecordingHours: polarManager.connectedDeviceType?.specRecordingHours,
             isBatteryReadingStale: polarManager.isBatteryReadingStale,
             firmwareVersion: polarManager.firmwareVersion,
@@ -37,7 +37,7 @@ struct OvernightStreamingStatus: View {
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager
     var strapBackup: StrapBackup = .notRequested
-    /// When this segment started streaming (`RRCollector.sessionStartTime`,
+    /// When this segment started streaming (`StreamingLifecycle.sessionStartTime`,
     /// set with the elapsed counter's reset). Elapsed is measured from it.
     var sessionStartTime: Date?
 

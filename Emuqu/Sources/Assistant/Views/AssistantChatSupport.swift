@@ -77,10 +77,25 @@ struct ChatInputBar: View {
     /// What the field held when dictation started; the transcript is added
     /// after it rather than replacing it.
     @State private var draftBeforeDictation: String = ""
-    @State private var speech = SpeechInputManager()
+    @State private var speech: SpeechInputManager
     @State private var voiceErrorMessage: String?
     @FocusState private var inputFocused: Bool
     private var inbox: AssistantInbox { dependencies.assistant.assistantInbox }
+
+    /// Dictation claims the audio session through `audioSession`.
+    init(
+        composerState: ComposerState,
+        isAppleActive: Bool,
+        audioSession: AudioSessionCoordinator,
+        onSend: @escaping (String) -> AssistantViewModel.SendOutcome,
+        onSendPrefab: @escaping (PrefabQuestion) -> Void
+    ) {
+        self.composerState = composerState
+        self.isAppleActive = isAppleActive
+        self.onSend = onSend
+        self.onSendPrefab = onSendPrefab
+        _speech = State(initialValue: SpeechInputManager(audioSession: audioSession))
+    }
     var body: some View {
         let _ = dependencies.app.keyboardPerfSignpost.event("ChatInputBar.body")
         VStack(spacing: 8) {
@@ -440,7 +455,7 @@ struct FloSetupCard: View {
 
     private var setupText: some View {
         VStack(spacing: 10) {
-            Text(String(localized: "Flo answers questions about your recovery, sleep and training. It needs an AI model to answer with, and none is ready yet.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Flo is your coach for recovery, sleep, training and live workouts. It needs an AI model to answer with, and none is ready yet.", bundle: LanguageManager.appBundle))
             Text(AppleIntelligenceStatus.current.explanation)
             Text(String(localized: "Or add your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek. Usage is billed to your account with that provider, and before anything is sent Flo shows what the provider will receive and asks you.", bundle: LanguageManager.appBundle))
         }

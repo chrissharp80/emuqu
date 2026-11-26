@@ -215,7 +215,7 @@ final class DemoSessionSeederTests: XCTestCase {
     /// the app's own scoring, enough for the hero score, then gone again —
     /// archive, iCloud and baseline — with a real recording untouched.
     func testLibraryLoadsScoredNightsAndRemovesExactlyThem() async throws {
-        let collector = RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: archive)
+        let collector = RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager.forTests(), archive: archive, settingsManager: AppDependencies.current.app.settingsManager, services: CollectorServices(.current))
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "DemoSessionSeederTests-\(UUID().uuidString)"))
         let cloud = CloudDeletions()
         var library = SampleDataLibrary(collector: collector) { await cloud.record($0) }

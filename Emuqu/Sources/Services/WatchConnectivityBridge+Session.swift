@@ -367,8 +367,8 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         let refusal = toggle()
         return Self.voiceChatReply(
             refusal: refusal,
-            hasAcceptedDisclaimer: AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer,
-            stateLabel: AppDependencies.current.assistant.voiceConversationController.state.watchLabel)
+            hasAcceptedDisclaimer: assistantViewModel().hasAcceptedDisclaimer,
+            stateLabel: voiceConversation().state.watchLabel)
     }
 
     /// The reply to a Watch voice-chat request: a refusal as every control

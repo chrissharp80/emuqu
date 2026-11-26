@@ -55,12 +55,13 @@ enum TierProviderMapper {
     /// Deep tier with user intent.
     static func mapping(
         for tier: SmartProviderRouter.Tier,
-        registry: ProviderRegistry
+        registry: ProviderRegistry,
+        consent: ProviderConsentTracker
     ) -> Mapping {
         switch tier {
         case .quick: return quickMapping(registry)
-        case .auto: return autoMapping(registry)
-        case .deep: return deepMapping(registry)
+        case .auto: return autoMapping(registry, consent: consent)
+        case .deep: return deepMapping(registry, consent: consent)
         }
     }
 
@@ -79,8 +80,8 @@ enum TierProviderMapper {
     /// primary if neither is configured. We deliberately do NOT use
     /// cheapest-cloud here — picking Gemini-Flash-Lite over the user's chosen
     /// Claude would surprise them.
-    private static func autoMapping(_ registry: ProviderRegistry) -> Mapping {
-        if let mid = midTierProvider(in: registry) {
+    private static func autoMapping(_ registry: ProviderRegistry, consent: ProviderConsentTracker) -> Mapping {
+        if let mid = midTierProvider(in: registry, consent: consent) {
             return Mapping(provider: mid.provider, model: mid.model, collapsed: false)
         }
         return chosenOrApple(registry)
@@ -92,11 +93,11 @@ enum TierProviderMapper {
     /// capability flags must never go to a weaker model (Apple's 4K window)
     /// than a one-flag question. Apple when neither Grok nor DeepSeek is
     /// consented, whatever other cloud keys are set.
-    private static func deepMapping(_ registry: ProviderRegistry) -> Mapping {
+    private static func deepMapping(_ registry: ProviderRegistry, consent: ProviderConsentTracker) -> Mapping {
         if let chosen = userChosenMapping(registry) {
             return Mapping(provider: chosen.0, model: chosen.1, collapsed: false)
         }
-        if let mid = midTierProvider(in: registry) {
+        if let mid = midTierProvider(in: registry, consent: consent) {
             return Mapping(provider: mid.provider, model: mid.model, collapsed: true)
         }
         return chosenOrApple(registry)
@@ -119,8 +120,8 @@ enum TierProviderMapper {
     /// is false, Quick, Auto and Deep all answer on Apple Intelligence, which
     /// is what the Settings notice "every mode answers on Apple Intelligence"
     /// states.
-    static func hasCloudProvider(in registry: ProviderRegistry) -> Bool {
-        midTierProvider(in: registry) != nil
+    static func hasCloudProvider(in registry: ProviderRegistry, consent: ProviderConsentTracker) -> Bool {
+        midTierProvider(in: registry, consent: consent) != nil
     }
 
     // MARK: - Internals
@@ -169,9 +170,11 @@ enum TierProviderMapper {
     /// vendor whose ProviderConsentSheet the user never saw. A key on
     /// file is not consent. Unconsented mid-tier providers are skipped;
     /// the caller falls through to the user's primary / Apple.
-    private static func midTierProvider(in registry: ProviderRegistry) -> (provider: AIProvider, model: ModelOption)? {
+    private static func midTierProvider(
+        in registry: ProviderRegistry, consent: ProviderConsentTracker
+    ) -> (provider: AIProvider, model: ModelOption)? {
         for id in [ProviderID.grok, .deepseek] {
-            if let pick = consentedProvider(id, in: registry) { return pick }
+            if let pick = consentedProvider(id, in: registry, consent: consent) { return pick }
         }
         return nil
     }
@@ -180,10 +183,11 @@ enum TierProviderMapper {
     /// switched off in Settings, unconsented, or exposes no models.
     private static func consentedProvider(
         _ id: ProviderID,
-        in registry: ProviderRegistry
+        in registry: ProviderRegistry,
+        consent: ProviderConsentTracker
     ) -> (provider: AIProvider, model: ModelOption)? {
         guard registry.isEnabled(id),
-              !AppDependencies.current.providers.providerConsentTracker.requiresConsent(id),
+              !consent.requiresConsent(id),
               let provider = registry.allProviders.first(where: { $0.id == id && $0.isAvailable }),
               let model = provider.availableModels.first(where: { $0.isDefault })
                   ?? provider.availableModels.first

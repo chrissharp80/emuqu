@@ -150,8 +150,8 @@ extension WorkoutLiveNamespace {
 
     private static let workoutLiveHistoricalBaselineDescription = """
     Cross-workout baseline — SPORT-WIDE averages across the user's recent (≤30) workouts of the same sport (NOT route-specific; use workout.live.route_history_baseline for route-matched comparisons). Returns a record { data_source: \
-    'sport_wide', sport, sample_count, avg_pace_sec_per_km?, avg_hr?, avg_alpha1? }. The data_source field tells you to phrase any comparison as 'compared to your typical run' (sport-wide), NOT 'compared to this route' (which \
-    is the route-specific tool). Returns notRecorded when no prior matching workouts exist.
+    'sport_wide', sport, sample_count, avg_pace_sec_per_km?, avg_hr?, avg_alpha1? }. These averages are sport-wide, so phrase a comparison from them as 'compared to your typical run'. For this route use \
+    workout.live.route_history_baseline, and for this exact spot workout.live.segment_lookback_at_current_position. Returns notRecorded when no prior matching workouts exist.
     """
 
     private var workoutLiveRouteHistoryBaselineEntry: FactEntry {

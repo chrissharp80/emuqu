@@ -4,8 +4,9 @@ import Foundation
 /// Published lifecycle state for an active workout session.
 ///
 /// Covers the recording phase state-machine, the active/finished session
-/// handles, elapsed time, user-selected target HR zone, and the active HR
-/// source. `WorkoutRecorder` has no `@Published` properties of its own;
+/// handles, elapsed time, user-selected target HR zone, the active HR
+/// source, and the run's bookkeeping (start date, the snapshot taken at
+/// stop, the strap stream and backup this workout owns, the log scope). `WorkoutRecorder` has no `@Published` properties of its own;
 /// every observable field lives on a focused sub-observable
 /// (`WorkoutMotion`, `WorkoutHR`, `WorkoutLifecycle`).
 ///
@@ -66,6 +67,28 @@ final class WorkoutLifecycle {
     /// rather than leaving the user wondering. Set and cleared each tick by
     /// `HRArbitration`; cleared on stop and on the next start.
     var strapNotice: WorkoutStrapNotice?
+
+    // MARK: Run bookkeeping
+
+    /// When the workout in progress started; nil while idle.
+    var sessionStartDate: Date?
+
+    /// The live broker's last snapshot, taken at stop before the broker is
+    /// cleared, for finalize to store as the session's `aiContext`.
+    var liveSnapshotAtStop: AssistantContext.LiveWorkoutSnapshot?
+
+    /// When the strap's own recording actually started for this workout.
+    var deviceBackupArmedAt: Date?
+
+    /// `StrapStreamSession.streamingStartTime` of the stream the recorder's last
+    /// strap workout started. RRCollector's overnight and quick sessions
+    /// buffer on the same manager, so a stream still live while no workout
+    /// records is the recorder's to stop only when its start matches.
+    @ObservationIgnored var ownedStrapStreamStart: Date?
+
+    /// Open correlation scope for the workout in progress, `nil` when idle.
+    /// Plumbing lives in `WorkoutLifecycle+Correlation.swift`.
+    var logCorrelation: LogCorrelation.Token?
 }
 
 /// Wall-clock length of each pause, keyed by the elapsed second it began at.

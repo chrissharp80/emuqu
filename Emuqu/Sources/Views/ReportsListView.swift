@@ -201,8 +201,9 @@ struct ReportsListView: View {
     /// sessions.
     private func load() {
         loadTask?.cancel()
+        let archive = dependencies.storage.sessionArchive
         loadTask = Task {
-            let build = Task.detached { Self.buildRows() }
+            let build = Task.detached { Self.buildRows(archive: archive) }
             let built = await withTaskCancellationHandler { await build.value } onCancel: { build.cancel() }
             guard !Task.isCancelled else { return }
             await MainActor.run { publishRows(built) }
@@ -216,8 +217,7 @@ struct ReportsListView: View {
         loading = false
     }
 
-    nonisolated private static func buildRows() -> [ReportRow] {
-        var archive: SessionArchive { AppDependencies.current.storage.sessionArchive }
+    nonisolated private static func buildRows(archive: SessionArchive) -> [ReportRow] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date.distantPast
         let workoutEntries = archive.store.entries
             .filter { $0.sessionType == .workout && $0.date >= cutoff }
@@ -295,13 +295,19 @@ struct ReportsListView: View {
         generatingRowID = row.id
         generationError = nil
         let inputs = generationInputs(for: row)
-        Task.detached(priority: .userInitiated) { await renderAndPublish(inputs) }
+        let archive = dependencies.storage.sessionArchive
+        let trainingMetricsCache = dependencies.analysis.trainingMetricsCache
+        Task.detached(priority: .userInitiated) {
+            await renderAndPublish(inputs, archive: archive, trainingMetricsCache: trainingMetricsCache)
+        }
     }
 
     /// A render that fails may have left a partial PDF behind; it goes.
-    private func renderAndPublish(_ inputs: GenerationInputs) async {
+    private func renderAndPublish(
+        _ inputs: GenerationInputs, archive: SessionArchive, trainingMetricsCache: TrainingMetricsCache
+    ) async {
         do {
-            try await Self.renderReport(inputs)
+            try await Self.renderReport(inputs, archive: archive, trainingMetricsCache: trainingMetricsCache)
             await MainActor.run { finishGeneration(url: inputs.pdfURL, error: nil) }
         } catch {
             Self.removeTemporaryPDF(inputs.pdfURL)
@@ -381,6 +387,8 @@ struct ReportsListView: View {
         let lthr: Int
         let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
+        /// The settings the reports draw with.
+        let settings: UserSettings
     }
 
     private func generationInputs(for row: ReportRow) -> GenerationInputs {
@@ -401,7 +409,7 @@ struct ReportsListView: View {
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
             sleepSchedule: settings.sleepSchedule,
-            temperatureUnit: settings.temperatureUnit
+            temperatureUnit: settings.temperatureUnit, settings: settings
         )
     }
 
@@ -421,9 +429,11 @@ struct ReportsListView: View {
     /// only for a session from today; an older one shows its frozen load.
     /// Nonisolated, with the render steps below, so the polyline decode, the
     /// drawing and the file move run off the main actor.
-    nonisolated private static func renderReport(_ lightweightInputs: GenerationInputs) async throws {
-        let inputs = await Task.detached { withFullSessions(lightweightInputs) }.value
-        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache)
+    nonisolated private static func renderReport(
+        _ lightweightInputs: GenerationInputs, archive: SessionArchive, trainingMetricsCache: TrainingMetricsCache
+    ) async throws {
+        let inputs = await Task.detached { withFullSessions(lightweightInputs, archive: archive) }.value
+        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: trainingMetricsCache)
         let track: [CLLocation] = inputs.polyline.map {
             GPXExporter.decode(polyline: $0, startDate: inputs.startDate, duration: inputs.duration)
         } ?? []
@@ -442,8 +452,7 @@ struct ReportsListView: View {
     /// detached task, so the decrypt stays off the main actor. Falls back to
     /// the lightweight copy if a full read fails. Also loads the overnights
     /// before the reported night.
-    nonisolated private static func withFullSessions(_ inputs: GenerationInputs) -> GenerationInputs {
-        let archive = AppDependencies.current.storage.sessionArchive
+    nonisolated private static func withFullSessions(_ inputs: GenerationInputs, archive: SessionArchive) -> GenerationInputs {
         var full = inputs
         // A recovery row's workout is its overnight, which the render does not
         // read as a workout: one full read, not two.
@@ -473,7 +482,8 @@ struct ReportsListView: View {
     nonisolated private static func profile(_ inputs: GenerationInputs) -> ReportRenderer.Profile {
         ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
-            units: inputs.units, sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
+            bodyWeightKg: inputs.settings.effectiveBodyWeightKg, units: inputs.units,
+            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
         )
     }
 
@@ -491,7 +501,7 @@ struct ReportsListView: View {
         }
         let rendered = try await ReportRenderer.renderRecovery(
             overnightSession, recentOvernight: inputs.recentOvernight,
-            baselineStats: inputs.baselineStats, load: load, to: inputs.pdfURL
+            baselineStats: inputs.baselineStats, load: load, settings: inputs.settings, to: inputs.pdfURL
         )
         guard rendered else { throw ReportsListError.recoveryGenerationFailed }
     }

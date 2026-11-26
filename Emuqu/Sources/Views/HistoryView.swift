@@ -15,7 +15,24 @@ struct HistoryView: View {
     var onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
     var scrollToTopToken: UUID = .init()
 
-    @State private var viewModel = HistoryViewModel()
+    @State private var viewModel: HistoryViewModel
+
+    /// `archive` and `settingsManager` feed the list's view model, which
+    /// is built once for the view's lifetime.
+    init(
+        archive: SessionArchive,
+        settingsManager: SettingsManager,
+        onDelete: @escaping (HRVSession) -> Void,
+        onUpdateTags: @escaping (HRVSession, [ReadingTag], String?) -> Void,
+        onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)? = nil,
+        scrollToTopToken: UUID = .init()
+    ) {
+        self.onDelete = onDelete
+        self.onUpdateTags = onUpdateTags
+        self.onReanalyze = onReanalyze
+        self.scrollToTopToken = scrollToTopToken
+        _viewModel = State(wrappedValue: HistoryViewModel(archive: archive, settingsProvider: { settingsManager.settingsSnapshot }))
+    }
 
     @State private var deleteSessionId: UUID?
     @State private var showingDeleteAlert = false
@@ -548,7 +565,7 @@ struct HistoryView: View {
     private func writeTags(_ id: UUID, tags: [ReadingTag], notes: String?, to archive: SessionArchive) async {
         do {
             try await Task.detached(priority: .userInitiated) { try archive.updateTags(id, tags: tags, notes: notes) }.value
-            collector.notifyArchiveChanged()
+            collector.archiveSignal.notifyChanged()
         } catch {
             debugLog("[HistoryView] Failed to update tags: \(error)")
             failureMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)

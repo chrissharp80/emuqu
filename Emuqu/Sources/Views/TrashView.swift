@@ -307,6 +307,6 @@ private struct SingleDeleteConfirmation: ViewModifier {
 #Preview {
     NavigationStack {
         TrashView()
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: AppDependencies()))
     }
 }

@@ -184,8 +184,12 @@ enum AppKnowledgeBase {
     - Live workout context (HR, pace, distance, zone, route topology) while a workout runs — via the workout.live.* tools.
     - The FULL session archive is reachable through the typed tools (sleep/hrv/vitals/recovery/workout/training), not just a fixed recent window — use a tool to fetch history rather than assuming a cutoff.
     - User profile (age, sex, fitness level, max HR, VO₂max if set).
-    - Cannot control recording, delete workouts, or change settings on the user's \
-      behalf — it can only report + reason + suggest. Actions stay in the user's hands.
+    - Acts when the user asks: follows, saves and renames routes, gives turn-by-turn \
+      directions, sets their location from an address they say, remembers facts about \
+      them, searches the web if they turned that on, and drafts emails they then send \
+      themselves.
+    - Cannot start, stop or delete a recording, delete workouts, or change settings; \
+      those stay in the user's hands.
     """
 
     /// Compact version for Apple on-device model (limited context window).

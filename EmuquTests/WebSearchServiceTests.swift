@@ -19,7 +19,7 @@ final class WebSearchServiceTests: XCTestCase {
 
     func testSearchPostsToTavilyWithTheKeyAndParsesCompleteResults() async throws {
         let stub = StubHTTPTransport(body: reply)
-        let service = WebSearchService(transport: stub.transport)
+        let service = WebSearchService(settingsManager: .shared, apiKeyStore: .shared, transport: stub.transport)
         let results = try await service.send(query: "hrv", intent: .research, maxResults: 3, apiKey: "test-key")
         let sent = await stub.requests
         let request = try XCTUnwrap(sent.first)
@@ -39,7 +39,7 @@ final class WebSearchServiceTests: XCTestCase {
 
     func testHTTP429IsReportedAsRateLimited() async {
         let stub = StubHTTPTransport(status: 429, body: Data())
-        let service = WebSearchService(transport: stub.transport)
+        let service = WebSearchService(settingsManager: .shared, apiKeyStore: .shared, transport: stub.transport)
         do {
             _ = try await service.send(query: "hrv", intent: .general, maxResults: 5, apiKey: "test-key")
             XCTFail("A 429 must throw")

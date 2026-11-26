@@ -63,7 +63,7 @@ extension FitnessPostSummaryView {
         }
         refreshedSession = updated
         feelingEditing = false
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
     }
 
     /// Nil on any failure — the rating simply isn't persisted and the UI stays
@@ -125,7 +125,7 @@ extension FitnessPostSummaryView {
         builtAnalysis = snapshot
         guard let updated else { return }
         refreshedSession = updated
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
     }
 
     /// Builder inputs from the rendered session, with max HR and weight from

@@ -19,7 +19,7 @@ import Observation
 /// ```
 ///
 /// **Writer contract.** Internal code that mutates the archive should call
-/// `collector.notifyArchiveChanged()` (which forwards here) or
+/// `collector.archiveSignal.notifyChanged()` (which forwards here) or
 /// `archiveSignal.notifyChanged()` directly. The `version` setter is
 /// `private(set)` so views can't accidentally bump it.
 @MainActor

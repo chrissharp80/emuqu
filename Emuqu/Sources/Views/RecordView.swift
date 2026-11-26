@@ -53,7 +53,7 @@ struct RecordView: View {
     /// Why the recovered-workout card's last Save or Discard stored nothing;
     /// shown on the card, cleared by the next tap.
     @State var recoveredWorkoutFailure: String?
-    @State var breathingAudio = BreathingAudioManager()
+    @State var breathingAudio: BreathingAudioManager
 
     /// Captures session + result at presentation time so the fullScreenCover content
     /// never reads a stale/nil sessionState.currentSession. Eliminates the race condition
@@ -223,7 +223,7 @@ struct RecordView: View {
     private func acknowledgeError() {
         guard !fetchFailed else { return }
         if sessionState.currentSession?.state == .failed {
-            collector.resetSession()
+            collector.control.resetSession()
         }
         sessionState.lastError = nil
     }
@@ -268,7 +268,7 @@ struct RecordView: View {
 
     private func restoreCaptureMode() {
         // Restore capture mode from persisted state when returning to a paused session.
-        if streamingLifecycle.isPaused, let useBackup = collector.getPersistedCaptureMode() {
+        if streamingLifecycle.isPaused, let useBackup = collector.recordingStore.captureMode() {
             extendedCaptureMode = useBackup ? .both : .streaming
         } else if !streamingLifecycle.isOvernightStreaming {
             // Load user's saved default capture mode preference

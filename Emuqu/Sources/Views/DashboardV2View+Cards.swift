@@ -86,7 +86,7 @@ extension DashboardV2View {
     }
 
     // MARK: - HealthKit-denied banner
-    // Surfaces HealthKitManager.inferredAuthorizationDenied
+    // Surfaces HealthKitAuthorization.inferredAuthorizationDenied
     // (published for this view alone). Deep-links to
     // Settings → the app's Health permissions, then clears the inferred
     // flag so the banner doesn't linger after the user has been sent to
@@ -139,7 +139,7 @@ extension DashboardV2View {
     private var healthKitDismissButton: some View {
         Button {
             healthNoDataNoticeDismissed = true
-            collector.healthKit.clearInferredDenial()
+            collector.healthKit.authorization.clearInferredDenial()
         } label: {
             Image(systemName: "xmark")
                 .scaledFont(size: 12, weight: .semibold)
@@ -160,7 +160,7 @@ extension DashboardV2View {
             // Clear the inferred flag — the user is now en route to
             // fix it; if they come back still denied, the next probe
             // re-sets it.
-            collector.healthKit.clearInferredDenial()
+            collector.healthKit.authorization.clearInferredDenial()
         } label: {
             Text(String(localized: "Open Settings", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.semibold))
@@ -247,7 +247,7 @@ extension DashboardV2View {
     private var connectHealthRow: some View {
         // HealthKit never reveals whether read access was granted, only that
         // the prompt was shown; the subtitle says exactly that.
-        let healthRequested = collector.healthKit.authorizationRequested
+        let healthRequested = collector.healthKit.authorization.authorizationRequested
         return day1Row(
             done: healthRequested,
             glyph: "heart.text.square",
@@ -263,7 +263,7 @@ extension DashboardV2View {
     /// rather than leaving the row unchecked with no word.
     private func requestHealthAccess() async {
         do {
-            try await collector.healthKit.requestAuthorization()
+            try await collector.healthKit.authorization.requestAuthorization()
         } catch {
             debugLog("[Dashboard] HK authorization request failed: \(error)", level: .warning)
             toast = ToastPayload(

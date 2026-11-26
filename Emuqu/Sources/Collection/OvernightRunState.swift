@@ -10,6 +10,10 @@ import Observation
 @MainActor
 @Observable
 final class OvernightRunState {
+    /// Whether this night's processing fetches the strap's own recording;
+    /// set by the Record screen's Skip.
+    var deviceFetchPolicy: RRCollector.DeviceFetchPolicy = .automatic
+
     /// Whether overnight streaming also records to the strap's internal
     /// memory as a backup. Off means streaming only: no internal recording
     /// and no morning download.

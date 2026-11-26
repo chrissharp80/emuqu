@@ -11,7 +11,7 @@ import XCTest
 /// corrupts the *input* to the well-tested math and no amount of analysis
 /// coverage catches it.
 ///
-/// Most of that 16% is genuinely untestable — `PolarManager+Recording` is 1,928
+/// Most of that 16% is genuinely untestable — `StrapRecordingCoordinator+Recording` is 1,928
 /// lines of `async` BLE I/O against real hardware, and pretending otherwise
 /// would produce tests that assert nothing. What *is* testable is the pure
 /// decision logic threaded through it: sleep-window boundaries, street-name

@@ -4,8 +4,8 @@ import os
 /// Per-request BM25 tool retrieval.
 ///
 /// **Current state.** The tools handed to `retrieve` are the compact
-/// schema (`CompactToolRouter.schema`): about twenty read tools plus up to
-/// eighteen action tools, which is under the default `targetK` of 40, so
+/// schema (`CompactToolRouter.schema`): 22 read tools plus up to 20 action
+/// tools, which is under the default `targetK` of 48, so
 /// `retrieve` returns them unchanged, in the schema's name order, on every
 /// send. It filters only if that schema grows past `targetK`.
 ///
@@ -74,9 +74,10 @@ enum ToolRetriever {
     ///     1-2 prior user turns so multi-turn references like "what
     ///     about the day before" still resolve to the right namespace.
     ///   - tools: The tool list for this send (the compact schema).
-    ///   - targetK: Soft target for retrieved tool count (default 40 —
-    ///     stays below the 30-50 degradation threshold Anthropic reports
-    ///     while leaving headroom for the essentials list).
+    ///   - targetK: Soft target for retrieved tool count (default 48 —
+    ///     inside the 30-50 range where Anthropic reports tool choice starts
+    ///     to degrade, and above the compact schema's 42, so every cloud send
+    ///     carries the same full list and the prompt cache holds).
     ///   - catalogHash: Pass `FactResolverRegistry.catalogHash()` so the
     ///     retriever can invalidate its index when the catalog changes.
     /// - Returns: Tools ordered by relevance score descending. Essentials
@@ -105,7 +106,7 @@ enum ToolRetriever {
     static func retrieve(
         query: String,
         tools: [ToolSpec],
-        targetK: Int = 40,
+        targetK: Int = 48,
         catalogHash: String
     ) -> [ToolSpec] {
         guard tools.count > targetK else { return tools }
@@ -145,6 +146,15 @@ enum ToolRetriever {
             ordered.append(tool)
         }
         return ordered
+    }
+
+    /// The documents that share a term with `query`, best BM25 match first,
+    /// at most `limit` of them. Unlike `ranked(for:tools:)` it adds nothing
+    /// that did not match: it answers "which of these is about this?".
+    static func search(_ query: String, in documents: [ToolSpec], limit: Int) -> [ToolSpec] {
+        let queryTokens = tokenize(query)
+        guard !queryTokens.isEmpty, !documents.isEmpty, limit > 0 else { return [] }
+        return Array(BM25Index(tools: documents).score(queryTokens: queryTokens, tools: documents).prefix(limit).map(\.tool))
     }
 
     /// The tools of `ranked` whose summed `cost` fits `budget`, in their
@@ -203,7 +213,8 @@ enum ToolRetriever {
     /// Tools that ALWAYS ride along regardless of query terms, named as the
     /// compact schema names them. These cover the highest-frequency
     /// follow-up questions: today's recovery, the latest session, the live
-    /// workout, training load, the user's profile and location.
+    /// workout, training load, the user's profile and location, plus
+    /// `find_data` and `lookup_fact`, which reach everything else.
     ///
     /// Adjust this list when a new always-on tool ships. Keep it short —
     /// every essential is a tool the user pays for on every turn.
@@ -213,6 +224,7 @@ enum ToolRetriever {
         "get_workout_live",
         "get_training_load",
         "get_user",
+        "find_data",
         "lookup_fact",
         "location_situation",
         "location_current",

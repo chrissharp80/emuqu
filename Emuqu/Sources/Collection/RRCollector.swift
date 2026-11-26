@@ -41,11 +41,13 @@ final class RRCollector {
         case complete(beats: Int, streamedBeats: Int, deviceBeats: Int?, source: String)
     }
 
-    /// Set by UI to control device fetch during morning processing.
-    var deviceFetchPolicy: DeviceFetchPolicy = .automatic
-
     /// The night being recorded: its strap backup, its ending, its arming loop.
     let overnightRun = OvernightRunState()
+
+    /// The recording and paused-night markers a relaunch recovers from.
+    var recordingStore: RecordingStateStore {
+        RecordingStateStore(sessionState: sessionState, overnightRun: overnightRun)
+    }
 
     // Archive update trigger — lives on a dedicated `ArchiveSignal` object so
     // views that only care about archive changes don't observe the full
@@ -62,25 +64,13 @@ final class RRCollector {
     // recording state don't re-render on every archive / streaming /
     // morning-processing property the collector also publishes.
     //
-    // Writers: `RRCollector+Bindings.setupBindings()` pushes PolarManager
+    // Writers: `CollectorBindings.setupBindings()` pushes PolarManager
     // updates into `deviceStatus`. The computed getters below forward
     // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
     // through to it. SwiftUI views read
     // `deviceStatus` directly from the environment.
 
-    /// Callback when streaming auto-completes
-    var onStreamingComplete: (() -> Void)?
-
     // MARK: - Internal State (accessed by extension files)
-
-    /// The timer lives inside a lock so `deinit` can invalidate it without
-    /// touching a non-`Sendable` stored property from a nonisolated context.
-    @ObservationIgnored private let streamingTimerBox = OSAllocatedUnfairLock<Timer?>(uncheckedState: nil)
-    var streamingTimer: Timer? {
-        get { streamingTimerBox.withLockUnchecked { $0 } }
-        set { streamingTimerBox.withLockUnchecked { $0 = newValue } }
-    }
-    var sessionStartTime: Date?
 
     /// Tokens for the block-based NotificationCenter observers the
     /// collector registers (app lifecycle in `+Lifecycle`, the archived-copy
@@ -94,22 +84,81 @@ final class RRCollector {
     /// update it (`BaselineArchiveSync`); observing from `setupBindings`.
     @ObservationIgnored private(set) lazy var baselineArchiveSync = BaselineArchiveSync(
         archive: archive, baseline: baselineTracker,
-        rebuild: { [weak self] in self?.rebuildBaselineFromArchive() }
+        rebuild: { [weak rebuilder = baselineRebuild] in rebuilder?.rebuildFromArchive() }
     )
-    var lastSeenReconnectCount: Int = 0
     var lastEmergencyFlush: Date?
 
-    /// Backing storage for the lazy `recoveryService` computed property in +Recovery.
-    var _recoveryService: SessionRecoveryService?
+    /// Process → analyse → accept. Built first: every other coordinator
+    /// calls it, and it calls none of them.
+    @ObservationIgnored private(set) lazy var morning: MorningSessionPipeline = MorningSessionPipeline(
+        acceptanceService: acceptanceService, analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal,
+        baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthWrites: healthKit.writes, trainingQueries: healthKit.training,
+        morningCoordination: morningCoordination, morningProcessingService: morningProcessingService,
+        strapLink: polarManager.linkState, strapBattery: polarManager.battery,
+        rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState,
+        settingsManager: settingsManager, sleepBoundaryResolver: sleepBoundaryResolver, streamingLifecycle: streamingLifecycle
+    )
+
+    /// Overnight capture in streaming mode, and the gather that ends it.
+    @ObservationIgnored private(set) lazy var overnightStreaming: OvernightStreamingCoordinator = OvernightStreamingCoordinator(
+        archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthWrites: healthKit.writes, sleepQueries: healthKit.sleepQueries, vitalsQueries: healthKit.vitals,
+        morningCoordination: morningCoordination, overnightRun: overnightRun,
+        strapLinkControl: polarManager.link, strapStream: polarManager.stream,
+        strapRecorder: polarManager.recording,
+        strapDiscovery: polarManager.discovery, strapBattery: polarManager.battery, rawBackup: rawBackup,
+        recordingStore: recordingStore, services: services, sessionState: sessionState, settingsManager: settingsManager,
+        streamingLifecycle: streamingLifecycle, morning: morning
+    )
+
+    /// Capture to the strap's own memory, and its download.
+    @ObservationIgnored private(set) lazy var deviceRecording: DeviceRecordingSession = DeviceRecordingSession(
+        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
+        sleepQueries: healthKit.sleepQueries, strapLink: polarManager.linkState, strapRecording: polarManager.deviceRecording,
+        strapRecorder: polarManager.recording, rawBackup: rawBackup, reconciliation: reconciliation,
+        recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, strapGuards: strapGuards,
+        streamingLifecycle: streamingLifecycle, verification: verification, windowSelector: windowSelector, morning: morning
+    )
+
+    /// Recovery of interrupted, lost and trashed recordings.
+    @ObservationIgnored private(set) lazy var recovery: SessionRecoveryCoordinator = SessionRecoveryCoordinator(
+        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
+        cloudSyncManager: cloudSyncManager, healthWrites: healthKit.writes, morningCoordination: morningCoordination,
+        overnightRun: overnightRun, strapRecorder: polarManager.recording, rawBackup: rawBackup, recordingStore: recordingStore,
+        scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager,
+        strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, windowSelector: windowSelector,
+        deviceRecording: deviceRecording, morning: morning
+    )
 
     /// Streaming sessions, pause/resume, and the view bindings.
-    var control: CollectorSessionControl {
-        CollectorSessionControl(collector: self)
-    }
+    @ObservationIgnored private(set) lazy var control: CollectorSessionControl = CollectorSessionControl(
+        archive: archive, archiveSignal: archiveSignal, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager,
+        deviceStatus: deviceStatus, morningCoordination: morningCoordination, overnightRun: overnightRun,
+        strapLink: polarManager.linkState, strapStream: polarManager.stream, strapRecorder: polarManager.recording,
+        strapBattery: polarManager.battery, rawBackup: rawBackup, recordingStore: recordingStore, services: services,
+        sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards,
+        streamingLifecycle: streamingLifecycle, morning: morning, overnightStreaming: overnightStreaming
+    )
 
-    func startStreamingSession(durationSeconds: Int = 180) throws {
-        try control.startStreamingSession(durationSeconds: durationSeconds)
-    }
+    /// The strap, Health and iCloud state republished for the views.
+    @ObservationIgnored private(set) lazy var bindings: CollectorBindings = CollectorBindings(
+        archive: archive, archiveSignal: archiveSignal, baselineArchiveSync: baselineArchiveSync, baselineRebuild: baselineRebuild,
+        baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, control: control, deviceStatus: deviceStatus,
+        healthObservation: healthKit.observation, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination,
+        notificationObservers: notificationObservers, overnightRun: overnightRun,
+        strapRecorder: polarManager.recording, strapStream: polarManager.stream, recovery: recovery,
+        services: services, sessionState: sessionState, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle
+    )
+
+    /// The few-minute streamed reading.
+    @ObservationIgnored private(set) lazy var quickReading: QuickReadingSession = QuickReadingSession(
+        analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector,
+        baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, trainingQueries: healthKit.training,
+        overnightStreaming: overnightStreaming,
+        strapStream: polarManager.stream, strapRecorder: polarManager.recording, strapBattery: polarManager.battery,
+        rawBackup: rawBackup, recordingStore: recordingStore,
+        scoring: scoring, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards,
+        streamingLifecycle: streamingLifecycle, streamingVerification: streamingVerification
+    )
 
     // MARK: - Dependencies
 
@@ -124,6 +173,9 @@ final class RRCollector {
     let analysisPipeline: HRVAnalysisPipeline
     let sleepBoundaryResolver: SleepBoundaryResolver
     let settingsManager: SettingsManager
+    /// Rebuilds the baseline from the archive at boot, after a CloudKit pull
+    /// and after a night the baseline holds leaves the archive.
+    let baselineRebuild: BaselineRebuilder
     /// The services the collector's parts read beyond its constructor
     /// arguments: the workout slot, the workout backups, the live-HRV broker,
     /// the diagnostics sampler and the beat-consistency priors.
@@ -140,32 +192,15 @@ final class RRCollector {
     /// with; the composition root shares it with saved-session reanalysis.
     let scoring: SessionScoringContext
 
-    /// Thread-safe mirror of the live HRV snapshot. Written
-    /// only from MainActor (via `refreshLiveHRVSnapshotMirror` on every
-    /// sessionState change). Read from any thread by the
-    /// `LiveHRVBroker` provider closure WITHOUT crossing actors. The
-    /// `OSAllocatedUnfairLock` holds the value, so every read and write
-    /// goes through `withLock` and the compiler checks the Sendable fields.
-    @ObservationIgnored nonisolated let liveHRVSnapshotMirror = OSAllocatedUnfairLock<LiveHRVSnapshotMirror?>(initialState: nil)
-
-    /// Sendable inputs captured on MainActor; the broker provider
-    /// recomputes `elapsedSeconds` / `snapshotAt` at read time (those
-    /// are clock-derived and would go stale otherwise).
-    struct LiveHRVSnapshotMirror: Sendable {
-        let phaseLabel: String
-        let phaseDescription: String
-        let isCollecting: Bool
-        let beatCount: Int
-        let sessionStartAt: Date?
-        let lastErrorDescription: String?
-    }
+    /// The live HRV snapshot the assistant's broker reads from any thread.
+    let liveHRVMirror = LiveHRVMirror()
 
     /// Data quality verification (overnight sessions - strict)
     let verification = Verification()
 
     /// Data quality verification (streaming - relaxed for short readings)
     let streamingVerification = Verification(config: Verification.Config(
-        minPoints: CollectorSessionControl.minimumQuickReadingBeats,
+        minPoints: QuickReadingSession.minimumQuickReadingBeats,
         minDurationHours: 0.025,
         maxArtifactPercent: 20.0,
         warnArtifactPercent: 10.0
@@ -275,88 +310,26 @@ final class RRCollector {
         }.value
     }
 
-    /// True when the strap holds a recording the app has never downloaded
-    /// (`StrapRecordingPolicy.holdsUnrecoveredRecording`). The strap keeps
-    /// every downloaded recording as a backup, so holding one is not enough.
-    var hasUnrecoveredData: Bool {
-        guard polarManager.hasStoredExercise, let start = polarManager.storedExerciseDate else { return false }
-        return !isStrapRecordingSaved(startedAt: start)
-    }
-
-    /// Whether the app holds the strap recording that began at `start`
-    /// (`StrapRecordingPolicy.recordingIsSaved`). The strap's start sequence
-    /// asks the same question before it clears the strap. On disk: an
-    /// archived night or nap that was running when the recording began
-    /// (starting up to 30 minutes after it, and not ended before it), or a
-    /// rescue backup within 30 minutes of its start. A strap armed late in a
-    /// night is filed into that night, whose start can be hours before the
-    /// recording's; a quick reading or workout that ended just before the
-    /// recording does not hold it.
-    func isStrapRecordingSaved(startedAt start: Date) -> Bool {
-        let ledger = polarManager.downloadLedger
-        return StrapRecordingPolicy.recordingIsSaved(
-            alreadyDownloaded: ledger.wasDownloaded(recordingStartedAt: start),
-            predatesDownloadRecord: ledger.predatesRecord(start),
-            heldOnDisk: archiveHoldsSession(runningAt: start, slackMinutes: 30, in: archive)
-                || rawBackup.holdsBackup(capturedWithin: 30 * 60, of: start)
-        )
-    }
-
     /// What the Record screen's Recover card offers: a recording the app has
     /// never downloaded, or one still running on the strap that no session of
     /// this app owns (left by a crash, or started on the strap). Recover stops
     /// a running one before it downloads.
     var offersStrapRecovery: Bool {
-        hasUnrecoveredData || recovery.strapHoldsOrphanedRecording
-    }
-
-    /// A TrainingContext from the training load as of `referenceDate`
-    /// (`SessionScoringContext.createTrainingContext(relativeTo:)`).
-    func createTrainingContext(relativeTo referenceDate: Date = Date()) -> TrainingContext? {
-        scoring.createTrainingContext(relativeTo: referenceDate)
-    }
-
-    /// The training context as of `referenceDate`, fetched from HealthKit when
-    /// none is held (`SessionScoringContext.createTrainingContextEnsuringFresh`).
-    func createTrainingContextEnsuringFresh(relativeTo referenceDate: Date = Date()) async -> TrainingContext? {
-        await scoring.createTrainingContextEnsuringFresh(relativeTo: referenceDate)
-    }
-
-    /// The stored nights before `session`'s own, its scoring baseline
-    /// (`SessionScoringContext.scoringBaselineStats(for:)`).
-    func scoringBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
-        scoring.scoringBaselineStats(for: session)
-    }
-
-    /// ANS configuration for analysing `session`
-    /// (`SessionScoringContext.ansConfig(for:)`).
-    func ansConfig(for session: HRVSession) -> HRVAnalysisPipeline.ANSConfiguration {
-        scoring.ansConfig(for: session)
+        strapGuards.hasUnrecoveredData || strapGuards.holdsOrphanedRecording
     }
 
     // MARK: - Initialization
 
-    /// Wiring-layer factory: resolves the app's shared managers and returns a
-    /// fully-configured collector. This is the canonical production entry
-    /// point — the explicit-dependency-wiring principle calls for a
-    /// single wiring layer that is allowed to touch `.shared` instances,
-    /// rather than business logic reaching for the world inside its own init.
-    /// The main app scene calls this; every other layer receives the collector
-    /// through the environment or initializer injection so tests and previews
-    /// can swap dependencies without monkey-patching singletons.
-    static func makeDefault() -> RRCollector {
-        let collector = RRCollector(defaultsFromShared: ())
-        // Register as the canonical "current" collector so read-only
-        // surfaces (the AI fact resolver, in particular) can reach live
-        // device state — Polar battery, connection, recording-hours,
-        // active workout — without us threading the collector through
-        // every layer that needs to peek at it. Weak so this never
-        // accidentally extends the lifetime of an old instance during
-        // tests / previews. Strictly read-only: callers MUST NOT use
-        // this to invoke behavior on the collector (start streaming,
-        // archive a session) — that path stays through environment
-        // injection so dependency wiring stays explicit.
-        Self.current = collector
+    /// Wiring-layer factory: a fully-configured collector over the services
+    /// of `dependencies`, the container the app scene hands in. This is the
+    /// canonical production entry point; every other layer receives the
+    /// collector through the environment or initializer injection so tests
+    /// and previews can swap dependencies without monkey-patching singletons.
+    static func makeDefault(dependencies: AppDependencies) -> RRCollector {
+        let collector = RRCollector(dependencies: dependencies)
+        // Bound for the parts that ask about the live recording without
+        // being handed the collector (`CollectorBox`).
+        dependencies.app.collectorBox.collector = collector
         return collector
     }
 
@@ -385,80 +358,16 @@ final class RRCollector {
     func boot() {
         guard didBootBaseline.setIfClear() else { return }
         guard baselineTracker.daysCollected == 0, !archive.store.entries.isEmpty else { return }
-        rebuildBaselineOffMain()
-    }
-
-    /// Decrypt the archive OFF the main actor. `boot()` runs
-    /// synchronously on the main actor right after first paint
-    /// (`EmuquApp.runDeferredBoot` → `timedBoot("collector")`), and this walk
-    /// does an AES-GCM decrypt + JSON decode PER archived session, which on a
-    /// full archive stalls the main thread for seconds and freezes the
-    /// dashboard. The rebuild is best-effort recovery from CloudKit-restored
-    /// state (see the note on `boot()`), so deferring it a few frames off-main
-    /// is correctness-neutral. Decrypt on a utility task, then hop back to
-    /// mutate the MainActor-isolated `baselineTracker`.
-    /// Also the rebuild after a CloudKit pull into an empty baseline
-    /// (`CollectorSessionControl.bindCloudSyncBaseline`).
-    @MainActor
-    func rebuildBaselineOffMain(replacing: Bool = false) {
-        rebuildBaselineOffMain(replacing: replacing, reusing: [:])
-    }
-
-    /// Rebuild the baseline from what the archive holds now. Used after a
-    /// night the baseline had already taken in is discarded.
-    @MainActor
-    func rebuildBaselineFromArchive() {
-        rebuildBaselineOffMain(replacing: true)
-    }
-
-    /// A replacing rebuild starts from a tracker holding only the readings
-    /// of the nights it could not read (a file that fails to decrypt for a
-    /// moment must not drop its night from every later score); one whose archive
-    /// changed while it decoded starts over instead, so a night archived or
-    /// rewritten (a newer iCloud copy under the same id) in the meantime is
-    /// neither wiped from the baseline nor scored from its old copy. The pass
-    /// that starts over reuses what this one decoded whose stored file is
-    /// unchanged (`ArchivedCopy`: id and file hash) and decrypts only what is
-    /// new or rewritten, so an archive that keeps changing (a run of iCloud
-    /// pulls) costs a few sessions per pass, not the whole archive again. A
-    /// boot rebuild re-checks: if a live session landed while we were
-    /// decrypting, it already seeded the tracker, so the rebuild must not
-    /// clobber it.
-    @MainActor
-    private func commitRebuiltBaseline(_ sessions: [HRVSession], decoded: [ArchivedCopy: HRVSession], copies: [ArchivedCopy], replacing: Bool) {
-        if replacing {
-            guard archive.store.entries.map(ArchivedCopy.init) == copies else { return restartReplacingRebuild(reusing: decoded) }
-            baselineTracker.reset(keepingReadingsOf: Set(copies.filter { decoded[$0] == nil }.map(\.sessionId)))
-        } else if baselineTracker.daysCollected > 0 {
-            return
-        }
-        baselineTracker.rebuildFromSessions(
-            sessions,
-            sleepSchedule: settingsManager.settings.sleepSchedule // injected, never resolved here
-        )
+        baselineRebuild.rebuildOffMain()
     }
 
     @ObservationIgnored private let didBootBaseline = OSAllocatedUnfairLock(initialState: false)
 
-    /// Weak reference to the production collector. Set by `makeDefault()`.
-    /// Nil in `#Preview` blocks and tests that instantiate via the
-    /// designated init. Read-only access only — see `makeDefault()` for
-    /// the contract.
-    static weak var current: RRCollector?
-
-    /// Preview / test convenience. SwiftUI `#Preview` blocks and lightweight
-    /// tests that don't care about dependencies use `RRCollector()`; real
-    /// runtime wiring prefers `RRCollector.makeDefault()` so the dependency
-    /// on shared singletons is visible at the call site.
-    convenience init() {
-        self.init(defaultsFromShared: ())
-    }
-
-    /// Single source of truth for "real production dependencies". Both the
-    /// public factory and the convenience init funnel through here so the
-    /// `.shared` lookups live in exactly one place. Callers that need a
-    /// different wiring (tests, UI previews with stubs) go through the
-    /// designated `init(polarManager:healthKit:...)` below instead.
+    /// A collector over the services of `dependencies`. `makeDefault` builds
+    /// the app's with it; SwiftUI `#Preview` blocks and tests that don't care
+    /// about individual dependencies build one directly. Callers that need a
+    /// different wiring (tests with stubs) go through the designated
+    /// `init(polarManager:healthKit:...)` below instead.
     /// Baseline rebuild from CloudKit-restored archive entries is deferred
     /// to boot() (called from RootView.task after first frame). Done
     /// synchronously here it would walk every archive entry from disk — on
@@ -472,19 +381,20 @@ final class RRCollector {
     /// (`SessionReanalysisCoordinator`) is built with, so a rescore updates
     /// the baseline this collector scores against and bumps the signal its
     /// views observe.
-    private convenience init(defaultsFromShared _: Void) {
-        let collection = AppDependencies.current.collection
+    convenience init(dependencies: AppDependencies) {
+        let collection = dependencies.collection
         self.init(
             polarManager: PolarManager(),
             healthKit: collection.healthKitManager,
-            archive: AppDependencies.current.storage.sessionArchive,
+            archive: dependencies.storage.sessionArchive,
             rawBackup: RawRRBackup.app(),
             artifactDetector: ArtifactDetector(),
             windowSelector: WindowSelector(),
             baselineTracker: collection.baselineTracker,
-            settingsManager: AppDependencies.current.app.settingsManager,
+            settingsManager: dependencies.app.settingsManager,
             archiveSignal: collection.archiveSignal,
-            scoring: collection.sessionScoring
+            scoring: collection.sessionScoring,
+            services: CollectorServices(dependencies)
         )
     }
 
@@ -496,20 +406,21 @@ final class RRCollector {
     // every stored property is initialized, so the body cannot be split even
     // mechanically. Post-assignment wiring already lives in
     // `wireCollaborators()`.
-    /// Create an RRCollector with injected dependencies (for testing). Any
-    /// left out resolve to the app's own: the settings and CloudKit sync
-    /// managers are the shared instances, so a test that must not touch them
-    /// injects its own. An injected `scoring` must hold the same baseline
-    /// tracker and settings manager; left out, one is built from them.
+    /// Create an RRCollector with injected dependencies (for testing). The
+    /// archive, settings manager and `services` are always the caller's; the
+    /// CloudKit sync manager left out is the one `services` resolves, so a
+    /// test that must not touch it injects its own. An injected `scoring`
+    /// must hold the same baseline tracker and settings manager; left out,
+    /// one is built from them.
     init(
         polarManager: PolarManager,
         healthKit: HealthKitManager,
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
+        archive: SessionArchive,
         rawBackup: RawRRBackup = RawRRBackup.app(),
         artifactDetector: ArtifactDetector = ArtifactDetector(),
         windowSelector: WindowSelector = WindowSelector(),
         baselineTracker: BaselineTracker = BaselineTracker(),
-        settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
+        settingsManager: SettingsManager,
         cloudSyncManager: CloudKitSyncManager? = nil,
         reconciliation: ReconciliationManager? = nil,
         analysisPipeline: HRVAnalysisPipeline? = nil,
@@ -522,7 +433,7 @@ final class RRCollector {
         morningCoordination: MorningCoordination? = nil,
         sessionState: SessionState? = nil,
         scoring: SessionScoringContext? = nil,
-        services: CollectorServices = CollectorServices(.current)
+        services: CollectorServices
     ) {
         self.services = services
         self.polarManager = polarManager
@@ -533,29 +444,32 @@ final class RRCollector {
         self.windowSelector = windowSelector
         self.baselineTracker = baselineTracker
         self.settingsManager = settingsManager
+        self.baselineRebuild = BaselineRebuilder(
+            archive: archive, baselineTracker: baselineTracker, settingsManager: settingsManager
+        )
         self.archiveSignal = archiveSignal ?? ArchiveSignal()
         self.deviceStatus = deviceStatus ?? DeviceStatus()
         self.streamingLifecycle = streamingLifecycle ?? StreamingLifecycle()
         self.morningCoordination = morningCoordination ?? MorningCoordination()
         self.sessionState = sessionState ?? SessionState()
         self.scoring = scoring ?? SessionScoringContext(
-            settingsManager: settingsManager, healthKit: healthKit, baselineTracker: baselineTracker
+            settingsManager: settingsManager, healthKit: healthKit.service, baselineTracker: baselineTracker
         )
         let resolvedCloudSyncManager = cloudSyncManager ?? services.cloudKitSyncManager
         self.cloudSyncManager = resolvedCloudSyncManager
         self.reconciliation = reconciliation ?? ReconciliationManager(archive: archive)
         let resolvedPipeline = analysisPipeline ?? Self.makePipeline(
-            artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit
+            artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit.service
         )
         self.analysisPipeline = resolvedPipeline
-        self.sleepBoundaryResolver = sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit: healthKit)
+        self.sleepBoundaryResolver = sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit: healthKit.service)
         self.acceptanceService = acceptanceService ?? Self.makeAcceptanceService(
-            archive: archive, healthKit: healthKit, baselineTracker: baselineTracker,
+            archive: archive, healthKit: healthKit.service, baselineTracker: baselineTracker,
             rawBackup: rawBackup, cloudSync: resolvedCloudSyncManager
         )
         self.morningProcessingService = morningProcessingService ?? Self.makeMorningProcessingService(
             MorningProcessingDependencies(
-                archive: archive, healthKit: healthKit, pipeline: resolvedPipeline,
+                archive: archive, healthKit: healthKit.service, pipeline: resolvedPipeline,
                 windowSelector: windowSelector, artifactDetector: artifactDetector,
                 verification: verification, baselineTracker: baselineTracker, rawBackup: rawBackup
             )
@@ -570,7 +484,7 @@ final class RRCollector {
     private static func makePipeline(
         artifactDetector: ArtifactDetector,
         windowSelector: WindowSelector,
-        healthKit: HealthKitManager
+        healthKit: any HealthKitServiceProtocol
     ) -> HRVAnalysisPipeline {
         HRVAnalysisPipeline(
             artifactDetector: artifactDetector,
@@ -581,7 +495,7 @@ final class RRCollector {
 
     private static func makeAcceptanceService(
         archive: SessionArchive,
-        healthKit: HealthKitManager,
+        healthKit: any HealthKitServiceProtocol,
         baselineTracker: BaselineTracker,
         rawBackup: RawRRBackup,
         cloudSync: CloudKitSyncManager
@@ -604,7 +518,7 @@ final class RRCollector {
     /// stays inside `function_parameter_count`.
     struct MorningProcessingDependencies {
         let archive: SessionArchive
-        let healthKit: HealthKitManager
+        let healthKit: any HealthKitServiceProtocol
         let pipeline: HRVAnalysisPipeline
         let windowSelector: WindowSelector
         let artifactDetector: ArtifactDetector
@@ -637,7 +551,7 @@ final class RRCollector {
     /// here is cold-start cost. The disk-touching parts already hop off the
     /// main actor (`restorePausedStateIfNeeded` defers to `Task.detached`).
     private func wireCollaborators() {
-        control.setupBindings()
+        bindings.setupBindings()
         setupDataRescueCallback()
         setupLifecycleObservers()
         // Wire the Beat Consistency priors cache to the
@@ -648,33 +562,9 @@ final class RRCollector {
         installArchivedCopyListener()
         control.restorePausedStateIfNeeded()
         control.refreshRecentPausedSession()
-        control.publishLiveHRVSnapshotsToAssistant()
-        control.armObservationLoops()
-        control.runMergeDataLossMigrationIfNeeded()
-    }
-
-    /// Write the snapshot mirror so the off-main provider
-    /// closure can read it without crossing actors. Called from
-    /// `CollectorSessionControl.onSessionStateChanged`, which the
-    /// self-re-arming observation of `sessionState` schedules on the main
-    /// actor after every mutation. Cheap: pure value reads + one
-    /// lock-protected pointer write.
-    @MainActor
-    func refreshLiveHRVSnapshotMirror() {
-        let phase = sessionState.recordingPhase
-        guard phase != .idle else {
-            liveHRVSnapshotMirror.withLock { $0 = nil }
-            return
-        }
-        let mirror = LiveHRVSnapshotMirror(
-            phaseLabel: phaseMachineLabel(phase),
-            phaseDescription: phaseHumanLabel(phase),
-            isCollecting: sessionState.isCollecting,
-            beatCount: sessionState.collectedPoints.count,
-            sessionStartAt: sessionState.currentSession?.startDate,
-            lastErrorDescription: sessionState.lastError.map { ($0 as NSError).localizedDescription }
-        )
-        liveHRVSnapshotMirror.withLock { $0 = mirror }
+        bindings.publishLiveHRVSnapshotsToAssistant()
+        bindings.armObservationLoops()
+        bindings.runMergeDataLossMigrationIfNeeded()
     }
 
     // MARK: - Types
@@ -690,12 +580,6 @@ final class RRCollector {
     // A timer is invalidated on the thread whose run loop it was scheduled
     // on (the main one); deinit can run elsewhere, so it hops there.
     deinit {
-        let timerBox = streamingTimerBox
-        if Thread.isMainThread {
-            timerBox.withLockUnchecked { $0?.invalidate() }
-        } else {
-            DispatchQueue.main.async { timerBox.withLockUnchecked { $0?.invalidate() } }
-        }
         notificationObservers.removeAll()
     }
 }
@@ -760,102 +644,10 @@ enum RRCollectorError: Error, LocalizedError, Equatable {
     }
 }
 
-extension RRCollector {
-    /// One stored copy of an archived session: its id and the hash of its
-    /// file, which every rewrite of the session changes.
-    struct ArchivedCopy: Hashable, Sendable {
-        let sessionId: UUID
-        let fileHash: String
-
-        init(_ entry: SessionArchiveEntry) {
-            sessionId = entry.sessionId
-            fileHash = entry.fileHash
-        }
-    }
-
-    /// A replacing rebuild whose archive changed while it decoded starts
-    /// over, handing on what it decoded by stored copy.
-    @MainActor
-    fileprivate func restartReplacingRebuild(reusing decoded: [ArchivedCopy: HRVSession]) {
-        rebuildBaselineOffMain(replacing: true, reusing: decoded)
-    }
-
-    /// The off-main decode behind `rebuildBaselineOffMain(replacing:)`.
-    /// Sessions in `decoded` (an earlier pass's, by id and file hash) are
-    /// taken as they are; the archive's other entries, new or rewritten since,
-    /// are decrypted.
-    @MainActor
-    fileprivate func rebuildBaselineOffMain(replacing: Bool, reusing decoded: [ArchivedCopy: HRVSession]) {
-        let archive = self.archive
-        let copies = archive.store.entries.map(ArchivedCopy.init)
-        Task.detached(priority: .utility) {
-            let read = Self.decodedSessions(of: copies, reusing: decoded, from: archive)
-            let sessions = read.map { $0.1 }
-            let byCopy = Dictionary(read, uniquingKeysWith: { first, _ in first })
-            await MainActor.run { [weak self] in
-                self?.commitRebuiltBaseline(sessions, decoded: byCopy, copies: copies, replacing: replacing)
-            }
-        }
-    }
-
-    /// Each copy's session: the one decoded earlier for that same copy, else
-    /// decrypted lightweight; an unreadable copy is left out.
-    nonisolated private static func decodedSessions(
-        of copies: [ArchivedCopy], reusing decoded: [ArchivedCopy: HRVSession], from archive: SessionArchive
-    ) -> [(ArchivedCopy, HRVSession)] {
-        copies.compactMap { copy in
-            (decoded[copy] ?? archive.retrieveLightweightOrLog(copy.sessionId, caller: "baselineRebuild")).map { (copy, $0) }
-        }
-    }
-}
-
 // MARK: - File-scope helpers
 //
 // Each names no member of `RRCollector` and calls nothing on it, so none needs
 // to be inside the type.
-
-/// Whether the archive holds a night or nap, the only sessions a strap
-/// recording is saved into, that was running at `date`: one that started no
-/// more than `slackMinutes` after it and had not ended before it. One with no
-/// end, or ending sooner, counts as running for `slackMinutes` after its
-/// start. A quick reading or a workout that ended just before is not one.
-private func archiveHoldsSession(runningAt date: Date, slackMinutes: Int, in archive: SessionArchive) -> Bool {
-    let slack = TimeInterval(slackMinutes * 60)
-    return archive.store.entries.contains { entry in
-        guard entry.sessionType == .overnight || entry.sessionType == .nap else { return false }
-        let runsUntil = max(entry.endDate ?? entry.date, entry.date.addingTimeInterval(slack))
-        return entry.date.addingTimeInterval(-slack) <= date && date <= runsUntil
-    }
-}
-
-@MainActor
-private func phaseMachineLabel(_ phase: RecordingPhase) -> String {
-    switch phase {
-    case .idle: "idle"
-    case .streaming: "streaming"
-    case .overnightStreaming: "overnight"
-    case .deviceRecording: "deviceRecording"
-    case .paused: "paused"
-    case .analyzing: "analyzing"
-    case .awaitingAcceptance: "awaitingAcceptance"
-    }
-}
-
-/// In the app language: the assistant is told to quote it to the user.
-@MainActor
-private func phaseHumanLabel(_ phase: RecordingPhase) -> String {
-    let bundle = LanguageManager.appBundle
-    switch phase {
-    case .idle: return String(localized: "Idle", bundle: bundle)
-    case let .streaming(target):
-        return String(localized: "Quick streaming (target \(LocalizedDuration.minutes(target / 60)))", bundle: bundle)
-    case .overnightStreaming: return String(localized: "Overnight recording", bundle: bundle)
-    case .deviceRecording: return String(localized: "Device-internal recording", bundle: bundle)
-    case .paused: return String(localized: "Paused", bundle: bundle)
-    case .analyzing: return String(localized: "Analyzing", bundle: bundle)
-    case .awaitingAcceptance: return String(localized: "Awaiting session review", bundle: bundle)
-    }
-}
 
 /// The services the recording collector's parts read beyond what its
 /// initializer takes, and nothing else. Each accessor resolves on use, as
@@ -867,11 +659,16 @@ struct CollectorServices: Sendable {
 
     @MainActor
     var beatConsistencyPriorsCache: BeatConsistencyPriorsCache { container.analysis.beatConsistencyPriorsCache }
+    var breadcrumbStore: BreadcrumbStore { container.location.breadcrumbStore }
     @MainActor
     var cloudKitSyncManager: CloudKitSyncManager { container.storage.cloudKitSyncManager }
     var liveHRVBroker: LiveHRVBroker { container.assistant.liveHRVBroker }
     @MainActor
+    var morningNotificationScheduler: MorningNotificationScheduler { container.services.morningNotificationScheduler }
+    @MainActor
     var recorderBox: RecorderBox { container.app.recorderBox }
+    @MainActor
+    var savedRouteStore: SavedRouteStore { container.location.savedRouteStore }
     var systemDiagnosticsManager: SystemDiagnosticsManager { container.app.systemDiagnosticsManager }
     var workoutTrackBackup: WorkoutTrackBackup { container.storage.workoutTrackBackup }
 }

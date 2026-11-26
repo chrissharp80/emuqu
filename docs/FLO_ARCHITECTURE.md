@@ -87,7 +87,7 @@ In order:
 7. A stream already running → `queueBehindStream` stores the message in `pendingSendOnFinish` (latest wins) → `.queued`.
 8. `dispatchToProvider` appends the user turn, sets `nextSendIsVoice`, prewarms Apple's model when Apple may be routed to, and calls `dispatch()`.
 
-### 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`
+### 3.3 `dispatch()` — `AssistantTurnRouter+Routing.swift`
 
 `dispatch()` lives on `AssistantTurnRouter` (the view-model forwards to it).
 
@@ -105,7 +105,7 @@ In order:
 5. Drops the assistant turn if it ended empty; if this is still the current generation, sets the "No answer came back from the AI" error when the turn was dropped with no error set and was not stopped (`reportEmptyReply`, so voice mode speaks its recovery line), clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled` and the reply completed normally).
 6. `finishStream(generation:)`, which dispatches a message queued during the stream.
 
-### 3.4 `runToolUseLoop` — `AssistantViewModel+Tools.swift`
+### 3.4 `runToolUseLoop` — `AssistantToolRunner+Tools.swift`
 
 Each round calls `provider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)` and consumes the stream:
 
@@ -215,9 +215,9 @@ Numeric tool arguments are parsed only through `FactNumericArgument` (`FactNumer
 
 ### 6.3 `CompactToolRouter` — `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift`
 
-The catalog has hundreds of entries. `CompactToolRouter.schema(registry:)` shows the model 21 polymorphic read tools (`get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_workout`, `get_workout_live`, `get_training_load`, `lookup_fact`, and others) plus the actions named in `allowedActionNames`: route-library rename/save/engage, contacts add/remove, email compose, memory add/remove/clear, `web_search`, location and directions actions. Writes whose content the model supplies (`assistant.memory.add`, `assistant.contacts.add`, `location.set_address`, `routes.library.rename`) save nothing on the first call and return `confirmation_required` when what they would write is not, as whole words, in the user's own latest message (`DestructiveActionContext.gateUnlessUserStated`); the change runs when the same call comes back after a plain yes.
+The catalog has hundreds of entries. `CompactToolRouter.schema(registry:)` shows the model 22 polymorphic read tools (`get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_workout`, `get_workout_live`, `get_training_load`, `find_data`, `lookup_fact`, and others) plus the actions named in `allowedActionNames`: route-library rename/save/engage, contacts add/remove, email compose, memory add/remove/clear, `web_search`, location (including roads ahead) and directions actions. Writes whose content the model supplies (`assistant.memory.add`, `assistant.contacts.add`, `location.set_address`, `routes.library.rename`) save nothing on the first call and return `confirmation_required` when what they would write is not, as whole words, in the user's own latest message (`DestructiveActionContext.gateUnlessUserStated`); the change runs when the same call comes back after a plain yes.
 
-A read tool maps its arguments to a fact key; for example `get_recovery` with `which: "trend"` resolves `recovery.trend`. `lookup_fact` takes a key directly. Read results pass through the registry's rate limit and size cap (`gatedReadResult`); a slow read is logged, never discarded. `resolveTool` refuses an action name outside `allowedActionNames` (`.missing(.invalidParameter)`), so the schema's allow-list is also the dispatch allow-list. `schema` dedupes by name, because Anthropic rejects duplicate tool names with a 400. `capabilityIndex()` renders a one-line-per-tool list for the cached system prompt.
+A read tool maps its arguments to a fact key; for example `get_recovery` with `which: "trend"` resolves `recovery.trend`. `lookup_fact` takes a key directly. `find_data` searches every catalog entry by plain words and returns the `lookup_fact` key or action tool for each match, so nothing in the catalog depends on a tool description naming it; `FloDiscoverabilityTests` fails if an action isn't callable or an entry can't be found. Read results pass through the registry's rate limit and size cap (`gatedReadResult`); a slow read is logged, never discarded. `resolveTool` refuses an action name outside `allowedActionNames` (`.missing(.invalidParameter)`), so the schema's allow-list is also the dispatch allow-list. `schema` dedupes by name, because Anthropic rejects duplicate tool names with a 400. `capabilityIndex()` renders a one-line-per-tool list for the cached system prompt.
 
 ### 6.4 Registry and namespaces
 
@@ -238,7 +238,7 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ## 7. AssistantSystemPrompt — Cache-aware composition
 
-**Files:** `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift` (composition), `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift` (`base` and the overlays).
+**Files:** `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt.swift` (composition), `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt+Text.swift` (`base` and the overlays).
 
 `composeSplit(...)` returns `Composed` with a `stable` and a `variable` half. `compose(...)` returns `combinedWithMarker`: the two halves joined by `Composed.cacheSplitMarker`. Anthropic splits on the marker and caches the stable block; the other providers strip it.
 
@@ -265,7 +265,7 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ## 8. Routing — `TurnRouter` and `SmartProviderRouter`
 
-**Files:** `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` (pure decision, tested by `TurnRouterTests`), `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift` (`resolveProviderForThisTurn` gathers inputs), `Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift`, `Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift`, `Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift`.
+**Files:** `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` (pure decision, tested by `TurnRouterTests`), `Emuqu/Sources/Assistant/ViewModel/AssistantTurnRouter+Routing.swift` (`resolveProviderForThisTurn` gathers inputs), `Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift`, `Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift`, `Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift`.
 
 ### 8.1 Tiers and modes
 
@@ -376,7 +376,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 ### 13.4 Prompt-level boundary
 
-`base` in `AIProvider+SystemPromptText.swift` opens with an information-access principle: answer general health and physiology questions factually rather than deflecting to "ask your doctor". A narrow MEDICAL BOUNDARY follows: no personal diagnosis, a fixed reply that points to a clinician or emergency services for red-flag symptoms, the same injury reply as the guard, and a crisis-line reply for self-harm. The local guard in §13.1 still applies if the prompt is ignored.
+`base` in `AssistantSystemPrompt+Text.swift` opens with an information-access principle: answer general health and physiology questions factually rather than deflecting to "ask your doctor". A narrow MEDICAL BOUNDARY follows: no personal diagnosis, a fixed reply that points to a clinician or emergency services for red-flag symptoms, the same injury reply as the guard, and a crisis-line reply for self-harm. The local guard in §13.1 still applies if the prompt is ignored.
 
 ---
 

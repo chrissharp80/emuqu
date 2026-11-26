@@ -297,7 +297,7 @@ extension AssistantChatView {
         // The screen-capture check above is a decision about WHETHER to copy and
         // stays here; the `.localOnly` + expiry policy is about HOW and lives in
         // `PasteboardWriter`.
-        PasteboardWriter.copy(text)
+        PasteboardWriter.copy(text, preserveForPaste: dependencies.app.settingsManager.settings.preserveClipboardForPaste)
     }
 
     /// A turn's text without phonetic markup — what its bubble shows.
@@ -347,7 +347,7 @@ extension AssistantChatView {
     /// Workout-aware empty state.
     /// Pulls the live broker snapshot at render time. If a workout
     /// is in flight the heading and body acknowledge it directly
-    /// instead of the generic "Ask about your recovery" copy. Cheap
+    /// instead of the generic "Ask Flo" title. Cheap
     /// — broker.currentSnapshot() is a lock-protected read, no
     /// disk / network. When no workout is active the generic
     /// copy shows.
@@ -378,7 +378,7 @@ extension AssistantChatView {
     }
 
     func workoutAwareTitle(for live: AssistantContext.LiveWorkoutSnapshot?) -> String {
-        guard let live else { return String(localized: "Ask about your recovery", bundle: LanguageManager.appBundle) }
+        guard let live else { return String(localized: "Ask Flo", bundle: LanguageManager.appBundle) }
         let mins = live.elapsedSeconds / 60
         if mins < 1 {
             return String(localized: "You just started a \(live.sport)", bundle: LanguageManager.appBundle)
@@ -520,6 +520,7 @@ extension AssistantChatView {
         ChatInputBar(
             composerState: viewModel.composerState,
             isAppleActive: isAppleActive,
+            audioSession: dependencies.services.audioSessionCoordinator,
             onSend: { viewModel.send(text: $0) },
             onSendPrefab: { viewModel.send(prefab: $0) }
         )

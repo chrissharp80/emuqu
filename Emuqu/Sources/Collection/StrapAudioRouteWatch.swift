@@ -44,9 +44,9 @@ enum StrapAudioRouteWatch {
     /// line says which of the two held.
     @MainActor
     private static func log(reasonRaw: UInt, previous prev: String, manager: PolarManager) {
-        guard manager.isStreaming || manager.connectionState == .connected else { return }
+        guard manager.stream.isStreaming || manager.linkState.connectionState == .connected else { return }
         let curr = describeRoute(AVAudioSession.sharedInstance().currentRoute)
-        debugLog("[PolarManager] Audio route changed with the strap in use (streaming=\(manager.isStreaming), linked=\(manager.connectionState == .connected)) — reason=\(reasonName(reasonRaw)), previous=\(prev), current=\(curr) (will tolerate any transient BLE drop within reconnect window)")
+        debugLog("[PolarManager] Audio route changed with the strap in use (streaming=\(manager.stream.isStreaming), linked=\(manager.linkState.connectionState == .connected)) — reason=\(reasonName(reasonRaw)), previous=\(prev), current=\(curr) (will tolerate any transient BLE drop within reconnect window)")
     }
 
     private static func reasonName(_ raw: UInt) -> String {

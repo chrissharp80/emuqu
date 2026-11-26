@@ -241,7 +241,7 @@ struct SleepNamespace: FactNamespaceResolver {
     /// Nil on a query failure or a night HealthKit has no sleep for.
     private func liveSleepRecord(for session: HRVSession, userAge: Int?, typicalSleepHours: Double) async -> FactValue? {
         do {
-            let data = try await services.healthKitManager.fetchSleepData(
+            let data = try await services.healthKitManager.sleepQueries.fetchSleepData(
                 for: session.startDate, recordingEnd: session.endDate ?? Date()
             )
             guard data.nightSleepMinutes > 0 else { return nil }
@@ -570,7 +570,7 @@ struct VitalsNamespace: FactNamespaceResolver {
         }
         let ref = session.endDate ?? session.startDate
         let live: FactValue? = await FactResolveTimeout.withTimeout(seconds: 5) {
-            let v = await services.healthKitManager.fetchRecoveryVitals(relativeTo: ref)
+            let v = await services.healthKitManager.vitals.fetchRecoveryVitals(relativeTo: ref)
             return v.isEmpty ? nil : Self.vitalsRecordFromData(v, date: session.startDate, live: true)
         }
         return live.map { OvernightArchive.labeled($0, session) }

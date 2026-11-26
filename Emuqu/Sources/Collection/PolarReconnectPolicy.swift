@@ -5,7 +5,7 @@ import Foundation
 /// The waiting itself is not the app's: the Polar SDK re-issues the
 /// CoreBluetooth connect on an unexpected drop, and iOS keeps that request
 /// pending until the strap is back in range. What the app decides is when to
-/// stop waiting — at which point `PolarManager.reconnectExhausted` lets the
+/// stop waiting — at which point `StrapStreamSession.reconnectExhausted` lets the
 /// collector save the buffered stream rather than leave it in limbo.
 ///
 /// The window decides whether a dropout costs the user the night. The H10 keeps

@@ -67,7 +67,7 @@ final class TabScreenSnapshotTests: XCTestCase {
 
     func testRecordTabRenders() {
         assertSnapshot(
-            of: hosted(RecordView(selectedTab: .constant(.record))),
+            of: hosted(RecordView(selectedTab: .constant(.record), breathingAudio: BreathingAudioManager(dependencies: .current))),
             named: "tab-record"
         )
     }

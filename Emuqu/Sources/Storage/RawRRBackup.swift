@@ -77,7 +77,7 @@ final class RawRRBackup: @unchecked Sendable {
     /// `indexLock` alone is not enough. If `appendBackup` took the
     /// lock, read `backedUpCount`, RELEASED it, did all the file I/O, then
     /// re-took the lock to store the new count, overlapping calls would
-    /// corrupt the file: `WorkoutRecorder+Ticker` fires
+    /// corrupt the file: `WorkoutTicker+Tick` fires
     /// `incrementalBackup` from `Task.detached` on every 1 Hz tick, and
     /// detached tasks have no ordering guarantee relative to one another — so
     /// two overlapping calls both read the same `previousCount`, both encode
@@ -578,7 +578,7 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     /// Detect encrypted format via the same
-    /// 0x46 0x52 magic prefix Archive.swift uses. Legacy plaintext
+    /// 0x46 0x52 magic prefix SessionArchive.swift uses. Legacy plaintext
     /// backups still decode unchanged.
     static func decodeLegacyBackup(at filePath: URL, encryption: EncryptionManager) throws -> BackupEntry {
         let rawBytes = try Data(contentsOf: filePath)

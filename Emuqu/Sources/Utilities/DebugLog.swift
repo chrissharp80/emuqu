@@ -794,7 +794,7 @@ final class DebugLogger {
     /// caller.
     nonisolated func exportToFileAsync() async -> URL? {
         await Task.detached(priority: .userInitiated) {
-            AppDependencies.current.app.debugLogger.exportToFile()
+            self.exportToFile()
         }.value
     }
 }

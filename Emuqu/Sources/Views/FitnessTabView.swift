@@ -187,7 +187,7 @@ struct FitnessTabView: View {
     /// (which already renders without it).
     private func bindRecorderOffTabSwap() {
         Task { @MainActor in
-            recorderBox.bind(core: collector, conversation: voiceChat)
+            recorderBox.bind(core: collector.recordingCore, conversation: voiceChat)
         }
     }
 
@@ -747,7 +747,7 @@ struct FitnessTabView: View {
             case .duplicate:
                 importMessage = String(localized: "This workout is already in your history, so it wasn't imported again.", bundle: LanguageManager.appBundle)
             case .imported(let sport, let dur, let points):
-                collector.notifyArchiveChanged()
+                collector.archiveSignal.notifyChanged()
                 importMessage = String(localized: "Imported \(sport.localizedName) (\(dur) min, \(points) GPS points).", bundle: LanguageManager.appBundle)
             case .failed(let reason):
                 importMessage = String(localized: "Import failed: \(reason)", bundle: LanguageManager.appBundle)

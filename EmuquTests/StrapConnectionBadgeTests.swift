@@ -16,8 +16,8 @@ final class StrapConnectionBadgeTests: XCTestCase {
 
     private func connectedManager() -> PolarManager {
         let manager = PolarManager()
-        manager.radioForTesting = FakeStrapRadio()
-        manager.link.apply(.connected(deviceId: deviceId, name: "Polar H10 BADGE"))
+        manager.radio.radioForTesting = FakeStrapRadio()
+        manager.linkEvents.apply(.connected(deviceId: deviceId, name: "Polar H10 BADGE"))
         return manager
     }
 
@@ -27,7 +27,7 @@ final class StrapConnectionBadgeTests: XCTestCase {
         let manager = connectedManager()
         XCTAssertEqual(manager.feedStatus, .settingUp)
 
-        manager.ingestHeartRate([StrapHRSample(hr: 58, rrsMs: [1_034], rrAvailable: true)])
+        manager.stream.ingestHeartRate([StrapHRSample(hr: 58, rrsMs: [1_034], rrAvailable: true)])
 
         XCTAssertEqual(manager.feedStatus, .live)
         XCTAssertEqual(manager.currentHeartRate, 58)

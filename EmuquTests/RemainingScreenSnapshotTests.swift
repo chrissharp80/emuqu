@@ -11,7 +11,7 @@ import XCTest
 final class RemainingScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: .current))
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
@@ -36,6 +36,8 @@ final class RemainingScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: hosted(
                 HistoryView(
+                    archive: AppDependencies.current.storage.sessionArchive,
+                    settingsManager: AppDependencies.current.app.settingsManager,
                     onDelete: { _ in },
                     onUpdateTags: { _, _, _ in },
                     onReanalyze: nil,

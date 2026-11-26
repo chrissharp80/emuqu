@@ -464,7 +464,7 @@ extension VoiceConversationController {
         // Routed through `PasteboardWriter`, which owns the `.localOnly` +
         // opt-out-expiry policy, so there is one copy of the rule across the
         // app's write sites.
-        PasteboardWriter.copy(words)
+        PasteboardWriter.copy(words, preserveForPaste: services.settingsManager.settings.preserveClipboardForPaste)
         debugLog("[VoiceConv] saved \(words.count)-char partialTranscript to clipboard (\(reason))")
     }
 

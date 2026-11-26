@@ -272,7 +272,7 @@ struct MainTabView: View {
             session: session,
             result: result,
             recentSessions: sessions,
-            baselineStats: collector.scoringBaselineStats(for: session),
+            baselineStats: collector.scoring.scoringBaselineStats(for: session),
             totalSessionCount: collector.baselineTracker.daysCollected,
             onReanalyze: { await rescoreReport(session, method: $0) },
             onReanalyzeAt: { await rescoreReportAt(session, targetMs: $0) }
@@ -657,7 +657,7 @@ struct MainTabView: View {
     private var recordTab: some View {
         LazyView(
             NavigationStack(path: $recordPath) {
-                RecordView(selectedTab: $selectedTab, scrollToTopToken: scrollToTopToken)
+                RecordView(selectedTab: $selectedTab, scrollToTopToken: scrollToTopToken, breathingAudio: BreathingAudioManager(dependencies: dependencies))
             }
         )
         .tabItem {
@@ -758,7 +758,7 @@ struct DashboardLoadTiming: Sendable {
 
 #Preview {
     MainTabView()
-        .environment(RRCollector())
-        .environment(AppDependencies.current.storage.cloudKitSyncManager)
-        .environment(AppDependencies.current.services.languageManager)
+        .environment(RRCollector(dependencies: AppDependencies()))
+        .environment(AppDependencies().storage.cloudKitSyncManager)
+        .environment(AppDependencies().services.languageManager)
 }

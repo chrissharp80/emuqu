@@ -5,7 +5,7 @@ import Foundation
 ///
 /// The type is a namespace with a reference to the manager; its body,
 /// `pullRemoteChanges` and the record handling behind it, lives in
-/// `CloudKitSyncManager+Pull.swift`.
+/// `CloudPullCoordinator+Fetch.swift`.
 ///
 /// It is genuinely coupled to the manager: it reads `privateDB`, `zoneID`,
 /// `state`, the archive and the schema circuit breaker, among others. That

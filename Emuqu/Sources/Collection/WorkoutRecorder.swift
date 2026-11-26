@@ -69,23 +69,9 @@ final class WorkoutRecorder {
     // MARK: Dependencies
 
     let core: RecordingCore
-    // `location` is NOT constructed eagerly in init: that
-    // pulls in `CLLocationManager` + `CMAltimeter` synchronously on
-    // the main thread. The Recorder is bound at Fitness-tab appear
-    // (so the Watch's "Start" command can route through it on a cold
-    // tab), but the user often hasn't tapped the in-app Start button
-    // for many seconds — they're picking sport / target / strap.
-    // Eagerly building the location stack adds 1–3 s of main-thread
-    // work to the tab swap, so it is lazy: constructed on first access (start() for a
-    // GPS sport, or any view that reads `locationManager`). By that
-    // point the user has explicitly committed to a workout.
-    var _injectedLocation: WorkoutLocationManager?
-    var _lazyLocation: WorkoutLocationManager?
-
-    /// Start, pause, resume, archive, and the derived metrics.
-    var session: WorkoutSessionLifecycle {
-        WorkoutSessionLifecycle(recorder: self)
-    }
+    /// The GPS and barometer (built on first use), pedometer and foot pod,
+    /// and this workout's readings of them.
+    let sensors: WorkoutSensors
 
     func start(
         sport: Sport,
@@ -100,8 +86,6 @@ final class WorkoutRecorder {
         )
     }
 
-    func pause(isAuto: Bool = false) { session.pause(isAuto: isAuto) }
-
     /// Returns the render task; its value says whether the PDF was attached.
     @discardableResult
     static func scheduleCoachReportEmail(
@@ -111,24 +95,10 @@ final class WorkoutRecorder {
     }
 
     typealias HRSource = WorkoutSessionLifecycle.HRSource
-    /// The location stack if something has built it (start() for a GPS
-    /// sport, or a view that read `location`); nil otherwise. Pause, stop and
-    /// finalize read it through this, so an indoor workout never builds the
-    /// stack (the 1–3 s of main-thread work above) only to find it empty.
-    var startedLocation: WorkoutLocationManager? { _injectedLocation ?? _lazyLocation }
-    var location: WorkoutLocationManager {
-        if let injected = _injectedLocation { return injected }
-        if let cached = _lazyLocation { return cached }
-        let fresh = WorkoutLocationManager()
-        _lazyLocation = fresh
-        return fresh
-    }
-    let pedometer = WorkoutPedometer()
-    /// Optional foot pod / running power meter. Shared singleton so the
-    /// Settings screen can pair it outside a workout and have the pairing
-    /// still be there when a workout starts. When connected, foot-pod
-    /// readings take priority over GPS + pedometer.
-    let footPod: FootPodManager
+    var startedLocation: WorkoutLocationManager? { sensors.startedLocation }
+    var location: WorkoutLocationManager { sensors.location }
+    var pedometer: WorkoutPedometer { sensors.pedometer }
+    var footPod: FootPodManager { sensors.footPod }
     let watchBridge: WatchConnectivityBridge
     /// Voice coach — evaluates trigger rules on each tick and dispatches to
     /// TTS / haptics. Exposed so the recording UI can mute/quiet-mode it.
@@ -137,241 +107,59 @@ final class WorkoutRecorder {
     /// Talk, they chat with the AI; when a trigger fires, it preempts this.
     let conversation: VoiceConversationController
 
-    // MARK: Private state
+    // MARK: Owned state, by job
 
-    var collectedPoints: [RRPoint] = []
-    var sessionStartDate: Date?
+    /// What the workout has recorded so far: beats, samples, power, the
+    /// Watch-routed beats and the crash-backup cursors.
+    let capture = WorkoutCapture()
+    /// Strap and wrist HR freshness and the live pace.
+    let signals = WorkoutLiveSignals()
+    /// The thresholds, the start context and the live grade the coach reads.
+    let coaching = WorkoutCoachingInputs()
+    /// The course this workout follows, if any, and the user's place on it.
+    let route = WorkoutRouteGuidance()
 
-    /// Open correlation scope for the workout in progress, `nil` when idle.
-    /// Plumbing lives in `WorkoutRecorder+Correlation.swift`.
-    var logCorrelation: LogCorrelation.Token?
-    @ObservationIgnored var tickTimer: Timer?
-    @ObservationIgnored var hrSubscription: ObservationHandle?
-    var lastIngestedPointCount = 0
-    /// Per-second time series captured live. Persisted into
-    /// `WorkoutMetadata.samples` on finalize so post-summary charts and
-    /// per-row export columns don't have to reconstruct from aggregates.
-    var workoutSamples: [WorkoutSample] = []
-    /// The live trends of `workoutSamples`, kept as the buffer grows
-    /// (`WorkoutLiveTrends.Tally`), so the per-tick snapshot and each coach
-    /// turn read them without scanning the whole buffer. Read through
-    /// `syncedLiveTrends()` and `liveZoneBreakdown()`.
-    @ObservationIgnored var liveTrendTally = WorkoutLiveTrends.Tally()
-    /// True while the heart rate on display is the Apple Watch's wrist HR
-    /// (read from its HealthKit workout session) rather than the strap's.
-    /// Set by the tick's HR arbitration; a strap reading clears it.
-    @ObservationIgnored var hrFromWrist = false
-    /// The `offsetSec` of every row captured while `hrFromWrist` held, in
-    /// capture order. Joins the HealthKit backfill offsets in
-    /// `WorkoutMetadata.healthKitHROffsets` at finalize and is written to the
-    /// crash backup with the samples, so the iCloud upload leaves those rows'
-    /// heart rate out. Cleared when the ticker starts and once finalize reads it.
-    @ObservationIgnored var wristHROffsets: [Int] = []
+    // MARK: Parts, by job
+    //
+    // Each is built once, on first use, from the owned state and services
+    // it reads; none holds the recorder.
 
-    /// Cursors for the per-tick track-backup snapshot. Compared each tick
-    /// to skip the snapshot entirely when nothing new has arrived; while
-    /// recording a sample row lands every unpaused second, so that skip
-    /// mostly applies while paused, and `trackBackupRows` keeps the rest
-    /// from re-mapping the whole track each tick.
-    var trackBackupWatermark = TrackBackupWatermark()
-    /// The crash backup's track and barometer rows, extended each snapshot
-    /// by what arrived since the last one.
-    @ObservationIgnored var trackBackupRows = TrackBackupRows()
-    /// Cached at workout start for fast per-tick lookup in
-    /// `buildContext`. Computed off the main thread; nil/empty until
-    /// the background task lands. See `WorkoutHistoryBaselines`.
-    var cachedHistoricalBaselines: WorkoutHistoryBaselines = .empty
-    /// Readiness snapshot grabbed from the morning HRV
-    /// session at workout start. Frozen for the duration of the
-    /// workout; the AI context surfaces it as `todayRecoveryScore`,
-    /// `todayTrainingReadiness`, and `todayATL/CTL/TSB`. Nil entries
-    /// when no morning reading exists yet today.
-    var cachedTodayReadiness: ReadinessSnapshot = .empty
+    /// Pausing and resuming, by hand or automatically.
+    @ObservationIgnored lazy var pauseControl = WorkoutPauseControl(lifecycle: lifecycle, sensors: sensors)
 
-    struct ReadinessSnapshot: Equatable {
-        let recoveryScore: Double?
-        let trainingReadiness: Double?
-        let atl: Double?
-        let ctl: Double?
-        let tsb: Double?
+    /// The live context the coach is given.
+    @ObservationIgnored lazy var aiContext = WorkoutAIContextBuilder(
+        core: core, services: services, settingsProvider: settingsProvider,
+        lifecycle: lifecycle, workoutHR: workoutHR, motion: motion, dfa: dfa,
+        routeGuidance: route, sensors: sensors, capture: capture, signals: signals, coaching: coaching
+    )
 
-        static let empty = ReadinessSnapshot(
-            recoveryScore: nil, trainingReadiness: nil,
-            atl: nil, ctl: nil, tsb: nil
-        )
-    }
+    /// The once-per-second loop over the live signals.
+    @ObservationIgnored lazy var ticker = WorkoutTicker(
+        core: core, services: services, settingsProvider: settingsProvider,
+        lifecycle: lifecycle, workoutHR: workoutHR, motion: motion, dfa: dfa,
+        intervalController: intervalController, routeGuidance: route, sensors: sensors,
+        capture: capture, signals: signals, coaching: coaching,
+        voiceCoach: voiceCoach, aiContext: aiContext, pauseControl: pauseControl
+    )
 
-    /// Forward-looking training-load forecast, captured
-    /// alongside `cachedTodayReadiness` at workout start. Two surfaces
-    /// the AI uses: rest-recovery days, and steady-state TSB if today's
-    /// load repeats. Both nil when there's no morning training context.
-    struct TrainingProjectionSnapshot: Equatable {
-        let daysUntilFresh: Int?
-        let tsbTomorrowSteadyState: Double?
+    /// Start, the deferred start work, the archive, and the derived metrics.
+    @ObservationIgnored lazy var session = WorkoutSessionLifecycle(
+        core: core, services: services, settingsProvider: settingsProvider,
+        conversation: conversation, lifecycle: lifecycle, workoutHR: workoutHR,
+        motion: motion, dfa: dfa, intervalController: intervalController, routeGuidance: route,
+        sensors: sensors, capture: capture, signals: signals, coaching: coaching,
+        pauseControl: pauseControl, voiceCoach: voiceCoach, ticker: ticker, aiContext: aiContext
+    )
 
-        static let empty = TrainingProjectionSnapshot(
-            daysUntilFresh: nil, tsbTomorrowSteadyState: nil
-        )
-    }
-    var cachedTrainingProjection: TrainingProjectionSnapshot = .empty
-    /// Riegel race-time predictions captured at workout
-    /// start (key: distance in meters → predicted total seconds).
-    /// Empty when no comparable history exists.
-    var cachedRacePredictionsByDistance: [Double: Double] = [:]
-    // Watch direct-strap fallback. When the user has paired
-    // the chest strap to the Watch (not the iPhone) and the iPhone
-    // runs the workout (e.g. phone in backpack), the Watch routes RR
-    // + HR samples over WCSession via `WatchStrapConnector`. The
-    // recorder consumes them HERE so:
-    //   • currentHR shows real strap HR (not wrist HR — different sensor)
-    //   • α1 / RMSSD / SDNN have real RR data to chew on
-    //   • finalizeSession's RR series includes Watch-routed beats
-    // Each tick drains the bridge's queue of Watch-routed beats
-    // (`drainPendingWatchStrapRR`), so a slow tick never re-ingests a
-    // payload it already consumed.
-    /// When we last produced beats via the Watch-routed
-    /// strap path. Lives separately from `lastStrapHRAt` (which is the
-    /// iPhone-paired Polar's freshness gate) so the wrist-HR fallback
-    /// can tell "Polar dropped, Watch is carrying it" from "both dropped,
-    /// fall through to wrist."
-    var lastWatchRoutedHRAt: Date?
-    /// Cumulative session-relative ms used to assign `RRPoint.t_ms` to
-    /// synthesized Watch-routed beats. Starts at 0 at workout start
-    /// and advances by each consumed RR interval.
-    var watchRoutedCumulativeMs: Int64 = 0
-    /// All RR points that arrived via the Watch fallback path. Merged
-    /// into the canonical RR series at `finalizeSession()`. Kept
-    /// separately so we can also see "did this workout depend on the
-    /// fallback?" in diagnostics.
-    var watchRoutedRRBuffer: [RRPoint] = []
     /// Read-only view of the captured per-second sample series. Exposed so
     /// the live recording view can render "avg HR", "current pace", "current
-    /// METs" tiles without duplicating aggregation state. Not observed
-    /// directly — it changes every tick and SwiftUI will pick up the
-    /// individual observable fields (currentHR, distanceMeters, ...) that
-    /// themselves drive these helpers.
-    var samplesView: [WorkoutSample] { workoutSamples }
-    /// Live speed, fed once per tick by the ticker. Every live consumer of
-    /// pace or speed reads it through `currentPaceSecPerKm` / `currentSpeedMS`
-    /// (see `LivePaceEstimator` for how it is measured).
-    var livePace = LivePaceEstimator()
+    /// METs" tiles without duplicating aggregation state.
+    var samplesView: [WorkoutSample] { capture.workoutSamples }
     /// The pace shown and spoken now; nil while paused, stopped or not yet measured.
-    var currentPaceSecPerKm: Double? { livePace.paceSecPerKm }
+    var currentPaceSecPerKm: Double? { signals.currentPaceSecPerKm }
     /// The speed behind `currentPaceSecPerKm`, in m/s.
-    var currentSpeedMS: Double? { livePace.speedMS }
-    /// This workout's foot-pod distance, kept across pod resets. The pod
-    /// reports cumulative distance from power-on (not from workout start),
-    /// so its first reading is the baseline subtracted to get
-    /// session-relative distance. Replaced with a fresh odometer at workout
-    /// start, which also drops any distance banked across a pod reset.
-    var footPodOdometer = FootPodOdometer()
-    /// When the strap's own recording actually started for this workout.
-    var deviceBackupArmedAt: Date?
-    /// `PolarManager.streamingStartTime` of the stream this recorder's last
-    /// strap workout started. RRCollector's overnight and quick sessions
-    /// buffer on the same manager, so a stream still live while no workout
-    /// records is this recorder's to stop only when its start matches.
-    @ObservationIgnored var ownedStrapStreamStart: Date?
-    /// The live broker's last snapshot, taken at stop before the broker is
-    /// cleared, for finalize to store as the session's `aiContext`.
-    var liveSnapshotAtStop: AssistantContext.LiveWorkoutSnapshot?
-
-    /// Foot-pod odometers report lifetime distance, so the workout's share is
-    /// the delta from whatever the pod read when this workout first saw it.
-    /// A reading lower than the last one is a pod reset (power cycle or
-    /// reconnect): the distance covered so far is banked and the new reading
-    /// becomes the baseline, so the workout's distance never goes backwards.
-    /// With no reading (pod disconnected) the distance so far is returned.
-    func footPodDistanceMeters() -> Double {
-        guard let reported = footPod.podReportedDistanceMeters else { return footPodOdometer.distanceMeters }
-        return footPodOdometer.record(reported)
-    }
-    /// The pedometer step count as of the last tick that saw it change, and
-    /// when. Lets the indoor auto-pause tell a stopped treadmill from the
-    /// last walking cadence the pedometer leaves standing.
-    @ObservationIgnored var lastPedometerStepAdvance: (count: Int, at: Date?) = (0, nil)
-    /// Running tally of power samples for average-power computation.
-    var powerSampleSum: Int = 0
-    var powerSampleCount: Int = 0
-    var maxPowerObserved: Int = 0
-    /// Wall-clock of the most recent strap-derived HR reading. When more
-    /// than ~10 s stale, we fall back to the Watch's wrist HR.
-    var lastStrapHRAt: Date?
-    /// User-declared physiological constraints for ambient coaching. Set
-    /// pre-workout via the start flow; the trigger engine reads these
-    /// alongside its built-in rules and fires breach cues when the metric
-    /// stays outside the band past `debounceSec`.
-    var userThresholds: [WorkoutThreshold] = []
-
-    /// Optional course the user bound before starting. Loaded from a GPX
-    /// file via the start flow's route picker. When non-nil, every tick
-    /// computes a fresh `RouteProgress` so the AI coach knows the climbs
-    /// ahead and can pre-warn ("big climb in 400 m, save power"). Kept
-    /// optional because route-aware coaching is opt-in — most workouts
-    /// don't need it.
-    var plannedRoute: Route? {
-        didSet { lastRouteProgressIndex = nil }
-    }
-    /// The route point the last tick projected onto. Passed back to
-    /// `RouteProgress.compute` so a route that loops back near itself keeps
-    /// the user's place instead of jumping to the closer leg.
-    @ObservationIgnored var lastRouteProgressIndex: Int?
-
-    /// True when `plannedRoute` was assigned by the recogniser matching a
-    /// route the user explicitly saved to their library. Distinct from a
-    /// hand-loaded GPX. Drives the "Following Daily 1" banner.
-    var plannedRouteWasAutoDetected: Bool = false
-
-    /// When the recognised match was a reverse-direction fit (user is
-    /// walking / running the saved route backwards today), the live UI +
-    /// AI surface this so the climb cues read right and the user knows
-    /// the app understood the directional swap.
-    var plannedRouteDirection: RouteLibrary.Direction = .forward
-
-    /// The saved route the recogniser bound as `plannedRoute`, nil for a
-    /// hand-loaded GPX, so deleting that saved route unbinds it.
-    @ObservationIgnored var plannedSavedRouteId: UUID?
-
-    /// Track length at which route auto-detection next runs: it first runs
-    /// at `RouteLibrary.detectionTriggerMeters` of movement, and while
-    /// nothing matches, again after each further stretch of that length
-    /// (a warm-up leg before joining a saved loop must not rule the loop
-    /// out for the rest of the workout). 0 = not tried yet. Reset in
-    /// `start()`.
-    var nextRouteDetectionAtMeters: Double = 0
-
-    /// The live grade, with the track and barometer state it was worked out
-    /// from (`WorkoutAIContextBuilder.computeCurrentGradePercent`). Reset in
-    /// `start()`.
-    @ObservationIgnored var gradeMemo: GradeMemo?
-
-    struct GradeMemo {
-        struct Key: Equatable {
-            let fixCount: Int
-            let lastFixAt: Date?
-            let baroCount: Int
-        }
-
-        let key: Key
-        let grade: Double?
-    }
-
-    /// Per-threshold breach duration in seconds. Counts up while breached,
-    /// resets to 0 the moment the metric comes back inside the band. The
-    /// trigger engine compares this to each threshold's debounceSec to
-    /// decide whether to fire a cue. Indexed by threshold ID.
-    var thresholdBreachSec: [UUID: Int] = [:]
-
-    // MARK: Auto-pause / auto-resume counters
-    //
-    // Auto-pause fires after a rolling window of "no movement" ticks and
-    // auto-resume fires after a shorter window of "moving again" ticks.
-    // Separate counters rather than one signed integer because the
-    // thresholds are different and conflating the two made the transition
-    // feel draggy — resume felt sluggish because the decrement from "−15
-    // stationary" to zero took its own 15 ticks.
-    /// Counters and thresholds both live in `AutoPauseDetector`.
-    var autoPause = AutoPauseDetector()
+    var currentSpeedMS: Double? { signals.currentSpeedMS }
 
     // MARK: Init
 
@@ -383,10 +171,9 @@ final class WorkoutRecorder {
     /// Everything a workout reads beyond its constructor arguments.
     let services: WorkoutServices
 
-    /// `location` keeps the test-injection seam but defers the
-    /// production allocation. When the test passes a manager we honour it;
-    /// otherwise the lazy getter constructs one on first access (typically
-    /// inside `start()`).
+    /// `location` keeps the test-injection seam (`WorkoutSensors`) but defers
+    /// the production allocation to the first access (typically inside
+    /// `start()`).
     ///
     /// The foot-pod manager and the Watch bridge come from `services`. The
     /// bridge must be the shared one: WCSession has one process-wide delegate,
@@ -404,11 +191,15 @@ final class WorkoutRecorder {
         let settingsManager = services.settingsManager
         self.settingsProvider = settingsProvider ?? { settingsManager.settings }
         self.core = core
-        self._injectedLocation = location
-        self.footPod = footPod ?? services.footPodManager
+        self.sensors = WorkoutSensors(
+            location: location, footPod: footPod ?? services.footPodManager, ambientLocation: services.ambientLocationService
+        )
         let bridge = services.watchConnectivityBridge
         self.watchBridge = bridge
-        let coach = WorkoutVoiceCoach(watchBridge: bridge)
+        let coach = WorkoutVoiceCoach(
+            settingsProvider: { settingsManager.settings }, activeRoute: services.activeRouteSession,
+            ambientLocation: services.ambientLocationService, watchBridge: bridge
+        )
         self.voiceCoach = coach
         self.conversation = conversation
         // Route spoken triggers through the shared conversation so they
@@ -418,36 +209,4 @@ final class WorkoutRecorder {
 
     // Expose the location manager so SwiftUI can observe distance/track.
     var locationManager: WorkoutLocationManager { location }
-}
-
-/// One workout's foot-pod distance from the pod's lifetime odometer readings.
-/// The pod's counter restarts when it is power-cycled or reconnects, so a
-/// reading below the previous one banks the distance covered so far and
-/// starts a new baseline from that reading.
-struct FootPodOdometer {
-    /// The pod reading this stretch of the workout is measured from.
-    private(set) var baselineMeters: Double?
-    private var lastReadingMeters: Double?
-    private var bankedMeters: Double = 0
-
-    init(baselineMeters: Double? = nil) {
-        self.baselineMeters = baselineMeters
-    }
-
-    /// Distance covered this workout as of the last reading.
-    var distanceMeters: Double {
-        guard let baselineMeters, let lastReadingMeters else { return bankedMeters }
-        return bankedMeters + max(0, lastReadingMeters - baselineMeters)
-    }
-
-    /// Takes a new pod reading and returns the workout's distance.
-    mutating func record(_ reading: Double) -> Double {
-        if let lastReadingMeters, reading < lastReadingMeters {
-            bankedMeters = distanceMeters
-            baselineMeters = reading
-        }
-        if baselineMeters == nil { baselineMeters = reading }
-        lastReadingMeters = reading
-        return distanceMeters
-    }
 }

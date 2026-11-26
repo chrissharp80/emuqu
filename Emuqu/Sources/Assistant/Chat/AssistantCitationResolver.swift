@@ -34,7 +34,7 @@ enum AssistantCitationResolver {
     /// the archive replaced by Markdown links. Text that doesn't match any
     /// session is returned unchanged. Text already inside markdown link syntax
     /// is skipped, so re-running on annotated text is a no-op.
-    static func annotate(_ text: String, archive: SessionArchive = AppDependencies.current.storage.sessionArchive) -> String {
+    static func annotate(_ text: String, archive: SessionArchive) -> String {
         guard !text.isEmpty else { return text }
         let dayToSessionId = sessionsByDay(archive)
         guard !dayToSessionId.isEmpty, let detector = Self.dateDetector else { return text }

@@ -68,7 +68,7 @@ final class HistoryViewModelTests: XCTestCase {
         _ = try archive.archive(nearDuplicate)
         _ = try archive.archive(tinySuffix)
 
-        let viewModel = HistoryViewModel(archive: archive)
+        let viewModel = HistoryViewModel(archive: archive, settingsProvider: { AppDependencies.current.app.settingsManager.settingsSnapshot })
         viewModel.refreshIfNeeded(archiveVersion: 1)
 
         let trackedIds = Set(createdSessionIds)

@@ -21,7 +21,14 @@ import Foundation
 /// carries neither.
 @MainActor
 struct SampleDataLibrary {
-    let collector: RRCollector
+    let analysisPipeline: HRVAnalysisPipeline
+    let archive: SessionArchive
+    let archiveSignal: ArchiveSignal
+    let baselineTracker: BaselineTracker
+    /// Scores each sample night the way a morning is scored.
+    let morning: MorningSessionPipeline
+    let scoring: SessionScoringContext
+    let settingsManager: SettingsManager
     /// Sends one deletion to iCloud. Production passes
     /// `CloudKitSyncManager.uploadDeletion`, the call every delete path makes.
     let deleteFromCloud: @Sendable (UUID) async -> Void
@@ -39,8 +46,15 @@ struct SampleDataLibrary {
         self.init(collector: collector) { await cloudSync.uploadDeletion($0) }
     }
 
+    /// Over the collector's archive, baseline, scoring and morning pipeline.
     init(collector: RRCollector, deleteFromCloud: @escaping @Sendable (UUID) async -> Void) {
-        self.collector = collector
+        analysisPipeline = collector.analysisPipeline
+        archive = collector.archive
+        archiveSignal = collector.archiveSignal
+        baselineTracker = collector.baselineTracker
+        morning = collector.morning
+        scoring = collector.scoring
+        settingsManager = collector.settingsManager
         self.deleteFromCloud = deleteFromCloud
     }
 
@@ -50,7 +64,7 @@ struct SampleDataLibrary {
     }
 
     private var sampleIds: [UUID] {
-        DemoSessionSeeder.sampleSessionIds(in: collector.archive.store.entries, seededIds: Set(loadLedger().sessionIds))
+        DemoSessionSeeder.sampleSessionIds(in: archive.store.entries, seededIds: Set(loadLedger().sessionIds))
     }
 
     // MARK: - Load
@@ -67,12 +81,12 @@ struct SampleDataLibrary {
         recordPriorBaselineIfNeeded()
         do {
             let ids = try await DemoSessionSeeder.seed(
-                DemoSessionSeeder.nightPlans(count: nights, now: Date()), into: collector.archive,
+                DemoSessionSeeder.nightPlans(count: nights, now: Date()), into: archive,
                 pipeline: pipeline, finalize: finalize, progress: progress
             )
             guard !ids.isEmpty else { throw SampleDataError.noOpenNights }
             appendToLedger(ids)
-            collector.notifyArchiveChanged()
+            archiveSignal.notifyChanged()
             return ids.count
         } catch {
             await undoFailedSeed()
@@ -101,8 +115,8 @@ struct SampleDataLibrary {
     /// is: the selector remembers the last night's organized-recovery zones,
     /// and nights analysed side by side would otherwise read each other's.
     private var pipeline: DemoSessionSeeder.NightPipeline {
-        let shared = collector.analysisPipeline
-        let ansConfig = collector.scoring.currentANSConfig
+        let shared = analysisPipeline
+        let ansConfig = scoring.currentANSConfig
         return DemoSessionSeeder.NightPipeline(analyze: { session in
             let analysis = HRVAnalysisPipeline(
                 artifactDetector: shared.artifactDetector, windowSelector: WindowSelector(), healthKit: shared.healthKit
@@ -126,17 +140,17 @@ struct SampleDataLibrary {
         guard let result = night.analysisResult else { return session }
         session.hrvDataQuality = SessionAcceptanceService.classifyHRVQuality(
             result: result, sleepData: night.sleepSnapshot,
-            baselineStats: collector.scoringBaselineStats(for: night),
+            baselineStats: scoring.scoringBaselineStats(for: night),
             recordingStart: night.startDate, recordingEnd: night.endDate ?? night.startDate
         ).dataQuality
-        if let outcome = await collector.morning.computeRecoveryScore(for: session, from: result) {
+        if let outcome = await morning.computeRecoveryScore(for: session, from: result) {
             session.recoveryScore = outcome.score
             session.scoreBreakdown = outcome.breakdown
             session.frozenReadiness = ReanalysisService.computeFrozenReadiness(
                 compositeScore: outcome.breakdown.compositeScore, trainingContext: result.trainingContext
             )
         }
-        collector.baselineTracker.update(with: session, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
+        baselineTracker.update(with: session, sleepSchedule: settingsManager.settings.sleepSchedule)
         return session
     }
 
@@ -155,11 +169,11 @@ struct SampleDataLibrary {
         Self.isBusy = true
         defer { Self.isBusy = false }
         let ids = sampleIds
-        let archive = collector.archive
+        let archive = self.archive
         let removed = await Task.detached(priority: .userInitiated) {
             DemoSessionSeeder.remove(ids, from: archive)
         }.value
-        collector.notifyArchiveChanged()
+        archiveSignal.notifyChanged()
         sendCloudDeletions(removed)
         await rebuildBaseline()
         guard removed.count == ids.count else { throw SampleDataError.incompleteRemoval(remaining: ids.count - removed.count) }
@@ -190,19 +204,19 @@ struct SampleDataLibrary {
     /// from after a reinstall; the same rebuild here gives the same answer a
     /// device that never saw the sample nights would have.
     private func rebuildBaseline() async {
-        let archive = collector.archive
+        let archive = self.archive
         let entries = archive.store.entries
         let sessions = await Task.detached(priority: .userInitiated) {
             entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "sampleDataBaseline") }
         }.value
-        collector.baselineTracker.reset()
-        collector.baselineTracker.rebuildFromSessions(sessions, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
+        baselineTracker.reset()
+        baselineTracker.rebuildFromSessions(sessions, sleepSchedule: settingsManager.settings.sleepSchedule)
     }
 
     private func recordPriorBaselineIfNeeded() {
         var ledger = loadLedger()
         guard !ledger.hasPriorBaseline else { return }
-        let settings = collector.settingsManager.settings
+        let settings = settingsManager.settings
         ledger.priorBaselineRMSSD = settings.baselineRMSSD
         ledger.priorBaselineHR = settings.baselineHR
         ledger.hasPriorBaseline = true
@@ -214,11 +228,11 @@ struct SampleDataLibrary {
     /// sample nights' value would otherwise stay behind.
     private func restoreSettingsBaselineIfNeeded() {
         let ledger = loadLedger()
-        guard ledger.hasPriorBaseline, !collector.baselineTracker.hasValidBaseline else { return }
-        var settings = collector.settingsManager.settings
+        guard ledger.hasPriorBaseline, !baselineTracker.hasValidBaseline else { return }
+        var settings = settingsManager.settings
         settings.baselineRMSSD = ledger.priorBaselineRMSSD
         settings.baselineHR = ledger.priorBaselineHR
-        collector.settingsManager.settings = settings
+        settingsManager.settings = settings
     }
 
     // MARK: - Ledger

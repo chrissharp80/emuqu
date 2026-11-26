@@ -912,7 +912,7 @@ count_for_budget(src):
 
 | Method | Repository paths |
 |---|---|
-| Constants-hash lock, ranking-weight containment | `scripts/check_scoring_governance.sh`, `.ci/scoring_constants_hash.txt` (baseline), `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift` |
+| Constants-hash lock, ranking-weight containment | `scripts/check_scoring_governance.sh`, `.ci/scoring_constants_hash.txt` (baseline), `Emuqu/Sources/Utilities/RecoveryScoreConstants.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift` |
 | Version string and sentinel | `Emuqu/Sources/Analysis/ScoringVersion.swift` |
 | Version persisted on breakdowns | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Storage/CloudSessionPayload.swift` |
 | Version shown | `Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift`; legacy breakdown pinned as `unversioned` in `Emuqu/Sources/ViewModels/MorningResultsViewModel.swift` |

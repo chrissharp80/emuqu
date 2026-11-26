@@ -21,7 +21,7 @@ final class BigScreenSnapshotTests: XCTestCase {
     /// rather than letting a uniform reference be recorded.
     private func environment(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: .current))
             .environment(SettingsManager.shared)
             .environment(ArchiveSignal())
             .environment(MorningCoordination())

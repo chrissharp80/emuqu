@@ -453,7 +453,7 @@ final class SleepResolverTests: XCTestCase {
     // #15 Integration — row 2 (session, no Watch) tags the night HR-inferred
     //
     // This is the contract that guarantees we actually export RR-inferred sleep
-    // to Apple Health. The real exporter (`HealthKitManager.exportSessionMetrics`)
+    // to Apple Health. The real exporter (`HealthWriteAndObserve.exportSessionMetrics`)
     // decides from the `.hrEstimated` boundary source, and the resolver is the
     // only component that can set that source. If this test breaks, the export
     // gate upstream will silently no-op.
@@ -473,7 +473,7 @@ final class SleepResolverTests: XCTestCase {
             rrPoints: rrPoints
         )
         let result = SleepResolver.resolve(ctx)
-        // The exporter gate (`HealthKitManager+Sleep`, the boundary-source check in
+        // The exporter gate (`HealthWriteAndObserve+Sleep`, the boundary-source check in
         // the sleep-stage export path) also accepts
         // `.healthKitHREstimated`; either qualifies as "we're the only source."
         let isInferred =

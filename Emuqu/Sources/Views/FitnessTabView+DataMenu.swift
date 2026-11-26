@@ -65,7 +65,7 @@ extension FitnessTabView {
                 importer: healthImporter,
                 archive: collector.archive,
                 onImported: {
-                    collector.notifyArchiveChanged()
+                    collector.archiveSignal.notifyChanged()
                     reloadInterruptedRecordings()
                 }
             )

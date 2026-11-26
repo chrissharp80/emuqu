@@ -194,7 +194,7 @@ struct FitnessRecordingView: View {
             if recorder.intervalController.currentStep != nil {
                 intervalBanner
             }
-            if let route = recorder.plannedRoute {
+            if let route = recorder.route.planned {
                 recognizedRouteBanner(route: route)
             }
             if let notice = lifecycle.strapNotice {
@@ -489,8 +489,8 @@ struct FitnessRecordingView: View {
     /// carries the file name. Only an auto-detected route calls out the
     /// direction — the user who picked it already knows which way round it is.
     private func routeBannerLead(route: Route) -> String {
-        let isReverse = recorder.plannedRouteDirection == .reverse
-        guard recorder.plannedRouteWasAutoDetected, isReverse else {
+        let isReverse = recorder.route.direction == .reverse
+        guard recorder.route.wasAutoDetected, isReverse else {
             return String(localized: "Following \(route.name)", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Following \(route.name) (in reverse)", bundle: LanguageManager.appBundle)

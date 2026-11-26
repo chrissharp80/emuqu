@@ -35,7 +35,7 @@ struct OnboardingHealthPage: View {
     @State private var authError: String?
     @State private var grantedScopes: Set<String> = []
 
-    private var hk: HealthKitManager { collector.healthKit }
+    private var hk: HealthKitAuthorization { collector.healthKit.authorization }
 
     /// The buttons are pinned above the page dots rather than scrolled with
     /// the content. At the end of the scroll view, "Skip for now" would sit on
@@ -348,5 +348,5 @@ func openAppSettings() {
 
 #Preview {
     OnboardingHealthPage(advance: {})
-        .environment(RRCollector())
+        .environment(RRCollector(dependencies: AppDependencies()))
 }

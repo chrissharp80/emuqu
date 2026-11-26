@@ -375,7 +375,9 @@ struct ChatBubble: View, Equatable {
             // other processing so citation annotation and markdown parse
             // see clean text and the bubble never shows IPA hints.
             let phoneticStripped = PhoneticOverrides.stripForDisplay(turn.text)
-            let annotated = AssistantCitationResolver.annotate(ChatMarkdown.displayText(phoneticStripped))
+            let annotated = AssistantCitationResolver.annotate(
+                ChatMarkdown.displayText(phoneticStripped), archive: dependencies.storage.sessionArchive
+            )
             if let attributed = try? AttributedString(
                 markdown: annotated,
                 options: AttributedString.MarkdownParsingOptions(

@@ -22,8 +22,8 @@ final class WorkoutRecorderSettingsTests: XCTestCase {
 
     func testCyclingSportsReadCyclingFTP() {
         let s = settings(running: 300, cycling: 240)
-        XCTAssertEqual(WorkoutRecorder.sportFTP(for: .bike, settings: s), 240)
-        XCTAssertEqual(WorkoutRecorder.sportFTP(for: .indoorBike, settings: s), 240)
+        XCTAssertEqual(WorkoutAIContextBuilder.sportFTP(for: .bike, settings: s), 240)
+        XCTAssertEqual(WorkoutAIContextBuilder.sportFTP(for: .indoorBike, settings: s), 240)
     }
 
     func testRunningSportsDoNotReadCyclingFTP() {
@@ -32,14 +32,14 @@ final class WorkoutRecorderSettingsTests: XCTestCase {
         // wires would mis-anchor every power threshold in the session.
         let s = settings(running: 300, cycling: 240)
         XCTAssertNotEqual(
-            WorkoutRecorder.sportFTP(for: .run, settings: s), 240,
+            WorkoutAIContextBuilder.sportFTP(for: .run, settings: s), 240,
             "a run must not be anchored to the cycling FTP"
         )
     }
 
     func testSportsWithoutAPowerModelHaveNoFTP() {
         let s = settings(running: 300, cycling: 240)
-        XCTAssertNil(WorkoutRecorder.sportFTP(for: .row, settings: s))
+        XCTAssertNil(WorkoutAIContextBuilder.sportFTP(for: .row, settings: s))
     }
 
     // MARK: - Zero and nil are the same thing here
@@ -47,15 +47,15 @@ final class WorkoutRecorderSettingsTests: XCTestCase {
     func testZeroCyclingFTPIsTreatedAsUnset() {
         // A user who typed 0 must not get a zero denominator downstream.
         let s = settings(cycling: 0)
-        XCTAssertNil(WorkoutRecorder.sportFTP(for: .bike, settings: s))
+        XCTAssertNil(WorkoutAIContextBuilder.sportFTP(for: .bike, settings: s))
     }
 
     func testUnsetCyclingFTPIsNil() {
-        XCTAssertNil(WorkoutRecorder.sportFTP(for: .bike, settings: settings()))
+        XCTAssertNil(WorkoutAIContextBuilder.sportFTP(for: .bike, settings: settings()))
     }
 
     func testNegativeCyclingFTPIsRejected() {
-        XCTAssertNil(WorkoutRecorder.sportFTP(for: .bike, settings: settings(cycling: -50)))
+        XCTAssertNil(WorkoutAIContextBuilder.sportFTP(for: .bike, settings: settings(cycling: -50)))
     }
 }
 

@@ -106,14 +106,15 @@ final class WorkoutTriggerEngine {
     private(set) var history: [Event] = []
     private(set) var rules: [Rule]
 
-    /// `settingsProvider` is what the default rules read their settings
-    /// through (the periodic check-in's toggle and cadence), so the engine
-    /// can be evaluated with injected settings.
-    init(
-        rules: [Rule]? = nil,
-        settingsProvider: @escaping @MainActor () -> UserSettings = { AppDependencies.current.app.settingsManager.settings }
-    ) {
-        self.rules = rules ?? WorkoutTriggerEngine.defaultRules(settings: settingsProvider)
+    /// An engine over exactly `rules`.
+    init(rules: [Rule]) {
+        self.rules = rules
+    }
+
+    /// An engine over the default rules, which read their settings (the
+    /// periodic check-in's toggle and cadence) through `settingsProvider`.
+    convenience init(settingsProvider: @escaping @MainActor () -> UserSettings) {
+        self.init(rules: WorkoutTriggerEngine.defaultRules(settings: settingsProvider))
     }
 
     // MARK: Evaluate

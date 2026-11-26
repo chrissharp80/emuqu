@@ -1059,13 +1059,13 @@ for sample s: r = latest reading with r.t <= s.t
 | Load ladder | `Emuqu/Sources/Collection/TrainingLoadPrecedence.swift`; `Emuqu/Sources/Models/WorkoutMetadata.swift` |
 | TRIMP, hrTSS, splits, decoupling | `Emuqu/Sources/Analysis/WorkoutAnalyzer.swift` |
 | Auto-FTP | `Emuqu/Sources/Analysis/FTPAutoEstimator.swift`; failures that may clear `Emuqu/Sources/Analysis/ArchiveAccessFailure.swift` |
-| METs | `Emuqu/Sources/Models/WorkoutMetadata.swift`; `Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift` |
+| METs | `Emuqu/Sources/Models/WorkoutMetadata.swift`; `Emuqu/Sources/Collection/WorkoutSessionLifecycle+Metrics.swift` |
 | Route matching | `Emuqu/Sources/Analysis/RouteLibrary.swift` |
-| Route load estimate | `Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift`; callers in `Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift`, `Emuqu/Sources/Services/WorkoutRecoveryService.swift`, `Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift` |
+| Route load estimate | `Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift`; callers in `Emuqu/Sources/Collection/WorkoutFinalizer+Finalize.swift`, `Emuqu/Sources/Services/WorkoutRecoveryService.swift`, `Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift` |
 | PMC / daily load | `Emuqu/Sources/Analysis/TrainingLoadSeries.swift`; `Emuqu/Sources/Collection/HealthDataTypes.swift`; Apple Health workouts `Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift`, `Emuqu/Sources/Analysis/TrainingMetricsCache.swift` |
-| Readiness | `Emuqu/Sources/Analysis/ReadinessScoring.swift`; `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift` |
+| Readiness | `Emuqu/Sources/Analysis/ReadinessScoring.swift`; `Emuqu/Sources/Utilities/RecoveryScoreConstants.swift` |
 | Live and frozen readiness | `Emuqu/Sources/Analysis/LiveReadiness.swift`; `Emuqu/Sources/Services/ReanalysisService.swift` |
-| Strap fusion and arbitration | `Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift` |
+| Strap fusion and arbitration | `Emuqu/Sources/Collection/WorkoutTicker+Tick.swift` |
 | RR merge | `Emuqu/Sources/Collection/WorkoutRRMerge.swift` |
 | Tests cited | `EmuquTests/DFAAnalysisTests.swift`, `EmuquTests/DFAReferenceValidationTests.swift`, `EmuquTests/LiveDFAAnalyzerTests.swift`, `EmuquTests/LiveDFAAnalyzerStreamTests.swift`, `EmuquTests/RouteTRIMPEstimatorTests.swift`, `EmuquTests/WorkoutRRMergeTests.swift` |
 | Science register | `Tools/science_register/register.json` |
