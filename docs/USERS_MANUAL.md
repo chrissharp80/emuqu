@@ -452,9 +452,9 @@ The footer under the picker:
   - **Does it need historical depth?** (trend over 8 weeks, since I started)
   - **Does it need speculation?** ("predict next week", "what if I rest")
 
-  No web, history or speculation flag → Apple. Any of those → xAI Grok, then DeepSeek: the first of those you've added a key for and whose data-sharing notice you've accepted. With neither, the turn stays on Apple. Each axis is gated by **both** a keyword marker AND on-device embedding similarity ≥ 0.55, so plain lookups like "what's my recovery score" don't get flagged just because the word "recovery" embeds near history-depth prototypes.
+  No web, history or speculation flag → Apple. Any of those → xAI Grok, then DeepSeek: the first of those you've added a key for and whose data-sharing notice you've accepted. With neither, the turn stays on Apple. Each axis is read from on-device phrase patterns, in English and the app's other languages; a remark like "the weather was perfect yesterday" asks for nothing and stays on Apple.
 
-  Tier persists once chosen so the conversation doesn't drift mid-thread. Within the first **3 settling turns** the proposed tier is taken as-is; after that the session sticks to the higher tier unless a message scores zero capability flags (clean lookups can drop back to Apple). On older OS versions where contextual embeddings aren't available, the classifier falls back to keyword markers.
+  Tier persists once chosen so the conversation doesn't drift mid-thread. Within the first **3 settling turns** the proposed tier is taken as-is; after that the session sticks to the higher tier unless a message scores zero capability flags (clean lookups can drop back to Apple).
   - **Adversarial-spend cap.** After 50 Deep turns in a day that go to a cloud model, further Deep turns are marked as Auto for the rest of the day. While Apple Intelligence is selected, Auto and Deep use the same Grok or DeepSeek model, so the cap does not move those turns to a cheaper model or keep them on the device.
 - **Deep** — every turn goes to the same consented Grok or DeepSeek model Auto would use; Apple when you have neither. Same daily cap.
 - **Manual** — every turn goes to whatever you picked in the model picker.

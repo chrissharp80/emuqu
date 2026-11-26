@@ -64,8 +64,8 @@ The router asks *"what does this question NEED?"* rather than how
 complex it looks, because a simple-looking question can need something
 the on-device model can't do ("what's the weather at the trailhead?" is
 six words but needs a web search, which Apple's path refuses). It scores four
-orthogonal binary axes, each gated by both a keyword marker AND embedding cosine
-similarity ≥ 0.55 to a per-axis prototype centroid:
+orthogonal binary axes, each read from phrase patterns
+(`CapabilityMarkers`) in English and the languages the app ships:
 
 1. **`needsTools`** — explicit action verbs (email, directions, save
    route, list contacts) OR data lookups beyond the static context
@@ -93,13 +93,17 @@ speculation move it off:
 | One of them, and no other flag | `.auto` | Consented Grok, then DeepSeek; else Apple |
 | At least one of them, and two or more flags in all (tools counted) | `.deep` | Same as `.auto` (never a weaker model than a one-flag question) |
 
-The keyword gate is critical. Embedding-only over-triggered on plain
-lookups ("what's my recovery score" embeds close to history-depth
-prototypes — the word "recovery" is shared vocabulary), so an axis
-fires only when **both** signals agree. Tests in
-[`CapabilityClassifierTests`](../EmuquTests/CapabilityClassifierTests.swift)
-enforce the contract (19 cases including the "recovery score" false
-positive).
+A statement that holds a marker word ("the weather was perfect for my
+run yesterday", "this month I ran a lot") raises no flag, and neither
+does a message `MedicalQueryGuard` refuses. An embedding gate (cosine to
+per-axis prototype centroids) is available but off: calibrated on the
+eval's tuning split, no gate above 0 graded better, and the simulator's
+word vectors are not the contextual embedder a phone uses.
+[`RouterEvalTests`](../EmuquTests/EvalUtterances.swift) grades the
+classifier on a held-out split (95% / 85% / 90% gates per slice, no
+medical misroute); the same author wrote that split and the markers, so
+its scores are an upper bound. No test or eval phrase may copy a
+prototype (`EvalPrototypeOverlapTests`).
 
 ### Voice-mode bypass
 
@@ -144,12 +148,11 @@ on Apple. Email, contacts, directions and route requests stay on Apple.
 
 ### Embedding fallback chain
 
-`NLContextualEmbedding(language: .english)` when assets are loaded →
-`NLEmbedding.wordEmbedding(for: .english)` → keyword-only path. Asset
-download (~50 MB) runs once on first launch via
-`Task.detached { try? await e.requestAssets() }`; until the model is
-resident the keyword path classifies adequately (false-negative bias —
-prefers Quick over Deep when uncertain).
+For the optional gate, `SentenceEmbedder` uses
+`NLContextualEmbedding(language: .english)` when assets are loaded, then
+`NLEmbedding.wordEmbedding(for: .english)`. Asset download (~50 MB) runs
+once on first launch via `Task.detached { try? await e.requestAssets() }`.
+With the gate off, the markers decide alone.
 
 ### Adversarial-spend cap
 
@@ -875,7 +878,7 @@ are designed to respect user-reported observations.
 **Routing & cache strategy items live:**
 
 - Capability-axis classifier
-  (4 axes × keyword-gated embedding ≥ 0.55 threshold per axis)
+  (4 axes read from phrase patterns; embedding gate calibrated, off)
 - Routing (Quick / Auto / Deep) acts only while Apple is the selected
   model; any other pick answers every turn
 - Voice-mode bypass — with Apple selected, voice → first consented
