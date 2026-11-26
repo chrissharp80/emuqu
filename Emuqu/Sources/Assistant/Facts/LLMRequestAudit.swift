@@ -162,10 +162,15 @@ final class LLMRequestAudit {
 
     /// `body` re-indented for reading; as UTF-8 text when it is not JSON.
     nonisolated static func prettyJSON(_ body: Data) -> String {
-        guard let object = try? JSONSerialization.jsonObject(with: body),
-              let pretty = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
-        else { return String(decoding: body, as: UTF8.self) }
-        return String(decoding: pretty, as: UTF8.self)
+        let raw = String(bytes: body, encoding: .utf8) ?? "(\(body.count) bytes, not UTF-8 text)"
+        do {
+            let object = try JSONSerialization.jsonObject(with: body)
+            let pretty = try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+            return String(bytes: pretty, encoding: .utf8) ?? raw
+        } catch {
+            // swallow-ok: a body that is not JSON is shown as the text it is.
+            return raw
+        }
     }
 
     /// Mark a turn as errored. Page will surface the message alongside

@@ -254,9 +254,10 @@ final class SentRequestAuditTests: XCTestCase {
     func testTheBodyReachesTheAuditFromTheProvidersStreamTask() async throws {
         let received = expectation(description: "the provider's task found the round's sink")
         let body = Data(#"{"messages":[{"role":"user","content":"<live_state>HRV 48</live_state> How did I sleep?"}]}"#.utf8)
-        let stream = ProviderRequestAudit.$sentBodySink.withValue({ sent in
+        let sink: @Sendable (Data) -> Void = { sent in
             if sent == body { received.fulfill() }
-        }) {
+        }
+        let stream = ProviderRequestAudit.$sentBodySink.withValue(sink) {
             ProviderStream.make { _ in ProviderRequestAudit.sentBodySink?(body) }
         }
         for try await _ in stream {}

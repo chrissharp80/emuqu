@@ -107,8 +107,6 @@ final class CloudKitLiveBackupManager {
             // Discarded while this upload ran: its delete may have landed
             // first, and this save would bring the backup back.
             if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
-        } catch is CloudUploadStopped {
-            debugLog("[CloudKit] Live backup not sent: sync was switched off or the account changed while it was prepared")
         } catch let error as CKError where CloudKitSyncManager.isZoneGone(error) {
             debugLog("[CloudKit] Live backup: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
             await zoneGone()
@@ -200,6 +198,9 @@ final class CloudKitLiveBackupManager {
     }
 
     private func handleUploadFailure(_ error: Error) {
+        guard !(error is CloudUploadStopped) else {
+            return debugLog("[CloudKit] Live backup not sent: sync was switched off or the account changed while it was prepared")
+        }
         guard !CloudKitSyncManager.isPermanentSchemaError(error) else {
             schemaUnavailable = true
             debugLog("[CloudKit] Live backup paused for this launch — RawBackup record type not in production schema", level: .error)
