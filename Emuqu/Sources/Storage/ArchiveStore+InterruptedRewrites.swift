@@ -14,7 +14,7 @@ import Foundation
 
 extension ArchiveStore {
     func interruptedRewriteMarker(for id: UUID) -> URL {
-        archive.archiveDirectory.appendingPathComponent("\(id.uuidString).rewriting")
+        state.archiveDirectory.appendingPathComponent("\(id.uuidString).rewriting")
     }
 
     /// Left before a rewrite of an archived session. A marker that cannot be
@@ -28,7 +28,7 @@ extension ArchiveStore {
     /// back with the old file).
     func markRewriteSettled(_ id: UUID) {
         let marker = interruptedRewriteMarker(for: id)
-        guard archive.fileManager.fileExists(atPath: marker.path) else { return }
-        attempt("Archive.clearRewriteMark") { try archive.fileManager.removeItem(at: marker) }
+        guard state.fileManager.fileExists(atPath: marker.path) else { return }
+        attempt("Archive.clearRewriteMark") { try state.fileManager.removeItem(at: marker) }
     }
 }

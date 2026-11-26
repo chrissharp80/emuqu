@@ -1,31 +1,12 @@
 import CryptoKit
 import Foundation
 
-/// Session archive manager for persistent storage
-///
-/// `@unchecked Sendable`. Every mutable field — `index`,
-/// `sortedEntriesCache`, `sessionIdLookup`, `deletedSessionIds` and the read
-/// counters — is guarded by `archiveLock`, and the guarantee is structural
-/// rather than incidental:
-///
-///   • Every non-private member of this file that touches those fields takes
-///     `archiveLock` first. Checked member by member, not sampled.
-///   • Of the helpers in `ArchiveStore+Internal.swift`, those that touch the
-///     fields without locking (`entryById`, `_retrieve`, `dropFromIndex`, …)
-///     run under the caller's lock; the leading underscore and
-///     `private`/internal scoping mark them as such. The rest take
-///     `archiveLock` themselves.
-///   • `retrieveLightweight` holds the lock only across index lookups and
-///     reads the file outside it. `retrieve` and the writes hold it across
-///     their file I/O and decoding, so a long write or full read makes other
-///     callers wait.
-///
-/// The conformance exists because callers legitimately read the archive from
-/// background tasks (`FitnessTabView+Sections` detaches its week-workout
-/// lookup), and the compiler cannot see a lock-based invariant. If you add a
-/// member here that touches the fields above, it takes the lock or it goes in
-/// `ArchiveStore+Internal.swift` where the convention says the caller already did.
-final class SessionArchive: @unchecked Sendable {
+/// Session archive manager for persistent storage: the API callers hold
+/// (`archive`, `update`, `retrieve`, `entries` through `store`) over the
+/// mechanics in `ArchiveStore`. Its mutable state, the in-memory index and
+/// everything else guarded by the archive lock, lives in `ArchiveIndexState`,
+/// which both this and `ArchiveStore` are given; neither holds the other.
+final class SessionArchive: Sendable {
     /// Shared archive policy tuning. These thresholds are used at multiple
     /// sites (the 0.85 containment ratio, the 1-hour import-duplicate
     /// window); one named home so the next change can't introduce drift
@@ -48,63 +29,24 @@ final class SessionArchive: @unchecked Sendable {
 
     // MARK: - Properties
 
-    /// The persistence mechanics, built on each access; it holds no state of its own.
+    /// The directory, the lock, the key and the in-memory index: what this
+    /// and `ArchiveStore` read and write.
+    let state: ArchiveIndexState
+
+    /// The persistence mechanics, built on each access over `state`; it holds
+    /// no state of its own.
     var store: ArchiveStore {
-        ArchiveStore(archive: self)
+        ArchiveStore(state: state)
     }
 
-    let archiveDirectory: URL
-    let indexFile: URL
-    let deletedIndexFile: URL
-    /// Mutable archive index — every read AND write MUST hold `archiveLock`.
-    /// A raw read while a locked writer mutates the CoW array buffer is
-    /// undefined behavior (a real crash race; readers such as
-    /// `SessionStorageDiagnostic` and `MorningNotificationScheduler` use the
-    /// lock-safe `entries` snapshot).
-    /// Setter cannot be tightened to `private(set)`: that ACL is
-    /// file-scoped, and `ArchiveMigrations+Steps`/`SessionArchive+Repair` legitimately
-    /// write `index` from other files while holding the lock.
-    var index: [SessionArchiveEntry] = []
-    /// Cached sorted entries — invalidated whenever `saveIndex()` is called.
-    var sortedEntriesCache: [SessionArchiveEntry]?
-    /// O(1) session lookup by ID — invalidated alongside sortedEntriesCache.
-    var sessionIdLookup: [UUID: SessionArchiveEntry]?
-    /// Tombstones for intentionally deleted sessions — same lock contract as
-    /// `index`: every read AND write MUST hold `archiveLock`. External callers
-    /// use the locked `deletedIds` accessor.
-    var deletedSessionIds: Set<UUID> = []
-    /// Set when `index.json` exists but could not be read at launch, or did
-    /// not decode and could not be moved aside; the in-memory index is then
-    /// incomplete, and a save reads the file again first. Same lock contract
-    /// as `index`.
-    var indexReadFailed = false
-    /// Set when `index.json` read but did not decode this launch (the bytes
-    /// were moved aside and the in-memory index started empty), so the index
-    /// does not list the sessions that file held. Same lock contract as `index`.
-    var indexDecodeFailed = false
-    /// The `index.json` entries a newer build wrote that this build would
-    /// lose by re-encoding them, kept as read so `saveIndex` writes them back
-    /// (`IndexEntriesFromNewerBuild`). Same lock contract as `index`.
-    var newerBuildIndexEntries = IndexEntriesFromNewerBuild()
-    /// The same for `deleted.json`: the in-memory tombstones are then only
-    /// the ones with a recorded deletion time, until the file reads (or,
-    /// undecodable, is moved aside).
-    var deletedIndexReadFailed = false
-    /// Recordings folded into a same-night session this launch, by their own
-    /// id (`archivedId(of:)`). Same lock contract as `index`.
-    private var foldedInto: [UUID: UUID] = [:]
-    let fileManager = FileManager.default
-    let archiveLock = NSLock()
+    var archiveDirectory: URL { state.archiveDirectory }
+    var indexFile: URL { state.indexFile }
+    var deletedIndexFile: URL { state.deletedIndexFile }
+    var fileManager: FileManager { state.fileManager }
+    var archiveLock: NSLock { state.archiveLock }
+    /// The key the session files and the index are sealed with.
+    var encryption: EncryptionManager { state.encryption }
 
-    /// Read-health counters surfaced to
-    /// **Settings → Troubleshooting → Archive read health** so a user
-    /// hitting the EPERM-storm pattern (1,557 failures in a 7-day debug
-    /// log) can SEE the issue rather than discover it via missing
-    /// trends and an AI with no context. Both counters are
-    /// app-launch-scoped (in memory only); reset by
-    /// `DataPurgeService.purgeAllUserData`.
-    private(set) var totalReadAttempts: Int = 0
-    private(set) var permissionDeniedReadFailures: Int = 0
     /// True when permission-denied failures reach more than 10 over the
     /// app session AND the success rate is below 50%. The
     /// Troubleshooting card surfaces a banner only when this is true,
@@ -113,21 +55,17 @@ final class SessionArchive: @unchecked Sendable {
     /// the read primitives run locked, so an unlocked two-field read
     /// here could see a torn pair.
     var hasReadHealthIssue: Bool {
-        archiveLock.lock()
-        defer { archiveLock.unlock() }
-        return permissionDeniedReadFailures > 10
-            && Double(permissionDeniedReadFailures) / Double(max(1, totalReadAttempts)) > 0.5
+        let counters = readHealthCounters
+        return counters.permissionDenied > 10
+            && Double(counters.permissionDenied) / Double(max(1, counters.attempts)) > 0.5
     }
-    /// Locked snapshot of both read-health counters as one pair. The
-    /// diagnostics page renders "X of Y reads failed" in a single
-    /// sentence — reading the two stored properties individually could
-    /// see a torn pair across the locked increments in
-    /// `retrieve` and `retrieveLightweight` (same race `hasReadHealthIssue`
-    /// seals).
+    /// Locked snapshot of both read-health counters as one pair
+    /// (`ArchiveIndexState.totalReadAttempts`). The diagnostics page renders
+    /// "X of Y reads failed" in a single sentence; reading the two counters
+    /// individually could see a torn pair across the locked increments in
+    /// `retrieve` and `retrieveLightweight`.
     var readHealthCounters: (attempts: Int, permissionDenied: Int) {
-        archiveLock.lock()
-        defer { archiveLock.unlock() }
-        return (totalReadAttempts, permissionDeniedReadFailures)
+        archiveLock.withLock { (state.totalReadAttempts, state.permissionDeniedReadFailures) }
     }
     /// Forget every session held in memory, after "Delete All My Data" has
     /// removed the files. Without this the index stayed in memory until a
@@ -138,33 +76,17 @@ final class SessionArchive: @unchecked Sendable {
     /// failed on the missing file, so every archive write failed until a
     /// relaunch.
     func resetInMemoryStateAfterPurge() {
-        archiveLock.lock()
-        index = []
-        newerBuildIndexEntries = IndexEntriesFromNewerBuild()
-        deletedSessionIds = []
-        indexReadFailed = false
-        indexDecodeFailed = false
-        deletedIndexReadFailed = false
-        foldedInto = [:]
-        sortedEntriesCache = nil
-        sessionIdLookup = nil
-        archiveLock.unlock()
+        archiveLock.withLock { state.resetIndexAfterPurge() }
         resetReadHealthCounters()
     }
 
     func resetReadHealthCounters() {
-        archiveLock.lock()
-        defer { archiveLock.unlock() }
-        totalReadAttempts = 0
-        permissionDeniedReadFailures = 0
+        archiveLock.withLock { state.resetReadCounters() }
     }
-    /// The key the session files and the index are sealed with.
-    let encryption: EncryptionManager
-    let sleepScheduleProvider: () -> SleepSchedule
-    let sessionMergeModeProvider: () -> SessionMergeMode
-    /// The user's merge gap in seconds: recordings of one night closer than
-    /// this are one sleep. Read only when the merge mode is not `.off`.
-    let mergeGapProvider: () -> TimeInterval
+
+    /// Whether the in-memory index lists every session `index.json` held
+    /// (`ArchiveIndexState.hasCompleteIndex`). Takes `archiveLock`.
+    var hasCompleteIndex: Bool { state.hasCompleteIndex }
 
     // MARK: - Shared JSON Coders
     //
@@ -215,63 +137,40 @@ final class SessionArchive: @unchecked Sendable {
 
     // MARK: - Initialization
 
-    // spec:long-function A memberwise initializer is one assignment per stored
-    // property and nothing else — no branches, no calls, no logic to extract.
-    // Swift additionally forbids calling a helper on `self` before every stored
-    // property is initialized, so the body cannot be split even mechanically.
-    // Splitting the TYPE would be the real fix; that is tracked separately and
-    // is not a formatting change.
+    /// `directory` is a test seam: every default-constructed instance points
+    /// at the SAME on-disk App Group directory, so test suites that need a
+    /// genuinely empty archive ("empty archive must remain empty" contracts)
+    /// would read residue left by other suites' killed runs. Passing an
+    /// explicit directory gives a hermetic instance; `nil` (production) keeps
+    /// the App Group → Documents → tmp fallback chain.
+    ///
+    /// LAUNCH PERF. `init` is the FIRST @State built, and it runs
+    /// synchronously before the first frame. `loadIndex` / `loadDeletedIndex`
+    /// are needed here so `entries`/`retrieve` work immediately, but the
+    /// orphan reconcile (a full-directory scan + per-orphan decode+SHA256) and
+    /// the tombstone mtime walk are NOT needed for first paint and scale with
+    /// file count; they would be the biggest synchronous launch cost, so they
+    /// wait for `boot()`, which the app calls off the main thread after first
+    /// paint.
     init(
-        // Test seam — every default-constructed instance points
-        // at the SAME on-disk App Group directory, so test suites that need
-        // a genuinely empty archive ("empty archive must remain empty"
-        // contracts) would read residue left by other suites' killed runs.
-        // Passing an explicit directory gives a hermetic instance; `nil`
-        // (production) keeps the App Group → Documents → tmp fallback chain
-        // unchanged.
         directory: URL?,
         encryption: EncryptionManager,
         sleepScheduleProvider: @escaping () -> SleepSchedule,
         sessionMergeModeProvider: @escaping () -> SessionMergeMode,
         mergeGapProvider: @escaping () -> TimeInterval
     ) {
-        self.encryption = encryption
-        self.sleepScheduleProvider = sleepScheduleProvider
-        self.sessionMergeModeProvider = sessionMergeModeProvider
-        self.mergeGapProvider = mergeGapProvider
-        // App Group container first, Documents when it is unavailable. iOS
-        // removes the container with the last app of the group, so neither
-        // location survives deleting the app.
-        if let directory {
-            archiveDirectory = directory
-        } else if let containerURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
-            archiveDirectory = containerURL.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
-        } else if let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            archiveDirectory = documentsPath.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
-        } else {
-            // Fallback to temporary directory (should never happen on iOS)
-            archiveDirectory = fileManager.temporaryDirectory.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
-            debugLog("[Archive] WARNING: Using temporary directory as fallback — iOS may purge sessions written there", level: .error)
-        }
-        indexFile = archiveDirectory.appendingPathComponent("index.json")
-        deletedIndexFile = archiveDirectory.appendingPathComponent("deleted.json")
-
-        createArchiveDirectoryIfNeeded()
-        loadIndex()
-        loadDeletedIndex()
-
-        // LAUNCH PERF. `init` is the FIRST @State built,
-        // and it runs synchronously before the first frame. `loadIndex` /
-        // `loadDeletedIndex` are needed here so `entries`/`retrieve` work
-        // immediately, but the orphan reconcile (a full-directory scan +
-        // per-orphan decode+SHA256) and the tombstone mtime walk are NOT
-        // needed for first paint and scale with file count — they would be
-        // the biggest synchronous launch cost. Deferred to `boot()`,
-        // which the app calls off the main thread after first paint.
-
+        state = ArchiveIndexState(
+            directory: directory, encryption: encryption,
+            mergeSettings: ArchiveIndexState.MergeSettings(
+                sleepSchedule: sleepScheduleProvider, mode: sessionMergeModeProvider, gap: mergeGapProvider
+            )
+        )
+        state.createArchiveDirectoryIfNeeded()
+        state.loadIndex()
+        state.loadDeletedIndex()
         // Only log if count is unusual (helps debug archive corruption)
-        if index.count == 0 || index.count > 1000 {
-            debugLog("[Archive] Loaded \(index.count) sessions from archive")
+        if state.index.count == 0 || state.index.count > 1000 {
+            debugLog("[Archive] Loaded \(state.index.count) sessions from archive")
         }
     }
 
@@ -304,8 +203,8 @@ final class SessionArchive: @unchecked Sendable {
     private func retryFailedIndexLoad() {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        attempt("Archive.retryIndexLoad") { try mergeIndexThatFailedToLoad() }
-        attempt("Archive.retryDeletedIndexLoad") { try mergeDeletedIndexThatFailedToLoad() }
+        attempt("Archive.retryIndexLoad") { try state.mergeIndexThatFailedToLoad() }
+        attempt("Archive.retryDeletedIndexLoad") { try state.mergeDeletedIndexThatFailedToLoad() }
     }
 
     /// Deliberately quiet. A per-tombstone dump (53 entries in the
@@ -316,7 +215,7 @@ final class SessionArchive: @unchecked Sendable {
     /// via Settings → Diagnostics → "Scan Archive Directory".
     private func logTombstoneSummary() {
         archiveLock.lock()
-        let deletedSnapshot = deletedSessionIds
+        let deletedSnapshot = state.deletedSessionIds
         archiveLock.unlock()
         guard !deletedSnapshot.isEmpty else { return }
         if hasTombstoneNewerThan(Date().addingTimeInterval(-30 * 86_400), in: deletedSnapshot) {
@@ -360,8 +259,8 @@ final class SessionArchive: @unchecked Sendable {
             return
         }
         archiveLock.lock()
-        let indexedFiles = Set(index.map(\.filePath))
-        let deleted = deletedSessionIds.union(ForgottenSessions.ids)
+        let indexedFiles = Set(state.index.map(\.filePath))
+        let deleted = state.deletedSessionIds.union(ForgottenSessions.ids)
         archiveLock.unlock()
         let newEntries = files.compactMap {
             orphanEntry(for: $0, indexedFiles: indexedFiles, deleted: deleted)
@@ -428,11 +327,11 @@ final class SessionArchive: @unchecked Sendable {
     /// concurrent `archive()` write of the same file can't duplicate an entry.
     private func adoptOrphans(_ newEntries: [SessionArchiveEntry]) {
         archiveLock.lock()
-        let currentFiles = Set(index.map(\.filePath))
+        let currentFiles = Set(state.index.map(\.filePath))
         let toAdopt = newEntries.filter { !currentFiles.contains($0.filePath) }
         if !toAdopt.isEmpty {
-            index.append(contentsOf: toAdopt)
-            _ = attempt("Archive.save") { try saveIndex() }
+            state.index.append(contentsOf: toAdopt)
+            _ = attempt("Archive.save") { try state.saveIndex() }
         }
         archiveLock.unlock()
         if !toAdopt.isEmpty {
@@ -502,7 +401,7 @@ final class SessionArchive: @unchecked Sendable {
         if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
         archiveLock.lock()
         let entry: SessionArchiveEntry
-        let wasArchived = index.contains { $0.sessionId == session.id }
+        let wasArchived = state.index.contains { $0.sessionId == session.id }
         do {
             entry = try store._archive(session, skipSameNightMerge: skipSameNightMerge)
         } catch {
@@ -510,7 +409,7 @@ final class SessionArchive: @unchecked Sendable {
             throw error
         }
         let folded = entry.sessionId != session.id
-        if folded { foldedInto[session.id] = entry.sessionId }
+        if folded { state.foldedInto[session.id] = entry.sessionId }
         archiveLock.unlock()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id)
         if folded || (requestingReupload && wasArchived) {
@@ -522,7 +421,7 @@ final class SessionArchive: @unchecked Sendable {
     /// The id a recording was archived under: its own, or that of the
     /// same-night session it was folded into during this launch.
     func archivedId(of id: UUID) -> UUID {
-        archiveLock.withLock { foldedInto[id] } ?? id
+        archiveLock.withLock { state.foldedInto[id] } ?? id
     }
 
     /// Change fields of the archived copy in place: read, change and write
@@ -575,16 +474,7 @@ final class SessionArchive: @unchecked Sendable {
     /// - Parameter id: Session ID
     /// - Returns: The session, or nil if not found
     func retrieve(_ id: UUID) throws -> HRVSession? {
-        archiveLock.lock()
-        defer { archiveLock.unlock() }
-        do {
-            let session = try store._retrieve(id)
-            countRead(failure: nil)
-            return session
-        } catch {
-            countRead(failure: error)
-            throw error
-        }
+        try store.retrieveCounted(id)
     }
 
     /// Retrieve a session, logging and returning nil on failure instead of throwing.
@@ -607,23 +497,6 @@ final class SessionArchive: @unchecked Sendable {
             debugLog("[SessionArchive] \(caller): failed to retrieve lightweight \(id.uuidString.prefix(8)): \(error)")
             SessionReadWatch.failures?.record()
             return nil
-        }
-    }
-
-    /// Count one read of a session file, and a permission-denied failure,
-    /// so the Troubleshooting card can surface a recovery prompt when the
-    /// EPERM-storm pattern recurs. Every full and lightweight read is
-    /// counted. Caller holds `archiveLock`.
-    private func countRead(failure error: Error?) {
-        totalReadAttempts += 1
-        guard let error else { return }
-        if let nsError = error as NSError?,
-           nsError.domain == NSCocoaErrorDomain,
-           nsError.code == 257 { // NSFileReadNoPermissionError
-            permissionDeniedReadFailures += 1
-        } else if let posix = (error as NSError?)?.userInfo[NSUnderlyingErrorKey] as? NSError,
-                  posix.domain == NSPOSIXErrorDomain, posix.code == 1 {
-            permissionDeniedReadFailures += 1
         }
     }
 
@@ -652,7 +525,7 @@ final class SessionArchive: @unchecked Sendable {
             archiveLock.lock()
             defer { archiveLock.unlock() }
             guard let entry = store.entryById(id) else { return nil }
-            fileURL = resolveFileURL(for: entry)
+            fileURL = state.resolveFileURL(for: entry)
         }
         do {
             guard fileManager.fileExists(atPath: fileURL.path) else {
@@ -660,11 +533,164 @@ final class SessionArchive: @unchecked Sendable {
             }
             let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id, encryption: encryption)
             let session = try Self.lightweightSessionDecoder.decode(HRVSession.self, from: plaintext)
-            archiveLock.withLock { countRead(failure: nil) }
+            archiveLock.withLock { state.countRead(failure: nil) }
             return session
         } catch {
-            archiveLock.withLock { countRead(failure: error) }
+            archiveLock.withLock { state.countRead(failure: error) }
             throw error
         }
+    }
+}
+
+/// What the archive's persistence mechanics read and write: where the files
+/// are, the lock, the key, the same-night merge settings, and the in-memory
+/// index with its tombstones and read counters. `SessionArchive` owns one and
+/// builds each `ArchiveStore` over it, so the store reaches this small set
+/// and nothing else of the archive. Index persistence (load, merge, save,
+/// protection classes) is in `SessionArchive+IndexIO.swift`.
+///
+/// `@unchecked Sendable`. Every mutable field (`index`, `sortedEntriesCache`,
+/// `sessionIdLookup`, `deletedSessionIds`, the read-failure flags, the folds
+/// and the read counters) is guarded by `archiveLock`, and the guarantee is
+/// structural rather than incidental:
+///
+///   • Every non-private member of `SessionArchive` that touches those fields
+///     takes `archiveLock` first. Checked member by member, not sampled.
+///   • Of the helpers in `ArchiveStore+Internal.swift`, those that touch the
+///     fields without locking (`entryById`, `_retrieve`, `dropFromIndex`, …)
+///     run under the caller's lock; the leading underscore and
+///     `private`/internal scoping mark them as such. The rest take
+///     `archiveLock` themselves.
+///   • `retrieveLightweight` holds the lock only across index lookups and
+///     reads the file outside it. `retrieve` and the writes hold it across
+///     their file I/O and decoding, so a long write or full read makes other
+///     callers wait.
+///
+/// The conformance exists because callers legitimately read the archive from
+/// background tasks (`FitnessTabView+Sections` detaches its week-workout
+/// lookup), and the compiler cannot see a lock-based invariant. A member
+/// added anywhere that touches the fields above takes the lock, or goes in
+/// `ArchiveStore+Internal.swift` where the convention says the caller already did.
+final class ArchiveIndexState: @unchecked Sendable {
+    /// The user's same-night merge settings, read when a recording is archived.
+    struct MergeSettings {
+        let sleepSchedule: () -> SleepSchedule
+        let mode: () -> SessionMergeMode
+        /// The user's merge gap in seconds: recordings of one night closer than
+        /// this are one sleep. Read only when the merge mode is not `.off`.
+        let gap: () -> TimeInterval
+    }
+
+    let archiveDirectory: URL
+    let indexFile: URL
+    let deletedIndexFile: URL
+    let fileManager = FileManager.default
+    let archiveLock = NSLock()
+    /// The key the session files and the index are sealed with.
+    let encryption: EncryptionManager
+    let mergeSettings: MergeSettings
+
+    /// Mutable archive index: every read AND write MUST hold `archiveLock`.
+    /// A raw read while a locked writer mutates the CoW array buffer is
+    /// undefined behavior (a real crash race; readers such as
+    /// `SessionStorageDiagnostic` and `MorningNotificationScheduler` use the
+    /// lock-safe `entries` snapshot).
+    var index: [SessionArchiveEntry] = []
+    /// Cached sorted entries, invalidated whenever `saveIndex()` is called.
+    var sortedEntriesCache: [SessionArchiveEntry]?
+    /// O(1) session lookup by ID, invalidated alongside sortedEntriesCache.
+    var sessionIdLookup: [UUID: SessionArchiveEntry]?
+    /// Tombstones for intentionally deleted sessions, same lock contract as
+    /// `index`. External callers use the locked `deletedIds` accessor.
+    var deletedSessionIds: Set<UUID> = []
+    /// Set when `index.json` exists but could not be read at launch, or did
+    /// not decode and could not be moved aside; the in-memory index is then
+    /// incomplete, and a save reads the file again first.
+    var indexReadFailed = false
+    /// Set when `index.json` read but did not decode this launch (the bytes
+    /// were moved aside and the in-memory index started empty), so the index
+    /// does not list the sessions that file held.
+    var indexDecodeFailed = false
+    /// The `index.json` entries a newer build wrote that this build would
+    /// lose by re-encoding them, kept as read so `saveIndex` writes them back
+    /// (`IndexEntriesFromNewerBuild`).
+    var newerBuildIndexEntries = IndexEntriesFromNewerBuild()
+    /// The same for `deleted.json`: the in-memory tombstones are then only
+    /// the ones with a recorded deletion time, until the file reads (or,
+    /// undecodable, is moved aside).
+    var deletedIndexReadFailed = false
+    /// Recordings folded into a same-night session this launch, by their own
+    /// id (`SessionArchive.archivedId(of:)`).
+    var foldedInto: [UUID: UUID] = [:]
+
+    /// Read-health counters surfaced to
+    /// **Settings → Troubleshooting → Archive read health** so a user
+    /// hitting the EPERM-storm pattern (1,557 failures in a 7-day debug
+    /// log) can SEE the issue rather than discover it via missing
+    /// trends and an AI with no context. Both counters are
+    /// app-launch-scoped (in memory only); reset by
+    /// `DataPurgeService.purgeAllUserData`.
+    private(set) var totalReadAttempts: Int = 0
+    private(set) var permissionDeniedReadFailures: Int = 0
+
+    /// App Group container first, Documents when it is unavailable. iOS
+    /// removes the container with the last app of the group, so neither
+    /// location survives deleting the app.
+    init(directory: URL?, encryption: EncryptionManager, mergeSettings: MergeSettings) {
+        archiveDirectory = directory ?? Self.defaultDirectory(fileManager: .default)
+        indexFile = archiveDirectory.appendingPathComponent("index.json")
+        deletedIndexFile = archiveDirectory.appendingPathComponent("deleted.json")
+        self.encryption = encryption
+        self.mergeSettings = mergeSettings
+    }
+
+    private static func defaultDirectory(fileManager: FileManager) -> URL {
+        if let containerURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
+            return containerURL.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
+        }
+        if let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            return documentsPath.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
+        }
+        // Fallback to temporary directory (should never happen on iOS)
+        debugLog("[Archive] WARNING: Using temporary directory as fallback, iOS may purge sessions written there", level: .error)
+        return fileManager.temporaryDirectory.appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true)
+    }
+
+    /// Count one read of a session file, and a permission-denied failure,
+    /// so the Troubleshooting card can surface a recovery prompt when the
+    /// EPERM-storm pattern recurs. Every full and lightweight read is
+    /// counted. Caller holds `archiveLock`.
+    func countRead(failure error: Error?) {
+        totalReadAttempts += 1
+        guard let error else { return }
+        if let nsError = error as NSError?,
+           nsError.domain == NSCocoaErrorDomain,
+           nsError.code == 257 { // NSFileReadNoPermissionError
+            permissionDeniedReadFailures += 1
+        } else if let posix = (error as NSError?)?.userInfo[NSUnderlyingErrorKey] as? NSError,
+                  posix.domain == NSPOSIXErrorDomain, posix.code == 1 {
+            permissionDeniedReadFailures += 1
+        }
+    }
+
+    /// Caller holds `archiveLock`.
+    func resetReadCounters() {
+        totalReadAttempts = 0
+        permissionDeniedReadFailures = 0
+    }
+
+    /// Everything about the sessions held in memory, after "Delete All My
+    /// Data" removed the files (`SessionArchive.resetInMemoryStateAfterPurge`).
+    /// Caller holds `archiveLock`.
+    func resetIndexAfterPurge() {
+        index = []
+        newerBuildIndexEntries = IndexEntriesFromNewerBuild()
+        deletedSessionIds = []
+        indexReadFailed = false
+        indexDecodeFailed = false
+        deletedIndexReadFailed = false
+        foldedInto = [:]
+        sortedEntriesCache = nil
+        sessionIdLookup = nil
     }
 }

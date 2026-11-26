@@ -31,6 +31,12 @@ final class WorkoutSessionLifecycle {
     let voiceCoach: WorkoutVoiceCoach
     let ticker: WorkoutTicker
     let aiContext: WorkoutAIContextBuilder
+    /// The archive write a finished workout goes through (`WorkoutSaveSeam`).
+    var saveSeam = WorkoutSaveSeam()
+    /// The unlock and activation observers that retry an unsaved workout,
+    /// installed while one is unsaved (`WorkoutSessionLifecycle+Save.swift`).
+    let saveRetryObservers = NotificationTokens()
+    var saveRetryObserving = false
 
     init(
         core: RecordingCore, services: WorkoutServices, settingsProvider: @escaping @MainActor () -> UserSettings,
@@ -44,6 +50,10 @@ final class WorkoutSessionLifecycle {
         (self.intervalController, self.routeGuidance, self.sensors) = (intervalController, routeGuidance, sensors)
         (self.capture, self.signals, self.coaching) = (capture, signals, coaching)
         (self.pauseControl, self.voiceCoach, self.ticker, self.aiContext) = (pauseControl, voiceCoach, ticker, aiContext)
+    }
+
+    deinit {
+        saveRetryObservers.removeAll()
     }
 
     /// The paired Watch, whose own workout session start brings up.

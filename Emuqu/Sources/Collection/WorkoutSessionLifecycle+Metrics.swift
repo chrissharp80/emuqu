@@ -167,75 +167,12 @@ extension WorkoutSessionLifecycle {
         ]
     }
 
-    /// Persist the finished workout, then fan out the redundant-backup cleanup,
-    /// cloud upload and HealthKit export.
-    ///
-    /// archive success is logged explicitly so the
-    /// user's debug log shows the workout actually persisted. The
-    /// failure path logs ("Archive failed: …"); with a silent happy
-    /// path, when the AI claims "no workout history" and the log
-    /// lacks any "archived" line, we can't tell whether the write
-    /// succeeded silently or never ran. Both paths are visible.
-    ///
-    /// On failure the persisted state + unarchived raw backup stay in place so
-    /// the next app launch can recover via SessionRecoveryService. The
-    /// session is still shown in .finished state so the user sees
-    /// what was captured; recovery is a safety net, not the primary path.
-    ///
-    /// An accidental start (finalize classifies a session with no heart
-    /// rate, no movement and under 30 samples as `.failed`) is not archived:
-    /// its backups are retired as for an archived one, and it never reaches
-    /// history, iCloud or Apple Health.
-    func archive(session: HRVSession) async {
-        guard session.state != .failed else {
-            retireRedundantBackups(for: session)
-            debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) (no heart rate, movement or samples) — not archived")
-            return
-        }
-        do {
-            _ = try core.archive.archive(session)
-            debugLog("[WorkoutRecorder] archived session id=\(session.id.uuidString.prefix(8)) sport=\(session.workoutMetadata?.sport.rawValue ?? "?") type=\(session.sessionType.rawValue)")
-            core.notifyArchiveChanged()
-            retireRedundantBackups(for: session)
-            let cloudSync = core.cloudSyncManager
-            Task(priority: .utility) {
-                await cloudSync.uploadSession(session)
-            }
-            exportToHealthKitIfAvailable(session)
-        } catch {
-            debugLog("[WorkoutRecorder] Archive failed: \(error) — leaving raw backup for recovery", level: .warning)
-        }
-    }
-
-    /// A successful archive makes the raw backup redundant. Marking it stops
-    /// SessionRecoveryService offering to "recover" a session that already
-    /// lives in history, and clearing persisted state stops the next app
-    /// launch prompting the user to recover.
-    ///
-    /// The workout-side track + samples + baro backups are redundant too (the
-    /// same data lives inside the session's `WorkoutMetadata`), so they're
-    /// dropped rather than left to accumulate as stale per-session files in
-    /// the App Group.
-    ///
-    /// The persisted state is one key shared with RRCollector's overnight and
-    /// quick recordings, so it is cleared only when it is this workout's; the
-    /// check and clear run on `recordingStateQueue` after the start's save.
-    private func retireRedundantBackups(for session: HRVSession) {
-        core.rawBackup.markAsArchived(session.id)
-        services.workoutTrackBackup.discard(session.id)
-        let sessionId = session.id
-        Self.recordingStateQueue.async {
-            guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
-            PersistedRecordingState.clear()
-        }
-    }
-
     /// Publish to HealthKit as an HKWorkout so the session appears in
     /// Apple Fitness / Health and is visible to third-party apps
     /// linked through HealthKit (TrainingPeaks, Athlytic, Zones).
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
-    private func exportToHealthKitIfAvailable(_ session: HRVSession) {
+    func exportToHealthKitIfAvailable(_ session: HRVSession) {
         let healthStore = core.healthAccess.store
         let sampleStore = core.healthSampleStore
         let weight = settingsProvider().effectiveBodyWeightKg

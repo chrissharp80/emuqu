@@ -186,6 +186,7 @@ extension WorkoutSessionLifecycle {
     /// thresholds, route and last summary as they were.
     func applyStartParameters(thresholds: [WorkoutThreshold], route: Route?) {
         lifecycle.finishedSession = nil
+        lifecycle.saveOutcome = nil
         coaching.thresholds = WorkoutThresholdWatch(thresholds: thresholds)
         routeGuidance.planned = route
         routeGuidance.savedRouteId = nil
