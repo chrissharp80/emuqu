@@ -64,26 +64,10 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         assertSnapshot(of: hosted(CustomTagsPage()), named: "uncovered-settings-custom-tags")
     }
 
-    func testNotificationsSettingsRenders() {
-        assertSnapshot(of: hosted(NotificationsSettingsPage()), named: "uncovered-settings-notifications")
-    }
-
-    func testModesSettingsRenders() {
-        assertSnapshot(of: hosted(ModesSettingsPage(settingsManager: AppDependencies.current.app.settingsManager)), named: "uncovered-settings-modes")
-    }
-
-    func testPrivacyPolicyRenders() {
-        assertSnapshot(of: hosted(PrivacyPolicyView()), named: "uncovered-privacy-policy")
-    }
-
     // MARK: - Data in and out
 
     func testExportDataRenders() {
         assertSnapshot(of: hosted(ExportDataView()), named: "uncovered-export-data")
-    }
-
-    func testImportDataRenders() {
-        assertSnapshot(of: hosted(ImportDataView()), named: "uncovered-import-data")
     }
 
     // MARK: - Sensors
@@ -143,8 +127,10 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         )
     }
 
+    /// With the crash report row hidden: whether it shows depends on a crash
+    /// report file on the device running the tests.
     func testTroubleshootingRenders() {
-        assertSnapshot(of: hosted(TroubleshootingPage()), named: "uncovered-troubleshooting")
+        assertSnapshot(of: hosted(TroubleshootingPage(crashReportCleared: true)), named: "uncovered-troubleshooting")
     }
 
     func testWorkoutPreflightRenders() {

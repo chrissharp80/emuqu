@@ -113,3 +113,70 @@ final class ComponentSnapshotTests: XCTestCase {
         )
     }
 }
+
+/// The harness itself: a UIKit-backed view renders as itself, and the
+/// placeholder `ImageRenderer` draws for such a view is recognised and refused.
+@MainActor
+final class SnapshotHarnessTests: XCTestCase {
+    /// Scroll content in a navigation stack: the shape most screens have, and
+    /// one `ImageRenderer` cannot draw.
+    private var uikitBacked: some View {
+        NavigationStack {
+            ScrollView {
+                Text(verbatim: "Snapshot harness").font(.largeTitle)
+                Color.blue.frame(height: 120)
+            }
+            .navigationTitle(Text(verbatim: "Harness"))
+        }
+    }
+
+    func testAUIKitBackedViewRendersAsItselfNotThePlaceholder() throws {
+        let shot = try XCTUnwrap(SnapshotTesting.render(uikitBacked))
+        XCTAssertFalse(SnapshotTesting.isBlank(shot.pixels), "the view drew nothing")
+        XCTAssertFalse(
+            SnapshotTesting.isUnsupportedPlaceholder(shot.pixels, width: shot.width),
+            "the harness drew the unsupported-content placeholder instead of the view"
+        )
+    }
+
+    func testImageRenderersPlaceholderIsRecognised() throws {
+        let renderer = ImageRenderer(content: uikitBacked.frame(width: 402, height: 874))
+        renderer.scale = 1
+        let image = try XCTUnwrap(renderer.cgImage)
+        let shot = try XCTUnwrap(SnapshotTesting.rgba(image))
+        XCTAssertFalse(SnapshotTesting.isBlank(shot.pixels), "the placeholder is not one colour, so isBlank alone passes it")
+        XCTAssertTrue(
+            SnapshotTesting.isUnsupportedPlaceholder(shot.pixels, width: shot.width),
+            "ImageRenderer's placeholder for a navigation stack was not recognised"
+        )
+    }
+
+    /// The placeholder in place of one small subview (a spinner in a card)
+    /// is caught too, not only one covering the whole capture.
+    func testASubviewSizedPlaceholderIsRecognised() throws {
+        let card = HStack {
+            Text(verbatim: "Downloading")
+            Spacer()
+            ProgressView()
+        }
+        .padding()
+        let renderer = ImageRenderer(content: card.frame(width: 402, height: 200))
+        renderer.scale = 1
+        let shot = try XCTUnwrap(SnapshotTesting.rgba(XCTUnwrap(renderer.cgImage)))
+        XCTAssertTrue(
+            SnapshotTesting.isUnsupportedPlaceholder(shot.pixels, width: shot.width),
+            "ImageRenderer's placeholder for a spinner was not recognised"
+        )
+    }
+
+    /// A screen with a yellow badge and red text is not the placeholder.
+    func testARealScreenWithYellowAndRedIsNotThePlaceholder() throws {
+        let view = VStack(spacing: 24) {
+            Capsule().fill(Color(.systemYellow)).frame(width: 160, height: 40)
+            Text(verbatim: "Low recovery").font(.title).foregroundStyle(Color(.systemRed))
+            Capsule().fill(Color(.systemYellow)).frame(width: 80, height: 40)
+        }
+        let shot = try XCTUnwrap(SnapshotTesting.render(view))
+        XCTAssertFalse(SnapshotTesting.isUnsupportedPlaceholder(shot.pixels, width: shot.width))
+    }
+}

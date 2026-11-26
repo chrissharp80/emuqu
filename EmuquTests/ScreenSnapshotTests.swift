@@ -26,61 +26,20 @@ final class ScreenSnapshotTests: XCTestCase {
         )
     }
 
-    // MARK: - History
-
-    func testHistoryCalendarWithSessionsRenders() {
-        let sessions = (0 ..< 12).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
-        assertSnapshot(
-            of: NavigationStack {
-                HistoryCalendarView(allSessions: sessions, onDelete: { _ in false })
-            },
-            named: "screen-history-calendar"
-        )
-    }
-
-    /// The empty calendar is what a new user sees, and it is the state most
-    /// likely to be broken by a change written against populated data.
-    func testHistoryCalendarEmptyRenders() {
-        assertSnapshot(
-            of: NavigationStack {
-                HistoryCalendarView(allSessions: [], onDelete: { _ in false })
-            },
-            named: "screen-history-calendar-empty"
-        )
-    }
-
-    // MARK: - Settings subpages
+    // MARK: - Not pinned
     //
-    // Reached rarely, so rarely looked at, and the diagnostic ones are what a
-    // user opens when something has already gone wrong.
-
-    func testErrorCatalogRenders() {
-        assertSnapshot(
-            of: NavigationStack { ErrorCatalogView() },
-            named: "screen-error-catalog"
-        )
-    }
-
-    func testDebugLogRenders() {
-        assertSnapshot(
-            of: NavigationStack { DebugLogView() },
-            named: "screen-debug-log"
-        )
-    }
-
-    func testCrashLogRenders() {
-        assertSnapshot(
-            of: NavigationStack { CrashLogView() },
-            named: "screen-crash-log"
-        )
-    }
-
-    func testPermissionsSettingsRenders() {
-        assertSnapshot(
-            of: NavigationStack { PermissionsSettingsPage() },
-            named: "screen-permissions"
-        )
-    }
+    // A reference must be the same picture on every machine on every day.
+    // These screens draw something no fixture here controls, so they have no
+    // snapshot:
+    //
+    // - `HistoryCalendarView` opens on the month that contains today, so its
+    //   picture changes every month.
+    // - `ErrorCatalogView` and `DebugLogView` list the process's own log, which
+    //   the tests running before them write to, with the time each line was
+    //   written.
+    // - `CrashLogView` reads the crash reports on the device running the tests.
+    // - `PermissionsSettingsPage` shows the Apple Health authorization the
+    //   simulator happens to hold.
 
     // MARK: - Safety
 

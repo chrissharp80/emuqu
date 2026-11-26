@@ -123,14 +123,14 @@ enum SnapshotFixtures {
         }
     }
 
-    static func workoutSession() -> HRVSession {
+    static func workoutSession(start: Date = anchor) -> HRVSession {
         var meta = WorkoutMetadata(sport: .run)
         meta.samples = workoutSamples()
         meta.distanceMeters = 10_800
         meta.elevationGainMeters = 60
         meta.elevationLossMeters = 12
-        var session = HRVSession(startDate: anchor, sessionType: .workout)
-        session.endDate = anchor.addingTimeInterval(2_400)
+        var session = HRVSession(startDate: start, sessionType: .workout)
+        session.endDate = start.addingTimeInterval(2_400)
         session.state = .complete
         session.workoutMetadata = meta
         return session
@@ -193,14 +193,24 @@ extension SnapshotFixtures {
     static let emptyArchiveDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("SnapshotFixtures-EmptyArchive", isDirectory: true)
 
-    /// A collector over `emptyArchiveDirectory` instead of the app's archive.
+    /// A collector over `emptyArchiveDirectory` instead of the app's archive,
+    /// with a baseline of its own there too: the dashboard gates its verdict
+    /// on the baseline's night count, which the app's baseline would set to
+    /// whatever the simulator running the tests has recorded.
     @MainActor
     static func collector() -> RRCollector {
-        RRCollector(
+        let archive = SessionArchive(directory: emptyArchiveDirectory)
+        let hermetic = AppDependencies()
+        hermetic.overrides.sessionArchive = archive
+        hermetic.overrides.baselineTracker = BaselineTracker(
+            baselineFile: emptyArchiveDirectory.appendingPathComponent("HRVBaseline.json")
+        )
+        return RRCollector(
             polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
-            archive: SessionArchive(directory: emptyArchiveDirectory),
+            archive: archive,
+            baselineTracker: hermetic.collection.baselineTracker,
             settingsManager: AppDependencies.current.app.settingsManager,
-            services: CollectorServices(.current)
+            services: CollectorServices(hermetic)
         )
     }
 }
@@ -215,5 +225,24 @@ extension XCTestCase {
         let saved = SettingsManager.shared.settings
         SettingsManager.shared.settings = UserSettings()
         addTeardownBlock { @MainActor in SettingsManager.shared.settings = saved }
+    }
+}
+
+extension XCTestCase {
+    /// Empties the dashboard's cold-start cache for this test and puts back
+    /// what it held afterwards. With no sessions the dashboard paints the
+    /// last score it cached, which on the machine running the tests is
+    /// whatever that simulator last showed; the cache has no injectable
+    /// instance, so this is how an empty-dashboard snapshot stops depending
+    /// on it.
+    @MainActor
+    func useEmptyDashboardCache() {
+        let cache = AppDependencies.current.storage.uiStateCache
+        let saved = (dashboard: cache.dashboard, fitness: cache.fitness)
+        cache.forgetAfterPurge()
+        addTeardownBlock { @MainActor in
+            if let dashboard = saved.dashboard { cache.setDashboard(dashboard) }
+            if let fitness = saved.fitness { cache.setFitness(fitness) }
+        }
     }
 }

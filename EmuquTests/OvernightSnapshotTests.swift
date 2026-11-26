@@ -13,7 +13,7 @@ import XCTest
 final class OvernightSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(ArchiveSignal())
     }

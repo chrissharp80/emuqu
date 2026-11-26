@@ -1,3 +1,4 @@
+@testable import Emuqu
 import SwiftUI
 import UIKit
 import XCTest
@@ -68,12 +69,15 @@ extension SnapshotTesting {
     /// format times through `Calendar.current` and `DateFormatter`, which
     /// read it rather than the SwiftUI environment.
     ///
-    /// `ImageRenderer`, not `UIHostingController.layer.render(in:)`. The first
-    /// version of this harness used the hosting-view layer and produced five
-    /// references that were a single flat colour — SwiftUI does not draw
-    /// through that path without a live window, so every "passing" snapshot
-    /// would have been a blank rectangle compared against a blank rectangle.
-    /// `isBlank` below exists so that cannot recur silently.
+    /// The view is drawn the way the app draws it: hosted in a
+    /// `UIHostingController` that is the root of a real `UIWindow` of exactly
+    /// `size`, laid out, and captured with `drawHierarchy(in:afterScreenUpdates:)`.
+    /// `ImageRenderer` is not used: it draws a yellow field with a red
+    /// prohibition sign in place of anything UIKit-backed (`NavigationStack`,
+    /// `ScrollView`, `List`, `Map`, some charts), so a screen built from those
+    /// renders as that sign and its test compares the sign with itself. A
+    /// hosting view's layer rendered without a window draws a flat colour.
+    /// `isBlank` and `isUnsupportedPlaceholder` below refuse both captures.
     @MainActor
     static func render(
         _ view: some View,
@@ -82,38 +86,129 @@ extension SnapshotTesting {
         let hostTimeZone = NSTimeZone.default
         NSTimeZone.default = timeZone
         defer { NSTimeZone.default = hostTimeZone }
-        let renderer = ImageRenderer(
-            content: view
-                .frame(width: size.width, height: size.height)
-                .background(Color(.systemBackground))
-                .environment(\.colorScheme, .light)
-                .environment(\.locale, Locale(identifier: "en_US"))
-                .environment(\.timeZone, timeZone)
-                .environment(\.layoutDirection, .leftToRight)
-        )
-        renderer.scale = scale
-        renderer.proposedSize = ProposedViewSize(size)
-        guard let cg = renderer.cgImage else { return nil }
+        let isolated = isolatedDependencies()
+        let installed = AppDependencies.install(isolated.dependencies)
+        let window = SnapshotWindow(size: size)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            installed.end()
+            isolated.discard()
+        }
+        let pinnedView = pinned(view, size: size).environment(\.dependencies, isolated.dependencies)
+        window.rootViewController = UIHostingController(rootView: pinnedView)
+        window.isHidden = false
+        guard let image = settle(window) else { return nil }
+        return rgba(image)
+    }
 
-        let width = cg.width
-        let height = cg.height
-        guard width > 0, height > 0 else { return nil }
+    /// A container over empty stores of the render's own (settings on
+    /// fresh-install defaults, an empty archive and baseline in a temporary
+    /// folder), put in force and in the environment for the render. A view
+    /// rendered in a window runs its `onAppear` and `task` and reads the
+    /// archive and settings it finds; without this it would draw whatever the
+    /// simulator running the tests holds, which differs by machine and run.
+    @MainActor
+    static func isolatedDependencies() -> (dependencies: AppDependencies, discard: () -> Void) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Snapshot-\(UUID().uuidString)", isDirectory: true)
+        let settings = SettingsManager(settingsURL: directory.appendingPathComponent("user_settings.json"))
+        let dependencies = AppDependencies()
+        dependencies.overrides.settingsManager = settings
+        dependencies.overrides.sessionArchive = SessionArchive(directory: directory)
+        dependencies.overrides.baselineTracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+        dependencies.overrides.archiveSignal = ArchiveSignal()
+        return (dependencies, {
+            _ = settings.flushPendingWritesSynchronously()
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        })
+    }
 
+    /// The view at `size` with every environment value a render depends on
+    /// fixed, so the host's settings never reach a reference. Reduce Motion
+    /// is on: the app's views then skip their reveal, digit-roll and
+    /// breathing animations and draw their final state, which is the state a
+    /// reference should hold (the setter is the underscored one; the public
+    /// property is read-only).
+    private static func pinned(_ view: some View, size: CGSize) -> some View {
+        view
+            .frame(width: size.width, height: size.height)
+            .background(Color(.systemBackground))
+            .environment(\.colorScheme, .light)
+            .environment(\.locale, Locale(identifier: "en_US"))
+            .environment(\.timeZone, timeZone)
+            .environment(\.layoutDirection, .leftToRight)
+            .dynamicTypeSize(.large)
+            .environment(\._accessibilityReduceMotion, true)
+    }
+
+    /// How long the run loop turns before the first capture, so `onAppear`,
+    /// `task`, a `NavigationStack`'s hosted root and the reveals a screen
+    /// schedules on appear (the dashboard's is 0.6 s) have all run.
+    static let settleInterval: TimeInterval = 1.0
+
+    /// After `settleInterval` the window is captured every `stableInterval`
+    /// until two captures in a row match, and at most `settleChecks` times:
+    /// the capture kept is a frame that has stopped changing.
+    static let stableInterval: TimeInterval = 0.25
+    static let settleChecks = 8
+
+    @MainActor
+    private static func settle(_ window: UIWindow) -> CGImage? {
+        let animated = UIView.areAnimationsEnabled
+        UIView.setAnimationsEnabled(false)
+        defer { UIView.setAnimationsEnabled(animated) }
+        window.layoutIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(settleInterval))
+        var previous = capture(window)
+        for _ in 0 ..< settleChecks {
+            RunLoop.main.run(until: Date().addingTimeInterval(stableInterval))
+            let next = capture(window)
+            if let next, let previous, sameBytes(next, previous) { return next }
+            previous = next
+        }
+        return previous
+    }
+
+    private static func sameBytes(_ lhs: CGImage, _ rhs: CGImage) -> Bool {
+        guard let left = lhs.dataProvider?.data, let right = rhs.dataProvider?.data else { return false }
+        return (left as Data) == (right as Data)
+    }
+
+    /// The window's on-screen contents at `scale`, in the sRGB range.
+    @MainActor
+    private static func capture(_ window: UIWindow) -> CGImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = true
+        format.preferredRange = .standard
+        var drew = false
+        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+            drew = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        return drew ? image.cgImage : nil
+    }
+
+    /// `image` as premultiplied sRGB RGBA bytes, row by row from the top.
+    static func rgba(_ image: CGImage) -> (pixels: [UInt8], width: Int, height: Int)? {
+        let width = image.width
+        let height = image.height
+        guard width > 0, height > 0, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
-        guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         let info = CGImageAlphaInfo.premultipliedLast.rawValue
         let drew: Bool = pixels.withUnsafeMutableBytes { raw in
             guard let ctx = CGContext(
-                data: raw.baseAddress,
-                width: width, height: height,
-                bitsPerComponent: 8, bytesPerRow: width * 4,
-                space: space, bitmapInfo: info
+                data: raw.baseAddress, width: width, height: height,
+                bitsPerComponent: 8, bytesPerRow: width * 4, space: space, bitmapInfo: info
             ) else { return false }
-            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
             return true
         }
-        guard drew else { return nil }
-        return (pixels, width, height)
+        return drew ? (pixels, width, height) : nil
     }
 
     /// True when every pixel is the same colour.
@@ -132,6 +227,160 @@ extension SnapshotTesting {
             i += 4
         }
         return true
+    }
+}
+
+/// The window a snapshot is drawn in: `size` points, light, left to right,
+/// at `SnapshotTesting.scale`, with no safe area. Without the override the
+/// insets would be the simulator's notch and home indicator, which differ by
+/// device, so a reference would hold whichever device recorded it.
+@MainActor
+final class SnapshotWindow: UIWindow {
+    override var safeAreaInsets: UIEdgeInsets { .zero }
+
+    init(size: CGSize) {
+        let scene = UIApplication.shared.connectedScenes.lazy.compactMap { $0 as? UIWindowScene }.first
+        if let scene {
+            super.init(windowScene: scene)
+        } else {
+            super.init(frame: .zero)
+        }
+        frame = CGRect(origin: .zero, size: size)
+        // Core Animation time stands still in this window, so a UIKit
+        // animation that never ends (a `ProgressView` spinner) is drawn at
+        // the same frame on every run.
+        layer.speed = 0
+        overrideUserInterfaceStyle = .light
+        traitOverrides.userInterfaceStyle = .light
+        traitOverrides.layoutDirection = .leftToRight
+        traitOverrides.displayScale = SnapshotTesting.scale
+        traitOverrides.preferredContentSizeCategory = .large
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
+}
+
+// MARK: - The unsupported-content placeholder
+
+extension SnapshotTesting {
+    /// The two colours of the placeholder `ImageRenderer` draws for content
+    /// it cannot render: a systemYellow field and a systemRed prohibition sign.
+    static let placeholderYellow: (UInt8, UInt8, UInt8) = (255, 204, 0)
+    static let placeholderRed: (UInt8, UInt8, UInt8) = (255, 56, 60)
+
+    /// True when the capture holds that placeholder, whole or in place of a
+    /// subview as small as a spinner: some connected run of placeholder
+    /// yellow encloses a rectangle of at least 100 pixels whose four corners
+    /// are that yellow and which is at least 40 % yellow, 8 % red and 65 %
+    /// the two together (the rest is the sign's antialiased edge). A real
+    /// screen's yellow is a rounded badge or a chart line, never a square
+    /// field with a red sign inside it.
+    static func isUnsupportedPlaceholder(_ pixels: [UInt8], width: Int) -> Bool {
+        guard width > 0, pixels.count >= width * 4 else { return false }
+        return PlaceholderScan(pixels, width: width).containsPlaceholder()
+    }
+
+    /// Whether the pixel at byte offset `i` is `colour` within `channelTolerance`.
+    static func matches(_ colour: (UInt8, UInt8, UInt8), _ pixels: [UInt8], at i: Int) -> Bool {
+        abs(Int(pixels[i]) - Int(colour.0)) <= channelTolerance
+            && abs(Int(pixels[i + 1]) - Int(colour.1)) <= channelTolerance
+            && abs(Int(pixels[i + 2]) - Int(colour.2)) <= channelTolerance
+    }
+}
+
+/// The search behind `SnapshotTesting.isUnsupportedPlaceholder`: each
+/// connected region of placeholder yellow, and the rectangle around it.
+struct PlaceholderScan {
+    /// A pixel rectangle, inclusive at both ends.
+    struct Box {
+        var minX: Int, minY: Int, maxX: Int, maxY: Int
+        var area: Int { (maxX - minX + 1) * (maxY - minY + 1) }
+
+        mutating func include(_ x: Int, _ y: Int) {
+            minX = min(minX, x)
+            minY = min(minY, y)
+            maxX = max(maxX, x)
+            maxY = max(maxY, y)
+        }
+    }
+
+    let width: Int
+    private let yellow: [Bool]
+    private let red: [Bool]
+
+    init(_ pixels: [UInt8], width: Int) {
+        self.width = width
+        yellow = Self.mask(pixels, SnapshotTesting.placeholderYellow)
+        red = Self.mask(pixels, SnapshotTesting.placeholderRed)
+    }
+
+    private static func mask(_ pixels: [UInt8], _ colour: (UInt8, UInt8, UInt8)) -> [Bool] {
+        stride(from: 0, to: pixels.count - 3, by: 4).map { SnapshotTesting.matches(colour, pixels, at: $0) }
+    }
+
+    func containsPlaceholder() -> Bool {
+        var seen = [Bool](repeating: false, count: yellow.count)
+        for start in yellow.indices where yellow[start] && !seen[start] {
+            if looksLikePlaceholder(region(from: start, seen: &seen)) { return true }
+        }
+        return false
+    }
+
+    /// The rectangle around the yellow region `start` belongs to, marking
+    /// each of its pixels seen.
+    private func region(from start: Int, seen: inout [Bool]) -> Box {
+        var box = Box(minX: start % width, minY: start / width, maxX: start % width, maxY: start / width)
+        var stack = [start]
+        seen[start] = true
+        while let p = stack.popLast() {
+            box.include(p % width, p / width)
+            for q in neighbours(of: p) where yellow[q] && !seen[q] {
+                seen[q] = true
+                stack.append(q)
+            }
+        }
+        return box
+    }
+
+    private func neighbours(of p: Int) -> [Int] {
+        let x = p % width
+        return [x > 0 ? p - 1 : -1, x < width - 1 ? p + 1 : -1, p - width, p + width]
+            .filter { $0 >= 0 && $0 < yellow.count }
+    }
+
+    private func looksLikePlaceholder(_ box: Box) -> Bool {
+        let area = box.area
+        let corners = [(box.minX, box.minY), (box.maxX, box.minY), (box.minX, box.maxY), (box.maxX, box.maxY)]
+        guard area >= 100, corners.allSatisfy({ yellow[$0.1 * width + $0.0] }) else { return false }
+        var yellowCount = 0, redCount = 0
+        for y in box.minY ... box.maxY {
+            let row = y * width
+            yellowCount += yellow[(row + box.minX) ... (row + box.maxX)].filter { $0 }.count
+            redCount += red[(row + box.minX) ... (row + box.maxX)].filter { $0 }.count
+        }
+        return yellowCount * 10 >= area * 4 && redCount * 100 >= area * 8 && (yellowCount + redCount) * 100 >= area * 65
+    }
+}
+
+extension SnapshotTesting {
+    /// Why a capture can never be a reference, or nil when it can.
+    ///
+    /// A uniform image is a harness or fixture failure, and the
+    /// unsupported-content placeholder is a renderer failure; neither is the
+    /// view. Refused before recording or comparing, so neither can be
+    /// recorded and then pass forever against itself.
+    static func refusal(of pixels: [UInt8], width: Int, size: CGSize) -> String? {
+        if isBlank(pixels) {
+            return "rendered a single flat colour: the view drew nothing. Check the fixture "
+                + "supplies the data the view needs, and that the view has a non-zero layout at "
+                + "\(Int(size.width))x\(Int(size.height))."
+        }
+        if isUnsupportedPlaceholder(pixels, width: width) {
+            return "rendered the unsupported-content placeholder (a yellow field with a red "
+                + "prohibition sign) instead of the view."
+        }
+        return nil
     }
 }
 
@@ -241,17 +490,8 @@ extension XCTestCase {
             XCTFail("snapshot '\(name)': view failed to render", file: file, line: line)
             return
         }
-        // A uniform image is a harness or fixture failure, never a valid
-        // reference. Caught here so it can never be recorded and then pass
-        // forever against itself.
-        guard !SnapshotTesting.isBlank(shot.pixels) else {
-            XCTFail(
-                "snapshot '\(name)': rendered a single flat colour — the view drew "
-                + "nothing. Check the fixture supplies the data the view needs, and "
-                + "that the view has a non-zero layout at \(Int(size.width))x"
-                + "\(Int(size.height)).",
-                file: file, line: line
-            )
+        if let refusal = SnapshotTesting.refusal(of: shot.pixels, width: shot.width, size: size) {
+            XCTFail("snapshot '\(name)': \(refusal)", file: file, line: line)
             return
         }
 
@@ -324,6 +564,14 @@ extension XCTestCase {
             return
         }
         let refPixels = [UInt8](raw as Data)
+        guard !SnapshotTesting.isUnsupportedPlaceholder(refPixels, width: shot.width) else {
+            XCTFail(
+                "snapshot '\(name)': the committed reference is the unsupported-content "
+                + "placeholder, not a render of the view. Re-record it with SNAPSHOT_RECORD=1.",
+                file: file, line: line
+            )
+            return
+        }
         guard let diff = SnapshotTesting.compare(refPixels, shot.pixels) else {
             XCTFail("snapshot '\(name)': buffers not comparable", file: file, line: line)
             return

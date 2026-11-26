@@ -13,7 +13,7 @@ import XCTest
 final class ChartScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(ArchiveSignal())
@@ -50,8 +50,10 @@ final class ChartScreenSnapshotTests: XCTestCase {
     private func recentWorkouts() -> [LoadTrajectoryView.RecentWorkout] {
         var out: [LoadTrajectoryView.RecentWorkout] = []
         for i in 0 ..< 4 {
-            let offset: TimeInterval = Double(-i) * 86_400
-            let date = SnapshotFixtures.anchor.addingTimeInterval(offset)
+            // Counted back from now, not from the frozen anchor: each row
+            // says how long ago it was ("3 days ago"), and an anchored date
+            // reads "5 years ago", a label that changes as the years pass.
+            let date = Date().addingTimeInterval(-Double(i + 3) * 86_400 - 3_600)
             let minutes: Int = 40 + i * 5
             let trimp: Double = 80 - Double(i) * 6
             out.append(
@@ -116,24 +118,13 @@ final class ChartScreenSnapshotTests: XCTestCase {
         )
     }
 
-    func testDashboardRenders() {
-        assertSnapshot(
-            of: hosted(
-                DashboardV2View(
-                    sessions: (0 ..< 6).map { SnapshotFixtures.overnightSession(dayOffset: -$0) },
-                    totalSessionCount: 6,
-                    isActive: true,
-                    scrollToTopToken: UUID(),
-                    onStartRecording: {},
-                    onViewReport: { _ in }
-                )
-            ),
-            named: "screen-dashboard"
-        )
-    }
+    // The populated dashboard has no snapshot: its recent-days strip is laid
+    // out from today's date, so its picture changes every day. The empty
+    // dashboard below has no strip and is pinned.
 
     /// A brand-new install: no readings at all.
     func testDashboardEmptyRenders() {
+        useEmptyDashboardCache()
         assertSnapshot(
             of: hosted(
                 DashboardV2View(

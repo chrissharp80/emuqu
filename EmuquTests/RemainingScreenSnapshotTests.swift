@@ -11,7 +11,7 @@ import XCTest
 final class RemainingScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
@@ -29,6 +29,7 @@ final class RemainingScreenSnapshotTests: XCTestCase {
     }
 
     func testMainTabShellRenders() {
+        useEmptyDashboardCache()
         assertSnapshot(of: hosted(MainTabView()), named: "shell-main-tab")
     }
 
@@ -36,7 +37,10 @@ final class RemainingScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: hosted(
                 HistoryView(
-                    archive: AppDependencies.current.storage.sessionArchive,
+                    // Empty: the list groups readings under "This Week" and
+                    // "Last Week", counted from today, so a populated list
+                    // would change as the days pass.
+                    archive: SessionArchive(directory: SnapshotFixtures.emptyArchiveDirectory),
                     settingsManager: AppDependencies.current.app.settingsManager,
                     onDelete: { _ in },
                     onUpdateTags: { _, _, _ in },
