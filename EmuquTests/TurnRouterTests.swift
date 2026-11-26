@@ -37,13 +37,13 @@ final class TurnRouterTests: XCTestCase {
         "\(id.rawValue)-default-model"
     }
 
-    /// Apple on-device: consent-exempt, and `providerSupportsTools` is
-    /// false (AppleFoundationProvider discards the tools array).
+    /// Apple on-device: consent-exempt, and `providerCanSearchWeb` is
+    /// false (`AppleToolDispatcher` refuses `web_search`).
     private func appleState(available: Bool = true) -> TurnRouter.ProviderState {
         TurnRouter.ProviderState(
             isAvailable: available,
             isConsented: true,
-            supportsTools: false,
+            canSearchWeb: false,
             defaultOrFirstModel: appleModel
         )
     }
@@ -56,7 +56,7 @@ final class TurnRouterTests: XCTestCase {
         TurnRouter.ProviderState(
             isAvailable: available,
             isConsented: consented,
-            supportsTools: true,
+            canSearchWeb: true,
             defaultOrFirstModel: model(id, defaultAPIID(id))
         )
     }
@@ -247,7 +247,7 @@ final class TurnRouterTests: XCTestCase {
                 .deep: TurnRouter.MappingSnapshot(providerID: .anthropic, model: sonnet, collapsed: false),
                 .auto: TurnRouter.MappingSnapshot(providerID: .grok, model: grokFast, collapsed: false)
             ],
-            messageRequiresTools: false
+            messageNeedsWebSearch: false
         )
         let inputs = makeInputs(
             mode: .deep,
@@ -274,21 +274,18 @@ final class TurnRouterTests: XCTestCase {
         )
     }
 
-    // MARK: - Action intent overrides Apple-routed turn
+    // MARK: - Web search overrides Apple-routed turn
 
-    func testActionIntent_AppleRouted_OverridesToConsentedCloud() {
-        // Bug report: "Coach incorrectly denied having
-        // email capability." AppleFoundationProvider discards the
-        // tools array, so an action-verb turn that resolved to Apple
-        // must fall over to a tool-capable cloud — restricted to
-        // CONSENTED clouds.
+    func testWebSearch_AppleRouted_OverridesToConsentedCloud() {
+        // Apple Intelligence calls every app tool but `web_search`, so a
+        // web-search turn that resolved to Apple goes to a consented cloud.
         let stage = TurnRouter.TierStage(
             proposedTier: .quick,
             tier3CapReached: false,
             mappings: [
                 .quick: TurnRouter.MappingSnapshot(providerID: .apple, model: appleModel, collapsed: false)
             ],
-            messageRequiresTools: true
+            messageNeedsWebSearch: true
         )
         let inputs = makeInputs(
             mode: .quick,
@@ -308,26 +305,26 @@ final class TurnRouterTests: XCTestCase {
             "Override keeps the resolved tier so the chat bubble's tier indicator shows the swap"
         )
         XCTAssertTrue(
-            decision.logLines.last?.contains("action intent — apple lacks tools; overriding to anthropic:") ?? false,
+            decision.logLines.last?.contains("web search: apple can't search the web; overriding to anthropic:") ?? false,
             "Override must be logged: \(decision.logLines)"
         )
     }
 
-    // MARK: - Action intent + only unconsented clouds
+    // MARK: - Web search + only unconsented clouds
 
-    func testActionIntent_OnlyUnconsentedClouds_NoOverride() {
-        // The action-intent override runs when the active
+    func testWebSearch_OnlyUnconsentedClouds_NoOverride() {
+        // The web-search override runs when the active
         // provider is Apple, so an unconsented vendor would never have
         // shown its disclosure sheet — a key on file is not consent.
         // With no consented cloud, the turn stays on the Apple mapping
-        // even though Apple can't call tools.
+        // even though Apple can't search the web.
         let stage = TurnRouter.TierStage(
             proposedTier: .quick,
             tier3CapReached: false,
             mappings: [
                 .quick: TurnRouter.MappingSnapshot(providerID: .apple, model: appleModel, collapsed: false)
             ],
-            messageRequiresTools: true
+            messageNeedsWebSearch: true
         )
         let inputs = makeInputs(
             mode: .quick,
@@ -348,9 +345,22 @@ final class TurnRouterTests: XCTestCase {
         XCTAssertEqual(decision.model, appleModel)
         XCTAssertEqual(decision.tier, .quick)
         XCTAssertFalse(
-            decision.logLines.contains(where: { $0.contains("action intent") }),
+            decision.logLines.contains(where: { $0.contains("web search:") }),
             "No override log line may be emitted: \(decision.logLines)"
         )
+    }
+
+    // MARK: - Which requests leave Apple
+
+    /// Apple Intelligence carries out email, contacts, directions and route
+    /// requests itself; only a web search is one it can't run.
+    func testOnlyAWebSearchCountsAsARequestAppleCantServe() {
+        for text in ["Email me today's recovery report", "lead me back to the car", "save this route as Sunset Loop", "add contact Sam"] {
+            XCTAssertFalse(AssistantTurnRouter.messageNeedsWebSearch(text), "\(text) would leave Apple")
+        }
+        for text in ["Search the web for marathon plans", "look up the trailhead hours", "what's the latest news on HRV"] {
+            XCTAssertTrue(AssistantTurnRouter.messageNeedsWebSearch(text), "\(text) would stay on Apple")
+        }
     }
 }
 

@@ -401,7 +401,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 - **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `CoachCueSpeech` — the coach lines the voice controller speaks, each claiming the workout-cue audio session before it is spoken, and the scripted line an AI-worded interjection falls back to; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
 - **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderStream`, `ProviderRegistry`.
-- **`Facts/`:** `AppFactResolver.swift` (the factory) and one `*Facts.swift` file per group of namespaces (`SleepFacts`, `WorkoutFacts`, `LiveNavigationFacts`, …), which read services only through `FactServices`; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
+- **`Facts/`:** `AppFactResolver.swift` (the factory) and one `*Facts.swift` file per group of namespaces (`SleepFacts`, `WorkoutFacts`, `LiveNavigationFacts`, …), which read services only through `FactServices`; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `SentenceEmbedder`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
 - **`Context/`:** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
 - **`ViewModel/`:** `AssistantViewModel.swift` and its `+*` extensions (`+Tools`, `+Routing`, …).
@@ -652,7 +652,8 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
    `SmartProviderRouter` tier (session-sticky), Deep → the same consented
    mid-tier cloud as Auto. `TierProviderMapper` maps the mid tier to consented
    Grok, then DeepSeek, else Apple. If the tier lands on Apple and the message
-   needs tools Apple can't call, the turn goes to the first consented cloud. A
+   asks for a web search, the one tool Apple can't run, the turn goes to the
+   first consented cloud. A
    50-turn/day cap on cloud Deep turns downgrades to Auto.
 4. **Tool-use loop** — `runToolUseLoop` (`AssistantToolRunner+Tools.swift`):
    the provider streams; `.textDelta` appends, `.toolUse` accumulates; each tool

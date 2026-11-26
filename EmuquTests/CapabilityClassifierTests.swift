@@ -11,8 +11,9 @@ import XCTest
 /// against ~30 utterances drawn from the four failure categories the
 /// user reported:
 ///
-///   1. Tool-required questions that look short ("can you see the top
-///      of the last hill") — must NOT classify as zero-flag Quick.
+///   1. Tool-required questions ("email this report to my coach") must
+///      set `needsTools` and still stay on Apple Intelligence, which calls
+///      the app's tools itself.
 ///   2. Web-required questions ("are there AI voices I can buy
 ///      commercially") — must set `needsWeb`.
 ///   3. Speculative questions ("best guess on how long I'm gonna
@@ -31,20 +32,20 @@ final class CapabilityClassifierTests: XCTestCase {
     func testEmailRequestNeedsTools() {
         let req = CapabilityClassifier.shared.classify("email this report to my coach")
         XCTAssertTrue(req.needsTools, "Email action verb must set needsTools")
-        XCTAssertNotEqual(req.requiredTier, .quick,
-                          "Tool-required questions must escalate off Apple")
+        XCTAssertEqual(req.requiredTier, .quick,
+                       "Apple Intelligence calls the email tool itself; a tool need alone keeps the turn on it")
     }
 
     func testNavigationRequestNeedsTools() {
         let req = CapabilityClassifier.shared.classify("lead me back to where I parked")
         XCTAssertTrue(req.needsTools, "Navigation action must set needsTools")
-        XCTAssertNotEqual(req.requiredTier, .quick)
+        XCTAssertEqual(req.requiredTier, .quick)
     }
 
     func testRouteSaveNeedsTools() {
         let req = CapabilityClassifier.shared.classify("save this workout as a route called Morning Loop")
         XCTAssertTrue(req.needsTools)
-        XCTAssertNotEqual(req.requiredTier, .quick)
+        XCTAssertEqual(req.requiredTier, .quick)
     }
 
     // MARK: - Web-required
@@ -133,12 +134,32 @@ final class CapabilityClassifierTests: XCTestCase {
         XCTAssertEqual(req.requiredTier, .quick)
     }
 
-    func testOneFlagResolvesToAuto() {
+    /// Apple Intelligence runs the app's tools, so a tool need on its own
+    /// does not move a turn off the device.
+    func testToolsAloneResolveToQuick() {
         let req = CapabilityClassifier.Requirement(
             needsTools: true, needsWeb: false,
             needsHistoricalDepth: false, needsSpeculation: false
         )
-        XCTAssertEqual(req.requiredTier, .auto)
+        XCTAssertEqual(req.requiredTier, .quick)
+    }
+
+    func testOneOffDeviceFlagResolvesToAuto() {
+        for req in [
+            CapabilityClassifier.Requirement(needsTools: false, needsWeb: true, needsHistoricalDepth: false, needsSpeculation: false),
+            CapabilityClassifier.Requirement(needsTools: false, needsWeb: false, needsHistoricalDepth: true, needsSpeculation: false),
+            CapabilityClassifier.Requirement(needsTools: false, needsWeb: false, needsHistoricalDepth: false, needsSpeculation: true)
+        ] {
+            XCTAssertEqual(req.requiredTier, .auto, req.debugSummary)
+        }
+    }
+
+    /// A web search is a tool Apple's path refuses, so asking for one is a
+    /// web need, not a tool need.
+    func testAskingForAWebSearchNeedsTheWeb() {
+        let req = CapabilityClassifier.shared.classify("search the web for endurance training plans")
+        XCTAssertFalse(req.needsTools)
+        XCTAssertNotEqual(req.requiredTier, .quick)
     }
 
     func testTwoOrMoreFlagsResolveToDeep() {

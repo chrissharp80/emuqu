@@ -464,7 +464,7 @@ private struct CoachModelPickerSheet: View {
             Text(String(localized: "AI routing", bundle: LanguageManager.appBundle))
         } footer: {
             Text(String(localized: """
-                With Apple Intelligence selected: Quick answers on this iPhone, except voice turns and requests to send email, get directions or search the web, \
+                With Apple Intelligence selected: Quick answers on this iPhone, except voice turns and web searches, \
                 which go to a cloud model whose data-sharing notice you've accepted, if you have one. Auto keeps lookups on Apple and sends questions that need more \
                 reasoning to xAI Grok or DeepSeek, once you've added its key and accepted its data-sharing notice. Deep sends every turn there, and stays on this \
                 iPhone without one. With another model selected, or in Manual, every turn goes to whatever you pick below. If the model a turn goes to fails, Auto \

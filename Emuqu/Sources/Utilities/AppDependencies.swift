@@ -29,7 +29,7 @@ import SwiftUI
 struct AppDependencies: Sendable {
     /// Substitutes, if any. One box for the whole container so the groups
     /// stay plain `Sendable` values.
-    let overrides = Overrides()
+    let overrides: Overrides
 
     var app: UtilityServices { UtilityServices(overrides: overrides) }
     var analysis: AnalysisServices { AnalysisServices(overrides: overrides) }
@@ -40,7 +40,13 @@ struct AppDependencies: Sendable {
     var services: AppServices { AppServices(overrides: overrides) }
     var storage: StorageServices { StorageServices(overrides: overrides) }
 
-    init() {}
+    init() { overrides = Overrides() }
+    /// The container owning `overrides`, for a service a group builds over it.
+    fileprivate init(sharing overrides: Overrides) { self.overrides = overrides }
+
+    /// The container the app runs on, the one `current` starts with. The app's
+    /// own instances are built over it, never over a test's container in force.
+    static let live = AppDependencies()
 
     /// The container in force: the live services, unless a test has put a
     /// substitute in force with `install(_:)`. It has no setter, so nothing
@@ -70,7 +76,7 @@ struct AppDependencies: Sendable {
         func end() { AppDependencies.storage.withLock { $0 = previous } }
     }
 
-    private static let storage = OSAllocatedUnfairLock<AppDependencies>(initialState: AppDependencies())
+    private static let storage = OSAllocatedUnfairLock<AppDependencies>(initialState: live)
 
     /// Test substitutes for the services below. The values sit behind a lock so
     /// a test can install one from any isolation and the accessors stay
@@ -96,6 +102,7 @@ struct AppDependencies: Sendable {
             var analysisSummaryCache: AnalysisSummaryCache?
             var assistantArtifactStore: AssistantArtifactStore?
             var assistantContextSource: AssistantContextSource?
+            var derivedAssistantContextSource: AssistantContextSource?
             var assistantEmailBridge: AssistantEmailBridge?
             var assistantInbox: AssistantInbox?
             var assistantViewModel: AssistantViewModel?
@@ -229,6 +236,14 @@ struct AppDependencies: Sendable {
         var assistantContextSource: AssistantContextSource? {
             get { values.withLock { $0.assistantContextSource } }
             set { values.withLock { $0.assistantContextSource = newValue } }
+        }
+        /// The context source built over this container, built by `build` once.
+        func derivedAssistantContextSource(_ build: @Sendable () -> AssistantContextSource) -> AssistantContextSource {
+            values.withLock { values in
+                let derived = values.derivedAssistantContextSource ?? build()
+                values.derivedAssistantContextSource = derived
+                return derived
+            }
         }
         var assistantEmailBridge: AssistantEmailBridge? {
             get { values.withLock { $0.assistantEmailBridge } }
@@ -550,9 +565,14 @@ struct AssistantServices: Sendable {
         if let substitute = overrides.assistantArtifactStore { return substitute }
         return AssistantArtifactStore.shared
     }
+    /// The app's source on the live container; any other builds one over itself,
+    /// so the archive, settings and brokers it reads are this container's. The
+    /// source keeps no state, so a second one duplicates nothing.
     var assistantContextSource: AssistantContextSource {
         if let substitute = overrides.assistantContextSource { return substitute }
-        return AssistantContextSource.shared
+        guard overrides !== AppDependencies.live.overrides else { return AssistantContextSource.shared }
+        let container = AppDependencies(sharing: overrides)
+        return overrides.derivedAssistantContextSource { AssistantContextSource(services: ContextServices(container)) }
     }
     @MainActor
     var assistantEmailBridge: AssistantEmailBridge {

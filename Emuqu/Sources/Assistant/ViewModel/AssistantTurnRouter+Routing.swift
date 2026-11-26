@@ -52,7 +52,7 @@ extension AssistantTurnRouter {
             providerStates[provider.id] = TurnRouter.ProviderState(
                 isAvailable: provider.isAvailable && owner.registry.isEnabled(provider.id),
                 isConsented: !owner.services.providerConsentTracker.requiresConsent(provider.id),
-                supportsTools: Self.providerSupportsTools(provider),
+                canSearchWeb: Self.providerCanSearchWeb(provider),
                 defaultOrFirstModel: provider.availableModels.first(where: { $0.isDefault })
                     ?? provider.availableModels.first
             )
@@ -92,7 +92,7 @@ extension AssistantTurnRouter {
             proposedTier: proposedTier,
             tier3CapReached: tier3CapReached,
             mappings: mappings,
-            messageRequiresTools: latestUserMessage.map { Self.messageRequiresTools($0) } ?? false
+            messageNeedsWebSearch: latestUserMessage.map { Self.messageNeedsWebSearch($0) } ?? false
         )
     }
 
@@ -161,41 +161,18 @@ extension AssistantTurnRouter {
         return owner.registry.allProviders.first(where: { $0.id == id }) ?? owner.registry.activeProvider
     }
 
-    /// Whether a provider can invoke the ACTION tools (mail, contacts,
-    /// directions, routes, web search). Apple gets the read-only fact
-    /// catalog through `AppleFoundationToolAdapter`, but action-intent turns
-    /// are still routed to a cloud provider, so Apple counts as toolless here.
-    static func providerSupportsTools(_ provider: AIProvider) -> Bool {
+    /// Whether a provider may run the `web_search` tool. Every cloud provider
+    /// may; Apple Intelligence calls every other app tool but has this one
+    /// refused (`AppleToolDispatcher.refusedTools`).
+    static func providerCanSearchWeb(_ provider: AIProvider) -> Bool {
         provider.id != .apple
     }
 
-    /// Heuristic: does the user's message clearly require a tool call?
-    /// Conservative — false negatives are fine (the model gracefully
-    /// degrades to a hedged answer), but false positives would
-    /// needlessly upgrade simple lookups to a paid provider. Action
-    /// verbs only; nouns alone aren't enough ("about email defaults"
-    /// is a settings question, not a send-email request — even "what are
-    /// the email defaults for this"). "email" counts as a verb only when an
-    /// object follows it directly ("email this to Sam", "email me the plan").
-    static func messageRequiresTools(_ text: String) -> Bool {
-        let t = text.lowercased()
-        // Compose / send mail
-        if t.contains("email"), ["send", "draft", "compose", "forward"].contains(where: t.contains) { return true }
-        if emailVerbPhrases.contains(where: t.contains) { return true }
-        if ["send to my", "send this to", "send that to"].contains(where: t.contains) { return true }
-        // Contacts
-        if ["add contact", "save contact", "add to contacts", "remove contact", "delete contact"].contains(where: t.contains) { return true }
-        // Directions / navigation
-        if ["directions to", "navigate to", "take me to", "lead me", "route me to"].contains(where: t.contains) { return true }
-        // Routes library
-        if t.contains("save this route") || t.contains("rename") && t.contains("route") { return true }
-        return mentionsWebSearch(t)
+    /// Whether the user's message asks for a web search: the one tool
+    /// request Apple Intelligence can't serve (`mentionsWebSearch`).
+    static func messageNeedsWebSearch(_ text: String) -> Bool {
+        mentionsWebSearch(text.lowercased())
     }
-
-    /// "email" used as a verb with its object right after it.
-    private static let emailVerbPhrases = [
-        "email me", "email this", "email that", "email it", "email him", "email her", "email them"
-    ]
 
     /// Broad web-search detection, for bug #10
     /// ("Web search not functioning despite being enabled with

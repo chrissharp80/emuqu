@@ -13,48 +13,54 @@ import NaturalLanguage
 ///
 /// Why: asking *"how complex is this question?"* and optimising cost on
 /// the assumption that simple-looking questions need only simple models
-/// fails when a simple-looking question needs a tool the cheap model
-/// doesn't have. For example, the user asks *"can you see the top of the last
-/// hill"* — eight words, looks like a Quick lookup — but answering it
-/// requires a tool that fetches per-tick GPS + altitude samples from
-/// a workout JSON. Apple Intelligence (the Quick tier) discards the
-/// `tools` array; question is unanswerable.
+/// fails when a simple-looking question needs something the on-device model
+/// can't do. For example, *"what's the weather at the trailhead"* is six
+/// words and looks like a Quick lookup, but Apple Intelligence has no web
+/// search (`AppleToolDispatcher` refuses `web_search`), so on the device the
+/// question is unanswerable.
 ///
 /// The axes ask *"what does this question need?"*:
 ///
-/// 1. **`needsTools`** — explicit action verbs (email, directions,
+/// 1. **`needsTools`**: explicit action verbs (email, directions,
 ///    save route, list contacts) OR data lookups that go beyond the
-///    static context block (per-workout deep-dives, full archive
-///    history, route library mutations).
-/// 2. **`needsWeb`** — facts outside the user's own data (weather,
-///    news, product recommendations, "is X commercially licensable").
-/// 3. **`needsHistoricalDepth`** — comparisons against history older
+///    static context block (per-workout deep-dives, route library
+///    mutations).
+/// 2. **`needsWeb`**: facts outside the user's own data (weather,
+///    news, product recommendations, "is X commercially licensable"),
+///    and explicit requests to search the web.
+/// 3. **`needsHistoricalDepth`**: comparisons against history older
 ///    than the static 14-workout context block ("trend over 8 weeks",
 ///    "month-over-month", "since I started").
-/// 4. **`needsSpeculation`** — speculative reasoning that on-device
+/// 4. **`needsSpeculation`**: speculative reasoning that on-device
 ///    Apple Intelligence's safety guardrail typically refuses, but
 ///    that the app's `MedicalQueryGuard` permits ("best guess on…",
 ///    "how long will I live", "what if I rest").
 ///
-/// Tier resolution truth table:
-///   • any one flag set  → `.auto` (mid-tier cloud — Grok, then DeepSeek, when consented)
-///   • two or more flags → `.deep` (the user's cloud primary, else the mid-tier cloud)
-///   • zero flags        → `.quick` (Apple, fits in 4K window)
+/// Tools alone keep a question on the device. Apple Intelligence calls the
+/// app's tools through `LanguageModelSession(tools:)` (`AppleToolAdapter`,
+/// `AppleToolDispatcher`): every read and action tool but `web_search`,
+/// the descriptions ranked against the question and cut to what its window
+/// holds (`AppleFoundationProvider.fittingTools`). What it can't do is
+/// search the web, hold history past its 4,096-token window, or answer what
+/// its guardrail refuses: the other three axes.
 ///
-/// The classifier reuses the same `NLContextualEmbedding` asset
-/// `SmartProviderRouter` already loads. Cosine similarity to
+/// Tier resolution truth table:
+///   • none of web / depth / speculation → `.quick` (Apple, tools or not)
+///   • one of them                         → `.auto` (mid-tier cloud: Grok, then DeepSeek, when consented)
+///   • two or more flags, tools included   → `.deep` (the user's cloud primary, else the mid-tier cloud)
+///
+/// Embeddings come from `SentenceEmbedder`. Cosine similarity to
 /// per-axis prototype centroids; threshold per axis is 0.55 (raised
 /// from the prior router's 0.40 based on the research's TIAGE-style
 /// hysteresis recommendation — at 0.40 we'd false-positive on every
 /// question that mentions a number).
 @MainActor
 final class CapabilityClassifier {
-    /// The sentence embedder the prototype matching uses: the one
-    /// `SmartProviderRouter` owns, so the embedding asset loads once.
-    private let embedder: @MainActor (String) -> [Double]?
+    /// The sentence embedder the prototype matching uses.
+    private let embedder: SentenceEmbedder
 
-    init(embed: @escaping @MainActor (String) -> [Double]?) {
-        self.embedder = embed
+    init(embedder: SentenceEmbedder) {
+        self.embedder = embedder
     }
 
     /// Cosine similarity threshold per axis. The research recommends
@@ -79,12 +85,13 @@ final class CapabilityClassifier {
         let needsHistoricalDepth: Bool
         let needsSpeculation: Bool
 
-        /// Map the four flags onto a router tier.
+        /// Map the four flags onto a router tier. Only the axes Apple
+        /// Intelligence can't serve on the device move a turn off it; once one
+        /// has, a tool need counts toward Deep like any other flag.
         var requiredTier: SmartProviderRouter.Tier {
-            let count = [needsTools, needsWeb, needsHistoricalDepth, needsSpeculation].filter { $0 }.count
-            if count >= 2 { return .deep }
-            if count >= 1 { return .auto }
-            return .quick
+            let offDevice = [needsWeb, needsHistoricalDepth, needsSpeculation].filter { $0 }.count
+            guard offDevice > 0 else { return .quick }
+            return offDevice + (needsTools ? 1 : 0) >= 2 ? .deep : .auto
         }
 
         /// Compact debug string for telemetry.
@@ -163,25 +170,18 @@ final class CapabilityClassifier {
 
     // MARK: - Embedding path
 
-    /// Reuses the embedder from `SmartProviderRouter` — the asset
-    /// download is shared at the OS level (`NLContextualEmbedding(language:)`
-    /// is a singleton-like accessor) so we don't pay double initialization.
-    private func embed(_ text: String) -> [Double]? {
-        embedder(text)
-    }
-
     /// Cached prototype centroids — computed once on first
     /// classification.
     private lazy var prototypeCentroids: [Axis: [Double]] = {
         var out: [Axis: [Double]] = [:]
         for (axis, phrases) in Self.prototypes {
-            out[axis] = EmbeddingCentroid.mean(of: phrases.compactMap { embed($0) })
+            out[axis] = EmbeddingCentroid.mean(of: phrases.compactMap { embedder.embed($0) })
         }
         return out
     }()
 
     private func embeddingClassify(_ text: String) -> [Axis: Double]? {
-        guard let q = embed(text) else { return nil }
+        guard let q = embedder.embed(text) else { return nil }
         let centroids = prototypeCentroids
         // A query and centroids from different embedders cannot be compared
         // (cosine would read 0 on every axis); the keyword result stands.
@@ -248,11 +248,12 @@ final class CapabilityClassifier {
         "directions", "navigate", "lead me", "route me", "take me back", "head back",
         "save route", "save this route", "rename route", "save as a route",
         "as a route", // catches "save this workout as a route called X"
-        "add contact", "remove contact", "list contacts", "list my contacts",
-        "search the web", "look up online", "google", "search for"
+        "add contact", "remove contact", "list contacts", "list my contacts"
     ]
 
     private static let webMarkers: [String] = [
+        // A web search is a tool, but the one Apple's path refuses.
+        "search the web", "look up online", "google", "search for",
         "weather", "raining", "temperature outside", "wind",
         // "News" only as something asked about: "the news is good" is
         // conversation, "what does the news say" is a lookup.

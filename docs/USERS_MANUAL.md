@@ -443,23 +443,23 @@ With Apple Intelligence selected the chat has no text field: you ask by tapping 
 
 The footer under the picker:
 
-> "Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."
+> "Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and web searches go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."
 
 - **Quick** — questions are answered on the iPhone by Apple Intelligence. May refuse complex multi-week analyses (Apple's safety filter occasionally blocks health-adjacent prompts).
 - **Auto** — **session-sticky** with **capability-axis classification**. An on-device classifier asks four binary questions of every message:
-  - **Does it need a tool?** ("email this", "save this route", per-workout deep-dive)
+  - **Does it need a tool?** ("email this", "save this route", per-workout deep-dive). Apple Intelligence runs the app's tools itself, so this alone keeps the question on Apple.
   - **Does it need the web?** (weather, news, product recommendations)
   - **Does it need historical depth?** (trend over 8 weeks, since I started)
   - **Does it need speculation?** ("predict next week", "what if I rest")
 
-  Zero flags → Apple. One or more flags → xAI Grok, then DeepSeek: the first of those you've added a key for and whose data-sharing notice you've accepted. With neither, the turn stays on Apple. Each axis is gated by **both** a keyword marker AND on-device embedding similarity ≥ 0.55, so plain lookups like "what's my recovery score" don't get flagged just because the word "recovery" embeds near history-depth prototypes.
+  No web, history or speculation flag → Apple. Any of those → xAI Grok, then DeepSeek: the first of those you've added a key for and whose data-sharing notice you've accepted. With neither, the turn stays on Apple. Each axis is gated by **both** a keyword marker AND on-device embedding similarity ≥ 0.55, so plain lookups like "what's my recovery score" don't get flagged just because the word "recovery" embeds near history-depth prototypes.
 
   Tier persists once chosen so the conversation doesn't drift mid-thread. Within the first **3 settling turns** the proposed tier is taken as-is; after that the session sticks to the higher tier unless a message scores zero capability flags (clean lookups can drop back to Apple). On older OS versions where contextual embeddings aren't available, the classifier falls back to keyword markers.
   - **Adversarial-spend cap.** After 50 Deep turns in a day that go to a cloud model, further Deep turns are marked as Auto for the rest of the day. While Apple Intelligence is selected, Auto and Deep use the same Grok or DeepSeek model, so the cap does not move those turns to a cheaper model or keep them on the device.
 - **Deep** — every turn goes to the same consented Grok or DeepSeek model Auto would use; Apple when you have neither. Same daily cap.
 - **Manual** — every turn goes to whatever you picked in the model picker.
 
-**Voice and action requests.** In Quick, Auto and Deep, voice turns and requests Apple can't carry out (send email, add a contact, directions, save or rename a route, web search) go to the first cloud provider whose data-sharing notice you've accepted, whatever the mode. With none accepted they stay on Apple. Voice keeps one model for the whole conversation so it doesn't drift between models mid-sentence.
+**Voice and web searches.** In Quick, Auto and Deep, voice turns and web searches, which Apple can't run, go to the first cloud provider whose data-sharing notice you've accepted, whatever the mode. With none accepted they stay on Apple. Sending email, adding a contact, directions and saving or renaming a route are carried out on Apple. Voice keeps one model for the whole conversation so it doesn't drift between models mid-sentence.
 
 If no cloud model is set up, every mode answers on Apple Intelligence, and Settings says so.
 
@@ -1611,7 +1611,7 @@ There is no on/off switch on this page. To turn Flo off, use **Settings → Perf
 **AI routing** section:
 - Segmented picker: **Quick mode** / **Auto** / **Deep mode** / **Manual**. It only acts while Apple Intelligence is the selected model, and is disabled otherwise (see *Adaptive Routing* above).
 - A caption beneath the picker describes the chosen mode, or, with a cloud model selected, says every turn goes to it.
-- Footer: *"Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and requests to send email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."*
+- Footer: *"Routing applies while Apple Intelligence is the selected model. In Quick, Auto and Deep, voice turns and web searches go to a cloud model whose data-sharing notice you've accepted, if you have one. Manual keeps every turn on the selected model. If the model a turn goes to fails, Auto and Deep may answer with another model whose notice you've accepted, and Quick with Apple Intelligence; Manual and a selected cloud model never switch."*
 - When no cloud model is set up (and the mode isn't Manual): *"No cloud model is set up, so every mode answers on Apple Intelligence."*
 
 **What the AI Remembers** section:
