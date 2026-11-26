@@ -258,15 +258,7 @@ extension AssistantToolRunner {
             provider: round.provider, model: round.model, outbound: state.outbound,
             systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
         )
-        let liveState = await owner.contextSource.currentContext().renderLiveStateForCloud()
-        let audit = owner.services.llmRequestAudit
-        let sink: @Sendable (Data) -> Void = { body in Task { @MainActor in audit.setSentBody(body, for: auditID) } }
-        let stream = ProviderRequestAudit.$sentBodySink.withValue(sink) {
-            round.provider.send(
-                messages: state.outbound, model: round.model, contextRendered: liveState,
-                systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
-            )
-        }
+        let stream = await sendRecordingBody(round, state: state, auditID: auditID)
         var thisRound: [PendingToolCall] = []
         defer { buffer.flush(force: true, thisRoundIsEmpty: thisRound.isEmpty) }
         do {
@@ -343,6 +335,22 @@ extension AssistantToolRunner {
             messagesJSON: AssistantViewModel.auditEncodeMessages(outbound, toolRounds: toolRounds),
             toolsJSON: AssistantViewModel.auditEncodeTools(tools)
         )
+    }
+
+    /// The round's request, its body recorded on the audit entry
+    /// `auditID` as it goes over the network (`ProviderRequestAudit`).
+    private func sendRecordingBody(
+        _ round: RoundContext, state: ToolLoopState, auditID: UUID
+    ) async -> AsyncThrowingStream<AIStreamEvent, Error> {
+        let liveState = await owner.contextSource.currentContext().renderLiveStateForCloud()
+        let audit = owner.services.llmRequestAudit
+        let sink: @Sendable (Data) -> Void = { body in Task { @MainActor in audit.setSentBody(body, for: auditID) } }
+        return ProviderRequestAudit.$sentBodySink.withValue(sink) {
+            round.provider.send(
+                messages: state.outbound, model: round.model, contextRendered: liveState,
+                systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
+            )
+        }
     }
 
     /// One stream event: text into the buffer, tool calls into `thisRound`,
