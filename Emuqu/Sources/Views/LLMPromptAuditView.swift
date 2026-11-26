@@ -179,6 +179,14 @@ private struct LLMPromptAuditDetailView: View {
 
     @ViewBuilder
     private var optionalPromptSections: some View {
+        if let sent = entry.sentBody {
+            collapsibleSection(
+                title: String(localized: "Sent to the provider, exactly", bundle: LanguageManager.appBundle),
+                key: "sent",
+                body: sent,
+                language: "json"
+            )
+        }
         if !entry.toolsJSON.isEmpty {
             collapsibleSection(
                 title: String(localized: "Tool catalog (names + descriptions)", bundle: LanguageManager.appBundle),
@@ -288,6 +296,11 @@ private struct LLMPromptAuditDetailView: View {
         lines.append("")
         lines.append("## Messages")
         lines.append(entry.messagesJSON)
+        if let sent = entry.sentBody {
+            lines.append("")
+            lines.append("## Sent to the provider")
+            lines.append(sent)
+        }
         if !entry.toolsJSON.isEmpty {
             lines.append("")
             lines.append("## Tools")

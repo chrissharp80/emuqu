@@ -158,6 +158,16 @@ final class NormalizedPowerTests: XCTestCase {
     /// workout-load backfill) from being stamped, so one corrupt file reran
     /// both scans on every launch for good. Only a failure that clears once
     /// the device is unlocked or space is freed keeps a scan open now.
+    /// A workout imported or restored after the last scan can be dated weeks
+    /// before it. Compared by date, it never triggered a rescan; by id, it
+    /// does. One the scan read does not.
+    func testAWorkoutTheLastScanDidNotReadTriggersARescan() {
+        let (read, imported) = (UUID(), UUID())
+        XCTAssertTrue(FTPAutoEstimator.hasUnscannedWorkout([read, imported], scanned: [read.uuidString]))
+        XCTAssertFalse(FTPAutoEstimator.hasUnscannedWorkout([read], scanned: [read.uuidString]))
+        XCTAssertTrue(FTPAutoEstimator.hasUnscannedWorkout([read], scanned: nil), "no ids recorded: scan once")
+    }
+
     func testOnlyAFailureThatMayClearKeepsALaunchScanOpen() {
         let lockedFile = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
         let lockedUnderneath = NSError(

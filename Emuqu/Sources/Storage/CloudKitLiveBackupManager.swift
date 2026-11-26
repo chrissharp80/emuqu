@@ -50,10 +50,13 @@ final class CloudKitLiveBackupManager {
         set { UserDefaults.standard.set(Array(newValue), forKey: Self.backedUpKey) }
     }
 
-    /// The recovery list's length, and how many dated records it is chosen
-    /// from.
+    /// The recovery list's length, and the size of each page of the
+    /// listing it is chosen from.
     private static let recoveryLimit = 10
     private static let listingLimit = 200
+    /// Pages of `listingLimit` read before the listing stops: live backups
+    /// are deleted once their night is archived, so a real listing is a page.
+    private static let maxListingPages = 50
 
     init(
         settingsManager: SettingsManager,
@@ -104,6 +107,8 @@ final class CloudKitLiveBackupManager {
             // Discarded while this upload ran: its delete may have landed
             // first, and this save would bring the backup back.
             if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
+        } catch is CloudUploadStopped {
+            debugLog("[CloudKit] Live backup not sent: sync was switched off or the account changed while it was prepared")
         } catch let error as CKError where CloudKitSyncManager.isZoneGone(error) {
             debugLog("[CloudKit] Live backup: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
             await zoneGone()
@@ -181,7 +186,17 @@ final class CloudKitLiveBackupManager {
         try compressedData.write(to: tempURL)
         record["rrData"] = CKAsset(fileURL: tempURL)
         defer { _ = attempt("CloudKitLiveBackupManager.remove") { try FileManager.default.removeItem(at: tempURL) } }
+        guard uploadsStillAllowed else { throw CloudUploadStopped() }
         _ = try await privateDB.save(record)
+    }
+
+    /// The upload's gate, read again right before the save: the record fetch
+    /// and the sealing before it await, and sync can be switched off, a purge
+    /// begin or the account change meanwhile. The same conditions as
+    /// `CloudKitSyncManager.saveUpload`.
+    var uploadsStillAllowed: Bool {
+        settings.iCloudSyncEnabled && settings.hasCompletedOnboarding && !PurgeGate.isPurging
+            && !schemaUnavailable && CloudAccountIdentity.isConfirmed && !Task.isCancelled
     }
 
     private func handleUploadFailure(_ error: Error) {
@@ -242,38 +257,55 @@ final class CloudKitLiveBackupManager {
     /// needs that field's queryable index in the production schema.
     ///
     /// The newest backups by capture date: a query returns records in no set
-    /// order, so a capped query would let stale backups crowd out the one the user
-    /// needs. Dates are listed first, without the beats, and only the newest
-    /// records are then fetched whole.
-    func fetchAll() async -> [LiveBackupSummary] {
-        guard settings.iCloudSyncEnabled, await confirmAccount() else { return [] }
-        do {
-            try await ensureZone()
-            let newest = try await newestBackupIDs()
-            let fetched = try await privateDB.records(for: newest)
-            let backups = newest.compactMap { fetched[$0] }.compactMap { Self.liveBackupSummary(from: $0, archiveKey: archiveKey) }
-            if !backups.isEmpty {
-                debugLog("[CloudKit] Found \(backups.count) live backup(s) in iCloud")
-            }
-            return backups
-        } catch {
-            debugLog("[CloudKit] Failed to fetch live backups: \(error.localizedDescription)")
-            return []
+    /// order, so every page of the listing is read (dates only, without the
+    /// beats) before the newest are picked and fetched whole. Taking the
+    /// first page alone could leave out the night the user needs.
+    ///
+    /// nil when nothing was asked of iCloud (sync off, or another account);
+    /// throws when the listing or the fetch failed, so a caller can tell a
+    /// failure from an iCloud that holds no backups.
+    func fetchAll() async throws -> [LiveBackupSummary]? {
+        guard settings.iCloudSyncEnabled, await confirmAccount() else { return nil }
+        try await ensureZone()
+        let newest = try await newestBackupIDs()
+        let fetched = try await privateDB.records(for: newest)
+        let backups = newest.compactMap { fetched[$0] }.compactMap { Self.liveBackupSummary(from: $0, archiveKey: archiveKey) }
+        if !backups.isEmpty {
+            debugLog("[CloudKit] Found \(backups.count) live backup(s) in iCloud")
+        }
+        return backups
+    }
+
+    /// The ids of the `recoveryLimit` newest backups, from every page of
+    /// the listing up to `maxListingPages`.
+    private func newestBackupIDs() async throws -> [CKRecord.ID] {
+        var page = try await privateDB.records(
+            matching: recoveryQuery, inZoneWith: zoneID, desiredKeys: ["captureDate"], resultsLimit: Self.listingLimit
+        )
+        var dated = Self.dated(page.matchResults)
+        var pagesRead = 1
+        while let cursor = page.queryCursor, pagesRead < Self.maxListingPages {
+            page = try await privateDB.records(continuingMatchFrom: cursor, desiredKeys: ["captureDate"], resultsLimit: Self.listingLimit)
+            dated += Self.dated(page.matchResults)
+            pagesRead += 1
+        }
+        if page.queryCursor != nil {
+            debugLog("[CloudKit] Live backups: more than \(Self.maxListingPages * Self.listingLimit) listed; the newest of those are offered", level: .warning)
+        }
+        return Self.newest(dated, limit: Self.recoveryLimit)
+    }
+
+    /// The capture date of each listed record that has one.
+    private static func dated(_ results: [(CKRecord.ID, Result<CKRecord, Error>)]) -> [(id: CKRecord.ID, captureDate: Date)] {
+        results.compactMap { id, result in
+            guard case let .success(record) = result, let captureDate = record["captureDate"] as? Date else { return nil }
+            return (id, captureDate)
         }
     }
 
-    /// The ids of the `recoveryLimit` newest backups among up to
-    /// `listingLimit` listed by their capture date alone.
-    private func newestBackupIDs() async throws -> [CKRecord.ID] {
-        let (results, _) = try await privateDB.records(
-            matching: recoveryQuery, inZoneWith: zoneID, desiredKeys: ["captureDate"], resultsLimit: Self.listingLimit
-        )
-        var dated: [(id: CKRecord.ID, captureDate: Date)] = []
-        for (id, result) in results {
-            guard case let .success(record) = result, let captureDate = record["captureDate"] as? Date else { continue }
-            dated.append((id, captureDate))
-        }
-        return dated.sorted { $0.captureDate > $1.captureDate }.prefix(Self.recoveryLimit).map { $0.id }
+    /// The ids of the `limit` newest of `dated`, newest first.
+    static func newest(_ dated: [(id: CKRecord.ID, captureDate: Date)], limit: Int) -> [CKRecord.ID] {
+        dated.sorted { $0.captureDate > $1.captureDate }.prefix(limit).map(\.id)
     }
 
     private var recoveryQuery: CKQuery {

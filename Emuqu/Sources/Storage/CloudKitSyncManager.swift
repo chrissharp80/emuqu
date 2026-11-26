@@ -245,6 +245,20 @@ final class CloudKitSyncManager {
         settings.iCloudSyncEnabled && settings.hasCompletedOnboarding && !PurgeGate.isPurging
     }
 
+    /// Saves an upload's `record`, if uploads are still allowed at the moment
+    /// the save starts: sync on, the confirmed account signed in, the schema
+    /// available and the task not cancelled. Every upload checks this at its
+    /// start too, but preparing one (reading, sealing, a conflict's fetch)
+    /// awaits, and sync can be switched off or the account change during
+    /// that wait. Checked here, right before the request, nothing starts
+    /// after that. A save already sent cannot be called back.
+    func saveUpload(_ record: CKRecord) async throws -> CKRecord {
+        guard cloudUploadsAllowed, !schemaUnavailable, CloudAccountIdentity.isConfirmed, !Task.isCancelled else {
+            throw CloudUploadStopped()
+        }
+        return try await privateDB.save(record)
+    }
+
     // MARK: - Init
 
     /// The app's manager is `shared`, whose bookkeeping is at
@@ -432,6 +446,8 @@ final class CloudKitSyncManager {
             let record = prepared.record
             defer { cleanupTempAsset(for: record) }
             try await saveUploadRecord(record, sessionId: sessionId)
+        } catch is CloudUploadStopped {
+            debugLog("[CloudKit] Upload of \(sessionId.uuidString.prefix(8)) not sent: sync was switched off or the account changed while it was prepared")
         } catch {
             await handleUploadError(error, sessionId: sessionId)
         }
@@ -444,7 +460,7 @@ final class CloudKitSyncManager {
     /// marks nothing.
     private func saveUploadRecord(_ record: CKRecord, sessionId: UUID) async throws {
         do {
-            let saved = try await privateDB.save(record)
+            let saved = try await saveUpload(record)
             guard CloudAccountIdentity.isConfirmed else { return }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)

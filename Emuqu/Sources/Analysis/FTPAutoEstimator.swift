@@ -51,6 +51,7 @@ enum FTPAutoEstimator {
     /// A key nothing writes or reads (it holds the 20-minute mean power, not
     /// normalized power); removed on every scan.
     private static let legacySourcePowerKey = "FlowRecovery.ftpAutoEstimate.sourceNP"
+    private static let scannedWorkoutsKey = "FlowRecovery.ftpAutoEstimate.scannedWorkoutIds"
     /// Re-scan at most this often unless the archive changed (see `needsRecompute`).
     private static let rescanInterval: TimeInterval = 7 * 24 * 3600
 
@@ -108,22 +109,37 @@ enum FTPAutoEstimator {
     }
 
     /// True when there was no scan yet, the last one is older than
-    /// `rescanInterval`, a workout was added since it, or the anchoring
-    /// workout is no longer in the archive.
+    /// `rescanInterval`, a workout the last complete scan did not read is in
+    /// the window, or the anchoring workout is no longer in the archive.
+    /// Workouts are compared by id, not date: one imported from another app
+    /// or restored from a backup can be dated weeks before the last scan.
     static func needsRecompute(archive: SessionArchive, now: Date) -> Bool {
         guard let last = lastComputedAt, now.timeIntervalSince(last) < rescanInterval else { return true }
-        if archive.store.entries.contains(where: { $0.sessionType == .workout && $0.date > last }) { return true }
+        let window = windowWorkouts(archive: archive, now: now).map(\.sessionId)
+        if hasUnscannedWorkout(window, scanned: scannedWorkoutIds) { return true }
         guard let anchor = sourceSessionId else { return false }
         return !archive.store.entries.contains { $0.sessionId == anchor }
+    }
+
+    /// Whether `window` holds a workout not in `scanned`, the ids the last
+    /// complete scan read; true when no scan recorded them.
+    static func hasUnscannedWorkout(_ window: [UUID], scanned: Set<String>?) -> Bool {
+        guard let scanned else { return true }
+        return window.contains { !scanned.contains($0.uuidString) }
+    }
+
+    private static var scannedWorkoutIds: Set<String>? {
+        UserDefaults.standard.stringArray(forKey: scannedWorkoutsKey).map(Set.init)
     }
 
     /// Scan synchronously on the caller's thread. Reads are lightweight (no
     /// RR series), and only workouts inside the lookback window are decoded.
     static func recompute(archive: SessionArchive, now: Date = Date()) {
-        let scan = recentRunningWorkouts(archive: archive, now: now)
+        let window = windowWorkouts(archive: archive, now: now)
+        let scan = recentRunningWorkouts(window, archive: archive)
         let effort = bestEffort(in: scan.sessions)
         guard scan.complete else { return keepUnlessBetter(effort) }
-        persist(effort, at: now)
+        persist(effort, at: now, scanned: window.map(\.sessionId))
     }
 
     /// What an incomplete scan stores: a found effort only when its FTP is
@@ -211,12 +227,16 @@ enum FTPAutoEstimator {
         }
     }
 
-    /// Running-family workouts that started inside the lookback window, and
+    /// The archive's workouts that started inside the lookback window.
+    private static func windowWorkouts(archive: SessionArchive, now: Date) -> [SessionArchiveEntry] {
+        let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
+        return archive.store.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
+    }
+
+    /// Running-family workouts among `entries`, those in the window, and
     /// whether the scan is complete: a read that throws is logged, and makes
     /// the scan incomplete only when the failure may clear.
-    private static func recentRunningWorkouts(archive: SessionArchive, now: Date) -> (sessions: [HRVSession], complete: Bool) {
-        let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
-        let entries = archive.store.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
+    private static func recentRunningWorkouts(_ entries: [SessionArchiveEntry], archive: SessionArchive) -> (sessions: [HRVSession], complete: Bool) {
         var sessions: [HRVSession] = []
         var complete = true
         for entry in entries {
@@ -249,9 +269,10 @@ enum FTPAutoEstimator {
 
     /// Stores the estimate, or clears it when nothing qualified; stamps the
     /// scan time either way.
-    private static func persist(_ effort: Effort?, at now: Date) {
+    private static func persist(_ effort: Effort?, at now: Date, scanned: [UUID]) {
         let defaults = UserDefaults.standard
         defaults.set(now, forKey: cachedAsOfKey)
+        defaults.set(scanned.map(\.uuidString), forKey: scannedWorkoutsKey)
         defaults.removeObject(forKey: legacySourcePowerKey)
         guard let effort else {
             for key in [cachedFTPKey, cachedSourceSessionKey] {

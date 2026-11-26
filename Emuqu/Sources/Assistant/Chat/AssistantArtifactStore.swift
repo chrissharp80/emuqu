@@ -107,6 +107,17 @@ final class AssistantArtifactStore {
     private var diskState = DiskState.readable
     /// A save was held or failed and has not been written yet.
     private var writePending = false
+
+    /// What the latest change's save did. `.saved` only once the file is
+    /// written: a held save (`.heldUntilUnlock`, the file is still sealed
+    /// by the lock screen) is in memory only until the phone is unlocked, and
+    /// a failed one until the next change or unlock retries it, so neither
+    /// may be reported to the user as saved.
+    enum SaveOutcome: Equatable {
+        case saved, heldUntilUnlock, failed
+    }
+
+    private(set) var lastSave = SaveOutcome.saved
     private let unlockObservers = NotificationTokens()
     private let queue = DispatchQueue(label: "com.chrissharp.flowrecovery.assistant.artifacts", qos: .userInitiated)
 
@@ -249,20 +260,23 @@ final class AssistantArtifactStore {
         }
     }
 
-    private func persist() {
+    /// Writes the artifacts now, after any write already queued, so the
+    /// outcome (`lastSave`) is known when the change returns. The file is a
+    /// few kilobytes of text.
+    @discardableResult
+    private func persist() -> SaveOutcome {
         reloadIfBlocked()
         guard diskState == .readable else {
             writePending = true
             debugLog("[AssistantArtifactStore] save held — artifacts.json not readable yet; retried on unlock", level: .warning)
-            return
+            lastSave = .heldUntilUnlock
+            return lastSave
         }
-        writePending = false
-        let snapshot = artifacts
-        let url = fileURL
-        queue.async {
-            guard !Self.write(snapshot, to: url) else { return }
-            Task { @MainActor in self.writePending = true }
-        }
+        let (snapshot, url) = (artifacts, fileURL)
+        let written = queue.sync { Self.write(snapshot, to: url) }
+        writePending = !written
+        lastSave = written ? .saved : .failed
+        return lastSave
     }
 
     /// Encodes the artifacts and writes them sealed (`AssistantStoreFile.write`,

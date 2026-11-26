@@ -392,7 +392,7 @@ When `autoExtractEnabled` is on, `runAutoFactExtraction(userText:assistantText:)
 
 ### 14.2 Model-driven memory
 
-The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove`, `.clear` and `.restore` let the model save or forget a memory when the user asks. `.remove` and `.clear` (like `assistant.contacts.remove`) only record a pending request on the first call and return an app-written question; the change runs when the same call comes back and the user's next message is an explicit yes (`AssistantActionConfirmations`). `.restore` puts back the facts the last confirmed `.clear` erased.
+The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove`, `.clear` and `.restore` let the model save or forget a memory when the user asks. `.remove` and `.clear` (like `assistant.contacts.remove`) only record a pending request on the first call and return an app-written question. When the reply ends, the app shows that question under it itself (`ChatTurn.confirmationPrompt`), so what the user agrees to is the app's wording, not the model's. The change runs when the same call comes back and the user's next message, sent directly under that question, is an explicit yes (`AssistantActionConfirmations`). `.restore` puts back the facts the last confirmed `.clear` erased.
 
 ---
 

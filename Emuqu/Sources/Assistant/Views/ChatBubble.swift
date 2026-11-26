@@ -231,8 +231,32 @@ struct ChatBubble: View, Equatable {
         VStack(alignment: turn.role == .user ? .trailing : .leading, spacing: 4) {
             assistantSubsystemHeader
             bubbleText
+            confirmationCard
             incompleteNote
             providerFooter
+        }
+    }
+
+    /// The app's own question for a change the assistant asked to make
+    /// (`ChatTurn.confirmationPrompt`), set apart from the model's text: this
+    /// is what the user's "yes" agrees to, whatever the reply above it says.
+    @ViewBuilder
+    private var confirmationCard: some View {
+        if turn.role == .assistant, let prompt = turn.confirmationPrompt {
+            VStack(alignment: .leading, spacing: 4) {
+                Label(String(localized: "Emuqu asks", bundle: LanguageManager.appBundle), systemImage: "checkmark.shield")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(verbatim: prompt)
+                    .font(.callout)
+                Text("Reply yes to confirm. Anything else cancels it.", bundle: LanguageManager.appBundle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.secondary.opacity(0.4)))
+            .accessibilityElement(children: .combine)
         }
     }
 

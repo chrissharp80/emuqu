@@ -190,7 +190,9 @@ question with details that suggest more data was sent than expected).
    Settings → Troubleshooting → Export Diagnostic Log) cannot show it: its
    lines are PHI-scrubbed and it never records request payloads. The
    record of what was sent is `LLMRequestAudit` — the last 10 chat-loop
-   requests (system prompt, messages, tools, response), in memory only and
+   requests (system prompt, messages, tools, the request body exactly as
+   it was sent to the provider, live state included, and the response), in
+   memory only and
    lost when the app quits; summaries, fact extraction and voice
    interjections are not recorded. Ask the user, before relaunching the
    app, to open Troubleshooting with Advanced Diagnostics on → AI prompt

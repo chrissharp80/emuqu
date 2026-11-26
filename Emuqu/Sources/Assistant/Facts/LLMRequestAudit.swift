@@ -46,11 +46,11 @@ final class LLMRequestAudit {
         /// after the May 15 fix), this is the COMBINED text — easier
         /// to read end-to-end than reassembling the parts mentally.
         let systemPrompt: String
-        /// JSON dump of the messages array as serialised for the
-        /// provider (with `<live_state>` blocks spliced in for cloud
-        /// providers, with `cache_control` markers for Anthropic, etc.).
-        /// Captured AFTER all per-provider mutations so what you read
-        /// here is what the provider's API actually saw.
+        /// The messages and tool rounds as the chat built them, before the
+        /// provider adapter shapes them: the live-state block a cloud
+        /// provider splices into the last message and the vendor's own
+        /// fields (cache markers, roles, parts) are not in it. What went
+        /// over the network is `sentBody`.
         let messagesJSON: String
         /// JSON dump of the tools array, when tool-mode was enabled.
         /// Empty string when toolless (Apple non-tool-mode, etc.).
@@ -75,6 +75,14 @@ final class LLMRequestAudit {
             responseText = String(responseText.suffix(LLMRequestAudit.maxPayloadCharacters))
             responseCharacterCount = LLMRequestAudit.maxPayloadCharacters
         }
+        /// The request body exactly as it was sent to the provider's API,
+        /// pretty-printed: the system prompt, the messages with the live
+        /// state spliced in, and the tools, in the vendor's format. Recorded
+        /// when the connection opens (`ProviderRequestAudit`), after consent
+        /// is checked; nil until then, and for a model that runs on the
+        /// iPhone, which sends nothing. The API key travels in a header and
+        /// is never in it.
+        var sentBody: String?
         /// Filled in when the stream errored out so the page can show
         /// "why did this turn fail" alongside what was sent.
         var errorDescription: String?
@@ -146,6 +154,20 @@ final class LLMRequestAudit {
         entries[idx] = e
     }
 
+    /// Stamp the request body as sent (`Entry.sentBody`).
+    func setSentBody(_ body: Data, for id: UUID) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        entries[idx].sentBody = Self.cap(Self.prettyJSON(body))
+    }
+
+    /// `body` re-indented for reading; as UTF-8 text when it is not JSON.
+    nonisolated static func prettyJSON(_ body: Data) -> String {
+        guard let object = try? JSONSerialization.jsonObject(with: body),
+              let pretty = try? JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+        else { return String(decoding: body, as: UTF8.self) }
+        return String(decoding: pretty, as: UTF8.self)
+    }
+
     /// Mark a turn as errored. Page will surface the message alongside
     /// what was sent so the user can self-triage (auth failure vs.
     /// network blip vs. provider 4xx).
@@ -170,4 +192,12 @@ final class LLMRequestAudit {
         let dropped = s.count - maxPayloadCharacters
         return String(s.prefix(maxPayloadCharacters)) + "\n\n[…truncated \(dropped) chars]"
     }
+}
+
+/// Where a cloud provider's request body goes once its connection opens:
+/// the audit entry of the chat round that sent it, set for the round's task
+/// (`AssistantToolRunner.consumeStreamRound`). A request sent outside a chat
+/// round (a summary, a coach line) has no entry and records nothing.
+enum ProviderRequestAudit {
+    @TaskLocal static var sentBodySink: (@Sendable (Data) -> Void)?
 }

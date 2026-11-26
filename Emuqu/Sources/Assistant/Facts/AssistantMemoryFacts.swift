@@ -131,7 +131,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     /// their words or their yes get it this far.
     @MainActor
     static func saveMemoryFact(_ text: String, store: UserFactsStore, context: DestructiveActionContext) -> FactValue {
-        let question = "Save \"\(text)\" to your memory? Reply yes to confirm."
+        let question = String(localized: "Save “\(text)” to your memory?", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gateUnlessUserStated([text], action: "assistant.memory.add", target: text, question: question) {
             return unconfirmed
         }
@@ -433,11 +433,11 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     /// email it read is shown to the user before it is kept.
     @MainActor
     static func addArtifact(kind: AssistantArtifactStore.Kind, body: String, store: AssistantArtifactStore, context: DestructiveActionContext) -> FactValue {
-        let question = "Save this \(kind.rawValue)? \"\(body)\" Reply yes to confirm."
+        let question = String(localized: "Save this? “\(body)”", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gateUnlessUserStated(artifactLines(body), action: "assistant.artifacts.add", target: body, question: question) {
             return unconfirmed
         }
-        return savedArtifactRecord(store.add(kind: kind, body: body), created: true)
+        return savedArtifactRecord(store.add(kind: kind, body: body), created: true, save: store.lastSave)
     }
 
     /// The save of a changed list: the same artifact with its new text, never
@@ -455,14 +455,14 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         let before = artifactLines(existing.body), after = artifactLines(body)
         let (beforeSet, afterSet) = (Set(before.map(normalizedForQuote)), Set(after.map(normalizedForQuote)))
         let changed = after.filter { !beforeSet.contains(normalizedForQuote($0)) } + before.filter { !afterSet.contains(normalizedForQuote($0)) }
-        let question = "Change this \(existing.kind.rawValue) to: \"\(body)\"? Reply yes to confirm."
+        let question = String(localized: "Change it to: “\(body)”?", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gateUnlessUserStated(changed, action: "assistant.artifacts.add", target: idStr + body, question: question) {
             return unconfirmed
         }
         guard let updated = store.updateBody(id: id, body: body) else {
             return .missing(reason: .notRecorded, detail: "no artifact with id \(idStr); save it without an id to start it")
         }
-        return savedArtifactRecord(updated, created: false)
+        return savedArtifactRecord(updated, created: false, save: store.lastSave)
     }
 
     /// The lines of an artifact's text without their list markers ("-",
@@ -475,14 +475,40 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             .filter { !$0.isEmpty }
     }
 
-    private static func savedArtifactRecord(_ artifact: AssistantArtifactStore.Artifact, created: Bool) -> FactValue {
-        .record([
+    private static func savedArtifactRecord(
+        _ artifact: AssistantArtifactStore.Artifact, created: Bool, save: AssistantArtifactStore.SaveOutcome
+    ) -> FactValue {
+        var fields: [String: FactValue] = [
             "id": .string(artifact.id.uuidString),
             "kind": .string(artifact.kind.rawValue),
             "status": .string(artifact.status.rawValue),
             "body": .string(artifact.body),
-            created ? "created" : "updated": .boolean(true)
-        ])
+            created ? "created" : "updated": .boolean(true),
+            "saved": .boolean(save == .saved)
+        ]
+        if let note = saveNote(save) { fields["note"] = .string(note) }
+        return .record(fields)
+    }
+
+    private static func statusRecord(_ artifact: AssistantArtifactStore.Artifact, save: AssistantArtifactStore.SaveOutcome) -> FactValue {
+        var fields: [String: FactValue] = [
+            "id": .string(artifact.id.uuidString), "status": .string(artifact.status.rawValue), "updated": .boolean(true),
+            "saved": .boolean(save == .saved)
+        ]
+        if let note = saveNote(save) { fields["note"] = .string(note) }
+        return .record(fields)
+    }
+
+    /// What the model tells the user about a change not yet on disk; nil
+    /// once it is.
+    static func saveNote(_ save: AssistantArtifactStore.SaveOutcome) -> String? {
+        switch save {
+        case .saved: nil
+        case .heldUntilUnlock:
+            "not saved to the phone yet: its storage is locked. It is saved when the phone is unlocked; until then it is lost if the app is closed. Tell the user so."
+        case .failed:
+            "the phone could not save it, so it is kept only until the app is closed; the next change tries again. Tell the user it is not saved."
+        }
     }
 
     private static let assistantArtifactsAddDescription = """
@@ -525,6 +551,17 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         }
     }
 
+    /// The question the app shows before an artifact's status changes, in
+    /// the user's language.
+    private static func statusQuestion(_ status: AssistantArtifactStore.Status, body: String) -> String {
+        switch status {
+        case .open: String(localized: "Reopen “\(body)”?", bundle: LanguageManager.appBundle)
+        case .resolved: String(localized: "Mark “\(body)” as resolved?", bundle: LanguageManager.appBundle)
+        case .shipped: String(localized: "Mark “\(body)” as shipped?", bundle: LanguageManager.appBundle)
+        case .archived: String(localized: "Archive “\(body)”?", bundle: LanguageManager.appBundle)
+        }
+    }
+
     /// Changes an artifact's status once the user has said the new status in
     /// their latest message or confirmed it: a quote alone shows they asked
     /// for something, not that they asked for this.
@@ -535,7 +572,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard let existing = store.list(includeResolved: true).first(where: { $0.id == id }) else {
             return .missing(reason: .notRecorded, detail: "no artifact with id \(id.uuidString)")
         }
-        let question = "Mark \"\(existing.body)\" as \(status.rawValue)? Reply yes to confirm."
+        let question = statusQuestion(status, body: existing.body)
         let target = id.uuidString + status.rawValue
         if let unconfirmed = context.gateUnlessUserStated([status.rawValue], action: "assistant.artifacts.update_status", target: target, question: question) {
             return unconfirmed
@@ -543,6 +580,6 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard let updated = store.updateStatus(id: id, status: status) else {
             return .missing(reason: .notRecorded, detail: "no artifact with id \(id.uuidString)")
         }
-        return .record(["id": .string(updated.id.uuidString), "status": .string(updated.status.rawValue), "updated": .boolean(true)])
+        return statusRecord(updated, save: store.lastSave)
     }
 }

@@ -217,6 +217,9 @@ final class SessionRecoveryService {
 
     /// Pull iCloud backups, but no more than once per `cloudPullMinInterval`.
     /// Prevents the Lost Sessions loop where every scan re-seeds from cloud.
+    /// Only a pull that read iCloud starts the wait: one that failed (offline,
+    /// iCloud busy) or was not made (sync off) is tried again at the next
+    /// scan, not five minutes later with the user's backups unseen.
     private func pullCloudBackupsToLocalIfDue(excluding live: Set<UUID>) async {
         let defaults = UserDefaults.standard
         let last = defaults.double(forKey: Self.cloudPullKey)
@@ -224,13 +227,15 @@ final class SessionRecoveryService {
         if last > 0, now - last < Self.cloudPullMinInterval {
             return
         }
-        await pullCloudBackupsToLocal(excluding: live)
-        defaults.set(now, forKey: Self.cloudPullKey)
+        if await pullCloudBackupsToLocal(excluding: live) {
+            defaults.set(now, forKey: Self.cloudPullKey)
+        }
     }
 
     /// Pull iCloud backups that don't exist locally, with no recording known
     /// to be in progress. Prefer `pullCloudBackupsToLocal(excluding:)`.
-    func pullCloudBackupsToLocal() async {
+    @discardableResult
+    func pullCloudBackupsToLocal() async -> Bool {
         await pullCloudBackupsToLocal(excluding: [])
     }
 
@@ -239,8 +244,26 @@ final class SessionRecoveryService {
     /// crash-safety copy. A backup of a session the user deleted, or deleted
     /// forever, is not brought back: its cloud copy is retired again (the
     /// first delete may have failed or run with iCloud sync off).
-    func pullCloudBackupsToLocal(excluding live: Set<UUID>) async {
-        let cloudBackups = await cloudSyncManager.fetchLiveBackups()
+    ///
+    /// Returns whether iCloud was read; false when sync is off or the read
+    /// failed (logged), which is not the same as iCloud holding no backups.
+    @discardableResult
+    func pullCloudBackupsToLocal(excluding live: Set<UUID>) async -> Bool {
+        let cloudBackups: [LiveBackupSummary]
+        do {
+            guard let fetched = try await cloudSyncManager.fetchLiveBackups() else { return false }
+            cloudBackups = fetched
+        } catch {
+            debugLog("[SessionRecoveryService] iCloud backups could not be read: \(error.localizedDescription) — tried again at the next scan", level: .warning)
+            return false
+        }
+        seed(cloudBackups, excluding: live)
+        return true
+    }
+
+    /// Saves each pulled backup this device does not hold, and retires the
+    /// cloud copy of each it holds or the user deleted.
+    private func seed(_ cloudBackups: [LiveBackupSummary], excluding live: Set<UUID>) {
         guard !cloudBackups.isEmpty else { return }
         let retired = Set(archive.store.entries.map(\.sessionId))
             .union(rawBackup.allBackups().map(\.id))

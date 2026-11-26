@@ -94,6 +94,9 @@ extension ProviderHTTP {
     /// only for the turn that started them: a summary, a tool round or a
     /// coach line sent after the user withdrew consent or switched the
     /// provider off throws `.consentWithdrawn` and sends nothing.
+    ///
+    /// The body goes to the prompt audit just before the connection opens,
+    /// so the audit shows what was sent, byte for byte.
     static func openStream(
         _ request: URLRequest,
         provider: ProviderID,
@@ -101,6 +104,7 @@ extension ProviderHTTP {
         failure: (_ status: Int, _ body: Data) -> AIProviderError
     ) async throws -> AsyncLineSequence<URLSession.AsyncBytes> {
         try await requireConsent(for: provider, services: services)
+        if let body = request.httpBody { ProviderRequestAudit.sentBodySink?(body) }
         let (bytes, response) = try await connect(request, provider: provider)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {

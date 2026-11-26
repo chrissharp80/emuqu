@@ -258,11 +258,15 @@ extension AssistantToolRunner {
             provider: round.provider, model: round.model, outbound: state.outbound,
             systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
         )
-        let stream = round.provider.send(
-            messages: state.outbound, model: round.model,
-            contextRendered: await owner.contextSource.currentContext().renderLiveStateForCloud(),
-            systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
-        )
+        let liveState = await owner.contextSource.currentContext().renderLiveStateForCloud()
+        let audit = owner.services.llmRequestAudit
+        let sink: @Sendable (Data) -> Void = { body in Task { @MainActor in audit.setSentBody(body, for: auditID) } }
+        let stream = ProviderRequestAudit.$sentBodySink.withValue(sink) {
+            round.provider.send(
+                messages: state.outbound, model: round.model, contextRendered: liveState,
+                systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
+            )
+        }
         var thisRound: [PendingToolCall] = []
         defer { buffer.flush(force: true, thisRoundIsEmpty: thisRound.isEmpty) }
         do {
@@ -883,6 +887,7 @@ extension AssistantToolRunner {
         }
         owner.isStreaming = false
         owner.streamTask = nil
+        if owner.actionConfirmations.showPending(in: &owner.turns) { owner.store.save(owner.turns) }
 
         // Drain queued send. We move it to a local first because dispatch()
         // will bump owner.streamGeneration / reset owner.isStreaming on its own; if it
