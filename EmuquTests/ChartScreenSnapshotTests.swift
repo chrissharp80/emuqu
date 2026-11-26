@@ -181,10 +181,12 @@ final class ChartScreenSnapshotTests: XCTestCase {
     }
 
     // The paywall has no snapshot: its button shows the price StoreKit
-    // returns ("Unlock for $9.99") or "Purchase" when it returns no product,
-    // and which one a test host gets depends on whether that simulator has a
-    // StoreKit test configuration in force. Pinning it needs an
-    // `SKTestSession` over `Configuration.storekit` in the test bundle.
+    // returns ("Unlock for $9.99") or "Purchase" when it returns none, and
+    // what a test host's StoreKit returns depends on that simulator. An
+    // `SKTestSession` over `Configuration.storekit` would fix the product, but
+    // `import StoreKitTest` does not build here: its headers use
+    // `SKPaymentTransactionState`, deprecated in iOS 18, and with warnings
+    // treated as errors the module fails to precompile.
 
     func testMetricInfoSheetRenders() {
         assertSnapshot(of: hosted(MetricInfoSheet(metricLabel: "RMSSD")), named: "sheet-metric-info")

@@ -86,18 +86,27 @@ extension SnapshotTesting {
         let hostTimeZone = NSTimeZone.default
         NSTimeZone.default = timeZone
         defer { NSTimeZone.default = hostTimeZone }
+        // UIKit animations stay off from building the window to the capture:
+        // a view UIKit sets up with an animation (the tab bar's selection
+        // highlight) would otherwise be drawn at its frozen first frame on
+        // some runs and finished on others, by timing alone.
+        let animated = UIView.areAnimationsEnabled
+        UIView.setAnimationsEnabled(false)
         let isolated = isolatedDependencies()
         let installed = AppDependencies.install(isolated.dependencies)
         let window = SnapshotWindow(size: size)
+        let previousKey = window.windowScene?.keyWindow
         defer {
             window.isHidden = true
             window.rootViewController = nil
+            previousKey?.makeKey()
             installed.end()
             isolated.discard()
+            UIView.setAnimationsEnabled(animated)
         }
         let pinnedView = pinned(view, size: size).environment(\.dependencies, isolated.dependencies)
         window.rootViewController = UIHostingController(rootView: pinnedView)
-        window.isHidden = false
+        window.makeKeyAndVisible()
         guard let image = settle(window) else { return nil }
         return rgba(image)
     }
@@ -164,9 +173,6 @@ extension SnapshotTesting {
 
     @MainActor
     private static func settle(_ window: UIWindow) -> CGImage? {
-        let animated = UIView.areAnimationsEnabled
-        UIView.setAnimationsEnabled(false)
-        defer { UIView.setAnimationsEnabled(animated) }
         window.layoutIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(settleInterval))
         var previous = capture(window)
