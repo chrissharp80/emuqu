@@ -336,7 +336,7 @@
 		ASF00100 /* SessionArchive+StoreAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = ASF00101 /* SessionArchive+StoreAPI.swift */; };
 		ASGSTEPS00000000000BF00 /* AnalysisSummaryGenerator+Steps.swift in Sources */ = {isa = PBXBuildFile; fileRef = ASGSTEPS00000000000RF00 /* AnalysisSummaryGenerator+Steps.swift */; };
 		AST00100 /* ArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AST00101 /* ArchiveStore.swift */; };
-		B2239805517 /* AssistantViewModel+Parts.swift in Sources */ = {isa = PBXBuildFile; fileRef = P8372063115 /* AssistantViewModel+Parts.swift */; };
+		B2239805517 /* AssistantTurnHosts.swift in Sources */ = {isa = PBXBuildFile; fileRef = P8372063115 /* AssistantTurnHosts.swift */; };
 		ATR00100 /* AssistantToolRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ATR00101 /* AssistantToolRunner.swift */; };
 		B7293540112 /* ChatServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = P6961822645 /* ChatServices.swift */; };
 		AUSC0001001 /* AudioSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUSC0001000 /* AudioSessionCoordinator.swift */; };
@@ -364,7 +364,7 @@
 		CK197963000 /* MorningDetailCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1993706000 /* MorningDetailCards.swift */; };
 		CK202595001 /* CapabilityClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC181525001 /* CapabilityClassifier.swift */; };
 		CK212788000 /* AnalysisSleepInputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK181590001 /* AnalysisSleepInputs.swift */; };
-		CK265293000 /* SessionArchive+IndexIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1501332001 /* SessionArchive+IndexIO.swift */; };
+		CK265293000 /* ArchiveIndexIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1501332001 /* ArchiveIndexIO.swift */; };
 		CK265506001 /* NarrativeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF570872000 /* NarrativeCard.swift */; };
 		CK268669000 /* SleepHealthQueries+Queries.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK765714001 /* SleepHealthQueries+Queries.swift */; };
 		CK273950000 /* WorkoutTrackBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB642155001 /* WorkoutTrackBackup.swift */; };
@@ -1467,7 +1467,7 @@
 		A1415841001 /* FitnessSummaryCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessSummaryCards.swift; sourceTree = "<group>"; };
 		A1437520000 /* SessionStorageDiagnosticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStorageDiagnosticTests.swift; sourceTree = "<group>"; };
 		A1447624001 /* RouteClimbDetectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteClimbDetectionTests.swift; sourceTree = "<group>"; };
-		A1501332001 /* SessionArchive+IndexIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionArchive+IndexIO.swift"; sourceTree = "<group>"; };
+		A1501332001 /* ArchiveIndexIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ArchiveIndexIO.swift"; sourceTree = "<group>"; };
 		A1514003001 /* SleepAndDisplayConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SleepAndDisplayConstants.swift"; sourceTree = "<group>"; };
 		A1535291001 /* ValidationTelemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationTelemetry.swift; sourceTree = "<group>"; };
 		A1537773001 /* HealthWorkoutImporter+Queries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthWorkoutImporter+Queries.swift"; sourceTree = "<group>"; };
@@ -1530,7 +1530,7 @@
 		ASF00101 /* SessionArchive+StoreAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionArchive+StoreAPI.swift"; sourceTree = "<group>"; };
 		ASGSTEPS00000000000RF00 /* AnalysisSummaryGenerator+Steps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AnalysisSummaryGenerator+Steps.swift"; sourceTree = "<group>"; };
 		AST00101 /* ArchiveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveStore.swift; sourceTree = "<group>"; };
-		P8372063115 /* AssistantViewModel+Parts.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AssistantViewModel+Parts.swift"; sourceTree = "<group>"; };
+		P8372063115 /* AssistantTurnHosts.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AssistantTurnHosts.swift"; sourceTree = "<group>"; };
 		ATR00101 /* AssistantToolRunner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssistantToolRunner.swift; sourceTree = "<group>"; };
 		P6961822645 /* ChatServices.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatServices.swift; sourceTree = "<group>"; };
 		AUSC0001000 /* AudioSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionCoordinator.swift; sourceTree = "<group>"; };
@@ -2469,7 +2469,7 @@
 				ATR00101 /* AssistantToolRunner.swift */,
 				P6961822645 /* ChatServices.swift */,
 				TRT00101 /* AssistantTurnRouter.swift */,
-				P8372063115 /* AssistantViewModel+Parts.swift */,
+				P8372063115 /* AssistantTurnHosts.swift */,
 				AVT0000000 /* AssistantToolRunner+Tools.swift */,
 			);
 			path = ViewModel;
@@ -3228,7 +3228,7 @@ EF273603000 /* RawRRBackup+Reconciliation.swift */,
 				P2245631001 /* CloudPayloadCodec.swift */,
 				OB801559000 /* ArchivePendingEncryption.swift */,
 				CK710064001 /* PendingEncryptionLedger.swift */,
-				A1501332001 /* SessionArchive+IndexIO.swift */,
+				A1501332001 /* ArchiveIndexIO.swift */,
 				EF939726000 /* CloudKitSyncManager+Push.swift */,
 				RF245308001 /* ArchiveStore+Internal.swift */,
 				16C1156651996E411BFAE519 /* ArchiveStore+Batch.swift */,
@@ -4249,7 +4249,7 @@ A1284412001 /* ExportFile.swift in Sources */,
 				OB555411001 /* SessionFacts.swift in Sources */,
 				AFRTPJ0770 /* TrainingProjectionFacts.swift in Sources */,
 				AFR00TRAJ01 /* TrajectoryFacts.swift in Sources */,
-				CK265293000 /* SessionArchive+IndexIO.swift in Sources */,
+				CK265293000 /* ArchiveIndexIO.swift in Sources */,
 				UC550250001 /* ReanalysisService+Sleep.swift in Sources */,
 				P2484168000 /* FitnessRecordingView+Tiles.swift in Sources */,
 				UC494231001 /* DataSettingsPage.swift in Sources */,
@@ -4801,7 +4801,7 @@ A1284412001 /* ExportFile.swift in Sources */,
 				ATR00100 /* AssistantToolRunner.swift in Sources */,
 				B7293540112 /* ChatServices.swift in Sources */,
 				TRT00100 /* AssistantTurnRouter.swift in Sources */,
-				B2239805517 /* AssistantViewModel+Parts.swift in Sources */,
+				B2239805517 /* AssistantTurnHosts.swift in Sources */,
 				AVT0000010 /* AssistantToolRunner+Tools.swift in Sources */,
 				F6E0E19B5678F978EB06165B /* AssistantChatView.swift in Sources */,
 				ACVSEC0770 /* AssistantChatView+Sections.swift in Sources */,

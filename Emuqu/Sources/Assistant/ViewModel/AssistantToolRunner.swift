@@ -5,7 +5,7 @@ import Foundation
 /// provider fails or refuses.
 ///
 /// It holds the view model only as `ToolRunnerHost`, the turn state,
-/// services and registry the loop uses (`AssistantViewModel+Parts.swift`).
+/// services and registry the loop uses (`AssistantTurnHosts.swift`).
 /// A plain strong reference: the view model builds a runner on demand
 /// (`AssistantViewModel.tools`) and never stores it, so no cycle forms.
 @MainActor

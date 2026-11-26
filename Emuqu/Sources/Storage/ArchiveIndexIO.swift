@@ -52,7 +52,7 @@ extension ArchiveIndexState {
     /// inherit).
     func createArchiveDirectoryIfNeeded() {
         if !fileManager.fileExists(atPath: archiveDirectory.path) {
-            _ = attempt("SessionArchive+IndexIO.create") { try fileManager.createDirectory(at: archiveDirectory, withIntermediateDirectories: true) }
+            _ = attempt("ArchiveIndexIO.create") { try fileManager.createDirectory(at: archiveDirectory, withIntermediateDirectories: true) }
         }
         do {
             try fileManager.setAttributes(Self.protectionAttributes, ofItemAtPath: archiveDirectory.path)

@@ -547,7 +547,7 @@ final class SessionArchive: Sendable {
 /// index with its tombstones and read counters. `SessionArchive` owns one and
 /// builds each `ArchiveStore` over it, so the store reaches this small set
 /// and nothing else of the archive. Index persistence (load, merge, save,
-/// protection classes) is in `SessionArchive+IndexIO.swift`.
+/// protection classes) is in `ArchiveIndexIO.swift`.
 ///
 /// `@unchecked Sendable`. Every mutable field (`index`, `sortedEntriesCache`,
 /// `sessionIdLookup`, `deletedSessionIds`, the read-failure flags, the folds

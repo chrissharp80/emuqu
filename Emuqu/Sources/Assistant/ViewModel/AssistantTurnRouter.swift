@@ -13,7 +13,7 @@ import Foundation
 /// new file is the same object with another window.
 ///
 /// The coupling is named rather than assumed: the router holds the view
-/// model only as `TurnRouterHost` (`AssistantViewModel+Parts.swift`), the
+/// model only as `TurnRouterHost` (`AssistantTurnHosts.swift`), the
 /// provider registry, the turn list, the streaming and routing state, the
 /// summary and the fact registry it reads. Routing is genuinely part of
 /// running a conversation and does not claim otherwise; the protocol is what
