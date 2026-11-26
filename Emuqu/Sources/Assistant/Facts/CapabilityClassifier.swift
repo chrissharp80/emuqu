@@ -65,12 +65,14 @@ final class CapabilityClassifier {
     }
 
     /// The cosine an English marker's axis needs from the embedding; 0
-    /// turns the gate off. Calibrated on the eval's tuning split, where no
-    /// gate above 0 grades better (0 to 0.4 tie, higher gates drop true
-    /// flags). Off, too, because the gate's cosines depend on the embedder:
-    /// the simulator the eval runs on loads only word vectors, while a phone
-    /// with the assets uses the contextual embedder, so a threshold set here
-    /// would not carry to the device.
+    /// turns the gate off. Calibrated on the eval's tuning split
+    /// (`RouterEvalTests.testTheEmbeddingIsCalibratedOnTheTuningSplit`):
+    /// no gate above 0 grades it better, and letting an unmarked axis fire
+    /// on its cosine alone grades it far worse at every threshold tried.
+    /// Those cosines come from the word vectors the simulator loads; a phone
+    /// with the assets uses the contextual embedder, which the eval cannot
+    /// measure, so the embedding plays no part until it can be calibrated
+    /// on that embedder.
     static let embeddingGate: Double = 0
 
     /// The four capability axes.
@@ -131,18 +133,24 @@ final class CapabilityClassifier {
         classify(message, embeddingGate: Self.embeddingGate)
     }
 
-    /// `classify(_:)` with the gate given, for the calibration.
-    func classify(_ message: String, embeddingGate gate: Double) -> Requirement {
+    /// `classify(_:)` with the embedding settings given, for the calibration.
+    /// `embeddingRaise` above 0 lets an English axis with no marker fire
+    /// when its cosine reaches it.
+    func classify(_ message: String, embeddingGate gate: Double, embeddingRaise raise: Double = 0) -> Requirement {
         guard MedicalQueryGuard.classify(message) == nil else { return .none }
         let markers = CapabilityMarkers.requirement(of: message)
         let text = CapabilityMarkers.normalized(message)
-        guard markers != .none, gate > 0, Self.isLikelyEnglish(text), let scores = embeddingClassify(text) else { return markers }
-        let passes = { (axis: Axis) in scores[axis, default: 0] >= gate }
+        guard gate > 0 || raise > 0, !CapabilityMarkers.isStatement(text), Self.isLikelyEnglish(text),
+              let scores = embeddingClassify(text) else { return markers }
+        let decide = { (marked: Bool, axis: Axis) -> Bool in
+            let score = scores[axis, default: 0]
+            return marked ? score >= gate : raise > 0 && score >= raise
+        }
         return Requirement(
-            needsTools: markers.needsTools && passes(.tools),
-            needsWeb: markers.needsWeb && passes(.web),
-            needsHistoricalDepth: markers.needsHistoricalDepth && passes(.historicalDepth),
-            needsSpeculation: markers.needsSpeculation && passes(.speculation)
+            needsTools: decide(markers.needsTools, .tools),
+            needsWeb: decide(markers.needsWeb, .web),
+            needsHistoricalDepth: decide(markers.needsHistoricalDepth, .historicalDepth),
+            needsSpeculation: decide(markers.needsSpeculation, .speculation)
         )
     }
 
@@ -191,10 +199,10 @@ final class CapabilityClassifier {
     /// Internal so the eval can check its utterances are not these phrases.
     nonisolated static let prototypes: [Axis: [String]] = [
         .tools: [
-            "Email this report to my coach.",
+            "Send the recovery summary off by email.",
             "Send me yesterday's recovery summary in an email.",
             "Lead me back to where I parked the car.",
-            "Navigate me to the nearest hospital.",
+            "Give me turn-by-turn directions to the hospital.",
             "Take me back to the start of this trail.",
             "Save this workout as a route called Morning Loop.",
             "Rename Daily 1 to Sunset Loop.",
@@ -213,7 +221,7 @@ final class CapabilityClassifier {
             "Search the web for endurance-training plans."
         ],
         .historicalDepth: [
-            "How does this month compare to last month?",
+            "Is this month better or worse than the one before it?",
             "What's my recovery trend over the last 8 weeks?",
             "Since I started running again in January, how have I improved?",
             "Compare my heart rate response to high-intensity weeks across the past two months.",

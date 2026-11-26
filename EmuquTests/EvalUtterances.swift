@@ -22,7 +22,8 @@ import XCTest
 /// device before routing, so it is labeled with no flags.
 ///
 /// **Splits.** `tuning` is what the classifier's markers, prototypes and
-/// threshold may be adjusted against. `heldOut` is never used for that: it
+/// threshold may be adjusted against: utterances by the held-out split's
+/// author, and 181 by an independent author who never saw the classifier. `heldOut` is never used for that: it
 /// measures generalization, and the gates below are asserted on it. No
 /// utterance in either split may equal or nearly duplicate a classifier
 /// prototype (`EvalPrototypeOverlapTests`).
@@ -31,14 +32,13 @@ import XCTest
 /// 85% on slice B and 90% on slice C, and no medical-refusal utterance
 /// anywhere in the catalog with a capability flag.
 ///
-/// **Measured** (iOS Simulator, word-vector embeddings): held-out 60/60 on
-/// A, 50/50 on B, 60/60 on C; tuning 29/30, 30/30, 35/35. The classifier
-/// these utterances were first run against scored 31/60, 17/50 and 32/60
-/// on the held-out split. One author wrote the held-out split, then the
-/// markers against the tuning split, so the held-out split is not
-/// independent of the markers: its scores are an upper bound on
-/// generalization, and utterances from real transcripts or another author
-/// are the test that would show the gap.
+/// **Measured** (iOS Simulator, word-vector embeddings): tuning 99/100 on
+/// A, 80/80 on B, 96/96 on C. The independent author's 181 utterances
+/// scored 80%, 76% and 67% (exact labels) before the markers were broadened
+/// on them, so they now measure fit, not generalization. Held-out 60/60,
+/// 50/50, 60/60; the held-out split's author also wrote the markers, so it
+/// is not independent of them either, and a fresh set from another author
+/// is to replace it.
 enum EvalUtterances {
     enum Slice: String, CaseIterable {
         case real
@@ -72,7 +72,10 @@ enum EvalUtterances {
 
     // MARK: - Tuning split
 
-    static let tuning: [Utterance] = [
+    static let tuning: [Utterance] = authoredTuning + independentTuning
+
+    /// Written by the author of the held-out split.
+    private static let authoredTuning: [Utterance] = [
         // Slice A
         u("can you see the top of the last hill it's noticeable in the workout of the last four or five days", .real, depth),
         u("can i purchase an ai voice to use in my videos", .real, web),
@@ -171,6 +174,193 @@ enum EvalUtterances {
         u("look up my hrv from last night", .boundary, none, "a lookup in the user's own data"),
         u("email my coach and predict my race time", .boundary, req(tools: true, speculation: true)),
         u("what's the weather and my recovery", .boundary, web)
+    ]
+
+    /// Written by an independent author who never saw the classifier, and
+    /// graded against it before it was tuned on them. Labels as written,
+    /// except where a note says one was corrected.
+    private static let independentTuning: [Utterance] = [
+        u("um hey Flo what was my HRV this morning", .real, none),
+        u("so like how'd I sleep last night, was it okay", .real, none),
+        u("hey Flo can you, uh, email my coach the summary of this week's runs", .real, req(tools: true)),
+        u("so um is it gonna rain tomorrow morning cause I wanna do my long run, or no wait maybe Saturday", .real, req(web: true)),
+        u("hey Flo what's my best 5k ever, like all time", .real, req(depth: true)),
+        u("um so if I skip tomorrow's workout will my recovery be better by Thursday", .real, req(speculation: true)),
+        u("okay so like give me directions to the trailhead at Bear Creek, the, uh, parking lot one", .real, req(tools: true)),
+        u("hey Flo remember that my left knee gets sore on downhills, save that", .real, req(tools: true)),
+        u("so what running shoes should I get, I mean for like marathon training, um", .real, req(web: true)),
+        u("has my resting heart rate been going down since I started using the app", .real, req(depth: true)),
+        u("uh how was yesterday's run, like the pace and stuff", .real, none),
+        u("hey Flo, um, will I be ready for the half in three weeks, like honestly", .real, req(speculation: true)),
+        u("when's the next big marathon near Denver, I think there's one in the spring", .real, req(web: true)),
+        u("so um save this route as Lakeside Loop, yeah that one I just did", .real, req(tools: true)),
+        u("hey Flo how many hours of deep sleep did I get last night", .real, none),
+        u("compare my HRV this month to like the same time last year, um, I think I was lower", .real, req(depth: true)),
+        u("forget the thing I told you about my diet, the keto thing, I stopped", .real, req(tools: true)),
+        u("so like what's the weather doing at six, I'm thinking of running before work", .real, req(web: true)),
+        u("um hey can you look up whether creatine actually helps recovery online", .real, req(web: true)),
+        u("what if I just do easy runs for the next two weeks, like what happens to my HRV", .real, req(speculation: true)),
+        u("hey Flo send an email to Marco saying I'm gonna be ten minutes late to the group run, oh wait, make it fifteen", .real, req(tools: true)),
+        u("so how's my training load this week, um, am I overdoing it", .real, none),
+        u("okay so like what's my average sleep over the last six months", .real, req(depth: true)),
+        u("hey um add Sarah's number to my contacts, it's 555 0134", .real, req(tools: true)),
+        u("is the Boston marathon registration open yet, like when's the deadline", .real, req(web: true)),
+        u("so, uh, my HRV was 48 today is that low for me", .real, none),
+        u("uh navigate me to the nearest running track please", .real, req(tools: true)),
+        u("best guess, if I keep this up how fast could I run a 10k by spring", .real, req(speculation: true)),
+        u("has my sleep gotten worse over the past couple months or is it just me", .real, req(depth: true)),
+        u("hey Flo what time does the gym on Main Street close tonight", .real, req(web: true)),
+        u("um so what was my heart rate during the intervals yesterday, the average I mean", .real, none),
+        u("follow the Riverside route, no wait the, the hilly one, the one I saved last week", .real, req(tools: true)),
+        u("hey so like is it true that cold showers help HRV, can you search that", .real, req(web: true)),
+        u("um rename my route from Route 12 to Sunday Easy, please", .real, req(tools: true)),
+        u("so what do you think my marathon time would be if I train through the winter", .real, req(speculation: true)),
+        u("wait how many workouts did I do this week, like total", .real, none),
+        u("hey Flo what's the longest run I've ever done in the app", .real, req(depth: true)),
+        u("uh what's the air quality like out there right now, should I run outside", .real, req(web: true)),
+        u("so like if I drink tonight how bad is it gonna be for my HRV tomorrow", .real, req(speculation: true)),
+        u("email my doctor the sleep report from this week, uh, Dr. Patel", .real, req(tools: true)),
+        u("hey um remind me, what was my readiness yesterday", .real, none),
+        u("has my HRV baseline shifted since I started meditating, that was like back in March", .real, req(depth: true)),
+        u("um what's a good heart rate monitor for swimming, like strap or armband", .real, req(web: true)),
+        u("hey Flo save a note that I want to try the 80/20 plan after the race", .real, req(tools: true)),
+        u("so I ran, uh, 12k this morning and felt rubbish, why do you think", .real, none),
+        u("like give me directions home from here, I'm lost on this trail", .real, req(tools: true)),
+        u("so when did I last hit a PR on the bike, was it this year", .real, req(depth: true)),
+        u("will I be recovered enough for a hard session on Saturday if I sleep badly tonight", .real, req(speculation: true)),
+        u("hey Flo what's the news on that new Garmin, the one that came out recently", .real, req(web: true)),
+        u("uh how many steps today, did I hit ten thousand", .real, none),
+        u("so my pace has been slow lately, um, is it slower than last season", .real, req(depth: true)),
+        u("um hey look up the elevation profile of the Chicago marathon course", .real, req(web: true)),
+        u("oh and Flo, save that I prefer morning workouts, remember it", .real, req(tools: true)),
+        u("so like what's my sleep score for the past three nights", .real, none),
+        u("hey, how do I compare to my own average from the whole year", .real, req(depth: true)),
+        u("uh can you text, I mean email, my training partner Jess and say the run is moved to seven", .real, req(tools: true)),
+        u("um what's going to happen to my fitness if I take two weeks off for vacation", .real, req(speculation: true)),
+        u("hey Flo are there any 10k races near me next month", .real, req(web: true)),
+        u("so, like, is today a good day to push hard or should I rest", .real, none),
+        u("okay um tell me my HRV trend over the last three months", .real, req(depth: true)),
+        u("hey Flo what's the best time of year to run a marathon, like weather-wise", .real, req(web: true)),
+        u("um do you know how much protein I need to eat, like for endurance athletes", .real, req(web: true)),
+        u("so how long was my nap today, I think I slept like forty minutes", .real, none),
+        u("uh delete the memory about my shoulder injury, it's healed", .real, req(tools: true)),
+        u("predict my recovery for tomorrow, um, given I did a hard ride today", .real, req(speculation: true)),
+        u("hey Flo how many times have I run over 20k this year", .real, req(depth: true)),
+        u("um look up the contact for Tom at the cycling club, I forgot his number", .real, req(tools: true)),
+        u("so what was the sunrise time again, I want to start before it", .real, req(web: true)),
+        u("like my body battery thing was low this morning, uh, what does that mean for today's ride", .real, none),
+        u("hey so what's in the news about the new Boston qualifying standards, and, um, would I make it with my current fitness", .real, req(web: true, speculation: true)),
+        u("Weather this weekend?", .adversarial, req(web: true)),
+        u("Email my coach", .adversarial, req(tools: true)),
+        u("Best PR ever?", .adversarial, req(depth: true)),
+        u("Will I recover by Friday?", .adversarial, req(speculation: true)),
+        u("Navigate to the park", .adversarial, req(tools: true)),
+        u("Save this route", .adversarial, req(tools: true)),
+        u("HRV today?", .adversarial, none),
+        u("Last night's sleep?", .adversarial, none),
+        u("Best trail shoes 2026?", .adversarial, req(web: true)),
+        u("Compare to last year", .adversarial, req(depth: true)),
+        u("What if I skip Monday?", .adversarial, req(speculation: true)),
+        u("Remember I'm vegetarian", .adversarial, req(tools: true)),
+        u("Forget my old goal", .adversarial, req(tools: true)),
+        u("Marathons in April near me", .adversarial, req(web: true)),
+        u("Trend since January", .adversarial, req(depth: true)),
+        u("Search the web for tempo workouts", .adversarial, req(web: true)),
+        u("Add Dan to contacts", .adversarial, req(tools: true)),
+        u("Predict my 5k time", .adversarial, req(speculation: true)),
+        u("Rename that route Hill Repeats", .adversarial, req(tools: true)),
+        u("How's my strain today?", .adversarial, none),
+        u("Directions to the lake trailhead", .adversarial, req(tools: true)),
+        u("Is it raining right now?", .adversarial, req(web: true)),
+        u("Lifetime longest ride", .adversarial, req(depth: true)),
+        u("Guess my half marathon time", .adversarial, req(speculation: true)),
+        u("Latest cycling news", .adversarial, req(web: true)),
+        u("Follow the Canal route", .adversarial, req(tools: true)),
+        u("Yesterday's workout summary", .adversarial, none),
+        u("Am I getting fitter over months?", .adversarial, req(depth: true)),
+        u("Opening hours Hillside pool", .adversarial, req(web: true)),
+        u("Save this to my notes", .adversarial, req(tools: true)),
+        u("Could I PR next month?", .adversarial, req(speculation: true)),
+        u("Resting heart rate now?", .adversarial, none),
+        u("Sleep average since I started", .adversarial, req(depth: true)),
+        u("Recommend a good chest strap", .adversarial, req(web: true)),
+        u("Email my sleep report", .adversarial, req(tools: true)),
+        u("Who won the Tour yesterday?", .adversarial, req(web: true)),
+        u("Should I rest tomorrow?", .adversarial, none),
+        u("Hi Flo", .adversarial, none),
+        u("Thanks, that helps", .adversarial, none),
+        u("Worst sleep ever recorded?", .adversarial, req(depth: true)),
+        u("Will tomorrow's run feel good?", .adversarial, req(speculation: true)),
+        u("Look up marathon taper plans", .adversarial, req(web: true)),
+        u("How did I sleep?", .adversarial, none),
+        u("Compare this month with last", .adversarial, req(depth: true)),
+        u("Text mum I'll be late", .adversarial, req(tools: true)),
+        u("Is it windy outside?", .adversarial, req(web: true)),
+        u("Calories burned this morning?", .adversarial, none),
+        u("If I train harder, then what?", .adversarial, req(speculation: true)),
+        u("Year-over-year HRV change", .adversarial, req(depth: true)),
+        u("Where's the nearest bike shop?", .adversarial, req(web: true)),
+        u("The weather was great on my run today", .boundary, none),
+        u("I emailed my coach yesterday and he said I looked strong", .boundary, none),
+        u("Been following a Couch to 5K plan for a few days now", .boundary, none),
+        u("My watch navigation was glitchy this morning, anyway, run went fine", .boundary, none),
+        u("I read the news about the marathon cutoff and it made me nervous", .boundary, none),
+        u("Last year was rough for me, but whatever, just venting", .boundary, none),
+        u("Saving up for a new bike, that's why I'm skipping the shop", .boundary, none),
+        u("My friend is going to google shoes for me, so never mind", .boundary, none),
+        u("I'll probably feel better tomorrow, I always do after a rest day", .boundary, none),
+        u("Thanks Flo, the forecast you gave me earlier was spot on", .boundary, none),
+        u("I forgot my headphones today so the run was quiet", .boundary, none),
+        u("Check the forecast for Sunday's race and tell me whether I'll be ready for it", .boundary, req(web: true, speculation: true)),
+        u("Compare my sleep this year with last year and guess where it's heading", .boundary, req(depth: true, speculation: true)),
+        u("Look up the Berlin marathon course map and email it to my coach", .boundary, req(tools: true, web: true)),
+        u("Find a decent tempo route near the river and save it as Tempo Loop", .boundary, req(tools: true), "relabeled: finding a route near the river is the app's trail discovery, not the web"),
+        u("What's my best ever HRV since I started, and what's normal for someone my age according to the internet", .boundary, req(web: true, depth: true)),
+        u("Given my last six months of training, what marathon time should I aim for in the fall", .boundary, req(depth: true, speculation: true)),
+        u("Search the web for taper tips, then tell me how my own taper is likely to go", .boundary, req(web: true, speculation: true)),
+        u("Email my coach my total mileage for the year so far", .boundary, req(tools: true, depth: true)),
+        u("Navigate me to the start of the Richmond 10k and tell me what the weather's like there", .boundary, req(tools: true, web: true)),
+        u("Remember my goal is sub 3:30 and tell me if that's realistic with two years of data behind me", .boundary, req(tools: true, depth: true, speculation: true)),
+        u("Which recovery boots are best right now, and would they help my HRV given how it's gone this year", .boundary, req(web: true, depth: true, speculation: true)),
+        u("Compare my races last season with now, and look up the course record at Valencia", .boundary, req(web: true, depth: true)),
+        u("Save this route for later, and will I be recovered to run it Sunday?", .boundary, req(tools: true, speculation: true)),
+        u("Do I have AFib? My watch flagged an irregular rhythm last night", .boundary, none, "medical"),
+        u("Should I stop taking my beta blocker before the race?", .boundary, none, "medical"),
+        u("How much ibuprofen can I take before a long run?", .boundary, none, "medical"),
+        u("Based on my nights, do I have sleep apnea?", .boundary, none, "medical"),
+        u("my heart skips beats sometimes, whats wrong with me", .boundary, none, "medical"),
+        u("Can I double my metformin dose on heavy training days?", .boundary, none, "medical"),
+        u("My chest feels tight after sprints, is this a heart attack?", .boundary, none, "medical"),
+        u("What dose of melatonin should I be taking?", .boundary, none, "medical"),
+        u("Is my low HRV from an infection or something worse? Diagnose it", .boundary, none, "medical"),
+        u("I think my antidepressants are hurting my HRV, should I come off them?", .boundary, none, "medical"),
+        u("Do I have overtraining syndrome or a thyroid problem?", .boundary, none, "medical"),
+        u("Can I take Adderall and still train hard? How many mg is safe?", .boundary, none, "medical"),
+        u("¿Cómo dormí anoche?", .boundary, none),
+        u("Envía un correo a mi entrenador con el resumen de la semana", .boundary, req(tools: true)),
+        u("Wie wird das Wetter morgen für meinen Lauf?", .boundary, req(web: true)),
+        u("Wie hat sich meine HRV in den letzten sechs Monaten entwickelt?", .boundary, req(depth: true)),
+        u("Est-ce que je serai prêt pour le marathon dans un mois ?", .boundary, req(speculation: true)),
+        u("Enregistre cet itinéraire sous le nom Boucle du lac", .boundary, req(tools: true)),
+        u("Qual è il mio record personale sui 10 km di sempre?", .boundary, req(depth: true)),
+        u("Cerca online le migliori scarpe da trail", .boundary, req(web: true)),
+        u("Qual foi meu HRV hoje de manhã?", .boundary, none),
+        u("E se eu pular o treino amanhã, como fica minha recuperação?", .boundary, req(speculation: true)),
+        u("Navigeer me naar het dichtstbijzijnde hardloopparcours", .boundary, req(tools: true)),
+        u("Wat was mijn hartslag tijdens de training van gisteren?", .boundary, none),
+        u("今週の睡眠の質を教えて", .boundary, none),
+        u("去年と比べて私の安静時心拍数はどう変わった？", .boundary, req(depth: true)),
+        u("Vad blir vädret på lördag, ska jag springa?", .boundary, req(web: true)),
+        u("Gem at jeg har ondt i højre læg, husk det", .boundary, req(tools: true)),
+        u("Hvor mange timer sov jeg i natt?", .boundary, none),
+        u("Voinko juosta maratonin alle neljän tunnin, arvaa vaan", .boundary, req(speculation: true)),
+        u("내 코치에게 이번 주 요약을 이메일로 보내줘", .boundary, req(tools: true)),
+        u("帮我查一下上海马拉松的报名时间", .boundary, req(web: true)),
+        u("自从我开始使用以来，我的最佳心率变异性是多少？", .boundary, req(depth: true)),
+        u("Какая у меня была вариабельность пульса сегодня?", .boundary, none),
+        u("Найди в интернете лучшие кроссовки для марафона", .boundary, req(web: true)),
+        u("كيف كان نومي الليلة الماضية؟", .boundary, none),
+        u("هل سأكون جاهزاً للسباق الأسبوع القادم؟", .boundary, req(speculation: true))
     ]
 
     // MARK: - Held-out split
@@ -388,17 +578,23 @@ final class RouterEvalTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(heldOut[.boundary] ?? 0, 0.90, "Slice C (boundary) held-out gate 90%")
     }
 
-    /// The embedding gate is set at the value that grades the tuning split
-    /// best; the held-out split plays no part in choosing it.
-    func testTheEmbeddingGateIsCalibratedOnTheTuningSplit() {
-        let candidates: [Double] = [0, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]
-        let correct = { (gate: Double) in
-            EvalUtterances.tuning.filter { CapabilityClassifier.shared.classify($0.text, embeddingGate: gate) == $0.expected }.count
+    /// The embedding settings are the ones that grade the tuning split
+    /// best; the held-out split plays no part in choosing them. A gate
+    /// drops a marked axis whose cosine falls short of it; a raise lets an
+    /// unmarked axis fire on its cosine alone.
+    func testTheEmbeddingIsCalibratedOnTheTuningSplit() {
+        let gates: [Double] = [0, 0.3, 0.4, 0.5]
+        let raises: [Double] = [0, 0.6, 0.7, 0.8, 0.9]
+        let settings: [(gate: Double, raise: Double)] = gates.flatMap { gate in raises.map { (gate: gate, raise: $0) } }
+        let correct = { (gate: Double, raise: Double) in
+            EvalUtterances.tuning.filter {
+                CapabilityClassifier.shared.classify($0.text, embeddingGate: gate, embeddingRaise: raise) == $0.expected
+            }.count
         }
-        let scores = candidates.map { (gate: $0, correct: correct($0)) }
-        for score in scores { print("[Eval] tuning gate \(score.gate): \(score.correct)/\(EvalUtterances.tuning.count)") }
-        let best = scores.map(\.correct).max() ?? 0
-        XCTAssertEqual(correct(CapabilityClassifier.embeddingGate), best, "the shipped gate is not the tuning split's best: \(scores)")
+        let scores = settings.map { (setting: $0, correct: correct($0.gate, $0.raise)) }
+        for score in scores { print("[Eval] tuning gate \(score.setting.gate) raise \(score.setting.raise): \(score.correct)/\(EvalUtterances.tuning.count)") }
+        let best = scores.map { $0.correct }.max() ?? 0
+        XCTAssertEqual(correct(CapabilityClassifier.embeddingGate, 0), best, "the shipped setting is not the tuning split's best")
     }
 
     /// **0% misroute on medical-refusal utterances**, checked on its own

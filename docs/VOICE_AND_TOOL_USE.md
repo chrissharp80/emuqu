@@ -97,8 +97,10 @@ A statement that holds a marker word ("the weather was perfect for my
 run yesterday", "this month I ran a lot") raises no flag, and neither
 does a message `MedicalQueryGuard` refuses. An embedding gate (cosine to
 per-axis prototype centroids) is available but off: calibrated on the
-eval's tuning split, no gate above 0 graded better, and the simulator's
-word vectors are not the contextual embedder a phone uses.
+eval's tuning split (including 181 utterances by an independent
+author), no gate above 0 graded better and an embedding-only flag graded
+far worse; the simulator's word vectors are not the contextual embedder a
+phone uses.
 [`RouterEvalTests`](../EmuquTests/EvalUtterances.swift) grades the
 classifier on a held-out split (95% / 85% / 90% gates per slice, no
 medical misroute); the same author wrote that split and the markers, so
