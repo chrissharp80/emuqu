@@ -317,6 +317,42 @@ extension TurnRouter {
     }
 }
 
+// MARK: - Web-search escalation
+
+extension TurnRouter {
+    /// What lets a turn reach the web, read when it is dispatched.
+    struct WebSearchAccess: Equatable {
+        /// Settings → Flo → Web search.
+        let isEnabled: Bool
+        /// A Tavily key is saved, so every cloud model can run `web_search`;
+        /// without one only Anthropic can, through its server-side search.
+        let hasTavilyKey: Bool
+    }
+
+    /// The model an Apple turn moves to when Apple's model asks for
+    /// `web_search`, which it cannot run: the classifier and
+    /// `messageNeedsWebSearch` miss many questions that need the web, and the
+    /// model's own call is the reliable sign. Nil keeps the turn on Apple,
+    /// whose model then gets a refusal note.
+    ///
+    /// The same rules as the web-search override (`webSearchOverride`): only
+    /// while Apple is the selected model and the mode routes (every mode but
+    /// Manual, where the turn stays with the pick), and only to the first
+    /// available, consented cloud in registry order. That cloud must also be
+    /// able to search: web search is on, and a Tavily key is saved or the
+    /// cloud is Anthropic.
+    static func webSearchEscalation(inputs: Inputs, access: WebSearchAccess) -> (id: ProviderID, model: ModelOption)? {
+        guard access.isEnabled, inputs.selectedProviderID == .apple, inputs.routingMode != .manual else { return nil }
+        let target = inputs.providerOrder.first { id in
+            guard id != .apple, let state = inputs.providers[id] else { return false }
+            return state.isAvailable && state.isConsented && state.canSearchWeb
+                && (access.hasTavilyKey || id == .anthropic)
+        }
+        guard let target, let model = inputs.providers[target]?.defaultOrFirstModel else { return nil }
+        return (target, model)
+    }
+}
+
 /// The error shown when the model a turn was sent to fails and no other
 /// model may answer it (`TurnRouter.failureFallback`): which model failed,
 /// why, and that the turn was not handed to another one.

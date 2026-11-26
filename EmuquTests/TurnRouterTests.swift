@@ -11,6 +11,9 @@
 //
 
 @testable import Emuqu
+#if canImport(FoundationModels)
+    import FoundationModels
+#endif
 import XCTest
 
 @MainActor
@@ -410,6 +413,92 @@ extension TurnRouterTests {
     }
 }
 
+// MARK: - Web-search escalation
+
+/// When Apple's model asks for `web_search`, the turn moves to a consented
+/// cloud model that can search, where the routing mode allows the web-search
+/// override; otherwise it stays on Apple.
+extension TurnRouterTests {
+    private var searchOn: TurnRouter.WebSearchAccess {
+        TurnRouter.WebSearchAccess(isEnabled: true, hasTavilyKey: true)
+    }
+
+    private func escalationInputs(
+        mode: RoutingMode,
+        selected: ProviderID = .apple,
+        providers: [ProviderID: TurnRouter.ProviderState]
+    ) -> TurnRouter.Inputs {
+        let selectedModel = selected == .apple ? appleModel : model(selected, defaultAPIID(selected))
+        return makeInputs(mode: mode, selected: selected, selectedModel: selectedModel, providers: providers)
+    }
+
+    func testEscalationGoesToTheFirstConsentedCloudInEveryRoutingMode() {
+        let providers: [ProviderID: TurnRouter.ProviderState] = [
+            .apple: appleState(),
+            .anthropic: cloudState(.anthropic, consented: false),
+            .openai: cloudState(.openai, available: false, consented: true),
+            .grok: cloudState(.grok, consented: true)
+        ]
+        for mode in [RoutingMode.quick, .auto, .deep] {
+            let target = TurnRouter.webSearchEscalation(inputs: escalationInputs(mode: mode, providers: providers), access: searchOn)
+            XCTAssertEqual(target?.id, .grok, "\(mode)")
+            XCTAssertEqual(target?.model, model(.grok, defaultAPIID(.grok)), "\(mode)")
+        }
+    }
+
+    /// Each test below flips one condition of a turn that does escalate
+    /// (`escalatingProviders` in Auto, web search on, a Tavily key), so it
+    /// checks the escalation first and then that the condition stops it.
+    private var escalatingProviders: [ProviderID: TurnRouter.ProviderState] {
+        [.apple: appleState(), .anthropic: cloudState(.anthropic, consented: true), .grok: cloudState(.grok, consented: true)]
+    }
+
+    private func escalationTarget(
+        mode: RoutingMode = .auto,
+        selected: ProviderID = .apple,
+        providers: [ProviderID: TurnRouter.ProviderState]? = nil,
+        access: TurnRouter.WebSearchAccess? = nil
+    ) -> ProviderID? {
+        let inputs = escalationInputs(mode: mode, selected: selected, providers: providers ?? escalatingProviders)
+        return TurnRouter.webSearchEscalation(inputs: inputs, access: access ?? searchOn)?.id
+    }
+
+    func testManualModeKeepsTheTurnOnApple() {
+        XCTAssertEqual(escalationTarget(), .anthropic)
+        XCTAssertNil(escalationTarget(mode: .manual))
+    }
+
+    func testACloudPickNeverEscalates() {
+        XCTAssertEqual(escalationTarget(), .anthropic)
+        XCTAssertNil(escalationTarget(selected: .grok))
+    }
+
+    func testWebSearchOffKeepsTheTurnOnApple() {
+        XCTAssertEqual(escalationTarget(), .anthropic)
+        XCTAssertNil(escalationTarget(access: TurnRouter.WebSearchAccess(isEnabled: false, hasTavilyKey: true)))
+    }
+
+    func testNoConsentedCloudKeepsTheTurnOnApple() {
+        XCTAssertEqual(escalationTarget(), .anthropic)
+        let unconsented: [ProviderID: TurnRouter.ProviderState] = [
+            .apple: appleState(),
+            .anthropic: cloudState(.anthropic, consented: false),
+            .grok: cloudState(.grok, consented: false)
+        ]
+        XCTAssertNil(escalationTarget(providers: unconsented))
+    }
+
+    /// Without a Tavily key only Anthropic can search, through its
+    /// server-side tool.
+    func testWithoutATavilyKeyOnlyAnthropicCanSearch() {
+        let noTavily = TurnRouter.WebSearchAccess(isEnabled: true, hasTavilyKey: false)
+        let grokOnly: [ProviderID: TurnRouter.ProviderState] = [.apple: appleState(), .grok: cloudState(.grok, consented: true)]
+        XCTAssertEqual(escalationTarget(providers: grokOnly), .grok)
+        XCTAssertNil(escalationTarget(providers: grokOnly, access: noTavily))
+        XCTAssertEqual(escalationTarget(access: noTavily), .anthropic)
+    }
+}
+
 // MARK: - Fallback to Apple
 
 /// A turn that fails over to Apple Intelligence keeps the tools it would have
@@ -476,6 +565,257 @@ final class AppleFallbackToolTests: XCTestCase {
 
         XCTAssertEqual(ending, .blocked, "a turn that ran a mutating tool was handed on")
         XCTAssertEqual(next.recorder.sends, 0)
+    }
+}
+
+// MARK: - Web-search escalation from Apple
+
+/// Apple's model asking for `web_search` ends the Apple attempt when the turn
+/// may move to a model that can search, and only before any reply text was
+/// shown and before a tool changed the user's data. The chat then runs the
+/// turn on that model and shows only its answer.
+@MainActor
+final class AppleWebSearchEscalationTests: XCTestCase {
+    private var dispatcher: AppleToolDispatcher {
+        AppDependencies.current.providers.appleToolDispatcher
+    }
+
+    override func tearDown() async throws {
+        dispatcher.setRegistry(nil)
+        try await super.tearDown()
+    }
+
+    private func makeViewModel() -> AssistantViewModel {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AppleWebSearchEscalationTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        return AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+    }
+
+    /// Starts an Apple turn on the shared dispatcher, armed or not.
+    @discardableResult
+    private func startTurn(armed: Bool) -> AssistantViewModel {
+        let viewModel = makeViewModel()
+        dispatcher.setRegistry(viewModel.factRegistryAndTools().0)
+        dispatcher.armWebSearchEscalation(armed)
+        return viewModel
+    }
+
+    /// What Apple's `web_search` call did: "escalated", or the result the
+    /// model was given.
+    private func webSearch() async -> String {
+        do {
+            return try await dispatcher.dispatch(name: "web_search", argumentsJSON: #"{"query":"half marathon in march"}"#)
+        } catch is AppleWebSearchEscalation {
+            return "escalated"
+        } catch {
+            return "threw: \(error)"
+        }
+    }
+
+    private func isRefusalNote(_ result: String) -> Bool {
+        result.contains("web search isn't available on the on-device model")
+    }
+
+    func testAnArmedWebSearchEndsTheAppleAttempt() async {
+        startTurn(armed: true)
+        let result = await webSearch()
+        XCTAssertEqual(result, "escalated", "web_search did not escalate")
+        XCTAssertFalse(dispatcher.replyGate.admitText(), "Apple text could still be shown after the turn escalated")
+    }
+
+    func testAnUnarmedTurnGetsTheRefusalNote() async {
+        startTurn(armed: true)
+        let control = await webSearch()
+        XCTAssertEqual(control, "escalated", "the control turn did not escalate")
+        startTurn(armed: false)
+        let result = await webSearch()
+        XCTAssertTrue(isRefusalNote(result), result)
+    }
+
+    func testReplyTextShownFirstKeepsTheTurnOnApple() async {
+        startTurn(armed: true)
+        let control = await webSearch()
+        XCTAssertEqual(control, "escalated", "the control turn did not escalate")
+        startTurn(armed: true)
+        XCTAssertTrue(dispatcher.replyGate.admitText())
+        let result = await webSearch()
+        XCTAssertTrue(isRefusalNote(result), result)
+    }
+
+    func testAMutatingToolKeepsTheTurnOnApple() async throws {
+        startTurn(armed: true)
+        let control = await webSearch()
+        XCTAssertEqual(control, "escalated", "the control turn did not escalate")
+        startTurn(armed: true)
+        _ = try await dispatcher.dispatch(name: "assistant_memory_add", argumentsJSON: "not json")
+        XCTAssertTrue(dispatcher.ranMutatingTool)
+        let result = await webSearch()
+        XCTAssertTrue(isRefusalNote(result), result)
+    }
+
+    func testANewTurnStartsDisarmed() async {
+        startTurn(armed: true)
+        let control = await webSearch()
+        XCTAssertEqual(control, "escalated", "the control turn did not escalate")
+        let viewModel = startTurn(armed: true)
+        dispatcher.setRegistry(viewModel.factRegistryAndTools().0)
+        let result = await webSearch()
+        XCTAssertTrue(isRefusalNote(result), result)
+    }
+
+    /// A tool call that arrives after the turn escalated does not run: the
+    /// next model starts the turn over and would run it again.
+    func testNoToolRunsAfterTheTurnEscalated() async throws {
+        startTurn(armed: true)
+        let control = await webSearch()
+        XCTAssertEqual(control, "escalated", "the control turn did not escalate")
+        let result = try await dispatcher.dispatch(name: "assistant_memory_add", argumentsJSON: "not json")
+        XCTAssertTrue(result.contains("moving to another model"), result)
+        XCTAssertFalse(dispatcher.ranMutatingTool, "a mutating tool ran after the turn escalated")
+    }
+
+    func testTheGateLetsOnlyTheFirstClaimThrough() {
+        let shownFirst = AppleReplyGate()
+        XCTAssertTrue(shownFirst.admitText())
+        XCTAssertFalse(shownFirst.claimEscalation(), "a turn escalated after its text was shown")
+        XCTAssertTrue(shownFirst.admitText())
+        let escalatedFirst = AppleReplyGate()
+        XCTAssertTrue(escalatedFirst.claimEscalation())
+        XCTAssertFalse(escalatedFirst.admitText(), "Apple text was shown after the turn escalated")
+        XCTAssertTrue(escalatedFirst.hasEscalated)
+    }
+
+    func testEscalationNeedsAnArmedTurnWithNoMutatingTool() {
+        XCTAssertTrue(AppleToolDispatcher.escalatesWebSearch(armed: true, ranMutatingTool: false))
+        XCTAssertFalse(AppleToolDispatcher.escalatesWebSearch(armed: false, ranMutatingTool: false))
+        XCTAssertFalse(AppleToolDispatcher.escalatesWebSearch(armed: true, ranMutatingTool: true))
+    }
+
+    // MARK: Error mapping
+
+    #if canImport(FoundationModels)
+        /// Foundation Models ends the generation with a `ToolCallError` that
+        /// carries the tool's own error.
+        func testAToolCallErrorCarryingTheEscalationIsNeedsWebSearch() {
+            guard #available(iOS 26, *) else { return }
+            let tool = AppleToolAdapter(name: "web_search", description: "", handler: { _ in "" })
+            let wrapped = LanguageModelSession.ToolCallError(tool: tool, underlyingError: AppleWebSearchEscalation())
+            guard case .needsWebSearch? = AppleFoundationProvider.webSearchEscalation(in: wrapped) else {
+                return XCTFail("the escalation was not recognised inside a ToolCallError")
+            }
+            let other = LanguageModelSession.ToolCallError(tool: tool, underlyingError: CancellationError())
+            XCTAssertNil(AppleFoundationProvider.webSearchEscalation(in: other))
+        }
+
+        /// A guardrail refusal is never an escalation: it is shown, not re-sent.
+        func testAGuardrailRefusalIsNotAnEscalation() {
+            guard #available(iOS 26, *) else { return }
+            XCTAssertNotNil(AppleFoundationProvider.webSearchEscalation(in: AppleWebSearchEscalation()))
+            let refusal = LanguageModelSession.GenerationError.guardrailViolation(.init(debugDescription: "test"))
+            XCTAssertNil(AppleFoundationProvider.webSearchEscalation(in: refusal))
+        }
+    #endif
+
+    func testNeedsWebSearchIsNotHandedToTheFailureFallbackChain() {
+        XCTAssertFalse(AIProviderError.needsWebSearch.isFallbackable)
+        XCTAssertFalse(AIProviderError.needsWebSearch.isAppleGuardrail)
+        XCTAssertTrue(AIProviderError.guardrailViolation.isAppleGuardrail)
+    }
+
+    // MARK: Routing step
+
+    private func attempt(
+        on provider: AIProvider, in viewModel: AssistantViewModel, turnID: UUID
+    ) -> AssistantTurnRouter.StreamAttempt {
+        let (registry, tools) = viewModel.factRegistryAndTools()
+        return AssistantTurnRouter.StreamAttempt(
+            provider: provider, model: AppleFoundationProvider.model, outbound: Array(viewModel.turns.dropLast()),
+            systemPrompt: "", tools: tools, factRegistry: registry, turnID: turnID, voiceMode: false
+        )
+    }
+
+    private func reserveTurn(in viewModel: AssistantViewModel, partial: String = "") -> UUID {
+        let reply = ChatTurn(role: .assistant, text: partial, providerID: .apple)
+        viewModel.turns = [ChatTurn(role: .user, text: "is there a half marathon in portland in march"), reply]
+        return reply.id
+    }
+
+    /// The escalated turn runs on the cloud model, and the bubble shows only
+    /// its answer under its badge.
+    func testAnEscalatedTurnShowsOnlyTheCloudAnswer() async {
+        let viewModel = makeViewModel()
+        let turnID = reserveTurn(in: viewModel, partial: "Let me check")
+        let apple = EscalatingAppleProvider(recorder: FallbackRecorder())
+        let cloud = ScriptedProvider(id: .anthropic, recorder: FallbackRecorder(), toolCall: nil, failure: nil)
+
+        let completed = await viewModel.router.runWebSearchEscalation(
+            attempt(on: apple, in: viewModel, turnID: turnID), target: (cloud, AppleFoundationProvider.model)
+        )
+
+        XCTAssertTrue(completed)
+        XCTAssertEqual(cloud.recorder.sends, 1)
+        XCTAssertEqual(apple.recorder.sends, 0, "Apple answered a turn the cloud model took")
+        XCTAssertEqual(viewModel.turns.last?.text, "Done.")
+        XCTAssertEqual(viewModel.turns.last?.providerID, .anthropic)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    /// With no model that can search, the error policy runs the turn on
+    /// Apple again, whose model then gets the refusal note, instead of
+    /// showing an error.
+    func testTheErrorPolicyAnswersAnEscalatedTurnOnAppleWhenNoCloudCanSearch() async {
+        let viewModel = makeViewModel()
+        let settings = viewModel.services.settingsManager
+        let wasOn = settings.settings.enableWebSearch
+        settings.settings.enableWebSearch = false
+        defer { settings.settings.enableWebSearch = wasOn }
+        let turnID = reserveTurn(in: viewModel)
+        let apple = EscalatingAppleProvider(recorder: FallbackRecorder())
+
+        let completed = await viewModel.router.runStreamWithErrorPolicy(attempt(on: apple, in: viewModel, turnID: turnID))
+
+        XCTAssertTrue(completed, "an escalated turn ended in an error: \(viewModel.errorMessage ?? "none")")
+        XCTAssertEqual(apple.recorder.sends, 2)
+        XCTAssertEqual(viewModel.turns.last?.text, "Apple answer.")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+}
+
+/// An Apple provider whose first send ends with `.needsWebSearch`, as
+/// `AppleFoundationProvider` does after an escalated `web_search` call, and
+/// whose next send answers.
+private struct EscalatingAppleProvider: AIProvider {
+    let id: ProviderID = .apple
+    let recorder: FallbackRecorder
+    var availableModels: [ModelOption] { [AppleFoundationProvider.model] }
+    var requiresKey: Bool { false }
+    var isAvailable: Bool { true }
+
+    func send(
+        messages _: [ChatTurn], model _: ModelOption, contextRendered _: String, systemPrompt _: String,
+        tools _: [ToolSpec], toolRounds _: [[ToolExchange]]
+    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        let recorder = recorder
+        return AsyncThrowingStream { continuation in
+            Task { @MainActor in
+                recorder.sends += 1
+                if recorder.sends == 1 { return continuation.finish(throwing: AIProviderError.needsWebSearch) }
+                continuation.yield(.textDelta("Apple answer."))
+                continuation.yield(.done)
+                continuation.finish()
+            }
+        }
     }
 }
 

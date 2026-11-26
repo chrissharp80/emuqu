@@ -148,6 +148,23 @@ search and the turn resolved to Apple, it goes to the first consented
 cloud provider in registry order instead. No consented cloud → it stays
 on Apple. Email, contacts, directions and route requests stay on Apple.
 
+### Web-search escalation
+
+The phrase patterns miss many questions that need the web ("is there a
+half marathon in portland in march", "magnesium for sleep", "Wird es
+morgen früh regnen?"), so they reach Apple. When Apple's model then calls
+`web_search`, that call is the signal: `TurnRouter.webSearchEscalation`
+picks the model the override above would, with the same limits (Apple
+selected, any mode but Manual, the first available consented cloud),
+plus two more: web search is on in Settings, and that cloud can search
+(a Tavily key is saved, or it is Anthropic). `AppleToolDispatcher` ends
+the Apple attempt only if none of Apple's reply has been shown
+(`AppleReplyGate`) and no tool that changes the user's data ran this
+turn; the chat then runs the turn on that cloud model, and the bubble
+shows only its answer. In every other case Apple's model gets the
+refusal note and answers without the web. A refusal from Apple's
+guardrail is never sent to another model.
+
 ### Embedding fallback chain
 
 For the optional gate, `SentenceEmbedder` uses

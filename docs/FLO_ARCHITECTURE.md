@@ -288,8 +288,9 @@ The flags come from phrase patterns (`CapabilityMarkers`), in English and in the
 
 - **Voice bypass:** voice turns skip tier classification. They go to the user's selected provider if it isn't Apple; if Apple is selected (and the mode isn't Manual), to the first available consented cloud provider in registry order, else Apple.
 - **Web search:** if the message asks for a web search (`messageNeedsWebSearch`) and the tier's provider is Apple, which can't run `web_search` (`providerCanSearchWeb`), the turn goes to the first available consented cloud provider. Email, contacts, directions and routes stay on Apple, which calls those tools itself.
+- **Web-search escalation:** the classifier and `messageNeedsWebSearch` miss many questions that need the web ("magnesium for sleep", "Wird es morgen früh regnen?"), and those reach Apple. When Apple's model then calls `web_search`, the turn moves to the model the web-search override would pick (`TurnRouter.webSearchEscalation`): only with Apple selected and a mode other than Manual, only with web search on, and only to the first available consented cloud that can search (a Tavily key is saved, or it is Anthropic). It also needs that none of Apple's reply has been shown and that no tool that changes the user's data (`AssistantToolRunner.mutatingToolNames`) ran this turn (§16). `AssistantTurnRouter.escalateForWebSearch` runs the turn on that model through the fallback path, so the bubble shows only its answer under its badge; if that model fails, Apple answers again with web search refused. When escalation is not allowed, Apple's model gets the refusal note and answers without the web. A guardrail refusal never escalates.
 - **Daily Tier 3 cap:** `recordTier3UsageAndCheck()` allows 50 deep turns per day, then downgrades to `.auto`.
-- **Apple guardrail:** a refusal from Apple's safety filter is shown to the user and not retried elsewhere (Foundation Models acceptable-use terms). A context overflow is retried once on-device with a trimmed context; other non-safety failures go to the fallback chain as far as `TurnRouter.failureFallback` allows.
+- **Apple guardrail:** a refusal from Apple's safety filter is shown to the user and not retried elsewhere (Foundation Models acceptable-use terms); web-search escalation does not apply to it. A context overflow is retried once on-device with a trimmed context; other non-safety failures go to the fallback chain as far as `TurnRouter.failureFallback` allows.
 - **Failure fallback:** when the turn's model fails with a fallbackable error (no key, no credit, rate limit, network, model unavailable), `TurnRouter.failureFallback(mode:selectedProviderID:)` decides who may step in. With a cloud model selected, or in Manual, nobody: the error is shown as `PickedModelFailure` and the turn is not handed to another model. With Apple selected, Quick allows only Apple (the turn stays on this iPhone) and Auto / Deep allow any accepted model in `orderedFallbackProviders` order (other clouds first, Apple last).
 
 ---
@@ -412,6 +413,8 @@ There is no production counter for how often this path fires; each hit only writ
 
 Adapts `[ToolSpec]` to FoundationModels `Tool` conformers that call back into the registry. Reached through `AppDependencies.current.providers.appleToolDispatcher`. `assembleContextAndTools` calls `setRegistry(factRegistry)` for Apple turns, and `runDispatchedTurn` calls `setRegistry(nil)` afterwards; an Apple fallback (`runFallbackLoop`) sets and clears it around its own run, so the dispatcher doesn't keep the registry alive past the turn (which would get in the way of `DataPurgeService`).
 
+Apple never runs `web_search` (the query would go to Tavily, which only the cloud consent sheet discloses). `publishAppleDispatcher` arms the turn for escalation when `TurnRouter.webSearchEscalation` has a target (§8.3); `setRegistry` disarms it, so an Apple fallback never escalates. On an armed turn with no mutating tool run, the `web_search` call throws `AppleWebSearchEscalation`. Foundation Models ends the generation with a `LanguageModelSession.ToolCallError` carrying it, and `AppleFoundationProvider` reports it as `AIProviderError.needsWebSearch`, which is not `isFallbackable` and goes to `escalateForWebSearch` instead of the failure chain. `AppleReplyGate` orders Apple's reply text against the escalation: the first of the two wins, so a turn whose text was shown keeps answering on Apple (the call gets the refusal note), and an escalated turn shows no more Apple text and runs no further tool calls. Otherwise the call gets the refusal note.
+
 ---
 
 ## 17. Action Bridges
@@ -449,6 +452,7 @@ All through `debugLog(...)` (`Emuqu/Sources/Utilities/DebugLog.swift`). Settings
 - `[Assistant] usage <provider>: input=… output=… cached=… cacheCreate=… hit_ratio=…`
 - `[FactRegistry] action <name> exceeded 2.0s budget …` and `… WATCHDOG-WARN …`
 - `[SmartRouter] tier=… → <provider>:<model>`, `[SmartRouter] voice-mode bypass …`, `[SmartRouter] web search: …`
+- `[AppleTools] web_search requested; ending the Apple attempt …`, `[Assistant] web search escalation: … running the turn on <provider>:<model>`
 - `[Hallucination guard] …`
 - `[Assistant] medical-query guard fired …`
 - `[Assistant] deterministic-intent hit …`
