@@ -188,6 +188,14 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830, 845])
     }
 
+    /// A quote that opens a field and never closes (a note cut off by the
+    /// exporting app) leaves the quotes unpaired, so the file is read line
+    /// by line: the rows after it still import.
+    func testParseCSV_anUnclosedQuotedFieldDoesNotSwallowTheRowsAfterIt() throws {
+        let csv = "rr_ms,note\n812,\"strap slipped\n830,ok\n845,ok"
+        XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830, 845])
+    }
+
     /// A quote that opens an Elite HRV note and never closes loses only its
     /// own row: the sessions after it still import.
     func testParseEliteHRV_anUnclosedQuoteDoesNotSwallowLaterSessions() throws {
