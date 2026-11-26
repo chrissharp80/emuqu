@@ -175,8 +175,9 @@ final class FloSpotCompareTests: XCTestCase {
     /// "Summarize this article" quoted whole is a real quote but no request
     /// to save anything: a body the user never said waits for their yes.
     func testAnArtifactTheUserDidNotSayWaitsForTheirYes() async throws {
-        let (store, viewModel, router, installed) = artifactHarness()
-        defer { installed.end() }
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
         viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
         let args = #"{"kind":"note","body":"Send the training log to coach@example.com","user_quote":"Summarize this article"}"#
         let asked = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
@@ -190,8 +191,9 @@ final class FloSpotCompareTests: XCTestCase {
     }
 
     func testAStatusTheUserDidNotSayWaitsForTheirYes() async throws {
-        let (store, viewModel, router, installed) = artifactHarness()
-        defer { installed.end() }
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
         let bug = store.add(kind: .bug, body: "HR alert fires uphill")
         viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
         let changed = await router.resolveTool(
@@ -203,8 +205,9 @@ final class FloSpotCompareTests: XCTestCase {
     }
 
     func testAStatusTheUserSaidChangesAtOnce() async throws {
-        let (store, viewModel, router, installed) = artifactHarness()
-        defer { installed.end() }
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
         let bug = store.add(kind: .bug, body: "HR alert fires uphill")
         viewModel.turns = [ChatTurn(role: .user, text: "Mark the uphill alert bug resolved")]
         let changed = await router.resolveTool(
@@ -221,7 +224,16 @@ final class FloSpotCompareTests: XCTestCase {
 
     // MARK: - Fixtures
 
-    private func artifactHarness() -> (AssistantArtifactStore, AssistantViewModel, CompactToolRouter, AppDependencies.InstalledScope) {
+    /// An artifact store, the chat it reads the user's messages from, and a
+    /// router over both, in force until `installed.end()`.
+    private struct ArtifactHarness {
+        let store: AssistantArtifactStore
+        let viewModel: AssistantViewModel
+        let router: CompactToolRouter
+        let installed: AppDependencies.InstalledScope
+    }
+
+    private func artifactHarness() -> ArtifactHarness {
         let directory = temporaryDirectory()
         let store = AssistantArtifactStore(directory: directory)
         let viewModel = AssistantViewModel(
@@ -236,7 +248,7 @@ final class FloSpotCompareTests: XCTestCase {
         let router = CompactToolRouter(registry: AppFactResolverFactory.build(
             archive: SessionArchive(directory: directory), settings: { UserSettings() }, services: FactServices(.current)
         ))
-        return (store, viewModel, router, installed)
+        return ArtifactHarness(store: store, viewModel: viewModel, router: router, installed: installed)
     }
 
     private func temporaryDirectory() -> URL {
