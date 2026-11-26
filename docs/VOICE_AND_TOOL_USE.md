@@ -47,16 +47,17 @@ exists only with a cloud model selected, where no routing runs.
 
 | Mode | What it does (Apple selected) |
 | --- | --- |
-| **Quick** | Every chip turn stays on Apple Intelligence (on-device, free, fastest). Apple's safety filter may still refuse some health-adjacent prompts. |
+| **Quick** | Every chip turn stays on Apple Intelligence (on-device, free, fastest), except web searches, which go to a consented cloud provider that can search. Apple's safety filter may still refuse some health-adjacent prompts. |
 | **Auto** | Session-sticky **capability classifier**. Apple when zero capability flags fire; otherwise the mid-tier cloud: xAI Grok, then DeepSeek, whichever the user has added a key for and accepted the consent sheet of. Apple when neither is consented. |
 | **Deep** | Every chip turn takes the same consented mid-tier cloud as Auto; Apple only when none is consented. |
 | **Manual** | Every turn → whatever you picked in the model picker (escape hatch). No routing logic runs. |
 
-In Quick, Auto and Deep, voice turns and action requests Apple can't
-serve (email, directions, web search…; with no composer these arrive by
-voice, which the voice bypass already routes) go to the first cloud provider
-in registry order whose consent sheet the user accepted, if any;
-otherwise they stay on Apple.
+In Quick, Auto and Deep, voice turns and web searches go to the first
+cloud provider in registry order whose consent sheet the user accepted,
+if any; otherwise they stay on Apple. Apple runs the app's other tools
+itself (email, contacts, directions, the route library), so those
+requests stay on the device. A web search the classifier missed is
+caught when Apple asks for `web_search` (web-search escalation, below).
 
 ### Capability-axis classifier
 
