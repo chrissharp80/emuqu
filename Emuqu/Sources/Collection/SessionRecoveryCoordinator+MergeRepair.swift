@@ -195,7 +195,7 @@ extension SessionRecoveryCoordinator {
             deviceProvenance: session.deviceProvenance,
             linkedSessionIds: session.linkedSessionIds, pausedDate: session.pausedDate
         )
-        var repaired = await morning.processOvernightData(
+        let repaired = await morning.processOvernightData(
             points: mergedPoints, baseSession: baseSession,
             dataSource: session.dataSourceSummary?.selectedSource ?? "streaming",
             reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,
@@ -203,17 +203,25 @@ extension SessionRecoveryCoordinator {
             deviceBeats: session.dataSourceSummary?.deviceBeats,
             isBackgroundRefinement: true
         )
-        Self.carryUserEdits(from: session, to: &repaired)
         return await archiveRepaired(repaired, originalId: session.id, beatCount: mergedPoints.count)
     }
 
-    /// Tags, notes, and the sleep-adjusted flag are the user's own work — the
-    /// rebuilt session must not lose them. Vitals carry over only when the
-    /// rebuild produced none.
+    /// Tags, notes, the morning feeling, the readiness rating and a sleep the
+    /// user set by hand are the user's own work — the rebuilt session must
+    /// not lose them. Vitals carry over only when the rebuild produced none.
     nonisolated private static func carryUserEdits(from session: HRVSession, to repaired: inout HRVSession) {
         repaired.tags = session.tags
         repaired.notes = session.notes
+        repaired.morningFeeling = session.morningFeeling
+        repaired.morningFeelingTags = session.morningFeelingTags
+        repaired.perceivedReadiness = session.perceivedReadiness
         repaired.sleepUserAdjusted = session.sleepUserAdjusted
+        if session.sleepUserAdjusted == true {
+            repaired.sleepSnapshot = session.sleepSnapshot
+            repaired.sleepStartMs = session.sleepStartMs
+            repaired.sleepEndMs = session.sleepEndMs
+            repaired.sleepSegments = session.sleepSegments
+        }
         if repaired.vitalsSnapshot == nil, let oldVitals = session.vitalsSnapshot {
             repaired.vitalsSnapshot = oldVitals
         }
@@ -222,18 +230,34 @@ extension SessionRecoveryCoordinator {
     /// Upload immediately instead of accumulating — keeps peak memory low.
     nonisolated private func archiveRepaired(_ repairedSession: HRVSession, originalId: UUID, beatCount: Int) async -> Bool {
         do {
-            let sessionToArchive = repairedSession
-            _ = try await MainActor.run { try archive.archive(sessionToArchive) }
-            let syncSession = repairedSession
+            let rebuilt = repairedSession
+            guard let written = try await MainActor.run(body: { try writeRepaired(rebuilt) }) else {
+                debugLog("[Recovery] Session \(originalId.uuidString.prefix(8)) left the archive during its repair — not written back")
+                return true
+            }
             // The sync manager is read on the main actor, so the upload Task
             // holds only it.
             let cloudSync = await MainActor.run { cloudSyncManager }
-            Task { await cloudSync.forceReuploadSession(syncSession) }
-            debugLog("[Recovery] Repaired session \(originalId.uuidString.prefix(8)): \(beatCount) beats, score \(repairedSession.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil")")
+            Task { await cloudSync.forceReuploadSession(written) }
+            debugLog("[Recovery] Repaired session \(originalId.uuidString.prefix(8)): \(beatCount) beats, score \(written.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil")")
             return true
         } catch {
             debugLog("[Recovery] Failed to archive repaired session: \(error)", level: .error)
             return false
         }
+    }
+
+    /// Writes the rebuilt night with the user's edits from the copy stored
+    /// now, read and written in one step on the main actor: the rebuild ran a
+    /// whole overnight analysis, and an edit or an iCloud pull made meanwhile
+    /// is in the archive, not in the copy read before it. A night no longer
+    /// in the archive (deleted, or Delete All My Data) is not written back;
+    /// nil then.
+    private func writeRepaired(_ rebuilt: HRVSession) throws -> HRVSession? {
+        guard let current = archive.retrieveOrLog(rebuilt.id) else { return nil }
+        var toArchive = rebuilt
+        Self.carryUserEdits(from: current, to: &toArchive)
+        try archive.archive(toArchive)
+        return toArchive
     }
 }

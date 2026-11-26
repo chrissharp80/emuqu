@@ -89,4 +89,50 @@ extension ArchiveIntegrityTests {
         wait(for: [announced, queued], timeout: 2)
         XCTAssertEqual(try archive.retrieve(existing.id)?.notes, "Imported note")
     }
+
+    /// The night is saved before the review card opens, and what the user
+    /// does on the card goes to that saved copy. Accepting wrote the card's
+    /// older copy back whole; now only the frozen score is written onto the
+    /// stored copy, so a note saved during the review stays.
+    func testAcceptingANightKeepsWhatWasSavedDuringTheReview() throws {
+        let reviewed = night(Self.nightAnchoredDate(daysAgo: 28), minutes: 60)
+        _ = try archive.archive(reviewed)
+        let read = try XCTUnwrap(archive.retrieve(reviewed.id))
+        try archive.update(reviewed.id) { $0.notes = "Felt fine, legs heavy" }
+        var frozen = read
+        frozen.recoveryScore = 7.4
+
+        let written = try SessionAcceptanceService.writeAccepted(frozen, readFrom: read, to: archive)
+
+        XCTAssertEqual(written?.recoveryScore, 7.4)
+        let stored = try XCTUnwrap(archive.retrieve(reviewed.id))
+        XCTAssertEqual(stored.notes, "Felt fine, legs heavy", "the note saved on the review card was lost")
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+    }
+
+    /// A readiness rating given while acceptance fetched from Health changes
+    /// what the score is computed from: nothing is written, and acceptance
+    /// runs again from the stored copy, rating included.
+    func testARatingGivenDuringAcceptanceIsNotScoredOver() throws {
+        let reviewed = night(Self.nightAnchoredDate(daysAgo: 30), minutes: 60)
+        _ = try archive.archive(reviewed)
+        let read = try XCTUnwrap(archive.retrieve(reviewed.id))
+        try archive.update(reviewed.id) { $0.perceivedReadiness = 0.8 }
+        var frozen = read
+        frozen.recoveryScore = 6.1
+
+        XCTAssertNil(try SessionAcceptanceService.writeAccepted(frozen, readFrom: read, to: archive))
+        XCTAssertEqual(try archive.retrieve(reviewed.id)?.perceivedReadiness, 0.8)
+    }
+
+    /// A night deleted while it was accepted is not written back.
+    func testANightDeletedDuringAcceptanceIsNotWrittenBack() throws {
+        let reviewed = night(Self.nightAnchoredDate(daysAgo: 32), minutes: 60)
+        _ = try archive.archive(reviewed)
+        let read = try XCTUnwrap(archive.retrieve(reviewed.id))
+        _ = try archive.deleteWithoutTrash(reviewed.id)
+
+        XCTAssertThrowsError(try SessionAcceptanceService.writeAccepted(read, readFrom: read, to: archive))
+        XCTAssertFalse(archive.store.exists(reviewed.id))
+    }
 }

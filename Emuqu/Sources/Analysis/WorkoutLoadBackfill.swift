@@ -253,35 +253,41 @@ enum WorkoutLoadBackfill {
         archive: SessionArchive
     ) async -> Persisted {
         let sessionId = entry.sessionId
-        return await Task.detached(priority: .utility) { () -> Persisted in
-            let read: HRVSession?
-            do {
-                read = try archive.retrieve(sessionId)
-            } catch {
-                return failure(error, "could not be read again", id: sessionId)
-            }
-            guard var session = read else { return .alreadyEstimated }
-            guard var meta = session.workoutMetadata, meta.extrapolatedTRIMP == nil else { return .alreadyEstimated }
-            meta.extrapolatedTRIMP = extrapolation.trimp
-            meta.extrapolationConfidence = extrapolation.confidence
-            meta.extrapolationRouteName = extrapolation.routeName
-            session.workoutMetadata = meta
-            return write(session, sport: meta.sport, archive: archive)
-        }.value
+        return await Task.detached(priority: .utility) { store(extrapolation, on: sessionId, in: archive) }.value
     }
 
-    nonisolated private static func write(_ session: HRVSession, sport: Sport, archive: SessionArchive) -> Persisted {
+    nonisolated private static func store(_ extrapolation: Extrapolation, on sessionId: UUID, in archive: SessionArchive) -> Persisted {
         do {
-            _ = try archive.archive(session)
-            debugLog("[WorkoutLoadBackfill] Updated \(session.id.uuidString.prefix(8)) \(sport.rawValue) → extrapolated TRIMP \(Int(session.workoutMetadata?.extrapolatedTRIMP ?? 0))")
-            return .written(session)
+            guard let written = try setEstimate(extrapolation, on: sessionId, in: archive) else { return .alreadyEstimated }
+            debugLog("[WorkoutLoadBackfill] Updated \(sessionId.uuidString.prefix(8)) \(written.workoutMetadata?.sport.rawValue ?? "?") → extrapolated TRIMP \(Int(written.workoutMetadata?.extrapolatedTRIMP ?? 0))")
+            return .written(written)
+        } catch SessionArchive.ArchiveError.fileNotFound {
+            return .alreadyEstimated
         } catch {
-            return failure(error, "could not be re-archived", id: session.id)
+            return failure(error, "could not be updated", id: sessionId)
         }
     }
 
-    /// A failed read or write, logged: `.failedForNow` when it may clear
-    /// (`ArchiveAccessFailure.mayClear`), else `.failedForGood`.
+    /// Sets the estimate on the archived copy under the archive's lock, so a
+    /// change written by another thread between a read and a write (an
+    /// Apple Health export stamp, a heart-rate recovery, an iCloud pull) is
+    /// kept. nil when the workout already has one or no metadata.
+    nonisolated private static func setEstimate(
+        _ extrapolation: Extrapolation, on sessionId: UUID, in archive: SessionArchive
+    ) throws -> HRVSession? {
+        var written: HRVSession?
+        try archive.updateIfChanged(sessionId, requestingReupload: false) { stored in
+            guard var meta = stored.workoutMetadata, meta.extrapolatedTRIMP == nil else { return false }
+            meta.extrapolatedTRIMP = extrapolation.trimp
+            meta.extrapolationConfidence = extrapolation.confidence
+            meta.extrapolationRouteName = extrapolation.routeName
+            stored.workoutMetadata = meta
+            written = stored
+            return true
+        }
+        return written
+    }
+
     nonisolated private static func failure(_ error: any Error, _ what: String, id: UUID) -> Persisted {
         debugLog("[WorkoutLoadBackfill] \(id.uuidString.prefix(8)) \(what): \(error.localizedDescription)", level: .warning)
         return ArchiveAccessFailure.mayClear(error) ? .failedForNow : .failedForGood
