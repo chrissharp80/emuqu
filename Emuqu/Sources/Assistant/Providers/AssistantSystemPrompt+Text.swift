@@ -307,7 +307,9 @@ extension AssistantSystemPrompt {
     /// A chat turn on Apple carries the tools that fit its window
     /// (`appleToolOverlay`), and routing moves a web search, deep history
     /// and speculation off Apple before it runs (`CapabilityClassifier`,
-    /// the web-search override in `TurnRouter`). This overlay is for the
+    /// the web-search override in `TurnRouter`), or, for a web search the
+    /// router missed, when Apple's model asks for one
+    /// (`TurnRouter.webSearchEscalation`). This overlay is for the
     /// turns that reach a provider with no tool catalog: the right
     /// behaviour there is to say so plainly and stop, not to instruct the
     /// user to tap UI that may not exist.

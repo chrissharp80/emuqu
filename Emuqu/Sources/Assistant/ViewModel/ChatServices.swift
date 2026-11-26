@@ -17,6 +17,7 @@ struct ChatServices: Sendable {
     var prompt: PromptServices { PromptServices(container) }
 
     var analysisSummaryCache: AnalysisSummaryCache { container.assistant.analysisSummaryCache }
+    var apiKeyStore: APIKeyStore { container.providers.apiKeyStore }
     @MainActor
     var appleToolDispatcher: AppleToolDispatcher { container.providers.appleToolDispatcher }
     var assistantContextSource: AssistantContextSource { container.assistant.assistantContextSource }
