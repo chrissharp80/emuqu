@@ -4,14 +4,13 @@ import XCTest
 /// A deliberate data race that proves the Thread Sanitizer gate can see one.
 ///
 /// `scripts/check_thread_sanitizer.sh` passes when its log holds no race
-/// report, which is evidence only if a race would reach that log and fail the
-/// run. Before the suite, the gate runs this test alone with
-/// `TEST_RUNNER_EMUQU_TSAN_CANARY=1` and requires a `WARNING: ThreadSanitizer`
-/// report and a failed run; without either, it fails instead of passing.
+/// report, which is evidence only if that same process could see a race. The
+/// gate runs the whole suite with `TEST_RUNNER_EMUQU_TSAN_CANARY=1`, this test
+/// races inside it, and the run counts only if this file's race is reported
+/// in its log. A race does not end the host, so the test then passes.
 ///
-/// Without `EMUQU_TSAN_CANARY` (every other run, the suite run under TSan
-/// included) the test returns at once, so it never races outside the gate's
-/// own check.
+/// Without `EMUQU_TSAN_CANARY` (every other test run) the test returns at
+/// once, so it never races outside the gate.
 final class ThreadSanitizerCanaryTests: XCTestCase {
     /// An integer two threads write with no synchronization: the race.
     private final class UnsynchronizedCounter: @unchecked Sendable {
@@ -32,16 +31,9 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
         let count = Atomic<Int>(0)
     }
 
-    /// Both writers are alive and writing at the same time, on every run.
-    ///
-    /// A race Thread Sanitizer can see needs two writes from different threads
-    /// with nothing ordering them. Started threads that do not overlap can be
-    /// ordered by the runtime's own bookkeeping: on a busy runner the first
-    /// thread can finish and exit before the second is started, and the lock
-    /// Foundation takes on thread exit and again on thread start then orders
-    /// the first thread's writes before the second's, which is no race. So each
-    /// writer waits, on a relaxed atomic, until both are running, and only
-    /// then writes; neither has exited when the other starts writing.
+    /// Two writer threads, alive and writing at the same time: each waits on
+    /// a relaxed atomic until both are running, so their writes overlap and
+    /// nothing orders one thread's writes with the other's.
     func testUnsynchronizedWritesRaceWhenTheCanaryIsRequested() {
         guard ProcessInfo.processInfo.environment["EMUQU_TSAN_CANARY"] == "1" else { return }
         // A failure with no race report fails the gate, as a missed race does.
@@ -67,7 +59,6 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
         }
         finished.wait()
         finished.wait()
-        // Reached only if Thread Sanitizer did not end the host on the race.
-        XCTFail("The unsynchronized writes ran to the end (count \(counter.value)) with the sanitizer runtime loaded and TSAN_OPTIONS \(options); Thread Sanitizer did not stop them.")
+        XCTAssertGreaterThan(counter.value, 0, "The writers ran (TSAN_OPTIONS \(options)).")
     }
 }

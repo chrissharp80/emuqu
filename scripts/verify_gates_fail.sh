@@ -624,41 +624,39 @@ check "uitest_fresh_install/dropped_flag" \
     "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();t=s.replace('app.launchArguments += [\"-UITests\", \"-UITests-FreshInstall\"]','app.launchArguments += [\"-UITests\"]',1);assert t!=s;p.write_text(t)"
 
 # The Thread Sanitizer gate needs a simulator build, so here it runs against a
-# stand-in xcodebuild that behaves as the real one does in the two ways the gate
+# stand-in xcodebuild that behaves as the real one does in the ways the gate
 # depends on: a race report reaches the output only when parallel testing is
-# off (with it on, the host's stderr goes to per-clone logs), and a race fails
-# the run only when the host gets `TSAN_OPTIONS=halt_on_error=1`. The canary
-# selector races when the host gets `EMUQU_TSAN_CANARY=1`; the suite selector
-# races when the fixture file says so. The plants are a race in the suite, and
-# each of the two settings removed from the gate, which its canary must catch.
+# off (with it on, the host's stderr goes to per-clone logs), a race ends the
+# host unless it is told `halt_on_error=0`, the canary races only when the host
+# gets `EMUQU_TSAN_CANARY=1`, and a blind host reports nothing at all. The fixture file says whether the
+# suite holds a race (`race`) or the host is blind (`blind`).
 TSAN_STUB_BIN="$BACKUP_DIR/tsan-bin"
 TSAN_SUITE_FIXTURE="$BACKUP_DIR/tsan-suite-races"
 mkdir -p "$TSAN_STUB_BIN"
 printf 'none\n' > "$TSAN_SUITE_FIXTURE"
 cat > "$TSAN_STUB_BIN/xcodebuild" <<'STUB'
 #!/usr/bin/env bash
-parallel=YES selector="" prev=""
+parallel=YES prev=""
 for arg in "$@"; do
     [[ "$prev" == "-parallel-testing-enabled" ]] && parallel="$arg"
-    [[ "$arg" == -only-testing:* ]] && selector="${arg#-only-testing:}"
     prev="$arg"
 done
-race=false
-if [[ "$selector" == "EmuquTests/ThreadSanitizerCanaryTests" ]]; then
-    [[ "${TEST_RUNNER_EMUQU_TSAN_CANARY:-}" == "1" ]] && race=true
-elif grep -q race "$TSAN_SUITE_FIXTURE"; then
-    race=true
-fi
-echo "Test Case '-[EmuquTests.StubTests testOne]' started."
-if $race; then
-    [[ "$parallel" == "NO" ]] && echo "WARNING: ThreadSanitizer: data race (pid=1)"
-    if [[ "${TEST_RUNNER_TSAN_OPTIONS:-}" == *halt_on_error=1* ]]; then
-        echo "Restarting after unexpected exit, crash, or test timeout in StubTests.testOne()"
+report() {
+    [[ "$parallel" == "NO" ]] || return 0
+    grep -q blind "$TSAN_SUITE_FIXTURE" && return 0
+    echo "WARNING: ThreadSanitizer: data race (pid=1)"
+    echo "SUMMARY: ThreadSanitizer: Swift access race (/tmp/EmuquTests.xctest/EmuquTests:arm64+0x6b184) in closure #1 in $1()"
+    # The simulator's sanitizer halts on its first report unless told not to.
+    if [[ "${TEST_RUNNER_TSAN_OPTIONS:-}" != *halt_on_error=0* ]]; then
+        echo "Restarting after unexpected exit, crash, or test timeout; summary will include totals from previous launches."
         echo "Test Case '-[EmuquTests.StubTests testOne]' failed (0.001 seconds)."
         echo "** TEST FAILED **"
         exit 65
     fi
-fi
+}
+echo "Test Case '-[EmuquTests.StubTests testOne]' started."
+[[ "${TEST_RUNNER_EMUQU_TSAN_CANARY:-}" == "1" ]] && report ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested
+grep -q race "$TSAN_SUITE_FIXTURE" && report StubTests.testOne
 echo "Test Case '-[EmuquTests.StubTests testOne]' passed (0.001 seconds)."
 echo "** TEST SUCCEEDED **"
 STUB
@@ -675,10 +673,20 @@ check "thread_sanitizer/parallel_testing_hides_races" \
     "scripts/check_thread_sanitizer.sh" \
     "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o='        -parallel-testing-enabled NO \\\\'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
-check "thread_sanitizer/race_does_not_fail_run" \
+check "thread_sanitizer/canary_not_asked_to_race" \
     "$TSAN_GATE" \
     "scripts/check_thread_sanitizer.sh" \
-    "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o='env TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1 ';assert s.count(o)==1;p.write_text(s.replace(o,'env '))"
+    "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o='env TEST_RUNNER_EMUQU_TSAN_CANARY=1 ';assert s.count(o)==1;p.write_text(s.replace(o,'env '))"
+
+check "thread_sanitizer/race_halts_the_host" \
+    "$TSAN_GATE" \
+    "scripts/check_thread_sanitizer.sh" \
+    "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o=' TEST_RUNNER_TSAN_OPTIONS=halt_on_error=0';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+check "thread_sanitizer/blind_host" \
+    "$TSAN_GATE" \
+    "$TSAN_SUITE_FIXTURE" \
+    "import pathlib;pathlib.Path('$TSAN_SUITE_FIXTURE').write_text('blind'+chr(10))"
 
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"
