@@ -13,15 +13,18 @@ extension WorkoutSessionLifecycle {
     // TrainingPeaks-style NP: 30-second rolling mean → raise to the 4th
     // power per window → take the mean → 4th root. Captures how
     // physiologically stressful a variable-intensity effort was (intervals,
-    // hills) vs. the raw arithmetic mean, which understates the cost. At
-    // ~1 Hz sample rate, we use a 30-sample rolling window.
+    // hills) vs. the raw arithmetic mean, which understates the cost.
     // NP = (mean of [30-s rolling-avg power]^4)^0.25 — Allen & Coggan, Training
     // and Racing with a Power Meter.
-    // NOTE: 30-SAMPLE window assumes ~1 Hz power sampling = Coggan's 30 s; if
-    // sample cadence differs, derive window length from cadence.
-    // A row without power (a dropout) ends a run of rows, and windows are
-    // taken within runs only, so no window splices seconds from either side
-    // of a dropout.
+    // Samples are one per second of moving time, keyed by whole-second
+    // `offsetSec`. A run is a stretch of rows with power at consecutive
+    // offsets, so 30 rows of a run are exactly 30 seconds. A row without
+    // power (a dropout) or an offset that is not the previous one plus a
+    // second (the recorder jumps the clock after a suspension, leaving those
+    // seconds unsampled) ends the run, and windows are taken within runs
+    // only, so no window splices seconds from either side of a gap. A
+    // repeated offset is the same second again and is skipped. A 0 W
+    // reading (coasting) is a reading and stays in the run.
     static func computeNormalizedPower(samples: [WorkoutSample]) -> Double? {
         let windowMeans = powerRuns(samples).flatMap { Self.rollingThirtySampleMeans($0) }
         guard !windowMeans.isEmpty else { return nil }  // need at least one full window
@@ -29,23 +32,27 @@ extension WorkoutSessionLifecycle {
         return pow(meanFourth, 0.25)
     }
 
-    /// Runs of consecutive rows that carry power, in order.
+    /// Runs of rows that carry power at consecutive one-second offsets, in
+    /// order. The first row for an offset is the one kept.
     private static func powerRuns(_ samples: [WorkoutSample]) -> [[Double]] {
         var runs: [[Double]] = []
         var current: [Double] = []
-        for sample in samples {
-            if let watts = sample.powerWatts {
-                current.append(Double(watts))
-            } else if !current.isEmpty {
+        var previousOffset: Int?
+        for sample in samples where sample.offsetSec != previousOffset {
+            let watts = sample.powerWatts.map(Double.init)
+            let continuesRun = watts != nil && previousOffset.map { sample.offsetSec == $0 + 1 } == true
+            if !continuesRun, !current.isEmpty {
                 runs.append(current)
                 current = []
             }
+            if let watts { current.append(watts) }
+            previousOffset = sample.offsetSec
         }
         if !current.isEmpty { runs.append(current) }
         return runs
     }
 
-    /// The mean of every 30-sample window in one run; empty under 30 samples.
+    /// The mean of every 30-second window in one run; empty under 30 seconds.
     private static func rollingThirtySampleMeans(_ watts: [Double]) -> [Double] {
         guard watts.count >= 30 else { return [] }
         return (29 ..< watts.count).map { i in watts[(i - 29) ... i].reduce(0, +) / 30.0 }

@@ -222,7 +222,7 @@ Every archived workout resolves one load figure and a source tag; the first appl
 Running-family sports (run, trail run, walk, hike, treadmill) use the user's running FTP, else the automatic estimate. Cycling (outdoor and indoor) uses only a user-entered FTP. Other sports have none.
 
 The automatic running FTP works as follows.
-1. Over the running-family workouts of the last 90 days, build a per-second power array by sample offset (0 ≤ offset < 24 h). A second is empty unless watts > 0.
+1. Over the running-family workouts of the last 90 days, build a per-second power array by sample offset (0 ≤ offset < 24 h). A second is empty when it has no power reading; a 0 W reading (coasting) fills it.
 2. Slide a 1200 s window. Where it is full and holds at least ⌈0.9 × 1200⌉ = 1080 readings, take the mean of the readings present.
 3. Take the best window mean across sessions and set `FTP = round(0.95 × best)`. Store it with its source session, or clear it if no window qualifies.
 4. Recompute at most every 7 days unless forced. If a workout in the 90 days cannot be read for a reason that may clear (the device locked, the disk full, the keychain refusing the key for now), the scan is not stamped and is retried at the next launch, and the stored FTP changes only if the scan found a higher one. A workout that can never be read as it is (corrupt or undecodable) holds no effort the scan can find, so it does not keep the scan open; the weekly rescan tries it again.
@@ -992,7 +992,7 @@ load(meta, ftp):
 readTimeTSS(meta, ftp): F = ftp.for(meta.sport); T = max(meta.samples.t)
   if meta.NP > 0 and F > 0 and T > 60: return (meta.NP/F)^2 * T/3600 * 100
 autoFTP(): best over running-family workouts of the last 90 days of
-  max over full 1200 s windows with >= 1080 power readings of the mean of readings present;
+  max over full 1200 s windows with >= 1080 power readings of the mean of readings present (0 W included);
   return round(0.95*best)
 
 # B8 Readiness (N11, N12)

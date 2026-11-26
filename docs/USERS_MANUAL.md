@@ -1294,9 +1294,10 @@ PM5 / cycling power meter) AND the matching FTP is set, the post-summary
 adds:
 
 - **Normalised Power (NP)** — Coggan's 30-second rolling average → mean
-  of the 4th power → 4th root. A gap in the power data ends a window rather
-  than being averaged across, and with no 30 seconds of unbroken power
-  there is no NP. Better matches the physiological cost of
+  of the 4th power → 4th root. A gap in the power data (a dropout, or
+  seconds the phone did not record) ends a window rather than being
+  averaged across, and with no 30 seconds of unbroken power there is no NP.
+  A 0 W reading (coasting) counts as a reading. Better matches the physiological cost of
   variable-effort sessions than raw average.
 - **Intensity Factor (IF)** = NP / FTP. 1.0 = exactly your hour-power.
 - **Power-based training load** = `(NP / FTP)² × hours × 100`. The canonical
@@ -1315,7 +1316,7 @@ Most users have never done a 20-minute FTP test and never will. If you have a St
 
 **What it does:**
 - Scans workouts from the **last 90 days** in the running family (run, trail run, walk, hike, treadmill) where Stryd power was captured, so the estimate follows you down after a lay-off as well as up.
-- Slides a 20-minute window over each workout's moving time (at least 90 % of its seconds must carry a power reading) and keeps the **best 20-minute mean power** — a single hard 20 minutes is a better threshold proxy than a whole-session average diluted by warm-up and cool-down.
+- Slides a 20-minute window over each workout's moving time (at least 90 % of its seconds must carry a power reading; 0 W while coasting counts as a reading and lowers the mean, as in every mean-maximal power curve) and keeps the **best 20-minute mean power**: a single hard 20 minutes is a better threshold proxy than a whole-session average diluted by warm-up and cool-down.
 - Applies the TrainingPeaks convention: `FTP = best 20-min mean power × 0.95`.
 - Caches the estimate in `UserDefaults`, along with the source session ID and the date the scan ran. Recomputed weekly off the main thread, and sooner when a workout was added or the one it came from was deleted. If no recent workout qualifies (or the one it came from was deleted), the estimate is cleared rather than kept.
 - A workout that can't be read for now (the phone is locked, the disk is full) leaves the scan open: it runs again at the next launch, and meanwhile the estimate is never lowered or cleared. A workout that can never be read (a damaged file) doesn't hold the scan open; the weekly rescan tries it again.

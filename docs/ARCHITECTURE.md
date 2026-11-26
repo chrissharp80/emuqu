@@ -1511,7 +1511,7 @@ Post-summary and the epic α1 report live in
   Intervals.icu uses equivalent derivation. Returns nil if any anchor
   (HRmax, HRrest, LTHR) is missing.
 - **Power-TSS — Coggan / TrainingPeaks**: `(NP / FTP)² × hours × 100`.
-  NP is the 4-second rolling average → mean of the 4th power → 4th
+  NP is the 30-second rolling average → mean of the 4th power → 4th
   root. IF (Intensity Factor) = NP / FTP. Variability Index = NP / avg
   power. A 0 W reading counts as a reading (coasting); foot-pod power older
   than 5 s is no reading (`FootPodManager.currentPowerWatts`,
