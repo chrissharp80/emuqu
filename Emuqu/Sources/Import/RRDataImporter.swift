@@ -180,10 +180,33 @@ final class RRDataImporter: Sendable {
     // MARK: - Public API
 
     /// The largest file an import reads. The whole file is held in memory as
-    /// data, then as text, then parsed, so a file past this is refused before
-    /// any of that: a multi-year Emuqu export of every night is well under
-    /// it, and a file several times larger would exhaust the app's memory.
+    /// data, then as text, so a file past this is refused before any of it
+    /// is loaded. The largest file the app itself writes for import is its
+    /// multi-session RR export: one row per beat, about 40 bytes
+    /// ("2026-01-25_0443,28800000,850,overnight"), so an 8-hour night at
+    /// 60 bpm is 28,800 rows, about 1.1 MB, and this cap holds about 230 such
+    /// nights. An archive exported as one larger file is refused.
     static let maxFileBytes = 256 * 1024 * 1024
+
+    /// The most beats one recording can hold. `validate` refuses a recording
+    /// longer than `maximumRecordingSpanMs` or with more than a quarter of
+    /// its values outside the physiological range, so at least three
+    /// quarters of a file it accepts are beats of at least
+    /// `HRVConstants.RRInterval.minimum` ms: 604,800,000 / 300 = 2,016,000,
+    /// and the whole file at most 4/3 of that, 2,688,000. Parsers stop
+    /// reading at this count instead of collecting a larger file whole.
+    static let maxBeatsPerRecording =
+        Int(maximumRecordingSpanMs) / HRVConstants.RRInterval.minimum * 4 / 3
+
+    /// The widest row a single-recording file spends on one beat: a Polar
+    /// Sensor Logger row ("2024-05-01T08:00:00.123;599633516161064160;812")
+    /// is 47 bytes, and 64 leaves room for a further column.
+    static let maxBytesPerBeatRow = 64
+
+    /// The largest CSV, Kubios, text or JSON file an import parses:
+    /// `maxBeatsPerRecording` rows of `maxBytesPerBeatRow` bytes,
+    /// 2,688,000 x 64 = 172,032,000 bytes (about 164 MiB).
+    static let maxSingleRecordingBytes = maxBeatsPerRecording * maxBytesPerBeatRow
 
     /// The file's UTF-8 text, with its security scope held for the read. The
     /// one reader for an import: a caller that needs the text to pick a
@@ -230,6 +253,7 @@ final class RRDataImporter: Sendable {
             debugLog("[Import] Failed to read file \(url.lastPathComponent): \(error.localizedDescription)")
             throw ImportError.unreadableFile
         }
+        guard data.count <= Self.maxFileBytes else { throw ImportError.tooLarge }
         guard let content = String(data: data, encoding: .utf8) else {
             throw ImportError.unreadableFile
         }
@@ -237,22 +261,31 @@ final class RRDataImporter: Sendable {
     }
 
     /// Throws `.tooLarge` for a file past `maxFileBytes`, read from its
-    /// attributes before any of it is loaded. A size that cannot be read
-    /// leaves the read to fail or succeed on its own.
+    /// attributes before any of it is loaded, and `.unreadableFile` when the
+    /// size cannot be read: a file of unknown size is not loaded whole.
     static func requireImportableSize(at url: URL, maxBytes: Int = maxFileBytes) throws {
         let size: Int?
         do {
             size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
         } catch {
-            // swallow-ok: without a size the read itself reports what is wrong.
-            size = nil
+            debugLog("[Import] \(url.lastPathComponent): size unreadable: \(error.localizedDescription)", level: .warning)
+            throw ImportError.unreadableFile
         }
-        guard let size, size > maxBytes else { return }
-        debugLog("[Import] \(url.lastPathComponent) is \(size / 1_048_576) MB — over the import limit", level: .warning)
+        guard let size else { throw ImportError.unreadableFile }
+        guard size > maxBytes else { return }
+        debugLog("[Import] \(url.lastPathComponent) is \(size / 1_048_576) MB, over the import limit", level: .warning)
         throw ImportError.tooLarge
     }
 
+    /// Throws `.tooLarge` for single-recording text past `maxBytes`.
+    static func requireSingleRecordingSize(_ content: String, maxBytes: Int = maxSingleRecordingBytes) throws {
+        guard content.utf8.count <= maxBytes else { throw ImportError.tooLarge }
+    }
+
+    /// Every format reaching here is one recording, so its text is held to
+    /// `maxSingleRecordingBytes` before parsing.
     private func parse(_ content: String, as format: ImportFormat) throws -> ParsedRRFile {
+        try Self.requireSingleRecordingSize(content)
         switch format {
         case .json:
             let (intervals, meta, date) = try parseJSON(content)
@@ -318,9 +351,9 @@ final class RRDataImporter: Sendable {
     // MARK: - Format Detection
 
     private func detectFormat(content: String, extension ext: String) -> ImportFormat {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        // JSON detection
-        if trimmed.hasPrefix("[") || trimmed.hasPrefix("{") {
+        // JSON detection, from the first character that is not white space.
+        let opening = content.unicodeScalars.first { !CharacterSet.whitespacesAndNewlines.contains($0) }
+        if opening == "[" || opening == "{" {
             return .json
         }
         // CSV detection (has commas or semicolons as separators)
@@ -352,7 +385,7 @@ final class RRDataImporter: Sendable {
 
     /// Check if content is Elite HRV summary format
     func isEliteHRVSummary(_ content: String) -> Bool {
-        let firstLine = content.components(separatedBy: .newlines).first?.lowercased() ?? ""
+        let firstLine = Self.firstLine(of: content).lowercased()
         // Old format: rmssd_clean, rmssd_raw, n_rr columns
         // New format: Member, Type, Rmssd, lnRmssd, HRV, HR columns
         return firstLine.contains("rmssd_clean") || firstLine.contains("rmssd_raw") ||
@@ -363,7 +396,7 @@ final class RRDataImporter: Sendable {
     /// Check if content is Emuqu multi-session RR export format
     /// Format: session_date,timestamp_ms,rr_ms
     func isFlowHRVMultiSession(_ content: String) -> Bool {
-        let firstLine = content.components(separatedBy: .newlines).first?.lowercased() ?? ""
+        let firstLine = Self.firstLine(of: content).lowercased()
         return firstLine.contains("session_date") &&
             firstLine.contains("timestamp_ms") &&
             firstLine.contains("rr_ms")

@@ -37,14 +37,21 @@ extension HealthWorkoutImporter {
     /// Returns nil when the workout has gone from HealthKit between listing and
     /// import (the user deleted it in the Health app, or the source app
     /// resynced) — the caller reports that rather than archiving an empty
-    /// session.
+    /// session. Also nil when the builder refuses the workout's span, which
+    /// `candidate(for:)` has already left out of the list.
     func session(for candidate: Candidate) async -> HRVSession? {
         guard let workout = await workout(withID: candidate.id) else { return nil }
         let track = await importedTrack(for: workout, candidate: candidate)
-        var session = ImportedWorkoutBuilder.buildSession(
-            from: track,
-            source: .appleHealth(sourceName: candidate.sourceName)
-        )
+        var session: HRVSession
+        do {
+            session = try ImportedWorkoutBuilder.buildSession(
+                from: track,
+                source: .appleHealth(sourceName: candidate.sourceName)
+            )
+        } catch {
+            debugLog("[HealthImport] \(candidate.id) cannot be built: \(error)", level: .warning)
+            return nil
+        }
         Self.applyTotals(from: candidate, to: &session)
         return session
     }
@@ -231,7 +238,8 @@ extension HealthWorkoutImporter {
     // MARK: - Candidate mapping
 
     nonisolated private static func candidate(for workout: HKWorkout) -> Candidate? {
-        guard workout.duration >= minimumImportableDuration else { return nil }
+        guard workout.duration >= minimumImportableDuration,
+              ImportedWorkoutBuilder.canBuild(from: workout.startDate, to: workout.endDate) else { return nil }
         let isIndoor = workout.metadata?[HKMetadataKeyIndoorWorkout] as? Bool ?? false
         guard let sport = sport(for: workout.workoutActivityType, isIndoor: isIndoor) else { return nil }
         return Candidate(

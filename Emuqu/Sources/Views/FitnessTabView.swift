@@ -767,7 +767,7 @@ struct FitnessTabView: View {
             let parsed = try GPXImporter.parseWorkout(data: try GPXImporter.readFile(at: url))
             guard !HealthWorkoutImporter.isAlreadyArchived(start: parsed.startDate, existingStarts: existingStarts) else { return .duplicate }
             _ = try archive.archive(GPXImporter.buildSession(from: parsed))
-            let dur = ImportedWorkoutBuilder.clampedDurationSeconds(from: parsed.startDate, to: parsed.endDate) / 60
+            let dur = try ImportedWorkoutBuilder.durationSeconds(from: parsed.startDate, to: parsed.endDate) / 60
             return .imported(sport: parsed.sport, minutes: dur, points: parsed.track.count)
         } catch {
             return .failed(error.localizedDescription)
