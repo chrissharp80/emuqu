@@ -106,8 +106,8 @@ enum RoutingMode: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .quick:
             String(localized: """
-                Private. Apple Intelligence answers your questions on this iPhone; voice conversations and requests to send \
-                email, get directions or search the web go to a cloud model whose data-sharing notice you've accepted, if you \
+                Private. Apple Intelligence answers your questions on this iPhone; voice conversations and web searches go \
+                to a cloud model whose data-sharing notice you've accepted, if you \
                 have one. May refuse complex multi-week analysis.
                 """, bundle: LanguageManager.appBundle)
         case .auto:

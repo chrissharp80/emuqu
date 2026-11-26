@@ -19,7 +19,8 @@ import Foundation
 /// and won't trigger permission prompts.
 final class AssistantContextSource: Sendable {
     private let queue = DispatchQueue(label: "com.chrissharp.flowrecovery.assistant.contextsource", qos: .userInitiated)
-    private let services: ContextServices
+    /// The services the context is built from.
+    let services: ContextServices
 
     init(services: ContextServices) {
         self.services = services

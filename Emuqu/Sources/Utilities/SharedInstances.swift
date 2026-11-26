@@ -2,7 +2,10 @@ import Foundation
 
 // The composition root's own instances: the services whose construction
 // names other services, built here so every `.shared` read stays in the
-// root. `AppDependencies.swift` serves them through its accessors.
+// root. `AppDependencies.swift` serves them through its accessors. Those
+// built from a service list take it over `AppDependencies.live`, never
+// `.current`: the first read can come while a test's container is in force,
+// and the instance lives for the whole process.
 
 extension SessionArchive {
     /// The app's archive: one instance, so no two operate on the same
@@ -59,7 +62,7 @@ extension HeatAcclimationCache {
 
 extension AssistantContextSource {
     /// The app's context source, over the app's archive, settings and live brokers.
-    static let shared = AssistantContextSource(services: ContextServices(.current))
+    static let shared = AssistantContextSource(services: ContextServices(.live))
 }
 
 extension VoiceConversationController {
@@ -67,27 +70,27 @@ extension VoiceConversationController {
     /// hardware level, and the chat view and every other surface (workout
     /// recording, the Watch) drive the same controller rather than fight for
     /// the audio session.
-    static let shared = VoiceConversationController(services: VoiceServices(.current))
+    static let shared = VoiceConversationController(services: VoiceServices(.live))
 }
 
 extension BreadcrumbRecorder {
     /// The app's Get Me Back trail recorder: one location manager, one trail.
-    static let shared = BreadcrumbRecorder(services: BreadcrumbServices(.current))
+    static let shared = BreadcrumbRecorder(services: BreadcrumbServices(.live))
 }
 
 extension ProviderRegistry {
     /// The app's AI providers and the one in use.
-    static let shared = ProviderRegistry(services: ProviderRegistryServices(.current))
+    static let shared = ProviderRegistry(services: ProviderRegistryServices(.live))
 }
 
 extension AssistantViewModel {
     /// The app's chat: one transcript, one provider choice.
-    static let shared = AssistantViewModel(services: ChatServices(.current))
+    static let shared = AssistantViewModel(services: ChatServices(.live))
 }
 
 extension RecorderBox {
     /// The app's workout recorder slot, bound on first use.
-    static let shared = RecorderBox(services: WorkoutServices(.current))
+    static let shared = RecorderBox(services: WorkoutServices(.live))
 }
 
 extension TrainingMetricsCache {
@@ -161,12 +164,13 @@ extension BackgroundAudioManager {
 
 extension SmartProviderRouter {
     /// The app's router, its tiers proposed by the app's classifier.
-    static let shared = SmartProviderRouter { AppDependencies.current.providers.capabilityClassifier }
+    static let shared = SmartProviderRouter { AppDependencies.live.providers.capabilityClassifier }
 }
 
 extension CapabilityClassifier {
-    /// The app's classifier, matching with the app's router's embedder.
-    static let shared = CapabilityClassifier { AppDependencies.current.providers.smartProviderRouter.embed($0) }
+    /// The app's classifier, over its own sentence embedder: the classifier
+    /// is the one service that embeds text.
+    static let shared = CapabilityClassifier(embedder: SentenceEmbedder())
 }
 
 extension CollectorBox {

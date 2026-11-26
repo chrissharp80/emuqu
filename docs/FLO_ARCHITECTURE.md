@@ -277,7 +277,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 8.2 Classification and stickiness (`.auto`)
 
-`classify` uses `NLContextualEmbedding` against prototype phrases, falling back to `NLEmbedding` word vectors, then to keywords. An axis needs both its keyword marker and an embedding score of at least 0.55. Text confidently not in English opens every keyword gate, so the embeddings decide; with no embedding available it gets no flags. `CapabilityClassifier` sets four flags (needs tools, needs web, needs historical depth, needs speculation): none → `.quick`, one → `.auto`, two or more → `.deep`.
+`classify` uses `NLContextualEmbedding` against prototype phrases, falling back to `NLEmbedding` word vectors, then to keywords. An axis needs both its keyword marker and an embedding score of at least 0.55. Text confidently not in English opens every keyword gate, so the embeddings decide; with no embedding available it gets no flags. `CapabilityClassifier` sets four flags (needs tools, needs web, needs historical depth, needs speculation). Apple Intelligence calls the app's tools itself, all but `web_search` (§16), so a tool need alone stays `.quick`; a request to search the web is a web flag. Only web, depth and speculation move a turn off Apple: none of them → `.quick`, one → `.auto`, and two or more flags, tools counted, → `.deep`. `SentenceEmbedder` supplies the embeddings; the router holds the classifier and the classifier holds the embedder, so nothing points back.
 
 `route(message:in:)` keeps the session's tier unless:
 - the proposal is higher (upgrades always allowed),
@@ -287,7 +287,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 ### 8.3 Overrides
 
 - **Voice bypass:** voice turns skip tier classification. They go to the user's selected provider if it isn't Apple; if Apple is selected (and the mode isn't Manual), to the first available consented cloud provider in registry order, else Apple.
-- **Action intent:** if the message needs a tool and the tier's provider can't call action tools (`providerSupportsTools` is false for Apple), the turn goes to the first available consented cloud provider.
+- **Web search:** if the message asks for a web search (`messageNeedsWebSearch`) and the tier's provider is Apple, which can't run `web_search` (`providerCanSearchWeb`), the turn goes to the first available consented cloud provider. Email, contacts, directions and routes stay on Apple, which calls those tools itself.
 - **Daily Tier 3 cap:** `recordTier3UsageAndCheck()` allows 50 deep turns per day, then downgrades to `.auto`.
 - **Apple guardrail:** a refusal from Apple's safety filter is shown to the user and not retried elsewhere (Foundation Models acceptable-use terms). A context overflow is retried once on-device with a trimmed context; other non-safety failures go to the fallback chain as far as `TurnRouter.failureFallback` allows.
 - **Failure fallback:** when the turn's model fails with a fallbackable error (no key, no credit, rate limit, network, model unavailable), `TurnRouter.failureFallback(mode:selectedProviderID:)` decides who may step in. With a cloud model selected, or in Manual, nobody: the error is shown as `PickedModelFailure` and the turn is not handed to another model. With Apple selected, Quick allows only Apple (the turn stays on this iPhone) and Auto / Deep allow any accepted model in `orderedFallbackProviders` order (other clouds first, Apple last).
@@ -448,7 +448,7 @@ All through `debugLog(...)` (`Emuqu/Sources/Utilities/DebugLog.swift`). Settings
 
 - `[Assistant] usage <provider>: input=… output=… cached=… cacheCreate=… hit_ratio=…`
 - `[FactRegistry] action <name> exceeded 2.0s budget …` and `… WATCHDOG-WARN …`
-- `[SmartRouter] tier=… → <provider>:<model>`, `[SmartRouter] voice-mode bypass …`, `[SmartRouter] action intent …`
+- `[SmartRouter] tier=… → <provider>:<model>`, `[SmartRouter] voice-mode bypass …`, `[SmartRouter] web search: …`
 - `[Hallucination guard] …`
 - `[Assistant] medical-query guard fired …`
 - `[Assistant] deterministic-intent hit …`

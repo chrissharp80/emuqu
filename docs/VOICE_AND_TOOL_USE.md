@@ -61,9 +61,9 @@ otherwise they stay on Apple.
 ### Capability-axis classifier
 
 The router asks *"what does this question NEED?"* rather than how
-complex it looks, because a simple-looking question can need a tool the
-cheap model doesn't have ("can you see the top of the last hill?" is
-eight words but requires per-tick GPS + altitude). It scores four
+complex it looks, because a simple-looking question can need something
+the on-device model can't do ("what's the weather at the trailhead?" is
+six words but needs a web search, which Apple's path refuses). It scores four
 orthogonal binary axes, each gated by both a keyword marker AND embedding cosine
 similarity ≥ 0.55 to a per-axis prototype centroid:
 
@@ -72,7 +72,8 @@ similarity ≥ 0.55 to a per-axis prototype centroid:
    block (per-workout deep-dives, full archive history, route library
    mutations).
 2. **`needsWeb`** — facts outside the user's own data (weather, news,
-   product recommendations, "is X commercially licensable?").
+   product recommendations, "is X commercially licensable?"), and
+   explicit requests to search the web.
 3. **`needsHistoricalDepth`** — comparisons against history older than
    the static 14-workout context block ("trend over 8 weeks",
    "month-over-month", "since I started").
@@ -82,11 +83,15 @@ similarity ≥ 0.55 to a per-axis prototype centroid:
 
 Truth table → tier:
 
+Apple Intelligence calls every app tool but `web_search` itself, so
+`needsTools` alone keeps a turn on the device. Only web, depth and
+speculation move it off:
+
 | Flags set | Tier | Provider (Apple selected) |
 | --- | --- | --- |
-| 0 | `.quick` | Apple (on-device) |
-| 1 | `.auto` | Consented Grok, then DeepSeek; else Apple |
-| ≥ 2 | `.deep` | Same as `.auto` (never a weaker model than a one-flag question) |
+| None of web / depth / speculation (tools or not) | `.quick` | Apple (on-device) |
+| One of them, and no other flag | `.auto` | Consented Grok, then DeepSeek; else Apple |
+| At least one of them, and two or more flags in all (tools counted) | `.deep` | Same as `.auto` (never a weaker model than a one-flag question) |
 
 The keyword gate is critical. Embedding-only over-triggered on plain
 lookups ("what's my recovery score" embeds close to history-depth
@@ -126,14 +131,16 @@ single model for the duration of a voice session.
    lookup to the Deep tier.
 4. **Otherwise sticky-up** — keep the higher tier.
 
-### Action-intent override
+### Web-search override
 
 Apple Intelligence gets the tools that fit its budget through
-`LanguageModelSession(tools:)`, but for routing `providerSupportsTools`
-is false for Apple, so when `messageRequiresTools(text)` detects an
-explicit action verb and the turn resolved to Apple, it goes to the
-first consented cloud provider in registry order instead. No consented
-cloud → it stays on Apple.
+`LanguageModelSession(tools:)` and runs all of them but `web_search`,
+which `AppleToolDispatcher` refuses (the query would go to Tavily,
+which only the cloud consent sheet discloses). `providerCanSearchWeb`
+is false for Apple, so when `messageNeedsWebSearch(text)` detects a web
+search and the turn resolved to Apple, it goes to the first consented
+cloud provider in registry order instead. No consented cloud → it stays
+on Apple. Email, contacts, directions and route requests stay on Apple.
 
 ### Embedding fallback chain
 

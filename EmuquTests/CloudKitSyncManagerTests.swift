@@ -738,3 +738,58 @@ final class CloudKitSyncManagerTests: XCTestCase {
         XCTAssertFalse(CloudSyncMessages.isNotSignedIn(nil))
     }
 }
+
+// MARK: - Live backup failures
+
+extension CloudKitSyncManagerTests {
+    /// A live backup that keeps failing through the night puts one entry in
+    /// Recent Problems, not one per retry, and an offline phone or a
+    /// signed-out iCloud puts none.
+    func testLiveBackupFailuresReachRecentProblemsOncePerRun() async {
+        settings.settings.hasCompletedOnboarding = true
+        settings.settings.iCloudSyncEnabled = true
+        let failure = FailureBox(CKError(.quotaExceeded))
+        let backup = CloudKitLiveBackupManager(
+            settingsManager: settings, archiveKey: archive.encryption,
+            ensureZone: { throw failure.error }, confirmAccount: { true }, zoneGone: {}
+        )
+        let points = [RRPoint(t_ms: 0, rr_ms: 1000)]
+        let before = await liveBackupProblems()
+
+        await backup.upload(sessionId: UUID(), points: points, deviceId: nil, force: true)
+        await backup.upload(sessionId: UUID(), points: points, deviceId: nil, force: true)
+        let afterRealFailures = await liveBackupProblems()
+        XCTAssertEqual(afterRealFailures - before, 1, "a real failure is reported once per run")
+
+        for code in [CKError.Code.networkUnavailable, .notAuthenticated] {
+            failure.error = CKError(code)
+            await backup.upload(sessionId: UUID(), points: points, deviceId: nil, force: true)
+        }
+        let afterOutsideCauses = await liveBackupProblems()
+        XCTAssertEqual(afterOutsideCauses - before, 1, "no network or no iCloud account is not a problem")
+    }
+
+    /// A success ends the run of failures, so the next one is reported again.
+    func testALiveBackupFailureAfterASuccessIsReportedAgain() {
+        var episode = LiveBackupFailureEpisode()
+        XCTAssertEqual(episode.entry(for: CKError(.quotaExceeded)), .problem)
+        XCTAssertEqual(episode.entry(for: CKError(.networkFailure)), .external(.network))
+        XCTAssertEqual(episode.entry(for: CKError(.serverRejectedRequest)), .repeated)
+        episode.noteSuccess()
+        XCTAssertEqual(episode.entry(for: CKError(.serverRejectedRequest)), .problem)
+    }
+
+    /// Recent Problems entries about a live-backup upload, once the logger's
+    /// main-queue hop has filed what was logged before this call.
+    private func liveBackupProblems() async -> Int {
+        await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
+        return AppDependencies.current.app.debugLogger.errorCatalog.filter { $0.message.contains("Live backup upload failed") }.count
+    }
+}
+
+/// The error a test's stand-in zone step throws, changed between uploads.
+@MainActor
+private final class FailureBox {
+    var error: Error
+    init(_ error: Error) { self.error = error }
+}

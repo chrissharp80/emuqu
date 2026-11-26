@@ -28,6 +28,9 @@ final class CloudKitLiveBackupManager {
     /// CloudKit upload every minute, forever.
     private var schemaUnavailable = false
 
+    /// Whether the current run of upload failures has reached Recent Problems.
+    private var failureEpisode = LiveBackupFailureEpisode()
+
     private let settingsManager: SettingsManager
     /// Opens live backups an older build sealed with the archive key.
     private let archiveKey: EncryptionManager
@@ -102,17 +105,23 @@ final class CloudKitLiveBackupManager {
             Self.setPlainFields(of: record)
             let compressedData = try Self.compressedPoints(points)
             try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
-            backedUpIds.insert(sessionId.uuidString)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
-            // Discarded while this upload ran: its delete may have landed
-            // first, and this save would bring the backup back.
-            if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
+            await noteUploaded(sessionId)
         } catch let error as CKError where CloudKitSyncManager.isZoneGone(error) {
             debugLog("[CloudKit] Live backup: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
             await zoneGone()
         } catch {
             handleUploadFailure(error)
         }
+    }
+
+    /// A saved upload: the backup awaits deletion and the run of failures is
+    /// over. A session discarded while the upload ran is deleted again: its
+    /// delete may have landed first, and this save would bring it back.
+    private func noteUploaded(_ sessionId: UUID) async {
+        backedUpIds.insert(sessionId.uuidString)
+        failureEpisode.noteSuccess()
+        if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
     }
 
     /// The record's only plain field is the first upload's time, kept: a
@@ -206,7 +215,14 @@ final class CloudKitLiveBackupManager {
             debugLog("[CloudKit] Live backup paused for this launch — RawBackup record type not in production schema", level: .error)
             return
         }
-        debugLog("[CloudKit] Live backup upload failed: \(error.localizedDescription)")
+        switch failureEpisode.entry(for: error) {
+        case .problem:
+            debugLog("[CloudKit] Live backup upload failed: \(error.localizedDescription)", level: .warning)
+        case .repeated:
+            debugLog("[CloudKit] Live backup upload failed again: \(error.localizedDescription)")
+        case let .external(cause):
+            debugLogExternal("Live backup not sent this time (\(error.localizedDescription)); the next save sends it", cause: cause)
+        }
     }
 
     /// Delete the live backup record after a session is completed and archived.
@@ -362,5 +378,48 @@ final class CloudKitLiveBackupManager {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode([RRPoint].self, from: jsonData)
+    }
+}
+
+/// How a failed live-backup upload is logged.
+///
+/// A real failure reaches the user's Recent Problems once per run of
+/// failures: the upload retries every few minutes all night, and an entry
+/// per retry would bury everything else there. A success ends the run, so
+/// the next failure is reported again. A cause outside the app (no network,
+/// iCloud signed out or briefly unavailable, CloudKit asking the app to slow
+/// down) is logged as external (`debugLogExternal`) and never as a problem:
+/// the next save retries it, and the full sync reports it in its own status
+/// (`cloudKitErrorMessage`).
+struct LiveBackupFailureEpisode {
+    enum Entry: Equatable {
+        /// The first real failure of a run: a warning, in Recent Problems.
+        case problem
+        /// A real failure in a run already reported: logged, not repeated there.
+        case repeated
+        /// A condition outside the app.
+        case external(ExternalCause)
+    }
+
+    private var reported = false
+
+    /// The entry `error` gets, and the run's state after it.
+    mutating func entry(for error: Error) -> Entry {
+        if let cause = Self.externalCause(of: error) { return .external(cause) }
+        defer { reported = true }
+        return reported ? .repeated : .problem
+    }
+
+    /// An upload went through: the run of failures is over.
+    mutating func noteSuccess() { reported = false }
+
+    /// The outside cause of `error`, or nil when the failure is a real one.
+    static func externalCause(of error: Error) -> ExternalCause? {
+        guard let code = (error as? CKError)?.code else { return nil }
+        switch code {
+        case .networkUnavailable, .networkFailure: return .network
+        case .notAuthenticated, .accountTemporarilyUnavailable, .serviceUnavailable, .requestRateLimited, .zoneBusy: return .iCloud
+        default: return nil
+        }
     }
 }
