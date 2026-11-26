@@ -527,7 +527,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
 
     private static let segmentLookbackDescription = """
     [ACTION-FREE] At the user's CURRENT live-workout GPS position, looks back across the 30 most recent finished GPS workouts and returns past pace + HR + power + cadence + altitude at that exact spot. Single call. Use when the \
-    user asks 'how am I doing here vs last time' / 'what was my heart rate at this corner last Tuesday' / 'am I faster than I was on this hill before'. Returns a list of records: { date, sport, offset_sec_at_point, distance_to_point_m, \
+    user asks 'how am I doing here vs last time' / 'what was my heart rate at this corner last Tuesday' / 'am I faster than I was on this hill before'. Returns a list of records: { date, sport, distance_to_point_m, offset_sec_at_point?, \
     pace_sec_per_km_at_point?, hr_bpm_at_point?, power_watts_at_point?, cadence_spm_at_point?, altitude_m_at_point?, alpha1_at_point? }. Default radius 50 m; not user-tunable here (the live snapshot already knows where the user \
     is). Returns notRecorded when no GPS fix yet, no live workout active, or no past workout passed near the current position.
     """

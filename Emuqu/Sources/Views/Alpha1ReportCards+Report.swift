@@ -614,8 +614,9 @@ private var thresholdRules: some ChartContent {
         let readings = Self.cleanAlpha1Readings(samples)
         guard !readings.isEmpty else { return [] }
         var builder = Alpha1SegmentBuilder()
-        for fix in track {
-            let offset = Int(fix.timestamp.timeIntervalSince(startDate).rounded())
+        let offsets = TrackSampleAlignment.activeOffsets(of: track, session: session)
+        for (fix, placed) in zip(track, offsets) {
+            let offset = placed ?? Int(fix.timestamp.timeIntervalSince(startDate).rounded())
             builder.add(fix.coordinate, color: Self.bandColor(atOffset: offset, readings: readings))
         }
         return builder.finish()

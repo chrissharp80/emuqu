@@ -223,20 +223,22 @@ extension WorkoutPDFRenderer {
             CGPoint(x: rect.minX + map.track[i].x * sx, y: rect.minY + map.track[i].y * sy)
         }
         let band = alphaBandLookup()
+        let offsets = TrackSampleAlignment.activeOffsets(of: report.track, session: report.session)
         cg.setLineWidth(3.0)
         cg.setLineCap(.round)
         cg.setLineJoin(.round)
         // empty-range-ok: the guard above requires report.track.count >= 2.
         for i in 1 ..< report.track.count {
-            cg.setStrokeColor(band(activeSecond(of: report.track[i])).withAlphaComponent(0.95).cgColor)
+            cg.setStrokeColor(band(offsets[i] ?? activeSecond(of: report.track[i])).withAlphaComponent(0.95).cgColor)
             cg.move(to: point(i - 1))
             cg.addLine(to: point(i))
             cg.strokePath()
         }
     }
-    /// The pause-excluded second of a fix, the clock α1 samples are on: fix
-    /// times are on the wall clock (`WorkoutMetadata.activeOffset`), and
-    /// without metadata the two clocks agree.
+    /// The pause-excluded second of a fix from its own time, for a fix
+    /// `TrackSampleAlignment` cannot place: fix times are on the wall clock
+    /// (`WorkoutMetadata.activeOffset`), and without metadata the two clocks
+    /// agree.
     func activeSecond(of fix: CLLocation) -> Int {
         let wallSeconds = fix.timestamp.timeIntervalSince(report.session.startDate)
         return report.session.workoutMetadata?.activeOffset(forWallClockSeconds: wallSeconds) ?? Int(wallSeconds.rounded())

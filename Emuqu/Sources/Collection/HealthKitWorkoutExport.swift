@@ -626,10 +626,11 @@ enum HealthKitWorkoutExport {
             debugLog("[HKExport] writing is off in Health for workout routes — workout saved without its route")
             return false
         }
-        let track = GPXExporter.decode(
-            polyline: polyline,
-            startDate: startDate,
-            duration: duration
+        // Each route point at the time its fix was taken when the workout
+        // stored them; spread evenly over the workout otherwise.
+        let track = GPXExporter.timedAsRecorded(
+            GPXExporter.decode(polyline: polyline, startDate: startDate, duration: duration),
+            metadata: metadata
         )
         guard !track.isEmpty else { return false }
 

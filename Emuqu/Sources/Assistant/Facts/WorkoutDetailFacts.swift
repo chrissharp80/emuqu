@@ -635,8 +635,9 @@ extension WorkoutNamespace {
         let track = session.workoutMetadata?.gpsPolyline.map {
             GPXExporter.decode(polyline: $0, startDate: session.startDate, duration: session.duration)
         } ?? []
+        let offsets = TrackSampleAlignment.activeOffsets(of: track, session: session)
         let bucketRecords = timelineBuckets(sortedSamples, bucketSec: bucketSec, maxBuckets: maxBuckets).map {
-            withPosition($0, bucketSec: bucketSec, track: track, start: session.startDate)
+            withPosition($0, bucketSec: bucketSec, track: track, offsets: offsets)
         }
         var envelope: [String: FactValue] = [
             "date": .date(session.startDate), "duration_sec": .integer(durationSec),
@@ -664,18 +665,15 @@ extension WorkoutNamespace {
 
     /// A bucket with the GPS fix nearest its middle, so a climb found in
     /// the timeline can be handed to `workout.segment_compare` as a point.
-    private static func withPosition(_ bucket: FactValue, bucketSec: Int, track: [CLLocation], start: Date) -> FactValue {
+    /// The bucket with where the user was at its middle: the fix placed
+    /// nearest that second (`TrackSampleAlignment`), none when no fix is.
+    private static func withPosition(_ bucket: FactValue, bucketSec: Int, track: [CLLocation], offsets: [Int?]) -> FactValue {
         guard case var .record(rec) = bucket, case let .integer(offset) = rec["offset_sec"],
-              let fix = nearestFix(in: track, to: start.addingTimeInterval(Double(offset) + Double(bucketSec) / 2))
+              let fix = TrackSampleAlignment.nearestFix(in: track, offsets: offsets, to: offset + bucketSec / 2)
         else { return bucket }
         rec["lat"] = .double((fix.coordinate.latitude * 100_000).rounded() / 100_000)
         rec["lon"] = .double((fix.coordinate.longitude * 100_000).rounded() / 100_000)
         return .record(rec)
-    }
-
-    /// The fix taken closest to `time`; nil for an empty track.
-    private static func nearestFix(in track: [CLLocation], to time: Date) -> CLLocation? {
-        track.min { abs($0.timestamp.timeIntervalSince(time)) < abs($1.timestamp.timeIntervalSince(time)) }
     }
 
     /// One bucket's median metrics, keyed by its start offset.
@@ -755,26 +753,33 @@ enum SegmentPointSampler {
         return out
     }
 
+    /// Where `session` passed nearest `target`, within `radius`. The sample
+    /// read there is the one taken at that fix (`TrackSampleAlignment`); a
+    /// fix it cannot place reports where and when, without physiology.
     static func match(in session: HRVSession, near target: CLLocation, radius: Double) -> FactValue? {
-        guard let polyline = session.workoutMetadata?.gpsPolyline else { return nil }
-        let track = GPXExporter.decode(
-            polyline: polyline,
-            startDate: session.startDate,
-            duration: session.duration
-        )
+        guard let metadata = session.workoutMetadata, let polyline = metadata.gpsPolyline else { return nil }
+        let track = GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration)
         guard !track.isEmpty else { return nil }
         let (closestIdx, closestDist) = WorkoutGeometry.nearestFix(in: track, to: target)
         guard closestDist <= radius else { return nil }
-        let offsetSec = Int(track[closestIdx].timestamp.timeIntervalSince(session.startDate))
         var rec: [String: FactValue] = [
             "date": .string(FactValue.localISO8601(session.startDate)),
-            "sport": .string(session.workoutMetadata?.sport.rawValue ?? "unknown"),
-            "offset_sec_at_point": .integer(offsetSec),
+            "sport": .string(metadata.sport.rawValue),
             "distance_to_point_m": .double(closestDist)
         ]
-        if let p = WorkoutGeometry.localPace(in: track, at: closestIdx) { rec["pace_sec_per_km_at_point"] = .double(p) }
-        addSampleFields(&rec, samples: session.workoutMetadata?.samples ?? [], offsetSec: offsetSec)
+        if let pace = recordedLocalPace(track, at: closestIdx, metadata: metadata) { rec["pace_sec_per_km_at_point"] = .double(pace) }
+        guard let offsetSec = TrackSampleAlignment.activeOffsets(of: track, session: session)[closestIdx] else { return .record(rec) }
+        rec["offset_sec_at_point"] = .integer(offsetSec)
+        addSampleFields(&rec, samples: metadata.samples ?? [], offsetSec: offsetSec)
         return .record(rec)
+    }
+
+    /// The pace over the fixes around `index`, timed by when they were taken;
+    /// nil when the workout stored no fix times, since evenly spread times
+    /// would make up the pace. The sample's pace stands in then.
+    private static func recordedLocalPace(_ track: [CLLocation], at index: Int, metadata: WorkoutMetadata) -> Double? {
+        guard GPXExporter.recordedFixTimes(metadata, count: track.count) != nil else { return nil }
+        return WorkoutGeometry.localPace(in: GPXExporter.timedAsRecorded(track, metadata: metadata), at: index)
     }
 
     /// HR / power / cadence / altitude / α1 from the per-second sample
@@ -784,6 +789,7 @@ enum SegmentPointSampler {
         guard let s = nearestSample(samples, to: offsetSec),
               abs(s.offsetSec - offsetSec) <= maxSampleDeltaSec
         else { return }
+        if rec["pace_sec_per_km_at_point"] == nil, let pace = s.paceSecPerKm { rec["pace_sec_per_km_at_point"] = .double(pace) }
         if let hr = s.heartRate { rec["hr_bpm_at_point"] = .integer(hr) }
         if let watts = s.powerWatts { rec["power_watts_at_point"] = .integer(watts) }
         if let cadence = s.cadenceStepsPerMin { rec["cadence_spm_at_point"] = .double(cadence) }
