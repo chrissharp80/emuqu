@@ -41,14 +41,45 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     /// piece reset on the PM5 mid-workout (`ErgPieceCounter`). Before any
     /// workout, the PM5's own piece distance.
     private(set) var distanceMeters: Double?
-    /// Stroke rate in strokes per minute.
+    /// Stroke rate in strokes per minute, as last reported. Read it through
+    /// `currentStrokeRateSPM(now:)`, which drops a stale one.
     private(set) var strokeRateSPM: Double?
+    /// When `strokeRateSPM` last arrived.
+    @ObservationIgnored private(set) var strokeRateMeasuredAt: Date?
     /// Drag factor — proxy for fan damper resistance setting (typical 100–135).
     private(set) var dragFactor: Int?
     /// Power of the last stroke in watts, from Additional Stroke Data
     /// (0x0036, see `strokeData(from:)`). Nil between pieces and when the
     /// reading is implausible. Named to match `FootPodManager` for the recorder.
+    /// Read it through `currentPowerWatts(now:)`, which drops a stale one.
     private(set) var instantaneousPowerWatts: Int?
+    /// When `instantaneousPowerWatts` last arrived.
+    @ObservationIgnored private(set) var powerMeasuredAt: Date?
+
+    /// A stroke reading older than this is not current. The PM5 sends stroke
+    /// data once per stroke, and rowing runs about 10 to 40 strokes a minute
+    /// (a stroke every 1.5 to 6 s), so 8 s covers the slowest stroke with
+    /// room for one late packet. After the last stroke of a piece, an
+    /// unpaused rest stops counting the last stroke's watts within it.
+    nonisolated static let strokeStaleAfter: TimeInterval = 8
+
+    /// The last stroke's power if it arrived within `strokeStaleAfter`.
+    func currentPowerWatts(now: Date = Date()) -> Int? {
+        Self.fresh(instantaneousPowerWatts, measuredAt: powerMeasuredAt, now: now)
+    }
+
+    /// The stroke rate if it arrived within `strokeStaleAfter`: an erg that
+    /// stops sending (asleep, piece over, out of range) without dropping the
+    /// link leaves its last rate behind.
+    func currentStrokeRateSPM(now: Date = Date()) -> Double? {
+        Self.fresh(strokeRateSPM, measuredAt: strokeRateMeasuredAt, now: now)
+    }
+
+    /// `value` while it is no older than `strokeStaleAfter`, else nil.
+    nonisolated static func fresh<Value>(_ value: Value?, measuredAt: Date?, now: Date) -> Value? {
+        guard let value, let measuredAt, now.timeIntervalSince(measuredAt) <= strokeStaleAfter else { return nil }
+        return value
+    }
     /// Strokes taken in this workout, from Additional Stroke Data (0x0036),
     /// counted the same way as `distanceMeters`.
     private(set) var strokeCount: Int?
@@ -99,9 +130,11 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     /// left alone, so the app doesn't hold a connection request open for a
     /// sensor nobody is using.
     @ObservationIgnored private var workoutHoldsLink = false
-    @ObservationIgnored private var generalDataChar: CBCharacteristic?
-    @ObservationIgnored private var additionalDataChar: CBCharacteristic?
-    @ObservationIgnored private var strokeDataChar: CBCharacteristic?
+    /// The linked erg's advertised name, for status lines and the
+    /// remembered-device list.
+    @ObservationIgnored private var linkedName: String?
+    /// The rowing-data subscriptions the linked erg is setting up.
+    @ObservationIgnored private var subscriptions = BLESubscriptionTally()
     /// The PM5's piece counters turned into this workout's totals.
     @ObservationIgnored private var pieceDistance = ErgPieceCounter<Double>()
     @ObservationIgnored private var pieceStrokes = ErgPieceCounter<Int>()
@@ -118,9 +151,11 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     nonisolated static let rowingDataChars = [generalDataChar_UUID, additionalDataChar_UUID, strokeDataChar_UUID]
 
     private let knownDevicesKey = "fitness.concept2.knownDevices"
+    private let defaults: UserDefaults
 
     /// Reads the remembered ergs only; the central is built on first use.
-    override init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         super.init()
         loadKnownDevices()
     }
@@ -197,6 +232,8 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         strokeCount = linkIsUp ? strokeCount.map { _ in 0 } : nil
     }
 
+    /// The cancellation's own callback is for a device no longer linked, so
+    /// it changes nothing; the state is torn down here.
     func disconnect() {
         expectsLink = false
         if let p = activePeripheral { centralIfCreated?.cancelPeripheralConnection(p) }
@@ -210,29 +247,54 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     // MARK: Internal
 
+    /// Links `peripheral`, cancelling the connection to any other erg first:
+    /// a link left open to the previous one would keep its callbacks coming.
     func attach(peripheral: CBPeripheral) {
+        if let previous = activePeripheral, previous.identifier != peripheral.identifier {
+            centralIfCreated?.cancelPeripheralConnection(previous)
+        }
+        claimLink(peripheral.identifier, name: peripheral.name)
         activePeripheral = peripheral
-        linkedDeviceId = peripheral.identifier.uuidString
         peripheral.delegate = self
-        connectionState = .connecting
-        let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
-        lastStatusLine = String(localized: "Connecting to \(name)…", bundle: LanguageManager.appBundle)
         central.connect(peripheral, options: nil)
+    }
+
+    /// Makes `id` the erg this manager answers to. Every connection,
+    /// discovery and measurement callback checks the device it is about
+    /// against this, so a late callback from an erg switched away from cannot
+    /// change the linked one's state. Switching drops the previous erg's
+    /// live readings; mid-workout the piece totals stand, as through a drop.
+    func claimLink(_ id: UUID, name: String?) {
+        if let linkedDeviceId, linkedDeviceId != id.uuidString {
+            cleanupAfterDisconnect(keepingPiece: workoutHoldsLink)
+        }
+        linkedDeviceId = id.uuidString
+        linkedName = name
+        connectionState = .connecting
+        let shown = name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
+        lastStatusLine = String(localized: "Connecting to \(shown)…", bundle: LanguageManager.appBundle)
+    }
+
+    /// Whether `id` is the erg connected or being connected now.
+    func isLinked(_ id: UUID) -> Bool {
+        linkedDeviceId == id.uuidString
     }
 
     /// `keepingPiece` is a drop mid-workout: the PM5 keeps counting the piece
     /// while the link is down, so the workout's distance, stroke count and
-    /// drag factor stand until it is back. Cleared, they handed live rowing
-    /// distance to GPS and the pedometer (which read about zero on an erg),
-    /// and a workout stopped during the drop saved no strokes or drag factor.
+    /// drag factor stand until it is back. Cleared, they would hand live
+    /// rowing distance to GPS and the pedometer (which read about zero on an
+    /// erg), and a workout stopped during the drop would save no strokes or
+    /// drag factor.
     private func cleanupAfterDisconnect(keepingPiece: Bool = false) {
         activePeripheral = nil
         linkedDeviceId = nil
-        generalDataChar = nil
-        additionalDataChar = nil
-        strokeDataChar = nil
+        linkedName = nil
+        subscriptions.reset()
         strokeRateSPM = nil
+        strokeRateMeasuredAt = nil
         instantaneousPowerWatts = nil
+        powerMeasuredAt = nil
         connectionState = .disconnected
         guard !keepingPiece else { return }
         distanceMeters = nil
@@ -240,9 +302,9 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
         strokeCount = nil
     }
 
-    private func rememberDevice(peripheral: CBPeripheral) {
-        let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
+    private func rememberLinkedDevice() {
+        guard let id = linkedDeviceId else { return }
+        let name = linkedName ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
         var list = knownDevices
         list.removeAll { $0.id == id }
         list.insert(KnownErg(id: id, name: name), at: 0)
@@ -253,12 +315,12 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     private func saveKnownDevices() {
         if let data = attempt("concept2.knownDevices.encode", { try JSONEncoder().encode(knownDevices) }) {
-            UserDefaults.standard.set(data, forKey: knownDevicesKey)
+            defaults.set(data, forKey: knownDevicesKey)
         }
     }
 
     private func loadKnownDevices() {
-        guard let data = UserDefaults.standard.data(forKey: knownDevicesKey),
+        guard let data = defaults.data(forKey: knownDevicesKey),
               let decoded = try? JSONDecoder().decode([KnownErg].self, from: data)
         else { return }
         knownDevices = decoded
@@ -320,26 +382,22 @@ extension Concept2Manager: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
-            self.connectionState = .connected
-            self.expectsLink = true
-            let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
-            self.lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
+            guard self.linkConnected(peripheral.identifier) else { return }
+            peripheral.delegate = self
             peripheral.discoverServices([Self.rowingService])
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error _: Error?) {
         Task { @MainActor in
-            let midWorkout = self.expectsLink && self.workoutHoldsLink
-            self.cleanupAfterDisconnect(keepingPiece: midWorkout)
-            self.lastStatusLine = String(localized: "Connection failed", bundle: LanguageManager.appBundle)
-            if midWorkout { self.retryConnect(peripheral) }
+            guard self.linkFailedToConnect(peripheral.identifier) else { return }
+            self.retryConnect(peripheral)
         }
     }
 
     /// A reconnect that failed mid-workout is asked for again after a short
-    /// pause (a failure can come back at once, so not in a tight loop);
-    /// before, the first failure ended erg data for the rest of the workout.
+    /// pause (a failure can come back at once, so not in a tight loop), so
+    /// one failure does not end erg data for the rest of the workout.
     @MainActor
     private func retryConnect(_ peripheral: CBPeripheral) {
         Task { @MainActor [weak self] in
@@ -351,50 +409,150 @@ extension Concept2Manager: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error _: Error?) {
         Task { @MainActor in
-            let midWorkout = self.expectsLink && self.workoutHoldsLink
-            self.cleanupAfterDisconnect(keepingPiece: midWorkout)
-            guard midWorkout else { return }
+            guard self.linkDropped(peripheral.identifier) else { return }
             self.attach(peripheral: peripheral)
         }
+    }
+}
+
+// MARK: - Link lifecycle
+
+/// What each delegate callback does to this manager's state, keyed by the
+/// device it is about. The delegate methods hand CoreBluetooth the follow-up
+/// (discover, subscribe, reconnect) when these say to; tests drive these
+/// directly with made-up device ids.
+extension Concept2Manager {
+    /// The link to `id` is up; the rowing data is subscribed to next. The
+    /// state stays `.connecting` until a subscription is confirmed. False when
+    /// `id` is not the linked erg.
+    func linkConnected(_ id: UUID) -> Bool {
+        guard isLinked(id) else { return false }
+        expectsLink = true
+        subscriptions.reset()
+        return true
+    }
+
+    /// The connection to `id` failed. True when it should be asked for again
+    /// (mid-workout, where the piece totals are kept).
+    func linkFailedToConnect(_ id: UUID) -> Bool {
+        guard isLinked(id) else { return false }
+        let midWorkout = expectsLink && workoutHoldsLink
+        cleanupAfterDisconnect(keepingPiece: midWorkout)
+        lastStatusLine = String(localized: "Connection failed", bundle: LanguageManager.appBundle)
+        return midWorkout
+    }
+
+    /// The link to `id` dropped. True when it should be asked for again
+    /// (a drop mid-workout that nobody asked for).
+    func linkDropped(_ id: UUID) -> Bool {
+        guard isLinked(id) else { return false }
+        let midWorkout = expectsLink && workoutHoldsLink
+        cleanupAfterDisconnect(keepingPiece: midWorkout)
+        return midWorkout
+    }
+
+    /// Service discovery on `id` finished with `recognised` rowing services.
+    /// True when their characteristics should be looked up; with none, or on
+    /// an error, the link ends.
+    func linkFoundServices(_ id: UUID, recognised: Int, error: Error?) -> Bool {
+        guard isLinked(id) else { return false }
+        guard error == nil, recognised > 0 else {
+            endFailedLink()
+            return false
+        }
+        subscriptions.expect(recognised)
+        return true
+    }
+
+    /// The rowing service's lookup on `id` found `measurements`. True when
+    /// they should be subscribed to; when it failed and nothing else is
+    /// pending or confirmed, the link ends.
+    func linkFoundCharacteristics(_ id: UUID, measurements: [CBUUID], error: Error?) -> Bool {
+        guard isLinked(id) else { return false }
+        let found = error == nil ? measurements.count : 0
+        if subscriptions.settle(opening: found) { endFailedLink() }
+        return found > 0
+    }
+
+    /// The erg answered a subscription request. A confirmed one makes the
+    /// link connected and remembers the erg; when every request failed, the
+    /// link ends, since recording would receive nothing.
+    func linkNotificationChanged(_ id: UUID, characteristic: CBUUID, isNotifying: Bool, error: Error?) {
+        guard isLinked(id) else { return }
+        guard error == nil, isNotifying else {
+            if subscriptions.settle() { endFailedLink() }
+            return
+        }
+        subscriptions.confirm(characteristic)
+        connectionState = .connected
+        let name = linkedName ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
+        lastStatusLine = String(localized: "Connected to \(name)", bundle: LanguageManager.appBundle)
+        rememberLinkedDevice()
+    }
+
+    /// A rowing-data notification from `id`, stamped `now`; one from any
+    /// other device is dropped, so an erg switched away from cannot fill in
+    /// this one's readings.
+    func receivedMeasurement(_ data: Data, characteristic: CBUUID, from id: UUID, now: Date = Date()) {
+        guard isLinked(id) else { return }
+        switch characteristic {
+        case Self.generalDataChar_UUID: parseGeneralData(data: data)
+        case Self.additionalDataChar_UUID: parseAdditionalData(data: data, now: now)
+        case Self.strokeDataChar_UUID: applyStrokeData(Self.strokeData(from: data), now: now)
+        default: break
+        }
+    }
+
+    /// A link that cannot deliver rowing data is ended rather than left
+    /// showing connected; mid-workout the piece totals stand and it is asked
+    /// for again, as after a failed connect.
+    private func endFailedLink() {
+        let peripheral = activePeripheral
+        if let peripheral { centralIfCreated?.cancelPeripheralConnection(peripheral) }
+        let midWorkout = expectsLink && workoutHoldsLink
+        cleanupAfterDisconnect(keepingPiece: midWorkout)
+        lastStatusLine = String(localized: "Connection failed", bundle: LanguageManager.appBundle)
+        guard midWorkout, let peripheral else { return }
+        retryConnect(peripheral)
     }
 }
 
 // MARK: - CBPeripheralDelegate
 
 extension Concept2Manager: CBPeripheralDelegate {
-    nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices _: Error?) {
-        Task { @MainActor in Self.discoverRowingCharacteristics(on: peripheral) }
-    }
-
-    /// Only the rowing service's three data characteristics are requested —
+    /// Only the rowing service's three data characteristics are requested:
     /// the PM5 advertises several services we never read.
-    @MainActor
-    private static func discoverRowingCharacteristics(on peripheral: CBPeripheral) {
-        for service in peripheral.services ?? [] where service.uuid == rowingService {
-            peripheral.discoverCharacteristics(rowingDataChars, for: service)
+    nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        Task { @MainActor in
+            let services = (peripheral.services ?? []).filter { $0.uuid == Self.rowingService }
+            guard self.linkFoundServices(peripheral.identifier, recognised: services.count, error: error) else { return }
+            for service in services { peripheral.discoverCharacteristics(Self.rowingDataChars, for: service) }
         }
     }
 
     nonisolated func peripheral(
         _ peripheral: CBPeripheral,
         didDiscoverCharacteristicsFor service: CBService,
-        error _: Error?
+        error: Error?
     ) {
-        Task { @MainActor in self.bindRowingCharacteristics(service, on: peripheral) }
+        Task { @MainActor in
+            let found = (service.characteristics ?? []).filter { Self.rowingDataChars.contains($0.uuid) }
+            let id = peripheral.identifier
+            guard self.linkFoundCharacteristics(id, measurements: found.map(\.uuid), error: error) else { return }
+            for characteristic in found { peripheral.setNotifyValue(true, for: characteristic) }
+        }
     }
 
-    /// Subscribe to whichever of the data characteristics this service
-    /// carries, and remember the device once at least one is bound.
-    @MainActor
-    private func bindRowingCharacteristics(_ service: CBService, on peripheral: CBPeripheral) {
-        for ch in service.characteristics ?? [] where Self.rowingDataChars.contains(ch.uuid) {
-            if ch.uuid == Self.generalDataChar_UUID { generalDataChar = ch }
-            if ch.uuid == Self.additionalDataChar_UUID { additionalDataChar = ch }
-            if ch.uuid == Self.strokeDataChar_UUID { strokeDataChar = ch }
-            peripheral.setNotifyValue(true, for: ch)
+    nonisolated func peripheral(
+        _ peripheral: CBPeripheral,
+        didUpdateNotificationStateFor characteristic: CBCharacteristic,
+        error: Error?
+    ) {
+        let uuid = characteristic.uuid
+        let isNotifying = characteristic.isNotifying
+        Task { @MainActor in
+            self.linkNotificationChanged(peripheral.identifier, characteristic: uuid, isNotifying: isNotifying, error: error)
         }
-        guard generalDataChar != nil || additionalDataChar != nil || strokeDataChar != nil else { return }
-        rememberDevice(peripheral: peripheral)
     }
 
     nonisolated func peripheral(
@@ -405,13 +563,7 @@ extension Concept2Manager: CBPeripheralDelegate {
         guard let data = characteristic.value else { return }
         let uuid = characteristic.uuid
         Task { @MainActor in
-            if uuid == Self.generalDataChar_UUID {
-                self.parseGeneralData(data: data)
-            } else if uuid == Self.additionalDataChar_UUID {
-                self.parseAdditionalData(data: data)
-            } else if uuid == Self.strokeDataChar_UUID {
-                self.applyStrokeData(Self.strokeData(from: data))
-            }
+            self.receivedMeasurement(data, characteristic: uuid, from: peripheral.identifier)
         }
     }
 
@@ -459,12 +611,13 @@ extension Concept2Manager: CBPeripheralDelegate {
     /// average power only ever ran on packets the PM5 doesn't send (17
     /// bytes), and byte 16 is the machine type. Power comes from 0x0036.
     @MainActor
-    private func parseAdditionalData(data: Data) {
+    private func parseAdditionalData(data: Data, now: Date) {
         let bytes = [UInt8](data)
         // Index 5 is the last one read; "Length varies" per the erg spec.
         guard bytes.count >= 6 else { return }
         let strokeRate = bytes[5]
         strokeRateSPM = strokeRate > 0 ? Double(strokeRate) : nil
+        strokeRateMeasuredAt = now
     }
 
     /// What one Additional Stroke Data packet says.
@@ -502,9 +655,10 @@ extension Concept2Manager: CBPeripheralDelegate {
     }
 
     @MainActor
-    private func applyStrokeData(_ stroke: StrokeData?) {
+    private func applyStrokeData(_ stroke: StrokeData?, now: Date) {
         guard let stroke else { return }
         instantaneousPowerWatts = stroke.powerWatts
+        powerMeasuredAt = now
         strokeCount = pieceStrokes.total(forRaw: stroke.strokeCount)
     }
 }
