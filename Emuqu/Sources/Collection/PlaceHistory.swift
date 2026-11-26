@@ -208,17 +208,17 @@ extension PlaceHistory {
     static func climbAhead(in tracks: [Track], at location: CLLocation, heading: Double) -> ClimbAhead? {
         let passes = tracks.compactMap { track in passIndex(in: track, at: location, heading: heading).map { (track, $0) } }
         let climbs = passes.compactMap { climb(in: $0.0.points, from: $0.1) }
-        guard let middle = median(climbs.map(\.distanceMeters)) else { return nil }
+        guard let middle = Statistics.median(climbs.map(\.distanceMeters)) else { return nil }
         let agreeing = climbs.filter { abs($0.distanceMeters - middle) <= climbAgreementMeters }
         guard agreeing.count >= minimumAgreeingPasses, agreeing.count * 2 >= passes.count else { return nil }
         let rises = agreeing.compactMap(\.heartRateRise)
         return ClimbAhead(
-            distanceMeters: median(agreeing.map(\.distanceMeters)) ?? middle,
-            lengthMeters: median(agreeing.map(\.lengthMeters)) ?? 0,
-            gainMeters: median(agreeing.map(\.gainMeters)) ?? 0,
+            distanceMeters: Statistics.median(agreeing.map(\.distanceMeters)) ?? middle,
+            lengthMeters: Statistics.median(agreeing.map(\.lengthMeters)) ?? 0,
+            gainMeters: Statistics.median(agreeing.map(\.gainMeters)) ?? 0,
             passes: agreeing.count,
-            heartRateRise: median(rises.map(Double.init)).map { Int($0.rounded()) },
-            peakHeartRate: median(agreeing.compactMap(\.peakHeartRate).map(Double.init)).map { Int($0.rounded()) }
+            heartRateRise: Statistics.median(rises.map(Double.init)).map { Int($0.rounded()) },
+            peakHeartRate: Statistics.median(agreeing.compactMap(\.peakHeartRate).map(Double.init)).map { Int($0.rounded()) }
         )
     }
 
@@ -295,18 +295,12 @@ extension PlaceHistory {
         guard let latest = passes.first else { return nil }
         return Visits(
             count: passes.count,
-            medianPaceSecPerKm: median(passes.compactMap { $0.1.paceSecPerKm }),
-            medianHeartRate: median(passes.compactMap { $0.1.heartRate }.map(Double.init)).map { Int($0.rounded()) },
+            medianPaceSecPerKm: Statistics.median(passes.compactMap { $0.1.paceSecPerKm }),
+            medianHeartRate: Statistics.median(passes.compactMap { $0.1.heartRate }.map(Double.init)).map { Int($0.rounded()) },
             latestDate: latest.0,
             latestPaceSecPerKm: latest.1.paceSecPerKm,
             latestHeartRate: latest.1.heartRate
         )
     }
 
-    static func median(_ values: [Double]) -> Double? {
-        guard !values.isEmpty else { return nil }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
-        return sorted.count.isMultiple(of: 2) ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
-    }
 }

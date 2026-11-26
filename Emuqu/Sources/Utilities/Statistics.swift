@@ -8,6 +8,16 @@ import Foundation
 enum Statistics {
     // MARK: - Central Tendency
 
+    /// The middle value of `values`, the mean of the two middle ones on an
+    /// even count; nil when there are none, so a caller decides what no data
+    /// means rather than reading a made-up zero.
+    static func median<T: BinaryFloatingPoint>(_ values: [T]) -> T? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        return sorted.count.isMultiple(of: 2) ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+    }
+
     /// Arithmetic mean of `values`, computed via `vDSP_meanvD`.
     /// Returns `0` when the array is empty.
     static func mean(_ values: [Double]) -> Double {

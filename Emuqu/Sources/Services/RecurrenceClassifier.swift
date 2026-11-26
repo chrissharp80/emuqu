@@ -205,8 +205,8 @@ enum RecurrenceClassifier {
                 for: current, originLabel: current.label ?? current.resolvedOriginLabel
             ),
             priorOccurrences: scored.count,
-            medianDurationSeconds: median(durations) ?? 0,
-            medianPathLengthMeters: median(pathLengths) ?? 0,
+            medianDurationSeconds: Statistics.median(durations) ?? 0,
+            medianPathLengthMeters: Statistics.median(pathLengths) ?? 0,
             averageMatchOffsetMeters: avgOffset
 
         )
@@ -338,16 +338,6 @@ enum RecurrenceClassifier {
             total += la.distance(from: lb)
         }
         return total / Double(a.count)
-    }
-
-    static func median<T: Comparable & BinaryFloatingPoint>(_ values: [T]) -> T? {
-        guard !values.isEmpty else { return nil }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
-        if sorted.count.isMultiple(of: 2) {
-            return (sorted[mid - 1] + sorted[mid]) / 2
-        }
-        return sorted[mid]
     }
 
     // MARK: - Label

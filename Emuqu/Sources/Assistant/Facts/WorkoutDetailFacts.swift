@@ -679,14 +679,14 @@ extension WorkoutNamespace {
     /// One bucket's median metrics, keyed by its start offset.
     private static func bucketRecord(_ bucket: [WorkoutSample], startingAt offset: Int) -> [String: FactValue] {
         var rec: [String: FactValue] = ["offset_sec": .integer(offset)]
-        if let hr = median(bucket.compactMap(\.heartRate).map(Double.init)) {
+        if let hr = Statistics.median(bucket.compactMap(\.heartRate).map(Double.init)) {
             rec["hr"] = .integer(Int(hr.rounded()))
         }
-        if let pace = median(bucket.compactMap(\.paceSecPerKm)) { rec["pace_sec_per_km"] = .double(pace) }
-        if let cadence = median(bucket.compactMap(\.cadenceStepsPerMin)) { rec["cadence_spm"] = .double(cadence) }
-        if let alt = median(bucket.compactMap(\.altitudeMeters)) { rec["altitude_m"] = .double(alt) }
-        if let alpha = median(bucket.compactMap(\.alpha1)) { rec["alpha1"] = .double(alpha) }
-        if let pw = median(bucket.compactMap(\.powerWatts).map(Double.init)) {
+        if let pace = Statistics.median(bucket.compactMap(\.paceSecPerKm)) { rec["pace_sec_per_km"] = .double(pace) }
+        if let cadence = Statistics.median(bucket.compactMap(\.cadenceStepsPerMin)) { rec["cadence_spm"] = .double(cadence) }
+        if let alt = Statistics.median(bucket.compactMap(\.altitudeMeters)) { rec["altitude_m"] = .double(alt) }
+        if let alpha = Statistics.median(bucket.compactMap(\.alpha1)) { rec["alpha1"] = .double(alpha) }
+        if let pw = Statistics.median(bucket.compactMap(\.powerWatts).map(Double.init)) {
             rec["power_w"] = .integer(Int(pw.rounded()))
         }
         if let gradePct = bucketGrade(bucket) { rec["grade_pct"] = .double(gradePct) }
@@ -706,18 +706,6 @@ extension WorkoutNamespace {
         return ((lastAlt - firstAlt) / (lastDist - firstDist)) * 100.0
     }
 
-    /// Median of a non-empty Double array; nil for empty input. Cheap
-    /// O(n log n) sort — buckets are small (worst case ~70 samples at
-    /// max-bucket size) so this is well within the resolver budget.
-    private static func median(_ values: [Double]) -> Double? {
-        guard !values.isEmpty else { return nil }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
-        if sorted.count.isMultiple(of: 2) {
-            return (sorted[mid - 1] + sorted[mid]) / 2
-        }
-        return sorted[mid]
-    }
 }
 
 /// Shared by `workout.segment_compare` and the live segment lookback:

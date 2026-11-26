@@ -438,7 +438,9 @@ extension RoadGeocodingService {
     private func logNoCrossStreet(currentRoad: String?, radii: [CLLocationDistance]) {
         let key = currentRoad ?? "(unknown)"
         guard lastNoCrossStreetRoad != key else { return }
-        debugLog("[RoadGeocoding] no usable cross-street candidates on \(key) (tried \(radii.map { Int($0) }) m)", level: .info)
+        // The road's name stays out of the log: with the time, it is where
+        // the user was.
+        debugLog("[RoadGeocoding] no usable cross-street candidates (tried \(radii.map { Int($0) }) m)", level: .info)
         lastNoCrossStreetRoad = key
     }
 

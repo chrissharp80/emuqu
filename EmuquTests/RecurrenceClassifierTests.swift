@@ -74,27 +74,27 @@ final class RecurrenceClassifierTests: XCTestCase {
     // MARK: - Median
 
     func testMedianOfOddCount() {
-        XCTAssertEqual(RecurrenceClassifier.median([3.0, 1.0, 2.0]) ?? 0, 2.0, accuracy: 1e-12)
+        XCTAssertEqual(Statistics.median([3.0, 1.0, 2.0]) ?? 0, 2.0, accuracy: 1e-12)
     }
 
     func testMedianOfEvenCountAveragesTheMiddlePair() {
-        XCTAssertEqual(RecurrenceClassifier.median([1.0, 2.0, 3.0, 4.0]) ?? 0, 2.5, accuracy: 1e-12)
+        XCTAssertEqual(Statistics.median([1.0, 2.0, 3.0, 4.0]) ?? 0, 2.5, accuracy: 1e-12)
     }
 
     func testMedianOfEmptyIsNil() {
         // Nil, not zero: "no trails yet" must not read as "median duration 0".
-        XCTAssertNil(RecurrenceClassifier.median([Double]()))
+        XCTAssertNil(Statistics.median([Double]()))
     }
 
     func testMedianOfOneIsThatValue() {
-        XCTAssertEqual(RecurrenceClassifier.median([7.5]) ?? 0, 7.5, accuracy: 1e-12)
+        XCTAssertEqual(Statistics.median([7.5]) ?? 0, 7.5, accuracy: 1e-12)
     }
 
     func testMedianIsOrderIndependent() {
         let unsorted: [Double] = [9, 1, 7, 3, 5]
         XCTAssertEqual(
-            RecurrenceClassifier.median(unsorted) ?? 0,
-            RecurrenceClassifier.median(unsorted.sorted()) ?? 0,
+            Statistics.median(unsorted) ?? 0,
+            Statistics.median(unsorted.sorted()) ?? 0,
             accuracy: 1e-12
         )
     }

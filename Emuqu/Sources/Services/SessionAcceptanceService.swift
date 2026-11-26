@@ -260,7 +260,11 @@ final class SessionAcceptanceService {
         }
         debugLog("[SessionAcceptanceService] Accepting and archiving session ID: \(session.id.uuidString)")
         let recordingId = session.id
-        session = try archiveReturningNight(session)
+        let (archive, rawBackup) = (archive, rawBackup)
+        let toArchive = session
+        session = try await Task.detached(priority: .userInitiated) {
+            try Self.archiveReturningNight(toArchive, archive: archive, rawBackup: rawBackup)
+        }.value
         baselineTracker.update(with: session, sleepSchedule: sleepSchedule)
         // Clear persisted recording state - session is now safely archived.
         // NOTE: We intentionally do NOT clear the H10 memory here — data stays
@@ -273,8 +277,13 @@ final class SessionAcceptanceService {
 
     /// Archive the accepted recording and return the night that now holds it:
     /// the recording itself, or the night already archived that it was folded
-    /// into (a second recording of the same night).
-    private func archiveReturningNight(_ session: HRVSession) throws -> HRVSession {
+    /// into (a second recording of the same night). Encoding, encryption,
+    /// hashing and the file and index writes run on the caller's detached
+    /// task, never the main actor; the archive and the backup index guard
+    /// their own state with locks.
+    nonisolated private static func archiveReturningNight(
+        _ session: HRVSession, archive: SessionArchive, rawBackup: RawRRBackup
+    ) throws -> HRVSession {
         let entry = try archive.archive(session)
         rawBackup.markAsArchived(session.id)
         guard entry.sessionId != session.id else { return session }

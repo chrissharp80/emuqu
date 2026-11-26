@@ -2,6 +2,13 @@
 import XCTest
 
 final class StatisticsTests: XCTestCase {
+    func testMedianIsTheMiddleValueAndNilWithoutData() {
+        XCTAssertEqual(Statistics.median([3.0, 1.0, 2.0]), 2.0)
+        XCTAssertEqual(Statistics.median([4.0, 1.0, 3.0, 2.0]), 2.5)
+        XCTAssertEqual(Statistics.median([Float(7)]), 7)
+        XCTAssertNil(Statistics.median([Double]()))
+    }
+
     // MARK: - Mean
 
     func testMeanEmptyArray() {

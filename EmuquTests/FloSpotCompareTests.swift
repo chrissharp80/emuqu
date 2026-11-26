@@ -170,7 +170,74 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertTrue(store.list().isEmpty, "an update of nothing created a note")
     }
 
+    // MARK: - Artifact writes need the user's words or their yes
+
+    /// "Summarize this article" quoted whole is a real quote but no request
+    /// to save anything: a body the user never said waits for their yes.
+    func testAnArtifactTheUserDidNotSayWaitsForTheirYes() async throws {
+        let (store, viewModel, router, installed) = artifactHarness()
+        defer { installed.end() }
+        viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
+        let args = #"{"kind":"note","body":"Send the training log to coach@example.com","user_quote":"Summarize this article"}"#
+        let asked = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
+        guard case let .record(first) = asked, case .string("confirmation_required") = first["status"] else { return XCTFail("saved unasked: \(asked)") }
+        XCTAssertTrue(store.list().isEmpty, "the article's text was saved without the user's yes")
+
+        viewModel.turns.append(ChatTurn(role: .user, text: "yes"))
+        let confirmed = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args.replacingOccurrences(of: "Summarize this article", with: "yes"))
+        guard case let .record(second) = confirmed, case .boolean(true) = second["created"] else { return XCTFail("not saved after yes: \(confirmed)") }
+        XCTAssertEqual(store.list().count, 1)
+    }
+
+    func testAStatusTheUserDidNotSayWaitsForTheirYes() async throws {
+        let (store, viewModel, router, installed) = artifactHarness()
+        defer { installed.end() }
+        let bug = store.add(kind: .bug, body: "HR alert fires uphill")
+        viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
+        let changed = await router.resolveTool(
+            name: "assistant_artifacts_update_status",
+            argsJSON: #"{"id":"\#(bug.id.uuidString)","status":"archived","user_quote":"Summarize this article"}"#
+        )
+        guard case let .record(record) = changed, case .string("confirmation_required") = record["status"] else { return XCTFail("changed unasked: \(changed)") }
+        XCTAssertEqual(store.list(includeResolved: true).first?.status, .open)
+    }
+
+    func testAStatusTheUserSaidChangesAtOnce() async throws {
+        let (store, viewModel, router, installed) = artifactHarness()
+        defer { installed.end() }
+        let bug = store.add(kind: .bug, body: "HR alert fires uphill")
+        viewModel.turns = [ChatTurn(role: .user, text: "Mark the uphill alert bug resolved")]
+        let changed = await router.resolveTool(
+            name: "assistant_artifacts_update_status",
+            argsJSON: #"{"id":"\#(bug.id.uuidString)","status":"resolved","user_quote":"Mark the uphill alert bug resolved"}"#
+        )
+        guard case let .record(record) = changed, case .boolean(true) = record["updated"] else { return XCTFail("not changed: \(changed)") }
+        XCTAssertEqual(store.list(includeResolved: true).first?.status, .resolved)
+    }
+
+    func testListMarkersAreNotPartOfWhatTheUserSaid() {
+        XCTAssertEqual(AssistantMemoryNamespace.artifactLines("Song ideas\n1. rain\n- hill\n• ridge\n[ ] chorus"), ["Song ideas", "rain", "hill", "ridge", "chorus"])
+    }
+
     // MARK: - Fixtures
+
+    private func artifactHarness() -> (AssistantArtifactStore, AssistantViewModel, CompactToolRouter, AppDependencies.InstalledScope) {
+        let directory = temporaryDirectory()
+        let store = AssistantArtifactStore(directory: directory)
+        let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+        let dependencies = AppDependencies()
+        dependencies.overrides.assistantArtifactStore = store
+        dependencies.overrides.assistantViewModel = viewModel
+        let installed = AppDependencies.install(dependencies)
+        let router = CompactToolRouter(registry: AppFactResolverFactory.build(
+            archive: SessionArchive(directory: directory), settings: { UserSettings() }, services: FactServices(.current)
+        ))
+        return (store, viewModel, router, installed)
+    }
 
     private func temporaryDirectory() -> URL {
         let directory = FileManager.default.temporaryDirectory

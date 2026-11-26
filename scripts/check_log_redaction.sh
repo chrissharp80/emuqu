@@ -51,6 +51,13 @@ GEO_PATTERN='\\\([^)]*\.(latitude|longitude)[^)]*\)'
 # truncated with `.prefix(n)`, with or without a `?? "…"` fallback. A count or
 # a nil test (`\(query.count)`, `\(road == nil ? …)`) is not matched.
 USER_TEXT_PATTERN='\\\(([^)]*\.)?(query|q|transcript|utterance|userText|userMessage|prompt|question|thoroughfare|subThoroughfare|locality|subLocality|road|street|crossStreet)(\.prefix\([0-9]+\))?( \?\? "[^"]*")?\)'
+# Where the user is under any variable name that says so: a camelCase name
+# ending in Road, Street, Thoroughfare or Locality (`currentRoad`,
+# `nearestStreet`), and the road-graph grid keys (`cellKey`, `gridKey`,
+# `tileKey`), which are a ~250 m square of the user's position. A value
+# copied into a name that says neither (`let key = currentRoad`) is out of
+# any pattern's reach, so the copy site is where to keep it out of a log.
+LOCATION_NAME_PATTERN='\\\(([^)]*\.)?([a-z][A-Za-z]*(Road|Street|Thoroughfare|Locality|CellKey|GridKey|TileKey)|cellKey|gridKey|tileKey)(\.prefix\([0-9]+\))?( \?\? "[^"]*")?\)'
 # The name of a saved route (free text the user typed) or of a place. A bare
 # `name` is not matched: in this codebase it mostly names a device or sport.
 PLACE_NAME_PATTERN='\\\(([^)]*\.)?(savedRoute|route|osmHit|placemark|mapItem)\.name\)'
@@ -168,6 +175,7 @@ report "precise coordinates" "$GEO_PATTERN"
 report "raw beat/RR series" "$RAW_SERIES_PATTERN"
 report "user text / place names" "$USER_TEXT_PATTERN"
 report "route / place names" "$PLACE_NAME_PATTERN"
+report "location by variable name" "$LOCATION_NAME_PATTERN"
 
 if (( violations )); then
     cat <<'EOF'

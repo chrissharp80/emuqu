@@ -37,6 +37,22 @@ final class AppDependenciesTests: XCTestCase {
         XCTAssertTrue(AppDependencies.current.app.recorderBox === outerBox, "The inner scope did not restore the outer container")
     }
 
+    /// The app's sync manager is built over the app's archive; a container
+    /// that substitutes the archive gets one built over that archive, the
+    /// same one on every read, with its bookkeeping beside that archive.
+    func testTheCloudManagerActsOnTheArchiveTheContainerSubstitutes() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let archive = SessionArchive(directory: directory)
+        let dependencies = AppDependencies()
+        dependencies.overrides.sessionArchive = archive
+
+        let manager = dependencies.storage.cloudKitSyncManager
+        XCTAssertTrue(manager.archive === archive, "the cloud manager acts on the app's archive, not the container's")
+        XCTAssertTrue(dependencies.storage.cloudKitSyncManager === manager, "each read built another manager")
+        XCTAssertTrue(dependencies.storage.sessionDeletion.cloudKit.archive === archive, "a deletion acts on two archives")
+    }
+
     func testLaunchServicesResolveTheContainersSubstitutes() {
         let box = RecorderBox(services: WorkoutServices(.current))
         let dependencies = AppDependencies()
