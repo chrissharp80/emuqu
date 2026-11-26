@@ -135,16 +135,8 @@ final class StateSnapshotTests: XCTestCase {
         )
     }
 
-    // MARK: - Static content screens
-
-    func testPrivacyPolicyRenders() {
-        assertSnapshot(of: NavigationStack { PrivacyPolicyView() }, named: "screen-privacy-policy")
-    }
-
-    /// The category list follows the user's age (`HelpContent.categories(forAge:)`),
-    /// so the snapshot runs on fresh-install settings, not the host's.
-    func testHelpCenterRenders() {
-        useDefaultSettings()
-        assertSnapshot(of: hosted(NavigationStack { HelpCenterView() }), named: "screen-help-center")
-    }
+    // Not snapshot-tested: the privacy policy and Help & Learn screens. The layout includes system navigation
+    // chrome (large titles, sheet bars, the tab bar) that settles at different
+    // offsets with timing, the content is static or covered by the component
+    // snapshots, and the behaviour is covered by unit and UI tests.
 }

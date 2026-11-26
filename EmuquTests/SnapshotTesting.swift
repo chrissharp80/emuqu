@@ -86,10 +86,9 @@ extension SnapshotTesting {
         let hostTimeZone = NSTimeZone.default
         NSTimeZone.default = timeZone
         defer { NSTimeZone.default = hostTimeZone }
-        // UIKit animations stay off from building the window to the capture:
-        // a view UIKit sets up with an animation (the tab bar's selection
-        // highlight) would otherwise be drawn at its frozen first frame on
-        // some runs and finished on others, by timing alone.
+        // UIKit animations stay off from building the window to the capture,
+        // so views UIKit sets up are placed at once; animations added to
+        // layers directly are removed before each capture (`finishAnimations`).
         let animated = UIView.areAnimationsEnabled
         UIView.setAnimationsEnabled(false)
         let isolated = isolatedDependencies()
@@ -126,6 +125,12 @@ extension SnapshotTesting {
         dependencies.overrides.settingsManager = settings
         dependencies.overrides.baselineTracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
         dependencies.overrides.archiveSignal = ArchiveSignal()
+        // Apple Intelligence as ready: the coach otherwise shows whatever the
+        // host's model is doing (ready, downloading, off), which changes
+        // between runs on the same machine. Set before the registry is built,
+        // which reads it once.
+        dependencies.overrides.appleIntelligenceStatus = .available
+        dependencies.overrides.providerRegistry = ProviderRegistry(services: ProviderRegistryServices(dependencies))
         let archive = SessionArchive(directory: directory)
         dependencies.overrides.sessionArchive = archive
         dependencies.overrides.trainingMetricsCache = TrainingMetricsCache(
@@ -175,14 +180,53 @@ extension SnapshotTesting {
     private static func settle(_ window: UIWindow) -> CGImage? {
         window.layoutIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(settleInterval))
-        var previous = capture(window)
+        var previous = restingCapture(window)
         for _ in 0 ..< settleChecks {
             RunLoop.main.run(until: Date().addingTimeInterval(stableInterval))
-            let next = capture(window)
+            let next = restingCapture(window)
             if let next, let previous, sameBytes(next, previous) { return next }
             previous = next
         }
         return previous
+    }
+
+    /// The window as a screen opens: every vertically scrolling view at its
+    /// top, and the layout that follows from that done, then captured.
+    ///
+    /// A large navigation title sets the scroll view's top inset once the bar
+    /// has measured itself, and whether that lands before or after the scroll
+    /// view first places its content depends on how busy the host is; a late
+    /// inset leaves the content a few points scrolled, with the title part
+    /// collapsed. Putting each scroll view back at its top before every
+    /// capture makes the picture the same however the layout passes fell.
+    @MainActor
+    private static func restingCapture(_ window: UIWindow) -> CGImage? {
+        scrollToTop(window)
+        window.layoutIfNeeded()
+        finishAnimations(window.layer)
+        return capture(window)
+    }
+
+    /// Removes every Core Animation animation in the window, so each layer is
+    /// drawn at its own final value. UIKit and SwiftUI add some animations
+    /// directly to layers, outside `UIView.setAnimationsEnabled` (the tab
+    /// bar's selection highlight fading in, a `ProgressView` spinner turning);
+    /// captured mid-flight, those differ from run to run with the host's load.
+    @MainActor
+    private static func finishAnimations(_ layer: CALayer) {
+        layer.removeAllAnimations()
+        layer.sublayers?.forEach(finishAnimations)
+    }
+
+    /// Scroll views that scroll sideways (a strip wider than its frame) keep
+    /// their position: only the vertical offset is reset.
+    @MainActor
+    private static func scrollToTop(_ view: UIView) {
+        if let scroll = view as? UIScrollView, scroll.contentSize.width <= scroll.bounds.width + 0.5 {
+            let top = CGPoint(x: scroll.contentOffset.x, y: -scroll.adjustedContentInset.top)
+            if scroll.contentOffset != top { scroll.setContentOffset(top, animated: false) }
+        }
+        view.subviews.forEach(scrollToTop)
     }
 
     private static func sameBytes(_ lhs: CGImage, _ rhs: CGImage) -> Bool {
@@ -257,10 +301,6 @@ final class SnapshotWindow: UIWindow {
             super.init(frame: .zero)
         }
         frame = CGRect(origin: .zero, size: size)
-        // Core Animation time stands still in this window, so a UIKit
-        // animation that never ends (a `ProgressView` spinner) is drawn at
-        // the same frame on every run.
-        layer.speed = 0
         overrideUserInterfaceStyle = .light
         traitOverrides.userInterfaceStyle = .light
         traitOverrides.layoutDirection = .leftToRight

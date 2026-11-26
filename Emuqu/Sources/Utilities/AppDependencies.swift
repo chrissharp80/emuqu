@@ -138,6 +138,7 @@ struct AppDependencies: Sendable {
             var llmRequestAudit: LLMRequestAudit?
             var providerConsentTracker: ProviderConsentTracker?
             var providerRegistry: ProviderRegistry?
+            var appleIntelligenceStatus: AppleIntelligenceStatus?
             var smartProviderRouter: SmartProviderRouter?
             var webSearchService: WebSearchService?
             var whisperKitSTTBridge: WhisperKitSTTBridge?
@@ -384,6 +385,10 @@ struct AppDependencies: Sendable {
         var providerRegistry: ProviderRegistry? {
             get { values.withLock { $0.providerRegistry } }
             set { values.withLock { $0.providerRegistry = newValue } }
+        }
+        var appleIntelligenceStatus: AppleIntelligenceStatus? {
+            get { values.withLock { $0.appleIntelligenceStatus } }
+            set { values.withLock { $0.appleIntelligenceStatus = newValue } }
         }
         var smartProviderRouter: SmartProviderRouter? {
             get { values.withLock { $0.smartProviderRouter } }
@@ -783,6 +788,10 @@ struct ProviderServices: Sendable {
         if let substitute = overrides.providerRegistry { return substitute }
         return ProviderRegistry.shared
     }
+    /// Where Apple Intelligence stands on this iPhone, as the system reports it.
+    var appleIntelligenceStatus: AppleIntelligenceStatus {
+        overrides.appleIntelligenceStatus ?? .current
+    }
     @MainActor
     var smartProviderRouter: SmartProviderRouter {
         if let substitute = overrides.smartProviderRouter { return substitute }
@@ -977,24 +986,5 @@ extension AppDependencies {
             debugLogger: { app.debugLogger },
             crashLogManager: { app.crashLogManager }
         )
-    }
-}
-
-// MARK: - SwiftUI environment
-
-/// Computed, not a stored snapshot: a view that has no injected value reads
-/// whatever `AppDependencies.current` holds at that moment, so a container
-/// swapped in by a test reaches views too.
-private struct DependenciesKey: EnvironmentKey {
-    static var defaultValue: AppDependencies { AppDependencies.current }
-}
-
-extension EnvironmentValues {
-    /// The services a view reads. Nothing injects it, so views get
-    /// `AppDependencies.current`; a preview or test can still override it
-    /// with `.environment(\.dependencies, ...)`.
-    var dependencies: AppDependencies {
-        get { self[DependenciesKey.self] }
-        set { self[DependenciesKey.self] = newValue }
     }
 }

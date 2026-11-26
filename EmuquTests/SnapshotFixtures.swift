@@ -246,18 +246,6 @@ extension SnapshotFixtures {
 }
 
 extension XCTestCase {
-    /// The health disclaimer, accepted or not, for this test; restored
-    /// afterwards. The flag is kept in `UserDefaults`, so on a test host it
-    /// holds whatever that simulator or an earlier suite left, and it decides
-    /// whether the disclaimer is shown as the first-launch gate.
-    @MainActor
-    func useHealthDisclaimerAccepted(_ value: Bool) {
-        let settings = SettingsManager.shared
-        let saved = settings.hasAcceptedDisclaimer
-        settings.hasAcceptedDisclaimer = value
-        addTeardownBlock { @MainActor in settings.hasAcceptedDisclaimer = saved }
-    }
-
     /// The assistant's data-handling notice, accepted or not, for this test;
     /// restored afterwards. Also kept in `UserDefaults`; it decides whether
     /// the coach opens on the notice or on its home.
@@ -297,28 +285,5 @@ extension XCTestCase {
             if let dashboard = saved.dashboard { cache.setDashboard(dashboard) }
             if let fitness = saved.fitness { cache.setFitness(fitness) }
         }
-    }
-}
-
-// MARK: - Log screens
-
-extension SnapshotFixtures {
-    /// A container whose debug logger holds a few fixed lines, two of them
-    /// problems the error catalog lists, in place of the process's own log.
-    @MainActor
-    static func loggedDependencies() -> AppDependencies {
-        let entries: [DebugLogger.LogEntry] = [
-            .init(timestamp: anchor.addingTimeInterval(60), message: "[Archive] Loaded 12 sessions from archive",
-                  category: "SessionArchive", level: .info),
-            .init(timestamp: anchor.addingTimeInterval(120), message: "[Baseline] Loaded 12 data points, baseline: available",
-                  category: "BaselineTracker", level: .info),
-            .init(timestamp: anchor.addingTimeInterval(180), message: "[HealthKit] Sleep query returned no samples for the night",
-                  category: "HealthKitManager", level: .warning),
-            .init(timestamp: anchor.addingTimeInterval(240), message: "[CloudKit] Upload failed: the network is unavailable",
-                  category: "CloudKitSyncManager", level: .error)
-        ]
-        let dependencies = AppDependencies()
-        dependencies.overrides.debugLogger = DebugLogger(inMemory: entries)
-        return dependencies
     }
 }

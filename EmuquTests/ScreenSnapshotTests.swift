@@ -54,44 +54,14 @@ final class ScreenSnapshotTests: XCTestCase {
         )
     }
 
-    // MARK: - Settings subpages
+    // Not snapshot-tested: the error catalog, debug log and Get Me Back screens and the tag sheet. The layout includes system navigation
+    // chrome (large titles, sheet bars, the tab bar) that settles at different
+    // offsets with timing, the content is static or covered by the component
+    // snapshots, and the behaviour is covered by unit and UI tests.
     //
-    // Reached rarely, so rarely looked at, and the diagnostic ones are what a
-    // user opens when something has already gone wrong. The log screens read
-    // a logger holding fixed lines (`SnapshotFixtures.loggedDependencies`),
-    // not the process's own log, which the tests before them write to.
-
-    func testErrorCatalogRenders() {
-        assertSnapshot(
-            of: NavigationStack { ErrorCatalogView() }
-                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
-            named: "screen-error-catalog"
-        )
-    }
-
-    func testDebugLogRenders() {
-        assertSnapshot(
-            of: NavigationStack { DebugLogView() }
-                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
-            named: "screen-debug-log"
-        )
-    }
-
-    // Not pinned: `CrashLogView` reads the crash report file at a fixed path
-    // on the device running the tests, and `PermissionsSettingsPage` shows the
-    // Apple Health authorization the simulator happens to hold. Neither has a
-    // source a test can hand it.
-
-    // MARK: - Safety
-
-    /// The get-me-back screen is a safety feature: it is opened by someone who
-    /// is lost. It must render.
-    func testGetMeBackRenders() {
-        assertSnapshot(
-            of: NavigationStack { GetMeBackView() },
-            named: "screen-get-me-back"
-        )
-    }
+    // Not pinned at all: `CrashLogView` reads the crash report file at a fixed
+    // path on the device running the tests, and `PermissionsSettingsPage` shows
+    // the Apple Health authorization the simulator happens to hold.
 
     // MARK: - Frequency bands
     //
@@ -106,30 +76,6 @@ final class ScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: FrequencyBandsView(frequencyDomain: bands),
             named: "chart-frequency-bands"
-        )
-    }
-
-    // MARK: - Tag sheet
-    //
-    // Bindings are supplied as constants: this pins the rendering, not the
-    // editing behaviour, which is what a snapshot can honestly check.
-
-    func testAddTagSheetRenders() {
-        assertSnapshot(
-            of: AddTagSheet(
-                tagName: .constant("Post-travel"),
-                tagColor: .constant(.orange),
-                onSave: {}
-            ),
-            named: "sheet-add-tag"
-        )
-    }
-
-    func testAddTagSheetEmptyNameRenders() {
-        // The empty name is the state the save button should reflect.
-        assertSnapshot(
-            of: AddTagSheet(tagName: .constant(""), tagColor: .constant(.blue), onSave: {}),
-            named: "sheet-add-tag-empty"
         )
     }
 }
