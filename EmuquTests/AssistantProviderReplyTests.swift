@@ -243,3 +243,37 @@ final class LLMRequestAuditResponseTests: XCTestCase {
         XCTAssertEqual(entry?.responseText.suffix(10_001), Substring(String(repeating: "b", count: 10_001)))
     }
 }
+
+/// The prompt audit shows the request body as it went to the provider, not
+/// the chat's own copy of the messages, which lacks the live state a cloud
+/// provider splices in.
+@MainActor
+final class SentRequestAuditTests: XCTestCase {
+    /// The round sets where the body goes for its task; the provider's
+    /// stream runs in a task of its own, which must still find it.
+    func testTheBodyReachesTheAuditFromTheProvidersStreamTask() async throws {
+        let received = expectation(description: "the provider's task found the round's sink")
+        let body = Data(#"{"messages":[{"role":"user","content":"<live_state>HRV 48</live_state> How did I sleep?"}]}"#.utf8)
+        let sink: @Sendable (Data) -> Void = { sent in
+            if sent == body { received.fulfill() }
+        }
+        let stream = ProviderRequestAudit.$sentBodySink.withValue(sink) {
+            ProviderStream.make { _ in ProviderRequestAudit.sentBodySink?(body) }
+        }
+        for try await _ in stream {}
+
+        await fulfillment(of: [received], timeout: 2)
+    }
+
+    func testTheSentBodyIsKeptOnItsEntryReadably() throws {
+        let audit = LLMRequestAudit.shared
+        defer { audit.clear() }
+        let id = audit.record(provider: "anthropic", model: "test", systemPrompt: "", messagesJSON: "[]", toolsJSON: "")
+
+        audit.setSentBody(Data(#"{"b":1,"a":"<live_state>HRV 48</live_state>"}"#.utf8), for: id)
+
+        let sent = try XCTUnwrap(audit.entries.first { $0.id == id }?.sentBody)
+        XCTAssertTrue(sent.contains("<live_state>HRV 48</live_state>"), "the live state sent is shown")
+        XCTAssertTrue(sent.contains("\n"), "pretty-printed for reading")
+    }
+}

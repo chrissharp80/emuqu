@@ -184,6 +184,8 @@ final class FloSpotCompareTests: XCTestCase {
         guard case let .record(first) = asked, case .string("confirmation_required") = first["status"] else { return XCTFail("saved unasked: \(asked)") }
         XCTAssertTrue(store.list().isEmpty, "the article's text was saved without the user's yes")
 
+        viewModel.turns.append(ChatTurn(role: .assistant, text: "Shall I save that note?"))
+        XCTAssertTrue(viewModel.actionConfirmations.showPending(in: &viewModel.turns), "the app shows its question under the reply")
         viewModel.turns.append(ChatTurn(role: .user, text: "yes"))
         let confirmed = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args.replacingOccurrences(of: "Summarize this article", with: "yes"))
         guard case let .record(second) = confirmed, case .boolean(true) = second["created"] else { return XCTFail("not saved after yes: \(confirmed)") }
@@ -204,6 +206,24 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertEqual(store.list(includeResolved: true).first?.status, .open)
     }
 
+    /// "Mark the uphill alert bug resolved" names one item. A call that
+    /// resolves a different one has the status word but not the item, and
+    /// waits for the user's yes.
+    func testAStatusForAnItemTheUserDidNotNameWaitsForTheirYes() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let (store, viewModel, router) = (harness.store, harness.viewModel, harness.router)
+        _ = store.add(kind: .bug, body: "HR alert fires uphill")
+        let other = store.add(kind: .feature, body: "Coach voice too loud")
+        viewModel.turns = [ChatTurn(role: .user, text: "Mark the uphill alert bug resolved")]
+        let changed = await router.resolveTool(
+            name: "assistant_artifacts_update_status",
+            argsJSON: #"{"id":"\#(other.id.uuidString)","status":"resolved","user_quote":"Mark the uphill alert bug resolved"}"#
+        )
+        guard case let .record(record) = changed, case .string("confirmation_required") = record["status"] else { return XCTFail("changed unasked: \(changed)") }
+        XCTAssertEqual(store.list(includeResolved: true).first { $0.id == other.id }?.status, .open)
+    }
+
     func testAStatusTheUserSaidChangesAtOnce() async throws {
         let harness = artifactHarness()
         defer { harness.installed.end() }
@@ -216,6 +236,25 @@ final class FloSpotCompareTests: XCTestCase {
         )
         guard case let .record(record) = changed, case .boolean(true) = record["updated"] else { return XCTFail("not changed: \(changed)") }
         XCTAssertEqual(store.list(includeResolved: true).first?.status, .resolved)
+    }
+
+    /// A save the phone has not written (its storage still sealed by the
+    /// lock screen) is in memory only: the result says it is not saved, so
+    /// the model does not tell the user it is.
+    func testAnArtifactNotWrittenToThePhoneIsNotReportedSaved() throws {
+        let directory = temporaryDirectory()
+        try FileManager.default.createDirectory(at: directory.appendingPathComponent("artifacts.json", isDirectory: true), withIntermediateDirectories: true)
+        let store = AssistantArtifactStore(directory: directory)
+        let context = AssistantMemoryNamespace.DestructiveActionContext(
+            confirmations: AssistantActionConfirmations(), turns: [ChatTurn(role: .user, text: "Note: buy milk")]
+        )
+
+        let result = AssistantMemoryNamespace.addArtifact(kind: .note, body: "buy milk", store: store, context: context)
+
+        guard case let .record(fields) = result, case .boolean(false) = fields["saved"], case .string = fields["note"] else {
+            return XCTFail("reported as saved: \(result)")
+        }
+        XCTAssertEqual(store.lastSave, .heldUntilUnlock)
     }
 
     /// Dropping lines changes the list as much as adding them: a call that

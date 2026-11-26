@@ -149,15 +149,25 @@ extension HealthWriteAndObserve {
     ///
     /// Every metric is attempted whatever the others did; afterwards the
     /// first failure is thrown, so the caller learns an export failed.
+    ///
+    /// Each write reads the switches when it starts: the callers check
+    /// "Export to Apple Health" before acceptance's HealthKit fetches and
+    /// archive write, and the writes here await one another, so a switch
+    /// turned off meanwhile stops the writes still to come.
     func exportSessionMetrics(from session: HRVSession) async throws {
         guard let result = session.analysisResult, !CloudSessionPayload.isHealthKitSourced(session) else { return }
-        let settings = access.settingsProvider()
         var failures: [Error] = []
-        if settings.exportSDNN, let error = await exportHRVMetrics(session: session, result: result) { failures.append(error) }
-        if settings.exportHeartRate, let error = await exportHRMetrics(session: session, result: result) { failures.append(error) }
-        if settings.exportRestingHeartRate, let error = await exportRHRMetric(session: session, result: result) { failures.append(error) }
-        if settings.exportSleepData, let error = await exportSleepIfSoleSource(session: session) { failures.append(error) }
+        if allows(\.exportSDNN), let error = await exportHRVMetrics(session: session, result: result) { failures.append(error) }
+        if allows(\.exportHeartRate), let error = await exportHRMetrics(session: session, result: result) { failures.append(error) }
+        if allows(\.exportRestingHeartRate), let error = await exportRHRMetric(session: session, result: result) { failures.append(error) }
+        if allows(\.exportSleepData), let error = await exportSleepIfSoleSource(session: session) { failures.append(error) }
         if let first = failures.first { throw first }
+    }
+
+    /// Whether export to Apple Health, and this metric's export, are on now.
+    private func allows(_ metric: KeyPath<UserSettings, Bool>) -> Bool {
+        let settings = access.settingsProvider()
+        return settings.enableHealthKitExport && settings[keyPath: metric]
     }
 
     /// HRV: windowed SDNN across the recording, or the single measured
@@ -254,8 +264,8 @@ extension HealthWriteAndObserve {
               let end = sleepData.sleepEnd, let sleepType = HKTypes.category(.sleepAnalysis) else { return nil }
         do {
             let otherSource = try await otherSourceWroteSleep(from: start, to: end, sleepType: sleepType)
-            guard !otherSource else {
-                debugLog("[HealthKit Export] Sleep export skipped: another source has recorded this night")
+            guard !otherSource, allows(\.exportSleepData) else {
+                debugLog("[HealthKit Export] Sleep export skipped: another source has recorded this night, or export was switched off")
                 return nil
             }
             try await exportSleepToHealthKit(sleepData: sleepData, sessionId: session.id)

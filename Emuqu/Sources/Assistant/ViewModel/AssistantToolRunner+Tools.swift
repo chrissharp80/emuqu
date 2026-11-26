@@ -258,11 +258,7 @@ extension AssistantToolRunner {
             provider: round.provider, model: round.model, outbound: state.outbound,
             systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
         )
-        let stream = round.provider.send(
-            messages: state.outbound, model: round.model,
-            contextRendered: await owner.contextSource.currentContext().renderLiveStateForCloud(),
-            systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
-        )
+        let stream = await sendRecordingBody(round, state: state, auditID: auditID)
         var thisRound: [PendingToolCall] = []
         defer { buffer.flush(force: true, thisRoundIsEmpty: thisRound.isEmpty) }
         do {
@@ -339,6 +335,22 @@ extension AssistantToolRunner {
             messagesJSON: AssistantViewModel.auditEncodeMessages(outbound, toolRounds: toolRounds),
             toolsJSON: AssistantViewModel.auditEncodeTools(tools)
         )
+    }
+
+    /// The round's request, its body recorded on the audit entry
+    /// `auditID` as it goes over the network (`ProviderRequestAudit`).
+    private func sendRecordingBody(
+        _ round: RoundContext, state: ToolLoopState, auditID: UUID
+    ) async -> AsyncThrowingStream<AIStreamEvent, Error> {
+        let liveState = await owner.contextSource.currentContext().renderLiveStateForCloud()
+        let audit = owner.services.llmRequestAudit
+        let sink: @Sendable (Data) -> Void = { body in Task { @MainActor in audit.setSentBody(body, for: auditID) } }
+        return ProviderRequestAudit.$sentBodySink.withValue(sink) {
+            round.provider.send(
+                messages: state.outbound, model: round.model, contextRendered: liveState,
+                systemPrompt: round.systemPrompt, tools: round.tools, toolRounds: state.toolRounds
+            )
+        }
     }
 
     /// One stream event: text into the buffer, tool calls into `thisRound`,
@@ -883,6 +895,7 @@ extension AssistantToolRunner {
         }
         owner.isStreaming = false
         owner.streamTask = nil
+        if owner.actionConfirmations.showPending(in: &owner.turns) { owner.store.save(owner.turns) }
 
         // Drain queued send. We move it to a local first because dispatch()
         // will bump owner.streamGeneration / reset owner.isStreaming on its own; if it

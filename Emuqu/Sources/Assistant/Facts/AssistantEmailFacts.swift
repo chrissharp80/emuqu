@@ -83,7 +83,7 @@ extension AssistantMemoryNamespace {
         store: EmailContactStore,
         context: DestructiveActionContext
     ) -> FactValue {
-        let question = "Add \(name) (\(email)) to your contacts? Reply yes to confirm."
+        let question = String(localized: "Add \(name) (\(email)) to your contacts?", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gateUnlessUserStated(
             [name, email], action: "assistant.contacts.add", target: "\(name) \(email)", question: question
         ) { return unconfirmed }
@@ -163,7 +163,7 @@ extension AssistantMemoryNamespace {
         guard matches.count == 1, let target = matches.first else {
             return ambiguousContact(name: name, matches: matches.count)
         }
-        let question = "Remove \(target.name) (\(target.email)) from your contacts? Reply yes to confirm."
+        let question = String(localized: "Remove \(target.name) (\(target.email)) from your contacts?", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gate(action: "assistant.contacts.remove", target: target.id.uuidString, question: question) { return unconfirmed }
         guard store.remove(id: target.id) else { return contactsNotChanged() }
         return .record([

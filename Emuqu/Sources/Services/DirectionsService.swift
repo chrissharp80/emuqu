@@ -123,15 +123,17 @@ enum DirectionsService {
     }
 
     /// A map item at `coordinate`. iOS 26 builds it from a location, as
-    /// MapKit now asks; earlier systems from a placemark. MKPlacemark's
-    /// overloaded initializers, deprecated in iOS 26, were what took the
-    /// type-checker past CI's limit on a slow runner.
+    /// MapKit now asks; earlier systems from a placemark. Each step is its
+    /// own statement with its type written out: MKPlacemark's and
+    /// MKMapItem's overloaded initializers, nested in one expression, took
+    /// the type-checker past CI's limit on a slow runner.
     private static func mapItem(at coordinate: CLLocationCoordinate2D) -> MKMapItem {
-        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         if #available(iOS 26.0, *) {
+            let location: CLLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             return MKMapItem(location: location, address: nil)
         }
-        return MKMapItem(placemark: MKPlacemark(coordinate: location.coordinate, addressDictionary: nil))
+        let placemark: MKPlacemark = MKPlacemark(coordinate: coordinate)
+        return MKMapItem(placemark: placemark)
     }
 
     // MARK: - Destination resolvers

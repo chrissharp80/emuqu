@@ -171,7 +171,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         MainActor.assumeIsolated {
             AssistantMemoryNamespace.DestructiveActionContext.live(services).gateUnlessUserStated(
                 [new], action: "routes.library.rename", target: "\(target.id.uuidString) \(new)",
-                question: "Rename your route \"\(target.name)\" to \"\(new)\"? Reply yes to confirm."
+                question: String(localized: "Rename your route “\(target.name)” to “\(new)”?", bundle: LanguageManager.appBundle)
             )
         }
     }

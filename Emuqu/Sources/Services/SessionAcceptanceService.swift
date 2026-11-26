@@ -253,19 +253,16 @@ final class SessionAcceptanceService {
         enableHealthKitExport: Bool,
         clearPersistedRecordingState: () -> Void
     ) async throws -> HRVSession {
-        var session = session
-        let sleepSchedule = inputs.sleepSchedule
-        if let result = session.analysisResult {
-            await freezeScore(on: &session, result: result, inputs: inputs)
-        }
-        debugLog("[SessionAcceptanceService] Accepting and archiving session ID: \(session.id.uuidString)")
         let recordingId = session.id
-        let (archive, rawBackup) = (archive, rawBackup)
-        let toArchive = session
-        session = try await Task.detached(priority: .userInitiated) {
-            try Self.archiveReturningNight(toArchive, archive: archive, rawBackup: rawBackup)
-        }.value
-        baselineTracker.update(with: session, sleepSchedule: sleepSchedule)
+        debugLog("[SessionAcceptanceService] Accepting and archiving session ID: \(recordingId.uuidString)")
+        let accepted: HRVSession
+        if let archived = try await acceptArchived(session, inputs: inputs) {
+            accepted = archived
+        } else {
+            accepted = try await acceptUnarchived(session, inputs: inputs)
+        }
+        baselineTracker.update(with: accepted, sleepSchedule: inputs.sleepSchedule)
+        let session = accepted
         // Clear persisted recording state - session is now safely archived.
         // NOTE: We intentionally do NOT clear the H10 memory here — data stays
         // on the H10 as a backup until a new recording starts.
@@ -273,6 +270,83 @@ final class SessionAcceptanceService {
         exportToHealthIfEnabled(session, enabled: enableHealthKitExport)
         syncToCloud(session, liveBackupOf: recordingId)
         return session
+    }
+
+    /// A night the archive does not hold yet: frozen, then archived whole.
+    private func acceptUnarchived(_ session: HRVSession, inputs: AcceptanceInputs) async throws -> HRVSession {
+        var session = session
+        if let result = session.analysisResult {
+            await freezeScore(on: &session, result: result, inputs: inputs)
+        }
+        let (archive, rawBackup, toArchive) = (archive, rawBackup, session)
+        return try await Task.detached(priority: .userInitiated) {
+            try Self.archiveReturningNight(toArchive, archive: archive, rawBackup: rawBackup)
+        }.value
+    }
+
+    /// A night already in the archive, saved there before the user reviewed
+    /// it (`MorningSessionPipeline.archiveForReview`). While the review card
+    /// was open the user's rating, window pick and sleep edit, and any
+    /// rescore, went to the archived copy, not to the card's. Writing the
+    /// card's copy back whole undid them. The score is frozen from the
+    /// stored copy and only what acceptance computes is written onto it,
+    /// under the archive's lock, when its inputs are still the ones read
+    /// (`RescoreWrite.inputsMatch`); otherwise it runs again from the newer
+    /// copy. nil when the archive does not hold the night, or holds other
+    /// beats than the card's: a strap download merged into an archived night
+    /// is meant to replace it on Accept (`assembleDownloadedSession`), and is
+    /// written whole as before.
+    private func acceptArchived(_ session: HRVSession, inputs: AcceptanceInputs) async throws -> HRVSession? {
+        let (archive, rawBackup) = (archive, rawBackup)
+        guard archive.store.exists(session.id), let stored = try archive.retrieve(session.id),
+              Self.sameBeats(stored, session) else { return nil }
+        for _ in 0 ..< RescoreWrite.runs {
+            guard var frozen = try archive.retrieve(session.id) else { return nil }
+            let read = frozen
+            if let result = frozen.analysisResult { await freezeScore(on: &frozen, result: result, inputs: inputs) }
+            let toWrite = frozen
+            if let written = try await Task.detached(priority: .userInitiated, operation: { try Self.writeAccepted(toWrite, readFrom: read, to: archive) }).value {
+                rawBackup.markAsArchived(written.id)
+                return written
+            }
+        }
+        debugLog("[SessionAcceptanceService] The night kept changing while it was accepted; it keeps its stored score", level: .warning)
+        rawBackup.markAsArchived(session.id)
+        return try archive.retrieve(session.id)
+    }
+
+    /// Puts what acceptance computed on the archived copy, if its inputs are
+    /// those of `read`; nil, with nothing written, when they are not. Throws
+    /// when the night is no longer in the archive (deleted meanwhile): a
+    /// deleted night is not written back.
+    nonisolated static func writeAccepted(_ frozen: HRVSession, readFrom read: HRVSession, to archive: SessionArchive) throws -> HRVSession? {
+        var written: HRVSession?
+        try archive.updateIfChanged(frozen.id, requestingReupload: false) { stored in
+            guard RescoreWrite.inputsMatch(stored, read, kind: .scoreOnly(healedTraining: false)) else { return false }
+            applyAccepted(from: frozen, to: &stored)
+            written = stored
+            return true
+        }
+        return written
+    }
+
+    /// Whether two copies of a night hold the same beats: their count and
+    /// first and last timestamps.
+    nonisolated static func sameBeats(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {
+        let (left, right) = (lhs.rrSeries?.points ?? [], rhs.rrSeries?.points ?? [])
+        return left.count == right.count && left.first?.t_ms == right.first?.t_ms && left.last?.t_ms == right.last?.t_ms
+    }
+
+    /// The fields acceptance computes: the frozen sleep, vitals and score.
+    nonisolated static func applyAccepted(from frozen: HRVSession, to stored: inout HRVSession) {
+        stored.sleepSnapshot = frozen.sleepSnapshot
+        stored.vitalsSnapshot = frozen.vitalsSnapshot
+        stored.hrvDataQuality = frozen.hrvDataQuality
+        stored.recoveryScore = frozen.recoveryScore
+        stored.scoreBreakdown = frozen.scoreBreakdown
+        stored.frozenReadiness = frozen.frozenReadiness
+        stored.analysisResult?.trainingContext = frozen.analysisResult?.trainingContext
+        if stored.trainingSnapshot == nil { stored.trainingSnapshot = frozen.trainingSnapshot }
     }
 
     /// Archive the accepted recording and return the night that now holds it:
@@ -355,7 +429,11 @@ final class SessionAcceptanceService {
             sessionStart: session.startDate,
             sessionEnd: sessionEnd
         )
-        session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
+        // A night whose sleep the user set by hand keeps it: Health's reading
+        // is what they corrected.
+        if session.sleepUserAdjusted != true {
+            session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
+        }
         if let vitals {
             session.vitalsSnapshot = vitals.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
         }
@@ -584,7 +662,11 @@ final class SessionAcceptanceService {
             rrPoints: session.rrSeries?.points, fetchStart: fetchStart, fetchEnd: fetchEnd,
             sessionStart: session.startDate, sessionEnd: sessionEnd
         )
-        session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
+        // A night whose sleep the user set by hand keeps it: Health's reading
+        // is what they corrected.
+        if session.sleepUserAdjusted != true {
+            session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
+        }
         if let vitals { session.vitalsSnapshot = vitals.withStrapNocturnalRHR(result.timeDomain.meanHR) }
     }
 

@@ -44,7 +44,7 @@ extension AssistantMemoryNamespace {
         /// nil when the user's latest message confirms this request; otherwise
         /// the result telling the model to ask the user first.
         func gate(action: String, target: String, question: String) -> FactValue? {
-            switch confirmations.evaluate(action: action, target: target, turns: turns, now: now) {
+            switch confirmations.evaluate(action: action, target: target, question: question, turns: turns, now: now) {
             case .confirmed:
                 return nil
             case .awaitingConfirmation:
@@ -59,15 +59,17 @@ extension AssistantMemoryNamespace {
     }
 
     /// The first call's answer: nothing changed, and the question the app,
-    /// not the model, wrote for the user.
+    /// not the model, wrote for the user. The app shows it under the reply
+    /// itself (`AssistantActionConfirmations.showPending`).
     static func confirmationRequired(_ question: String) -> FactValue {
         .record([
             "status": .string("confirmation_required"),
             "executed": .boolean(false),
             "ask_user": .string(question),
             "next_step": .string("""
-                Nothing has been changed. Ask the user this question (in their language) and end your reply. Only if their next message \
-                is a plain yes, call this tool again with the same arguments and user_quote set to that reply. Any other reply cancels it.
+                Nothing has been changed. The app shows the user this exact question under your reply. Say in one short sentence \
+                what you are asking them to confirm, and end your reply. Only if their next message is a plain yes, call this tool \
+                again with the same arguments and user_quote set to that reply. Any other reply cancels it.
                 """)
         ])
     }
@@ -81,8 +83,8 @@ extension AssistantMemoryNamespace {
             return .record(["cleared": .boolean(false), "count_before": .integer(0), "note": .string("no saved memory facts — nothing to clear")])
         }
         let question = count > 0
-            ? "Delete all \(count) saved memory facts? Reply yes to confirm."
-            : "Delete the unreadable copy of your saved memory? Reply yes to confirm."
+            ? String(localized: "Delete all \(count) saved memory facts?", bundle: LanguageManager.appBundle)
+            : String(localized: "Delete the unreadable copy of your saved memory?", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gate(action: "assistant.memory.clear", target: "all", question: question) { return unconfirmed }
         guard let cleared = store.clearKeepingBackup() else {
             return .record(["cleared": .boolean(false), "count_before": .integer(count),
@@ -101,7 +103,7 @@ extension AssistantMemoryNamespace {
         guard let fact = store.facts.first(where: { $0.id == id }) else {
             return .missing(reason: .notRecorded, detail: "no memory fact with id \(id.uuidString)")
         }
-        let question = "Forget the saved memory fact \"\(fact.text)\"? Reply yes to confirm."
+        let question = String(localized: "Forget the saved memory fact “\(fact.text)”?", bundle: LanguageManager.appBundle)
         if let unconfirmed = context.gate(action: "assistant.memory.remove", target: id.uuidString, question: question) { return unconfirmed }
         guard store.remove(id) else {
             return .record(["removed": .boolean(false), "id": .string(id.uuidString),

@@ -127,6 +127,46 @@ final class CloudKitSyncManagerTests: XCTestCase {
         assertUntouched(session.id, stateBefore: before)
     }
 
+    // MARK: - Consent at the moment of the save
+
+    /// Sync was on when the upload started and switched off while it was
+    /// prepared (the read, the sealing, a conflict's fetch): the save is not
+    /// sent, and the session is not counted as a failed upload.
+    func testAnUploadPreparedBeforeSyncWasSwitchedOffIsNotSent() async throws {
+        let session = completeNight()
+        try archive.archive(session)
+        settings.settings.hasCompletedOnboarding = true
+        settings.settings.iCloudSyncEnabled = true
+        XCTAssertTrue(manager.cloudUploadsAllowed, "Sanity: the upload was allowed when it started")
+
+        settings.settings.iCloudSyncEnabled = false
+        do {
+            _ = try await manager.saveUpload(CKRecord(recordType: "HRVSession"))
+            XCTFail("the save was sent after sync was switched off")
+        } catch is CloudUploadStopped {
+            XCTAssertNil(manager.state.uploadFailureCounts[session.id], "a stopped upload is not a failure of the session")
+        }
+    }
+
+    /// With sync off nothing is asked of iCloud, and the answer says so
+    /// rather than reporting an iCloud that holds no backups.
+    func testLiveBackupsAreNotAskedOfICloudWithSyncOff() async throws {
+        settings.settings.iCloudSyncEnabled = false
+
+        let fetched = try await manager.fetchLiveBackups()
+
+        XCTAssertNil(fetched)
+    }
+
+    /// The newest backups are picked from the whole listing, in whatever
+    /// order iCloud returned its pages.
+    func testTheNewestBackupsComeFromTheWholeListing() {
+        let ids = (0 ..< 5).map { CKRecord.ID(recordName: "live_\($0)") }
+        let dated = zip(ids, [3.0, 1.0, 5.0, 2.0, 4.0]).map { (id: $0, captureDate: Date(timeIntervalSince1970: $1)) }
+
+        XCTAssertEqual(CloudKitLiveBackupManager.newest(dated, limit: 2), [ids[2], ids[4]])
+    }
+
     // MARK: - Sync Disabled Tests
 
     /// Turning sync off leaves the manager idle rather than showing a stale

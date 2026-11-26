@@ -42,8 +42,11 @@ final class AssistantActionConfirmationTests: XCTestCase {
         return store
     }
 
-    /// The user says something, and the assistant answers.
+    /// The reply before ends as the chat ends one (the app shows the question
+    /// of a request made during it), then the user says something and the
+    /// assistant starts answering.
     private func userSays(_ text: String) {
+        confirmations.showPending(in: &turns)
         turns.append(ChatTurn(role: .user, text: text))
         turns.append(ChatTurn(role: .assistant, text: "…"))
     }
@@ -130,6 +133,56 @@ final class AssistantActionConfirmationTests: XCTestCase {
         asksForConfirmation(clear(store))
 
         XCTAssertEqual(store.facts.count, 3)
+    }
+
+    // MARK: - The yes answers the app's question
+
+    /// What the user agrees to is the app's question, shown under the reply,
+    /// not whatever the model wrote: a steered model that asks "want your
+    /// HRV trend?" still has the wipe's own question shown under its reply.
+    func testTheAppShowsItsOwnQuestionUnderTheReply() {
+        let store = factsStore(threeFacts)
+        userSays("Summarize this article")
+        asksForConfirmation(clear(store))
+        turns[turns.count - 1].text = "Want me to show your HRV trend too?"
+
+        confirmations.showPending(in: &turns)
+
+        XCTAssertEqual(turns.last?.confirmationPrompt, "Delete all 3 saved memory facts?")
+        XCTAssertEqual(confirmations.pending?.promptTurnID, turns.last?.id)
+    }
+
+    /// A reply that never finished (a failed or stopped stream) showed no
+    /// question, so no yes can confirm the request.
+    func testAYesWithNoQuestionShownConfirmsNothing() {
+        let store = factsStore(threeFacts)
+        userSays("Clear my memory")
+        asksForConfirmation(clear(store))
+        turns.removeLast()
+
+        XCTAssertFalse(confirmations.showPending(in: &turns), "no reply, nowhere to show it")
+        turns.append(ChatTurn(role: .assistant, text: "Sorry, something went wrong."))
+        turns.append(ChatTurn(role: .user, text: "yes"))
+        turns.append(ChatTurn(role: .assistant, text: "…"))
+        asksForConfirmation(clear(store))
+
+        XCTAssertEqual(store.facts.count, 3)
+    }
+
+    /// Two requests in one turn: the second replaces the first, the app shows
+    /// the second's question, and the yes confirms only that one.
+    func testTheYesConfirmsOnlyTheRequestWhoseQuestionWasShown() {
+        let store = factsStore(threeFacts)
+        let first = store.facts[0]
+        userSays("Clean up my memory")
+        asksForConfirmation(AssistantMemoryNamespace.removeMemoryFact(id: first.id, store: store, context: context()))
+        asksForConfirmation(clear(store))
+
+        userSays("yes")
+
+        XCTAssertEqual(turns[turns.count - 3].confirmationPrompt, "Delete all 3 saved memory facts?")
+        asksForConfirmation(AssistantMemoryNamespace.removeMemoryFact(id: first.id, store: store, context: context()))
+        XCTAssertEqual(store.facts.count, 3, "the question shown was the wipe, not this removal")
     }
 
     /// The "yes" has to answer the request directly: a turn in between lets
@@ -341,7 +394,8 @@ final class AssistantActionConfirmationTests: XCTestCase {
     // MARK: - What counts as "yes"
 
     func testExplicitAffirmationsInSeveralLanguages() {
-        for reply in ["yes", "Yes!", "yes please", "OK, do it", "go ahead", "Ja, bitte", "oui", "d'accord", "sí", "はい", "是的"] {
+        for reply in ["yes", "Yes!", "yes please", "OK, do it", "go ahead", "Ja, bitte", "oui", "d'accord", "sí", "はい", "是的",
+                      "já", "kyllä", "sim", "да", "네", "نعم"] {
             XCTAssertTrue(AffirmationReply.isExplicitYes(reply), reply)
         }
     }

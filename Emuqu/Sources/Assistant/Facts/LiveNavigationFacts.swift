@@ -323,7 +323,7 @@ extension WorkoutLiveCoachingNamespace {
     @MainActor private func addressUnconfirmed(_ query: String) -> FactValue? {
         AssistantMemoryNamespace.DestructiveActionContext.live(services).gateUnlessUserStated(
             [query], action: "location.set_address", target: query,
-            question: "Set your location to \"\(query)\"? Reply yes to confirm."
+            question: String(localized: "Set your location to “\(query)”?", bundle: LanguageManager.appBundle)
         )
     }
 

@@ -174,7 +174,22 @@ private struct LLMPromptAuditDetailView: View {
             body: entry.messagesJSON,
             language: "json"
         )
+        sentBodySection
         optionalPromptSections
+    }
+
+    /// The request body as it went over the network; absent until the
+    /// connection opened, and for a model that runs on the iPhone.
+    @ViewBuilder
+    private var sentBodySection: some View {
+        if let sent = entry.sentBody {
+            collapsibleSection(
+                title: String(localized: "Sent to the provider, exactly", bundle: LanguageManager.appBundle),
+                key: "sent",
+                body: sent,
+                language: "json"
+            )
+        }
     }
 
     @ViewBuilder
@@ -288,6 +303,7 @@ private struct LLMPromptAuditDetailView: View {
         lines.append("")
         lines.append("## Messages")
         lines.append(entry.messagesJSON)
+        lines += entry.sentBody.map { ["", "## Sent to the provider", $0] } ?? []
         if !entry.toolsJSON.isEmpty {
             lines.append("")
             lines.append("## Tools")

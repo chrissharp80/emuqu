@@ -15,9 +15,13 @@ extension ArchiveStore {
     /// "invalidate everything" to per-session caches
     /// (BeatConsistencyPriorsCache reconciles instead of nuking). Posting
     /// per-id for these invalidates merged sessions' cached features.
+    ///
+    /// `failure` is the error that ended the batch early. What was written
+    /// before it stays written, so it is published all the same.
     private struct BatchOutcome {
         var newEntries: [SessionArchiveEntry] = []
         var updatedIds: [UUID] = []
+        var failure: Error?
     }
 
     /// Batch archive multiple sessions efficiently.
@@ -25,30 +29,34 @@ extension ArchiveStore {
     /// the index is saved once at the end.
     /// - Parameter sessions: Array of sessions to archive
     /// - Returns: How many sessions were written, new and updated together
-    @discardableResult
     ///
     /// The change notifications go out after the lock is released, as
     /// `archive(_:)` posts its own: `NSLock` is not re-entrant, so an observer
     /// that read the archive on the posting thread would deadlock.
+    ///
+    /// A session that fails ends the batch and its error is thrown, but only
+    /// after the sessions written before it are announced and the merged ones
+    /// queued to upload again: they are on disk, and an updated session left
+    /// unannounced stays different from its iCloud copy.
+    @discardableResult
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int {
-        let outcome = try archive.archiveLock.withLock { try writeBatch(sessions) }
+        let outcome = archive.archiveLock.withLock { writeBatch(sessions) }
         postBatchChangeNotifications(outcome)
+        if let failure = outcome.failure { throw failure }
         return outcome.newEntries.count + outcome.updatedIds.count
     }
 
     /// The batch's writes and its one index save. Caller holds the lock.
-    private func writeBatch(_ sessions: [HRVSession]) throws -> BatchOutcome {
+    private func writeBatch(_ sessions: [HRVSession]) -> BatchOutcome {
         var outcome = BatchOutcome()
         do {
             for session in sessions {
                 try archiveOne(session, into: &outcome)
             }
+            if !outcome.newEntries.isEmpty { try archive.saveIndex() }
         } catch {
             savePartialBatch(outcome.newEntries)
-            throw error
-        }
-        if !outcome.newEntries.isEmpty {
-            try archive.saveIndex()
+            outcome.failure = error
         }
         return outcome
     }

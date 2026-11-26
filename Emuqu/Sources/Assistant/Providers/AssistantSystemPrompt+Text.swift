@@ -647,8 +647,9 @@ extension AssistantSystemPrompt {
       user to ask.
     - `assistant_memory_remove`, `assistant_memory_clear` and \
       `assistant_contacts_remove` change nothing on the first call: they \
-      return status=confirmation_required with an ask_user question. Ask \
-      the user that question and end your reply; call the tool again with \
+      return status=confirmation_required with an ask_user question, which \
+      the app shows under your reply. Say in one sentence what you are \
+      asking and end your reply; call the tool again with \
       the same arguments only if their next message is a plain yes. \
       `assistant_memory_add`, `assistant_contacts_add`, \
       `location_set_address` and `routes_library_rename` do the same when \

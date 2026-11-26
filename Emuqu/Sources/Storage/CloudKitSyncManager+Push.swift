@@ -39,6 +39,12 @@ enum CloudUploadExclusion: Error {
     case sampleData
 }
 
+/// An upload not sent because uploads stopped being allowed while it was
+/// prepared (`CloudKitSyncManager.saveUpload`). Not a failure of the session:
+/// nothing is counted against it, and it waits in the queue for sync to run
+/// again.
+struct CloudUploadStopped: Error {}
+
 extension CloudKitSyncManager {
     // MARK: - Push (Upload Pending)
 
@@ -155,11 +161,13 @@ extension CloudKitSyncManager {
     private func pushOne(_ prepared: PreparedUpload, sessionId: UUID) async -> Bool {
         defer { cleanupTempAsset(for: prepared.record) }
         do {
-            let saved = try await privateDB.save(prepared.record)
+            let saved = try await saveUpload(prepared.record)
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return true }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
+        } catch is CloudUploadStopped {
+            return true
         } catch let error as CKError where error.code == .serverRecordChanged {
             return await resolveConflict(error, prepared: prepared, sessionId: sessionId)
         } catch {
@@ -321,11 +329,13 @@ extension CloudKitSyncManager {
     /// longer confirmed, marks nothing.
     private func saveResolved(_ serverRecord: CKRecord, sessionId: UUID) async {
         do {
-            let saved = try await privateDB.save(serverRecord)
+            let saved = try await saveUpload(serverRecord)
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
+        } catch is CloudUploadStopped {
+            return
         } catch {
             noteConflictUnresolved(sessionId, reason: "\(error)", error: error)
         }
@@ -602,8 +612,10 @@ extension CloudKitSyncManager {
         await liveBackup.delete(sessionId: sessionId)
     }
 
-    func fetchLiveBackups() async -> [LiveBackupSummary] {
-        await liveBackup.fetchAll()
+    /// iCloud's live backups; nil when sync is off, throws when iCloud
+    /// could not be read (`CloudKitLiveBackupManager.fetchAll`).
+    func fetchLiveBackups() async throws -> [LiveBackupSummary]? {
+        try await liveBackup.fetchAll()
     }
 
     // MARK: - Helpers

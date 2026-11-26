@@ -522,32 +522,62 @@ extension SessionRecoveryCoordinator {
     /// re-analysis, because `SessionReanalysisCoordinator.reanalyzeSession` re-loads the archived session
     /// from disk (and re-archives the rescored result itself).
     ///
+    /// Only the beats and their provenance are written, onto the stored copy
+    /// under the archive's lock (`SessionArchive.updateIfChanged`): the strap
+    /// download takes seconds to minutes, and a feeling, a sleep update or a
+    /// note saved meanwhile is in the stored copy, not in `session`, which was
+    /// read before it. Nothing is written when the stored beats are no longer
+    /// the ones merged (another merge landed first) or the night was deleted.
+    ///
     /// A night that cannot be written keeps the strap's download as a rescue
     /// backup (`keepUnsavedDownload`).
     private func persistMergedOvernight(
         session: HRVSession, mergedPoints: [RRPoint],
         selection: DataSourceSelector.SelectionResult?, existingCount: Int, strap: PulledStrapRecording
     ) -> HRVSession? {
-        let strapCount = strap.points.count
-        var updated = session
-        updated.rrSeries = RRSeries(points: mergedPoints, sessionId: session.id, startDate: session.startDate)
-        updated.dataSourceSummary = HRVSession.DataSourceSummary(
+        let summary = mergedSummary(session: session, mergedCount: mergedPoints.count, selection: selection,
+                                    existingCount: existingCount, strapCount: strap.points.count)
+        let written: HRVSession?
+        do {
+            written = try Self.writeMergedBeats(mergedPoints, summary: summary, into: session.id, replacing: existingCount, in: archive)
+        } catch {
+            debugLog("[RRCollector] augmentOvernight: archive failed: \(error)")
+            written = nil
+        }
+        if written == nil { keepUnsavedDownload(strap.recording) }
+        return written
+    }
+
+    /// Puts `points` and `summary` on the archived copy of `sessionId` and
+    /// changes nothing else; nil, with nothing written, when that copy no
+    /// longer holds `replacing` beats. Returns the copy as written.
+    nonisolated static func writeMergedBeats(
+        _ points: [RRPoint], summary: HRVSession.DataSourceSummary, into sessionId: UUID, replacing beatCount: Int, in archive: SessionArchive
+    ) throws -> HRVSession? {
+        var written: HRVSession?
+        try archive.updateIfChanged(sessionId) { stored in
+            guard (stored.rrSeries?.points.count ?? 0) == beatCount else { return false }
+            stored.rrSeries = RRSeries(points: points, sessionId: stored.id, startDate: stored.startDate)
+            stored.dataSourceSummary = summary
+            written = stored
+            return true
+        }
+        return written
+    }
+
+    /// The provenance of a night after the strap's recording was merged in.
+    private func mergedSummary(
+        session: HRVSession, mergedCount: Int, selection: DataSourceSelector.SelectionResult?, existingCount: Int, strapCount: Int
+    ) -> HRVSession.DataSourceSummary {
+        HRVSession.DataSourceSummary(
             selectedSource: selection?.normalizedSource ?? "internal",
             streamingBeats: existingCount,
             deviceBeats: strapCount,
-            totalBeats: mergedPoints.count,
+            totalBeats: mergedCount,
             beatDifferencePercent: nil,
             reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,
             deviceModel: session.dataSourceSummary?.deviceModel
         )
-        do {
-            try archive.archive(updated)
-            return updated
-        } catch {
-            debugLog("[RRCollector] augmentOvernight: archive failed: \(error)")
-            keepUnsavedDownload(strap.recording)
-            return nil
-        }
     }
 
     private static let reviewedRecoveredKey = "reviewedRecoveredWorkoutIds"

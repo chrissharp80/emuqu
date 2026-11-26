@@ -210,6 +210,12 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     /// existed carry no record of how their replies ended.
     var incomplete: Bool = false
 
+    /// The question the app showed under this reply for a change the
+    /// assistant asked to make (`AssistantActionConfirmations.showPending`).
+    /// The app wrote it, not the model, and the user's "yes" confirms only
+    /// when it is sent directly under it. Absent on every other turn.
+    var confirmationPrompt: String?
+
     init(
         id: UUID = UUID(),
         role: Role,
@@ -257,6 +263,7 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
         routedTierRaw = try container.decodeIfPresent(Int.self, forKey: .routedTierRaw)
         localOnly = try container.decodeIfPresent(Bool.self, forKey: .localOnly) ?? false
         incomplete = try container.decodeIfPresent(Bool.self, forKey: .incomplete) ?? false
+        confirmationPrompt = try container.decodeIfPresent(String.self, forKey: .confirmationPrompt)
     }
 }
 

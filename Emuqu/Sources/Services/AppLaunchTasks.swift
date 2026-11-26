@@ -284,7 +284,10 @@ extension EmuquApp {
             await sleepQuietly(UInt64(4_000_000_000 * powerMultiplier), context: "prewarmRoadContext")
             guard await shouldPrewarmRoadContext() else { return }
             NSLog("[App][bg] road context prewarm — start")
-            await Self.fetchRoadContext(geocoding: launchServices.roadGeocodingService)
+            let settingsManager = settingsManager
+            await Self.fetchRoadContext(geocoding: launchServices.roadGeocodingService) {
+                settingsManager.settings.enableAIAssistant && !PurgeGate.isPurging
+            }
         }
     }
 
@@ -336,14 +339,29 @@ extension EmuquApp {
     /// refresh path populate the cache later. Failures here
     /// are non-fatal — the AI just doesn't pre-know the
     /// user's street. `geocoding` is the service the location is handed to.
-    private static func fetchRoadContext(geocoding: @MainActor @Sendable () -> RoadGeocodingService) async {
+    /// `stillWanted` is read again once the fix arrives: the assistant can be
+    /// switched off, or Delete All My Data begin, during the wait, and then
+    /// the position is not sent to the geocoder.
+    /// Hands `location` to the geocoder when `stillWanted` still holds;
+    /// whether it did.
+    @MainActor
+    private static func prewarm(
+        _ geocoding: @MainActor @Sendable () -> RoadGeocodingService, at location: CLLocation, ifStill stillWanted: @MainActor @Sendable () -> Bool
+    ) -> Bool {
+        guard stillWanted() else { return false }
+        geocoding().prewarm(at: location)
+        return true
+    }
+
+    private static func fetchRoadContext(
+        geocoding: @MainActor @Sendable () -> RoadGeocodingService, stillWanted: @MainActor @Sendable () -> Bool
+    ) async {
         do {
             let location = try await LocationFinder.detachedFirstUsableLocation(timeoutSec: 8)
             // `prewarm` is @MainActor-isolated but not `async`; the
             // implicit actor hop is enough — no explicit `await` needed.
-            await MainActor.run {
-                geocoding().prewarm(at: location)
-            }
+            let sent = prewarm(geocoding, at: location, ifStill: stillWanted)
+            guard sent else { return NSLog("[App][bg] road context prewarm — skipped (assistant switched off or data deleted meanwhile)") }
             NSLog("[App][bg] road context prewarm — done")
         } catch {
             NSLog("[App][bg] road context prewarm — failed: \(error)")
