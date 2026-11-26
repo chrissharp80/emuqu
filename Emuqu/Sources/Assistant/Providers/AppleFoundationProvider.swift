@@ -299,13 +299,22 @@ final class AppleFoundationProvider: AIProvider {
         }
     #endif
 
+    /// The attempt to retry with after `attempt` overflowed Apple's window,
+    /// or nil when there is none. A turn that has already called a tool that
+    /// changes the user's data (`AssistantToolRunner.mutatingToolNames`) is
+    /// not retried: the second attempt would make that call again.
+    static func retryAfterOverflow(_ attempt: AppleContextCompactor.Attempt, ranMutatingTool: Bool) -> AppleContextCompactor.Attempt? {
+        ranMutatingTool ? nil : attempt.afterOverflow
+    }
+
     // MARK: - Private (iOS 26+)
 
     #if canImport(FoundationModels)
         /// Run the turn as `.full`; when that overflows Apple's window before
         /// any reply text reached the user, drop the session and run it once
         /// more as `.trimmed`. An overflow after text was shown is not retried:
-        /// a second answer would be appended to the first.
+        /// a second answer would be appended to the first. Nor is one after a
+        /// tool changed the user's data (`retryAfterOverflow`).
         @available(iOS 26, *)
         private static func runAttempts(
             services: AIProviderServices,
@@ -341,7 +350,8 @@ final class AppleFoundationProvider: AIProvider {
                 try await runStream(turnPlan, continuation: continuation)
                 return nil
             } catch where isContextOverflow(error) {
-                guard let next = attempt.afterOverflow else { throw error }
+                let changed = await MainActor.run { services.appleToolDispatcher.ranMutatingTool }
+                guard let next = retryAfterOverflow(attempt, ranMutatingTool: changed) else { throw error }
                 debugLog("[AppleFoundation] context overflow on the \(attempt) attempt; retrying \(next) on a fresh session", level: .warning)
                 await sharedCache.invalidate()
                 return next
