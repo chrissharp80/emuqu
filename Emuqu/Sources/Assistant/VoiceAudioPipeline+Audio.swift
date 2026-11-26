@@ -306,7 +306,33 @@ extension VoiceAudioPipeline {
             return
         }
         controller.turnStartedAt = nil
-        Task { @MainActor [weak controller] in await controller?.audio.finalizeUserTurnViaWhisperKit() }
+        let bridge = controller.services.whisperKitSTTBridge
+        transcribeTurn { try await bridge.transcribeAndReset() }
+    }
+
+    /// Produces the text of the turn just finalized.
+    typealias TurnTranscriber = @MainActor @Sendable () async throws -> String
+
+    /// Runs the turn's transcription as the controller's `transcriptionTask`,
+    /// stamped with the turn's generation, so `stop()` cancels it and a result
+    /// that outlives its turn is dropped.
+    @MainActor
+    func transcribeTurn(with transcribe: @escaping TurnTranscriber) {
+        let turn = controller.userTurnGeneration
+        controller.transcriptionTask?.cancel()
+        controller.transcriptionTask = Task { @MainActor [weak controller] in
+            await controller?.audio.finalizeUserTurnViaWhisperKit(transcribe, turn: turn)
+        }
+    }
+
+    /// Ends the current turn for anything still awaiting on its behalf: the
+    /// transcription is cancelled and the generation moves on, so a result
+    /// already on its way is dropped (`isCurrentTurn`).
+    @MainActor
+    func endUserTurn() {
+        controller.transcriptionTask?.cancel()
+        controller.transcriptionTask = nil
+        controller.userTurnGeneration += 1
     }
 
     /// WhisperKit path. When the user picked it as
@@ -316,21 +342,35 @@ extension VoiceAudioPipeline {
     /// the WhisperKit result so the downstream "send to AI"
     /// logic sees the same shape regardless of which provider
     /// produced the text. If WhisperKit throws, we fall through to
-    /// whatever Apple's recognizer captured — voice mode never goes dark.
+    /// whatever Apple's recognizer captured, so voice mode never goes dark.
+    ///
+    /// Nothing is written or sent unless the turn is still the current one
+    /// once the transcription returns: the user may have ended voice (and
+    /// started it again) while Whisper ran.
     @MainActor
-    private func finalizeUserTurnViaWhisperKit() async {
-        guard controller.state == .listening else { return }
+    private func finalizeUserTurnViaWhisperKit(_ transcribe: TurnTranscriber, turn: Int) async {
+        guard isCurrentTurn(turn) else { return }
+        var whisperText = ""
         do {
-            let whisperText = try await controller.services.whisperKitSTTBridge.transcribeAndReset()
-            if !whisperText.isEmpty { controller.partialTranscript = whisperText }
-            debugLog("[VoiceConv] WhisperKit transcript: \(whisperText.count) chars")
+            whisperText = try await transcribe()
         } catch {
-            debugLog("[VoiceConv] WhisperKit transcribe failed: \(error.localizedDescription) — using Apple fallback", level: .warning)
+            debugLog("[VoiceConv] WhisperKit transcribe failed: \(error.localizedDescription), using Apple fallback", level: .warning)
         }
-        // The user may have closed voice, or a second finalize already sent
-        // this turn, while Whisper ran.
-        guard controller.state == .listening else { return }
+        guard isCurrentTurn(turn) else {
+            debugLog("[VoiceConv] WhisperKit transcript dropped: its turn ended while it ran")
+            return
+        }
+        controller.transcriptionTask = nil
+        debugLog("[VoiceConv] WhisperKit transcript: \(whisperText.count) chars")
+        if !whisperText.isEmpty { controller.partialTranscript = whisperText }
         completeFinalizeUserTurn()
+    }
+
+    /// The turn `turn` is still the one being listened to: not cancelled, no
+    /// later turn or stop since it started, and the conversation listening.
+    @MainActor
+    private func isCurrentTurn(_ turn: Int) -> Bool {
+        !Task.isCancelled && turn == controller.userTurnGeneration && controller.state == .listening
     }
 
     /// VAD said the user spoke but the recogniser produced no text.

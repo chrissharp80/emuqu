@@ -232,6 +232,15 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// that was since replaced are ignored.
     @ObservationIgnored var recognitionTaskGeneration = 0
     @ObservationIgnored var llmTask: Task<Void, Never>?
+    /// The WhisperKit transcription of the turn just finalized, owned here so
+    /// `stop()` cancels it.
+    @ObservationIgnored var transcriptionTask: Task<Void, Never>?
+    /// Bumped by each new user turn (`beginUserTurn`) and by `stop()`. Work
+    /// that awaits on a turn's behalf carries the value the turn started
+    /// with, and drops its result once that turn is over: a transcription
+    /// finishing after End, or after End and a fresh start, never reaches the
+    /// new session's transcript or the chat.
+    @ObservationIgnored var userTurnGeneration = 0
     /// Buffers streaming LLM text and emits complete sentences ready for TTS.
     /// A separate type so the sentence-chunking + markdown-
     /// stripping logic can be tested in isolation.

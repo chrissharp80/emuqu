@@ -138,8 +138,8 @@ extension VoiceConversationController {
         drainPendingTriggersIfIdle()
     }
 
-    /// Fully stop the conversation: cancel any LLM stream, stop TTS, close the
-    /// mic, return to idle. The chat thread itself is preserved (the user's
+    /// Fully stop the conversation: cancel any LLM stream and any transcription
+    /// still running for the last turn, stop TTS, close the mic, return to idle. The chat thread itself is preserved (the user's
     /// typed history doesn't get nuked just because they ended a voice
     /// session).
     ///
@@ -158,6 +158,7 @@ extension VoiceConversationController {
         isStoppingFully = true
         defer { isStoppingFully = false }
         cancelLLM()
+        audio.endUserTurn()
         cancelVoiceOwnedReply()
         pendingTriggers.removeAll()
         cancelAssistantObservers()
