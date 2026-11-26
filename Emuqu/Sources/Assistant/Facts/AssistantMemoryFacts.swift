@@ -440,9 +440,10 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         return savedArtifactRecord(store.add(kind: kind, body: body), created: true)
     }
 
-    /// The save of a grown list: the same artifact with its new text, never a
-    /// second copy beside the first. Only the lines it did not already have
-    /// need to be the user's.
+    /// The save of a changed list: the same artifact with its new text, never
+    /// a second copy beside the first. Every line it adds and every line it
+    /// drops must be in the user's latest message ("add milk", "take eggs
+    /// off"), or the user confirms the change; the lines it keeps need not be.
     @MainActor
     static func replaceArtifactBody(_ idStr: String, body: String, store: AssistantArtifactStore, context: DestructiveActionContext) -> FactValue {
         guard let id = UUID(uuidString: idStr) else {
@@ -451,10 +452,11 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard let existing = store.list(includeResolved: true).first(where: { $0.id == id }) else {
             return .missing(reason: .notRecorded, detail: "no artifact with id \(idStr); save it without an id to start it")
         }
-        let kept = Set(artifactLines(existing.body).map(normalizedForQuote))
-        let added = artifactLines(body).filter { !kept.contains(normalizedForQuote($0)) }
+        let before = artifactLines(existing.body), after = artifactLines(body)
+        let (beforeSet, afterSet) = (Set(before.map(normalizedForQuote)), Set(after.map(normalizedForQuote)))
+        let changed = after.filter { !beforeSet.contains(normalizedForQuote($0)) } + before.filter { !afterSet.contains(normalizedForQuote($0)) }
         let question = "Change this \(existing.kind.rawValue) to: \"\(body)\"? Reply yes to confirm."
-        if let unconfirmed = context.gateUnlessUserStated(added, action: "assistant.artifacts.add", target: idStr + body, question: question) {
+        if let unconfirmed = context.gateUnlessUserStated(changed, action: "assistant.artifacts.add", target: idStr + body, question: question) {
             return unconfirmed
         }
         guard let updated = store.updateBody(id: id, body: body) else {

@@ -218,6 +218,30 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertEqual(store.list(includeResolved: true).first?.status, .resolved)
     }
 
+    /// Dropping lines changes the list as much as adding them: a call that
+    /// empties a list the user only quoted waits for their yes.
+    func testDroppingLinesTheUserDidNotNameWaitsForTheirYes() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let list = harness.store.add(kind: .note, body: "Groceries\n- milk\n- eggs\n- bread")
+        harness.viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
+        let args = #"{"kind":"note","body":"Groceries","user_quote":"Summarize this article","id":"\#(list.id.uuidString)"}"#
+        let asked = await harness.router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
+        guard case let .record(record) = asked, case .string("confirmation_required") = record["status"] else { return XCTFail("emptied unasked: \(asked)") }
+        XCTAssertEqual(harness.store.list().first?.body, "Groceries\n- milk\n- eggs\n- bread")
+    }
+
+    func testDroppingALineTheUserNamedChangesAtOnce() async throws {
+        let harness = artifactHarness()
+        defer { harness.installed.end() }
+        let list = harness.store.add(kind: .note, body: "Groceries\n- milk\n- eggs\n- bread")
+        harness.viewModel.turns = [ChatTurn(role: .user, text: "Take eggs off the grocery list")]
+        let args = #"{"kind":"note","body":"Groceries\n- milk\n- bread","user_quote":"Take eggs off the grocery list","id":"\#(list.id.uuidString)"}"#
+        let changed = await harness.router.resolveTool(name: "assistant_artifacts_add", argsJSON: args)
+        guard case let .record(record) = changed, case .boolean(true) = record["updated"] else { return XCTFail("not changed: \(changed)") }
+        XCTAssertEqual(harness.store.list().first?.body, "Groceries\n- milk\n- bread")
+    }
+
     func testListMarkersAreNotPartOfWhatTheUserSaid() {
         XCTAssertEqual(AssistantMemoryNamespace.artifactLines("Song ideas\n1. rain\n- hill\n• ridge\n[ ] chorus"), ["Song ideas", "rain", "hill", "ridge", "chorus"])
     }

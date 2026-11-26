@@ -7,11 +7,29 @@ import Foundation
 /// times, so `GPXExporter.decode` spreads its fixes evenly over the session,
 /// which places them right only for a workout with a steady fix rate and no
 /// pauses. A workout that stored when each fix was taken
-/// (`WorkoutMetadata.gpsFixTimes`) is placed by those times. One without them
-/// is placed by distance: each fix goes to the first sample whose distance
-/// reaches the distance covered to that fix, which neither pauses nor an
-/// uneven fix rate move. A fix neither places is nil.
+/// (`WorkoutMetadata.gpsFixTimes`) is placed by those times.
+///
+/// One without them (every workout recorded before the times were stored) is
+/// placed by altitude: each sample carries the altitude of the latest GPS fix
+/// (`WorkoutTicker`), and the track stores each fix's altitude to a tenth of
+/// a metre, so a fix goes to the first sample after the previous fix's that
+/// carries its altitude. That is when it arrived, whatever the pedometer
+/// said. Only when too few fixes match (a track without altitude, an import)
+/// is it placed by distance: the first sample that had covered as much
+/// ground. Sample distance is the larger of GPS and pedometer at each second,
+/// so it can switch source mid-workout; that is why it comes last. A fix no
+/// method places is nil.
 enum TrackSampleAlignment {
+    /// The track stores altitude in tenths of a metre, so a sample within
+    /// this of a fix's stored altitude carries that fix's reading.
+    static let altitudeMatchMeters = 0.06
+    /// A fix is looked for no further than this past the previous one: a
+    /// match further on would be another fix that happened to read the same.
+    static let maxFixGapSec = 120
+    /// The share of a track's fixes with altitude that must match for the
+    /// altitude placement to be used.
+    static let minAltitudeMatchShare = 0.9
+
     /// The samples' distance is the larger of GPS, pedometer and foot pod, the
     /// track's is the fixes' own. When their totals differ by more than this
     /// share they measured different things, and matching by distance would
@@ -24,7 +42,40 @@ enum TrackSampleAlignment {
         if let times = GPXExporter.recordedFixTimes(metadata, count: track.count) {
             return times.map { metadata.activeOffset(forWallClockSeconds: $0.timeIntervalSince(session.startDate)) }
         }
-        return byDistance(track, samples: metadata.samples ?? [])
+        let samples = (metadata.samples ?? []).sorted { $0.offsetSec < $1.offsetSec }
+        return byAltitude(track, samples: samples) ?? byDistance(track, samples: samples)
+    }
+
+    /// Each fix placed at the first sample, after the previous fix's and
+    /// within `maxFixGapSec` of it, that carries the fix's altitude; nil when
+    /// fewer than `minAltitudeMatchShare` of the fixes with altitude match.
+    static func byAltitude(_ track: [CLLocation], samples: [WorkoutSample]) -> [Int?]? {
+        let readings = samples.compactMap { sample in sample.altitudeMeters.map { (offset: sample.offsetSec, meters: $0) } }
+        guard !readings.isEmpty else { return nil }
+        var cursor: Int?
+        let offsets: [Int?] = track.map { fix in
+            guard fix.verticalAccuracy >= 0, let found = nextReading(of: fix.altitude, in: readings, after: cursor) else { return nil }
+            cursor = found
+            return readings[found].offset
+        }
+        let withAltitude = track.filter { $0.verticalAccuracy >= 0 }.count
+        let matched = offsets.compactMap { $0 }.count
+        guard withAltitude > 0, Double(matched) >= minAltitudeMatchShare * Double(withAltitude) else { return nil }
+        return offsets
+    }
+
+    /// The index of the first reading that is `altitude`, at or after the
+    /// previous fix's reading `previous` and within `maxFixGapSec` of it. The
+    /// first fix has no previous one, and is looked for however long the GPS
+    /// took to lock.
+    private static func nextReading(of altitude: Double, in readings: [(offset: Int, meters: Double)], after previous: Int?) -> Int? {
+        let limit = previous.map { readings[$0].offset + maxFixGapSec } ?? Int.max
+        var index = previous ?? 0
+        while index < readings.count, readings[index].offset <= limit {
+            if abs(readings[index].meters - altitude) <= altitudeMatchMeters { return index }
+            index += 1
+        }
+        return nil
     }
 
     /// Each fix placed at the first sample that had covered as much ground,
