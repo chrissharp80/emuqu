@@ -235,11 +235,21 @@ struct FitnessTabView: View {
             FitnessPostSummaryView(
                 session: item.session,
                 onDone: { dismissSummary(item) },
-                onDelete: { deleteFromSummary(item) }
+                onDelete: { deleteFromSummary(item) },
+                saveRetry: saveRetry(for: item)
             )
         }
         .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $workoutDeleteFailed) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { workoutDeleteFailed = false }
+        }
+    }
+
+    /// A just-finished workout's summary watches the recorder for a failed
+    /// save and offers the retry.
+    private func saveRetry(for item: WorkoutSummaryItem) -> FitnessPostSummaryView.SaveRetry? {
+        guard item.isJustCompleted, let recorder = recorderBox.recorder else { return nil }
+        return FitnessPostSummaryView.SaveRetry(lifecycle: recorder.lifecycle) {
+            recorder.session.retryUnsavedWorkouts()
         }
     }
 

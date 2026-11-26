@@ -65,8 +65,8 @@ extension WorkoutRecorder {
         let finished = await runFinalize(
             rrPoints: capture.collectedPoints, stopDate: stopDate, startedAt: finalizeStartedAt
         )
-        await settleAfterFinalize(finished: finished, startedAt: finalizeStartedAt)
-        launchHRRCaptureAndRearchive(stopDate: stopDate, endHR: endHR, finished: finished)
+        await settleAfterFinalize(finished: finished.session, saveOutcome: finished.saveOutcome, startedAt: finalizeStartedAt)
+        launchHRRCaptureAndRearchive(stopDate: stopDate, endHR: endHR, finished: finished.session)
         lifecycle.endWorkoutCorrelation()
     }
 
@@ -83,14 +83,16 @@ extension WorkoutRecorder {
     }
 
     /// Post-finalize housekeeping: battery accounting, breadcrumb archive,
-    /// state reset, and the flip to `.finished` that reveals the summary.
-    private func settleAfterFinalize(finished: HRVSession, startedAt: Date) async {
+    /// state reset, and the flip to `.finished` that reveals the summary,
+    /// which shows `saveOutcome` (a workout not saved yet says so).
+    private func settleAfterFinalize(finished: HRVSession, saveOutcome: WorkoutSaveOutcome, startedAt: Date) async {
         await chargeStrapBatteryUsage()
         archiveBreadcrumbTrailIfNeeded(finished: finished)
         resetRecorderStateAfterStop()
         lifecycle.finishedSession = finished
+        lifecycle.saveOutcome = saveOutcome
         lifecycle.phase = .finished
-        debugLog("[Recorder.stop] phase=.finished (total elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
+        debugLog("[Recorder.stop] phase=.finished save=\(saveOutcome) (total elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         disconnectFootPodPostWorkout()
     }
 
@@ -113,7 +115,9 @@ extension WorkoutRecorder {
 
     /// `hrrSamples` is empty here — it's populated asynchronously after the
     /// archive by `launchHRRCaptureAndRearchive`.
-    private func runFinalize(rrPoints: [RRPoint], stopDate: Date, startedAt: Date) async -> HRVSession {
+    private func runFinalize(
+        rrPoints: [RRPoint], stopDate: Date, startedAt: Date
+    ) async -> (session: HRVSession, saveOutcome: WorkoutSaveOutcome) {
         debugLog("[Recorder.stop] step=finalizeSession (rrPoints=\(rrPoints.count), elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         let finished = await finalizer.finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
         // Used once, by this finalize.
@@ -353,9 +357,10 @@ extension WorkoutRecorder {
     }
 
     /// HRR samples the archive did not take still reach the summary, if it
-    /// is still showing this session.
+    /// is still showing this session, and the copy kept for a save retry.
     @MainActor
     private func showUnsavedHRR(_ samples: [HRRSample], sessionId: UUID) {
+        session.keepHRRSamples(samples, for: sessionId)
         guard var shown = lifecycle.finishedSession, shown.id == sessionId else { return }
         shown.workoutMetadata?.hrrSamples = samples
         lifecycle.finishedSession = shown

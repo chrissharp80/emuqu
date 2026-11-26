@@ -25,16 +25,35 @@ struct FitnessPostSummaryView: View {
         refreshedSession ?? initialSession
     }
 
-    init(session: HRVSession, onDone: @escaping () -> Void, onDelete: (() -> Void)? = nil) {
+    init(
+        session: HRVSession, onDone: @escaping () -> Void, onDelete: (() -> Void)? = nil,
+        saveRetry: SaveRetry? = nil
+    ) {
         self.initialSession = session
         self.onDone = onDone
         self.onDelete = onDelete
+        self.saveRetry = saveRetry
     }
     let onDone: () -> Void
     /// Optional delete hook — wired by parents that can perform the deletion
     /// (the Fitness tab; History opens the sheet without one). When nil the
     /// delete option is hidden.
     var onDelete: (() -> Void)?
+
+    /// For a just-finished workout: the recorder's lifecycle, which says
+    /// whether its save failed and is being retried, and the retry to run
+    /// from the summary. Nil when the summary was opened from history.
+    struct SaveRetry {
+        let lifecycle: WorkoutLifecycle
+        let retry: () -> Void
+    }
+    let saveRetry: SaveRetry?
+
+    /// True while this workout is not in the archive yet. Read from the
+    /// observed lifecycle, so the banner goes when a retry saves it.
+    var isNotSavedYet: Bool {
+        saveRetry?.lifecycle.isUnsaved(initialSession.id) ?? false
+    }
 
     @Environment(SettingsManager.self) var settingsManager
     /// Needed so Re-smooth Elevation / Re-analyze α1 can bump the
@@ -293,6 +312,7 @@ struct FitnessPostSummaryView: View {
         // capture window finished. Auto-dismisses when capture
         // completes (samples present) or fails (samples == []).
         stats.hrrCaptureBanner
+        notSavedYetBannerIfNeeded
         // Recovered / partial-data banner. Sits above the hero so
         // the user can't miss it — every metric below is being
         // shown with that context. nil for clean live workouts;
@@ -301,6 +321,14 @@ struct FitnessPostSummaryView: View {
         // 60-beat usefulness floor.
         if let partial = session.workoutMetadata?.partialDataReason {
             partialDataBanner(reason: partial)
+        }
+    }
+
+    /// Above the hero, so the user knows the workout is not in history yet.
+    @ViewBuilder
+    private var notSavedYetBannerIfNeeded: some View {
+        if let saveRetry, isNotSavedYet {
+            notSavedYetBanner(retry: saveRetry.retry)
         }
     }
 
@@ -406,7 +434,9 @@ struct FitnessPostSummaryView: View {
 
     @ToolbarContentBuilder
     private var deleteWorkoutToolbarItem: some ToolbarContent {
-        if onDelete != nil {
+        // A workout not saved yet has nothing in the archive to move to the
+        // Trash.
+        if onDelete != nil, !isNotSavedYet {
             ToolbarItem(placement: .navigationBarLeading) { deleteWorkoutButton }
         }
     }

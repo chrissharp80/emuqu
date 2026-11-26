@@ -15,14 +15,16 @@ extension SessionRecoveryCoordinator {
     /// archive entry yet, so it would look lost, and deleting it there would
     /// tombstone the night the morning archive is about to save. A night being ended
     /// (stopped, paused or discarded) stays live until it is saved or has
-    /// failed, although it no longer collects. A recording that died with the
+    /// failed, although it no longer collects. So is a finished workout whose
+    /// save failed and is being retried in memory: recovering it from its
+    /// backup as well would save it twice. A recording that died with the
     /// app is not live, and still shows.
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
         await recoveryService.checkForLostSessions(excluding: liveRecordingIds())
     }
 
-    /// The sessions recording right now, or being ended, whose backups are
-    /// not lost.
+    /// The sessions recording right now, being ended, or finished and waiting
+    /// for a save retry, whose backups are not lost.
     func liveRecordingIds() -> Set<UUID> {
         var ids = Set<UUID>()
         if sessionState.isCollecting || streamingLifecycle.isEndingOvernight,
@@ -32,6 +34,9 @@ extension SessionRecoveryCoordinator {
            recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing,
            let id = recorder.lifecycle.currentSession?.id {
             ids.insert(id)
+        }
+        if let recorder = services.recorderBox.recorder {
+            ids.formUnion(recorder.lifecycle.unsavedSessions.map(\.id))
         }
         return ids
     }
