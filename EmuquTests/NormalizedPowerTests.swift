@@ -224,10 +224,10 @@ final class NormalizedPowerTests: XCTestCase {
     /// last watts counted every second.
     func testZeroWattsCountsAndAStaleReadingDoesNot() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
-        XCTAssertEqual(FootPodManager.freshPower(0, measuredAt: now, now: now), 0)
-        XCTAssertEqual(FootPodManager.freshPower(240, measuredAt: now.addingTimeInterval(-2), now: now), 240)
-        XCTAssertNil(FootPodManager.freshPower(240, measuredAt: now.addingTimeInterval(-(FootPodManager.powerStaleAfter + 1)), now: now))
-        XCTAssertNil(FootPodManager.freshPower(nil, measuredAt: now, now: now))
+        XCTAssertEqual(FootPodManager.fresh(0, measuredAt: now, now: now), 0)
+        XCTAssertEqual(FootPodManager.fresh(240, measuredAt: now.addingTimeInterval(-2), now: now), 240)
+        XCTAssertNil(FootPodManager.fresh(240, measuredAt: now.addingTimeInterval(-(FootPodManager.readingStaleAfter + 1)), now: now))
+        XCTAssertNil(FootPodManager.fresh(nil, measuredAt: now, now: now))
     }
 
     /// A coasting stretch of 0 W rows stays one run for the 30-second

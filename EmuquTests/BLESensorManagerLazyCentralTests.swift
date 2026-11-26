@@ -138,6 +138,25 @@ final class BLESensorLinkLifecycleTests: XCTestCase {
         XCTAssertEqual(pod.knownDevices.first?.supportsPower, false)
     }
 
+    /// A pod that stops sending (the runner stopped, the pod slept) without
+    /// dropping the link has no current speed, cadence or stride, rather
+    /// than its last values recorded every second.
+    func testPodSpeedCadenceAndStrideExpireAfterTheFreshnessWindow() {
+        let pod = FootPodManager(defaults: defaults)
+        linkPod(pod, deviceA)
+        let sent = Date(timeIntervalSince1970: 1_700_000_000)
+        let withStride = Data([0x01, 0x00, 0x03, 0xB4, 0x78, 0x00])
+        pod.receivedMeasurement(withStride, characteristic: FootPodManager.rscMeasurementChar_UUID, from: deviceA, now: sent)
+        let soon = sent.addingTimeInterval(2)
+        XCTAssertEqual(pod.currentSpeedMS(now: soon), 3)
+        XCTAssertEqual(pod.currentCadenceStepsPerMin(now: soon), 180)
+        XCTAssertEqual(pod.currentStrideLengthMeters(now: soon), 1.2)
+        let quiet = sent.addingTimeInterval(30)
+        XCTAssertNil(pod.currentSpeedMS(now: quiet))
+        XCTAssertNil(pod.currentCadenceStepsPerMin(now: quiet))
+        XCTAssertNil(pod.currentStrideLengthMeters(now: quiet))
+    }
+
     // MARK: - Concept2
 
     private func linkErg(_ erg: Concept2Manager, _ id: UUID) {

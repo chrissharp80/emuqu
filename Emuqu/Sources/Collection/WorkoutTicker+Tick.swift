@@ -138,7 +138,7 @@ extension WorkoutTicker {
         }
         guard let cadence = motion.cadenceStepsPerMin else { return nil }
         guard WorkoutSessionLifecycle.pedometerSports.contains(sport),
-              sensors.footPod.cadenceStepsPerMin == nil,
+              sensors.footPod.currentCadenceStepsPerMin(now: now) == nil,
               let advancedAt = sensors.lastPedometerStepAdvance.at,
               now.timeIntervalSince(advancedAt) > Self.pedometerCadenceStaleSeconds
         else { return cadence }
@@ -569,7 +569,7 @@ extension WorkoutTicker {
         mirrorLiveTrackIfChanged()
         motion.stepCount = sensors.pedometer.stepCount
         motion.cadenceStepsPerMin = (isRow ? erg?.currentStrokeRateSPM() : nil)
-            ?? sensors.footPod.cadenceStepsPerMin
+            ?? sensors.footPod.currentCadenceStepsPerMin()
             ?? sensors.pedometer.cadenceStepsPerMin
         tallyPower(isRow ? erg?.currentPowerWatts() : sensors.footPod.currentPowerWatts())
     }
@@ -594,7 +594,7 @@ extension WorkoutTicker {
     /// same rule as the per-second samples, so an idle 0 W during a rest
     /// stop does not dilute the stored average power. While recording, 0 W
     /// (coasting) is a reading and counts; a foot-pod reading older than
-    /// `FootPodManager.powerStaleAfter`, or a PM5 stroke older than
+    /// `FootPodManager.readingStaleAfter`, or a PM5 stroke older than
     /// `Concept2Manager.strokeStaleAfter`, is no reading (each manager's
     /// `currentPowerWatts`), so a meter that went quiet, or an erg resting
     /// after its last stroke, does not have its last watts counted every
@@ -662,7 +662,7 @@ extension WorkoutTicker {
             now: Date(), distanceMeters: motion.distanceMeters,
             gpsMeters: outdoors ? sensors.location.distanceMeters : nil,
             pedometerMeters: LivePaceEstimator.countsSteps(sport) ? paused.pedometerDistance(sensors.pedometer.distanceMeters) : nil,
-            footPodSpeedMS: sensors.footPod.instantaneousSpeedMS,
+            footPodSpeedMS: sensors.footPod.currentSpeedMS(),
             gps: outdoors ? sensors.location.currentLocation.map(LivePaceEstimator.GPSSpeed.init) : nil
         ))
     }

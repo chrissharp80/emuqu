@@ -139,13 +139,20 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     }
 
     private(set) var connectionState: ConnectionState = .disconnected
-    /// Most-recent speed in m/s. Nil when the pod is silent.
+    /// Most-recent speed in m/s, as last reported (nil when it reported 0).
+    /// Read it through `currentSpeedMS(now:)`, which drops a stale one.
     private(set) var instantaneousSpeedMS: Double?
     /// Running cadence in steps per minute from the pod. An FTMS indoor bike
     /// reports crank revolutions per minute here instead (`parseIndoorBikeData`).
+    /// Read it through `currentCadenceStepsPerMin(now:)`.
     private(set) var cadenceStepsPerMin: Double?
-    /// Stride length (m) when the pod reports it.
+    /// Stride length (m) when the pod reports it. Read it through
+    /// `currentStrideLengthMeters(now:)`.
     private(set) var strideLengthMeters: Double?
+    /// When each of the readings above last arrived.
+    @ObservationIgnored private(set) var speedMeasuredAt: Date?
+    @ObservationIgnored private(set) var cadenceMeasuredAt: Date?
+    @ObservationIgnored private(set) var strideMeasuredAt: Date?
     /// Pod-reported cumulative distance (m). The pod zeroes this at its own
     /// discretion (typically power-on), so treat as monotonic within a session
     /// after the first reading. Cleared on a disconnect outside a workout.
@@ -158,28 +165,59 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// When `instantaneousPowerWatts` last arrived.
     @ObservationIgnored private(set) var powerMeasuredAt: Date?
 
-    /// A power reading older than this is not current: a meter that stops
-    /// notifying (asleep, out of range) without dropping the link leaves its
-    /// last value behind. Meters notify about once a second.
-    nonisolated static let powerStaleAfter: TimeInterval = 5
+    /// A reading (power, speed, cadence, stride) older than this is not
+    /// current: a sensor that stops notifying (the runner stopped and the
+    /// pod slept, or it went out of range) without dropping the link leaves
+    /// its last values behind. Power meters, RSC pods and FTMS trainers
+    /// notify about once a second.
+    nonisolated static let readingStaleAfter: TimeInterval = 5
 
-    /// The power reading if it arrived within `powerStaleAfter` of `now`.
+    /// The power reading if it arrived within `readingStaleAfter` of `now`.
     func currentPowerWatts(now: Date = Date()) -> Int? {
-        Self.freshPower(instantaneousPowerWatts, measuredAt: powerMeasuredAt, now: now)
+        Self.fresh(instantaneousPowerWatts, measuredAt: powerMeasuredAt, now: now)
     }
 
-    /// `watts` while it is no older than `powerStaleAfter`, else nil.
-    nonisolated static func freshPower(_ watts: Int?, measuredAt: Date?, now: Date) -> Int? {
-        guard let watts, let measuredAt, now.timeIntervalSince(measuredAt) <= powerStaleAfter else { return nil }
-        return watts
+    /// The speed if it arrived within `readingStaleAfter` of `now`.
+    func currentSpeedMS(now: Date = Date()) -> Double? {
+        Self.fresh(instantaneousSpeedMS, measuredAt: speedMeasuredAt, now: now)
+    }
+
+    /// The cadence if it arrived within `readingStaleAfter` of `now`.
+    func currentCadenceStepsPerMin(now: Date = Date()) -> Double? {
+        Self.fresh(cadenceStepsPerMin, measuredAt: cadenceMeasuredAt, now: now)
+    }
+
+    /// The stride length if it arrived within `readingStaleAfter` of `now`.
+    func currentStrideLengthMeters(now: Date = Date()) -> Double? {
+        Self.fresh(strideLengthMeters, measuredAt: strideMeasuredAt, now: now)
+    }
+
+    /// `value` while it is no older than `readingStaleAfter`, else nil.
+    nonisolated static func fresh<Value>(_ value: Value?, measuredAt: Date?, now: Date) -> Value? {
+        guard let value, let measuredAt, now.timeIntervalSince(measuredAt) <= readingStaleAfter else { return nil }
+        return value
     }
 
     /// Store a power reading, negative values (a measurement artifact, e.g.
     /// standing still on a treadmill) clamped to zero.
     @MainActor
-    private func recordPower(_ raw: Int16) {
+    private func recordPower(_ raw: Int16, at now: Date) {
         instantaneousPowerWatts = max(0, Int(raw))
-        powerMeasuredAt = Date()
+        powerMeasuredAt = now
+    }
+
+    /// Store a speed reading; 0 m/s is kept as no speed.
+    @MainActor
+    private func recordSpeed(_ metersPerSecond: Double, at now: Date) {
+        instantaneousSpeedMS = metersPerSecond > 0 ? metersPerSecond : nil
+        speedMeasuredAt = now
+    }
+
+    /// Store a cadence reading; 0 is kept as no cadence.
+    @MainActor
+    private func recordCadence(_ perMinute: Double, at now: Date) {
+        cadenceStepsPerMin = perMinute > 0 ? perMinute : nil
+        cadenceMeasuredAt = now
     }
     /// Known / remembered devices — shown as "Reconnect to X" in UI.
     private(set) var knownDevices: [KnownFootPod] = []
@@ -408,6 +446,9 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         instantaneousSpeedMS = nil
         cadenceStepsPerMin = nil
         strideLengthMeters = nil
+        speedMeasuredAt = nil
+        cadenceMeasuredAt = nil
+        strideMeasuredAt = nil
         instantaneousPowerWatts = nil
         powerMeasuredAt = nil
         if !workoutHoldsLink { podReportedDistanceMeters = nil }
@@ -638,15 +679,15 @@ extension FootPodManager {
         rememberLinkedDevice()
     }
 
-    /// A measurement notification from `id`; one from any other device is
-    /// dropped, so a sensor switched away from cannot fill in this one's
-    /// readings.
-    func receivedMeasurement(_ data: Data, characteristic: CBUUID, from id: UUID) {
+    /// A measurement notification from `id`, stamped `now`; one from any
+    /// other device is dropped, so a sensor switched away from cannot fill in
+    /// this one's readings.
+    func receivedMeasurement(_ data: Data, characteristic: CBUUID, from id: UUID, now: Date = Date()) {
         guard isLinked(id) else { return }
         switch characteristic {
-        case Self.rscMeasurementChar_UUID: parseRSC(data: data)
-        case Self.cyclingPowerMeasurementChar_UUID: parsePower(data: data)
-        case Self.indoorBikeDataChar_UUID: parseIndoorBikeData(data: data)
+        case Self.rscMeasurementChar_UUID: parseRSC(data: data, now: now)
+        case Self.cyclingPowerMeasurementChar_UUID: parsePower(data: data, now: now)
+        case Self.indoorBikeDataChar_UUID: parseIndoorBikeData(data: data, now: now)
         default: break
         }
     }
@@ -753,17 +794,18 @@ extension FootPodManager: CBPeripheralDelegate {
     ///   bytes 4–5      stride length (u16) in 1/100 m (if flag set)
     ///   bytes 6–9      total distance (u32) in 1/10 m (if flag set)
     @MainActor
-    private func parseRSC(data: Data) {
+    private func parseRSC(data: Data, now: Date) {
         let bytes = [UInt8](data)
         guard bytes.count >= 4, let speedRaw = Self.u16(bytes, at: 1) else { return }
         let flags = bytes[0]
-        let speedMS = Double(speedRaw) / 256.0
-        let cadence = Double(bytes[3])
-        instantaneousSpeedMS = speedMS > 0 ? speedMS : nil
-        cadenceStepsPerMin = cadence > 0 ? cadence : nil
+        recordSpeed(Double(speedRaw) / 256.0, at: now)
+        recordCadence(Double(bytes[3]), at: now)
         var offset = 4
         if flags & 0x01 != 0 {
-            if let strideRaw = Self.u16(bytes, at: offset) { strideLengthMeters = Double(strideRaw) / 100.0 }
+            if let strideRaw = Self.u16(bytes, at: offset) {
+                strideLengthMeters = Double(strideRaw) / 100.0
+                strideMeasuredAt = now
+            }
             offset += 2
         }
         if flags & 0x02 != 0, let distRaw = Self.u32(bytes, at: offset) {
@@ -787,13 +829,13 @@ extension FootPodManager: CBPeripheralDelegate {
     ///   (remaining optional fields — pedal power balance, crank revs, etc.
     ///    — ignored for running-power use)
     @MainActor
-    private func parsePower(data: Data) {
+    private func parsePower(data: Data, now: Date) {
         let bytes = [UInt8](data)
         guard bytes.count >= 4 else { return }
         let lo = UInt16(bytes[2])
         let hi = UInt16(bytes[3])
         let raw = lo | (hi << 8)
-        recordPower(Int16(bitPattern: raw))
+        recordPower(Int16(bitPattern: raw), at: now)
     }
 
     /// FTMS Indoor Bike Data characteristic (0x2AD2). Used by smart trainers
@@ -818,23 +860,23 @@ extension FootPodManager: CBPeripheralDelegate {
     /// inst cadence and inst power if their flag bits are set. Optional
     /// fields between are skipped over by their fixed widths.
     @MainActor
-    private func parseIndoorBikeData(data: Data) {
+    private func parseIndoorBikeData(data: Data, now: Date) {
         let bytes = [UInt8](data)
         guard bytes.count >= 2 else { return }
         let flags = UInt16(bytes[0]) | (UInt16(bytes[1]) << 8)
         var offset = 2
         if flags & 0x0001 == 0 {
-            guard applyInstantaneousSpeed(bytes, at: offset) else { return }
+            guard applyInstantaneousSpeed(bytes, at: offset, now: now) else { return }
             offset += 2
         }
         offset += (flags & 0x0002 != 0 ? 2 : 0) // Average Speed (skip)
         if flags & 0x0004 != 0 {                // Instantaneous Cadence (0.5/min units)
-            if let cadRaw = Self.u16(bytes, at: offset) { cadenceStepsPerMin = Double(cadRaw) / 2.0 }
+            if let cadRaw = Self.u16(bytes, at: offset) { recordCadence(Double(cadRaw) / 2.0, at: now) }
             offset += 2
         }
         // Average Cadence (2), Total Distance u24 (3), Resistance Level (2).
         offset += (flags & 0x0008 != 0 ? 2 : 0) + (flags & 0x0010 != 0 ? 3 : 0) + (flags & 0x0020 != 0 ? 2 : 0)
-        applyInstantaneousPower(bytes, at: offset, flags: flags)
+        applyInstantaneousPower(bytes, at: offset, flags: flags, now: now)
     }
 
     /// Instantaneous speed is the only "default" field — present unless bit 0
@@ -842,17 +884,16 @@ extension FootPodManager: CBPeripheralDelegate {
     /// the previous and the speed slot is skipped too. Returns false when the
     /// packet is truncated, which means the rest of it can't be trusted either.
     @MainActor
-    private func applyInstantaneousSpeed(_ bytes: [UInt8], at offset: Int) -> Bool {
+    private func applyInstantaneousSpeed(_ bytes: [UInt8], at offset: Int, now: Date) -> Bool {
         guard let speedRaw = Self.u16(bytes, at: offset) else { return false }
-        let kmh = Double(speedRaw) / 100.0
-        instantaneousSpeedMS = kmh > 0 ? kmh / 3.6 : nil
+        recordSpeed(Double(speedRaw) / 100.0 / 3.6, at: now)
         return true
     }
 
     @MainActor
-    private func applyInstantaneousPower(_ bytes: [UInt8], at offset: Int, flags: UInt16) {
+    private func applyInstantaneousPower(_ bytes: [UInt8], at offset: Int, flags: UInt16, now: Date) {
         guard flags & 0x0040 != 0, let raw = Self.u16(bytes, at: offset) else { return }
-        recordPower(Int16(bitPattern: raw))
+        recordPower(Int16(bitPattern: raw), at: now)
     }
 
     /// Little-endian u16 at `offset`, or nil when the packet is too short.
