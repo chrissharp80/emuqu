@@ -14,7 +14,7 @@ import Foundation
 /// Gemini paths where the pattern doesn't happen.
 @MainActor
 struct GrokQuirkPolicy {
-    private let owner: AssistantViewModel
+    private let owner: any AssistantTranscript
     private let provider: AIProvider
     /// Hold the
     /// stable turn id and resolve the live position at flush time, so a
@@ -36,7 +36,7 @@ struct GrokQuirkPolicy {
     private var announceWithoutCallRetries = 0
     private let maxAnnounceWithoutCallRetries = 2
 
-    init(owner: AssistantViewModel, provider: AIProvider, turnID: UUID) {
+    init(owner: any AssistantTranscript, provider: AIProvider, turnID: UUID) {
         self.owner = owner
         self.provider = provider
         self.turnID = turnID

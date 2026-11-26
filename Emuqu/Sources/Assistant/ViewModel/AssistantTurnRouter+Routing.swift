@@ -228,7 +228,7 @@ extension AssistantTurnRouter {
             return
         }
         guard consentGateAllowsDispatch(provider: provider, voiceMode: voiceMode, regenerating: replyID) else { return }
-        if let replyID, let index = liveTurnIndex(for: replyID) {
+        if let replyID, let index = owner.liveTurnIndex(for: replyID) {
             owner.turns.remove(at: index)
             owner.store.save(owner.turns)
         }
@@ -245,8 +245,10 @@ extension AssistantTurnRouter {
         owner.streamGeneration += 1
         let myGeneration = owner.streamGeneration
         owner.streamTask?.cancel()
+        owner.streamingTurn = AssistantViewModel.StreamingTurn(turnID: turnID, provider: provider.id)
         owner.streamTask = Task { [weak owner, provider, model] in
-            await owner?.router.runDispatchedTurn(
+            guard let owner else { return }
+            await AssistantTurnRouter(owner: owner).runDispatchedTurn(
                 provider: provider, model: model, voiceMode: voiceMode,
                 turnID: turnID, generation: myGeneration
             )
@@ -452,7 +454,7 @@ extension AssistantTurnRouter {
     /// the consent-gate `removeLast()`, owner.tools.handleStreamFailure removal)
     /// shifts every later index, so a lingering stream Task would write
     /// tokens into the WRONG turn. Callers thread the id and re-resolve
-    /// the live index per access via `liveTurnIndex(for:)`.
+    /// the live index per access via `AssistantTranscript.liveTurnIndex(for:)`.
     func reserveAssistantPlaceholderTurn(
         provider: AIProvider,
         model: ModelOption,
@@ -473,16 +475,6 @@ extension AssistantTurnRouter {
         )
         owner.turns.append(assistantTurn)
         return (owner.turns.count - 1, assistantTurn.id)
-    }
-
-    /// Resolve
-    /// the live array position of a reserved assistant turn by its
-    /// stable `UUID`. Returns nil when the turn has been removed
-    /// (cleared conversation, regenerate, failure removal) — every
-    /// stream write/read site bails on nil instead of trusting a stale
-    /// positional index that may now point at a different turn.
-    func liveTurnIndex(for turnID: UUID) -> Int? {
-        owner.turns.firstIndex(where: { $0.id == turnID })
     }
 
     /// Pre-flight metrics stage of `dispatch()`.
@@ -573,7 +565,7 @@ extension AssistantTurnRouter {
     ) async -> AssembledContext {
         let supportsToolUse = provider.id != .apple
         let rendered = supportsToolUse ? "" : await owner.contextSource.currentContext().compactRender()
-        let history = liveTurnIndex(for: turnID).map { Array(owner.turns[..<$0]) } ?? Array(owner.turns.dropLast())
+        let history = owner.liveTurnIndex(for: turnID).map { Array(owner.turns[..<$0]) } ?? Array(owner.turns.dropLast())
         let (outbound, dropped) = AssistantViewModel.truncateForSend(history, provider: provider.id)
         let newlyDropped = owner.unsummarizedTurns(in: dropped)
         if !newlyDropped.isEmpty {
@@ -583,7 +575,7 @@ extension AssistantTurnRouter {
             )
         }
         let (factRegistry, allTools) = self.owner.factRegistryAndTools()
-        factRegistry.beginTurn()
+        beginToolTurn(factRegistry)
         let tools = AssistantViewModel.trimTools(
             retrieveTools(allTools, registry: factRegistry, outbound: outbound),
             to: provider.maxToolSchemaCount
@@ -591,6 +583,14 @@ extension AssistantTurnRouter {
         publishAppleDispatcher(provider: provider, factRegistry: factRegistry)
         await owner.checkCatalogHashStability(newHash: factRegistry.catalogHash())
         return AssembledContext(rendered: rendered, outbound: outbound, tools: tools, factRegistry: factRegistry)
+    }
+
+    /// Starts the turn's per-turn tool state: the registry's rate limiter and
+    /// the email bridge's ledger of drafts staged this turn. Fallbacks reuse
+    /// the assembled turn, so they share both.
+    private func beginToolTurn(_ factRegistry: FactResolverRegistry) {
+        factRegistry.beginTurn()
+        owner.services.facts.assistantEmailBridge.beginTurn()
     }
 
     /// Per-request BM25 tool retrieval (`ToolRetriever`). The tools passed
@@ -721,15 +721,17 @@ extension AssistantTurnRouter {
     ///
     /// Returns true when the reply completed normally: the tool loop
     /// finished, or a fallback answered in its place. A stopped, refused or
-    /// failed turn returns false.
+    /// failed turn returns false, and so does one that ran a mutating tool
+    /// and wrote no reply, which gets a note instead
+    /// (`AssistantToolRunner.noteActionWithoutReply`).
     func runStreamWithErrorPolicy(_ attempt: StreamAttempt) async -> Bool {
         do {
-            try await owner.tools.runToolUseLoop(
+            let ranAction = try await owner.tools.runToolUseLoop(
                 provider: attempt.provider, model: attempt.model, outbound: attempt.outbound,
                 systemPrompt: attempt.systemPrompt, tools: attempt.tools,
                 factRegistry: attempt.factRegistry, turnID: attempt.turnID
             )
-            return true
+            return !(ranAction && owner.tools.noteActionWithoutReply(turnID: attempt.turnID))
         } catch let error where AssistantToolRunner.isStop(error) {
             // swallow-ok: cancellation is the expected outcome of the user tapping
             // stop; the partial response is kept and the streaming flag is dropped
@@ -740,7 +742,7 @@ extension AssistantTurnRouter {
         } catch let error as AIProviderError where error.isFallbackable {
             return await handleFallbackableFailure(error, attempt: attempt)
         } catch {
-            await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
+            owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
             return false
         }
     }
@@ -774,7 +776,7 @@ extension AssistantTurnRouter {
             turnID: attempt.turnID, voiceMode: attempt.voiceMode
         )
         if ending == .failed {
-            await owner.tools.handleStreamFailure(error: AIProviderError.needsWebSearch, turnID: attempt.turnID)
+            owner.tools.handleStreamFailure(error: AIProviderError.needsWebSearch, turnID: attempt.turnID)
         }
         return ending == .answered
     }
@@ -814,7 +816,7 @@ extension AssistantTurnRouter {
         debugLog("[Assistant] primary \(attempt.provider.id.rawValue):\(attempt.model.apiID) failed (\(error.localizedDescription)) — \(chain.count) fallback(s) allowed", level: .warning)
         guard !chain.isEmpty else {
             let failure = PickedModelFailure(providerID: attempt.provider.id, underlying: error)
-            await owner.tools.handleStreamFailure(error: failure, turnID: attempt.turnID)
+            owner.tools.handleStreamFailure(error: failure, turnID: attempt.turnID)
             return false
         }
         let ending = await owner.tools.tryFallbacks(
@@ -822,7 +824,7 @@ extension AssistantTurnRouter {
             tools: attempt.tools, factRegistry: attempt.factRegistry,
             turnID: attempt.turnID, voiceMode: attempt.voiceMode
         )
-        if ending == .failed { await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID) }
+        if ending == .failed { owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID) }
         return ending == .answered
     }
 
@@ -837,7 +839,7 @@ extension AssistantTurnRouter {
     /// completed normally: a stopped, refused or failed reply is not read for
     /// facts.
     func applyPostStreamEffects(turnID: UUID, completed: Bool) {
-        guard let assistantIndex = liveTurnIndex(for: turnID),
+        guard let assistantIndex = owner.liveTurnIndex(for: turnID),
               !owner.turns[assistantIndex].text.isEmpty else { return }
         scrubForCoachVoice(at: assistantIndex)
         extractFactsInBackground(from: assistantIndex, completed: completed)
@@ -867,7 +869,7 @@ extension AssistantTurnRouter {
         owner.turns[index].text = result.scrubbed
         owner.store.save(owner.turns)
         for trigger in result.triggers {
-            recordCoachVoiceInterception(reason: trigger.reason)
+            Self.recordCoachVoiceInterception(reason: trigger.reason)
         }
     }
 
@@ -876,7 +878,7 @@ extension AssistantTurnRouter {
     /// The reason is `%{public}` because it names a rule, never user text; the
     /// matched sentence stays out of the log entirely because it carries the
     /// user's physiological context.
-    func recordCoachVoiceInterception(reason: String) {
+    static func recordCoachVoiceInterception(reason: String) {
         os_log(
             "CoachVoiceGuard intercepted: %{public}@",
             log: OSLog(subsystem: "com.flow.recovery", category: "assistant"),

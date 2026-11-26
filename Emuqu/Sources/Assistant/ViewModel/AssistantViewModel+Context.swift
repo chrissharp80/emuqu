@@ -556,7 +556,7 @@ extension AssistantViewModel {
 /// the pre-tool-use rewind against the round-start snapshot.
 @MainActor
 final class StreamTextBuffer {
-    private let owner: AssistantViewModel
+    private let owner: any AssistantTranscript
     /// Store the reserved turn's stable id, not a positional index
     /// (a positional index corrupts the wrong turn mid-stream). The
     /// live array position is re-resolved at every read/write (see
@@ -597,7 +597,7 @@ final class StreamTextBuffer {
     /// recognised as the reply (`CoachVoiceGuard.scrub(_:continuing:)`).
     private var safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
 
-    init(owner: AssistantViewModel, turnID: UUID) {
+    init(owner: any AssistantTranscript, turnID: UUID) {
         self.owner = owner
         self.turnID = turnID
         if let index = owner.liveTurnIndex(for: turnID) {
@@ -687,7 +687,7 @@ final class StreamTextBuffer {
     private func scrubbing(_ text: String) -> String {
         let result = CoachVoiceGuard.scrub(text, continuing: &safetyCopy)
         for trigger in result.triggers {
-            owner.router.recordCoachVoiceInterception(reason: trigger.reason)
+            AssistantTurnRouter.recordCoachVoiceInterception(reason: trigger.reason)
         }
         return result.scrubbed
     }
