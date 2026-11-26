@@ -378,7 +378,6 @@ final class AssistantActionConfirmationTests: XCTestCase {
         XCTAssertEqual(store.contacts.map(\.name), ["Chris", "Sam"])
     }
 
-
     // MARK: - The user_quote check
 
     /// The quote check still filters calls with no basis in the user's

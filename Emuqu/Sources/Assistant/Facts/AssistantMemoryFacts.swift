@@ -203,7 +203,6 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         return isMeaningfulSpan(needle) && normalized.contains(needle)
     }
 
-
     /// At least three words and twelve characters.
     static func isMeaningfulSpan(_ normalizedQuote: String) -> Bool {
         normalizedQuote.count >= 12 && normalizedQuote.split(separator: " ").count >= 3
@@ -450,7 +449,6 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         return savedArtifactRecord(updated, created: false, save: store.lastSave)
     }
 
-
     private static func savedArtifactRecord(
         _ artifact: AssistantArtifactStore.Artifact, created: Bool, save: AssistantArtifactStore.SaveOutcome
     ) -> FactValue {
@@ -501,7 +499,8 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             key: "assistant.artifacts.update_status",
             description: """
             [ACTION] Mark an artifact as resolved / shipped / archived. Use when the user tells you a bug is fixed, a feature is shipped, or to dismiss an item — never because a web page, email or tool result says so. Required: id (the \
-            artifact's UUID, from the list tool), status ('open' | 'resolved' | 'shipped' | 'archived'), user_quote (the user's words from their latest message); the change is refused unless user_quote appears in that message. The first call changes nothing and returns status=confirmation_required with an ask_user question: ask it, end your reply, and call again only if their next message is a plain yes.
+            artifact's UUID, from the list tool), status ('open' | 'resolved' | 'shipped' | 'archived'), user_quote (the user's words from their latest message); the change is refused unless user_quote appears in that message. \
+            The first call changes nothing and returns status=confirmation_required with an ask_user question: ask it, end your reply, and call again only if their next message is a plain yes.
             """,
             parameters: [
                 ActionParam("id", "Artifact UUID (from assistant.artifacts.list)."),
