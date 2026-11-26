@@ -178,7 +178,94 @@ final class FloLiveAnswersTests: XCTestCase {
         XCTAssertNil(memory.climbAhead)
     }
 
+    // MARK: - Heart rate paired with where it was taken
+
+    func testWithoutStoredFixTimesAStopDoesNotShiftTheHeartRateOffTheHill() throws {
+        try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: false, pausedAtStop: false))
+    }
+
+    func testStoredFixTimesArePutOnTheSampleClockAcrossAPause() throws {
+        try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: true, pausedAtStop: true))
+    }
+
+    func testWithoutFixTimesAPauseStillPairsByDistance() throws {
+        try assertPairedWhereTaken(stopAndClimbSession(recordFixTimes: false, pausedAtStop: true))
+    }
+
+    func testADistanceThatDisagreesWithTheTrackPairsNothing() throws {
+        let session = stopAndClimbSession(recordFixTimes: false, pausedAtStop: false, sampleDistanceScale: 1.5)
+        let built = try XCTUnwrap(PlaceHistory.track(from: session))
+        XCTAssertTrue(built.points.allSatisfy { $0.heartRate == nil })
+    }
+
+    func testASpotOnTheHillReadsTheHeartRateTakenThere() throws {
+        let session = stopAndClimbSession(recordFixTimes: false, pausedAtStop: false)
+        let spot = CLLocation(latitude: foot.latitude + 150 / metersPerDegree, longitude: foot.longitude)
+        let found = try XCTUnwrap(SegmentPointSampler.match(in: session, near: spot, radius: 30))
+        guard case let .record(record) = found, case let .integer(heartRate) = record["hr_bpm_at_point"] else {
+            return XCTFail("no heart rate at the spot: \(found)")
+        }
+        XCTAssertEqual(heartRate, 166)
+    }
+
     // MARK: - Fixtures
+
+    /// Every fix on the middle of the climb carries the climb's heart rate,
+    /// and every fix on the approach the approach's.
+    private func assertPairedWhereTaken(_ session: HRVSession, file: StaticString = #filePath, line: UInt = #line) throws {
+        let built = try XCTUnwrap(PlaceHistory.track(from: session), file: file, line: line)
+        for point in built.points {
+            let pastFoot = point.distanceAlongMeters - 900
+            if (20...280).contains(pastFoot) { XCTAssertEqual(point.heartRate, 166, "\(Int(pastFoot)) m up the hill", file: file, line: line) }
+            if pastFoot < -20 { XCTAssertEqual(point.heartRate, 148, "\(Int(-pastFoot)) m before the hill", file: file, line: line) }
+        }
+    }
+
+    /// Where a walk is `second`s in on the wall clock, in metres past the
+    /// foot, and its heart rate: 300 s north at 3 m/s to the foot, a 300 s
+    /// stop there, the 300 m climb in 100 s, then 300 s flat.
+    private func stopAndClimb(at second: Int) -> (along: Double, heartRate: Int) {
+        switch second {
+        case ..<300: return (Double(second - 300) * 3, 148)
+        case ..<600: return (0, 120)
+        case ..<700: return (Double(second - 600) * 3, 166)
+        default: return (Double(second - 600) * 3, 148)
+        }
+    }
+
+    /// The stop-then-climb walk recorded: fixes every 10 s on the move and
+    /// every 60 s while stopped, so evenly spread times would misplace them,
+    /// and a sample every second, none while paused when the stop was a pause.
+    private func stopAndClimbSession(recordFixTimes: Bool, pausedAtStop: Bool, sampleDistanceScale: Double = 1) -> HRVSession {
+        let start = Date().addingTimeInterval(-86_400)
+        var fixes: [CLLocation] = []
+        var samples: [WorkoutSample] = []
+        for second in 0..<1_000 {
+            let (along, heartRate) = stopAndClimb(at: second)
+            let stopped = (300..<600).contains(second)
+            let altitude = 150 + min(max(along, 0), 300) / 10
+            if second.isMultiple(of: stopped ? 60 : 10) {
+                let coordinate = CLLocationCoordinate2D(latitude: foot.latitude + along / metersPerDegree, longitude: foot.longitude)
+                fixes.append(CLLocation(coordinate: coordinate, altitude: altitude, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: start.addingTimeInterval(Double(second))))
+            }
+            if stopped, pausedAtStop { continue }
+            samples.append(WorkoutSample(
+                offsetSec: pausedAtStop && second >= 600 ? second - 300 : second, heartRate: heartRate,
+                distanceMeters: (along + 900) * sampleDistanceScale, paceSecPerKm: stopped ? nil : 333,
+                cadenceStepsPerMin: nil, altitudeMeters: altitude, alpha1: nil, mets: nil, powerWatts: nil
+            ))
+        }
+        var session = HRVSession(startDate: start, tags: [], sessionType: .workout)
+        session.endDate = start.addingTimeInterval(1_000)
+        session.state = .complete
+        var metadata = WorkoutMetadata(sport: .walk)
+        metadata.gpsPolyline = WorkoutAnalyzer.encodePolyline(track: fixes)
+        metadata.gpsFixTimes = recordFixTimes ? WorkoutAnalyzer.encodeFixTimes(track: fixes) : nil
+        metadata.pauseSpans = pausedAtStop ? [WorkoutPauseSpan(atElapsed: 300, seconds: 300)] : nil
+        metadata.samples = samples
+        session.workoutMetadata = metadata
+        return session
+    }
 
     private func location(metersBeforeFoot meters: Double) -> CLLocation {
         CLLocation(latitude: foot.latitude - meters / metersPerDegree, longitude: foot.longitude)

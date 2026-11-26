@@ -100,18 +100,18 @@ extension PlaceHistory {
     }
 
     /// A past workout's fixes with the distance covered to each and the
-    /// heart rate, pace and altitude its per-second samples had there.
+    /// heart rate, pace and altitude its per-second samples had there, each
+    /// fix paired with the sample taken where it was
+    /// (`TrackSampleAlignment`); a fix that cannot be placed gets none.
     static func track(from session: HRVSession) -> Track? {
         guard let metadata = session.workoutMetadata, let polyline = metadata.gpsPolyline else { return nil }
         let fixes = GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration)
         guard fixes.count >= 2 else { return nil }
         let samples = (metadata.samples ?? []).sorted { $0.offsetSec < $1.offsetSec }
-        var along = 0.0
-        var points: [Point] = []
-        for (index, fix) in fixes.enumerated() {
-            if index > 0 { along += fix.distance(from: fixes[index - 1]) }
-            let offset = Int(fix.timestamp.timeIntervalSince(session.startDate))
-            points.append(point(fix, along: along, sample: sample(in: samples, near: offset)))
+        let along = TrackSampleAlignment.cumulativeDistances(fixes)
+        let offsets = TrackSampleAlignment.activeOffsets(of: fixes, session: session)
+        let points = fixes.indices.map { index in
+            point(fixes[index], along: along[index], sample: offsets[index].flatMap { sample(in: samples, near: $0) })
         }
         return Track(date: session.startDate, points: points)
     }
