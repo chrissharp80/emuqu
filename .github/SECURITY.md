@@ -502,7 +502,10 @@ This project does not use:
   disabled (`open-pull-requests-limit: 0`) because, while CI was manual-only,
   the PRs accumulated unvalidated — see [`docs/CI_POSTURE.md`](../docs/CI_POSTURE.md).
   Dependabot **security** updates and repository alerts remain enabled, which is
-  the part worth an interruption. A deliberate sweep means raising the limit,
+  the part worth an interruption. The Swift packages reach those alerts through
+  the SBOM `security.yml` submits to the dependency graph on every push to
+  `main` and weekly, since GitHub reads no Package.resolved inside an Xcode
+  project. A deliberate sweep means raising the limit,
   running `make ci` against each bump, then setting it back.
 
 ### Software bill of materials
@@ -510,7 +513,8 @@ This project does not use:
 `sbom.spdx.json` is an SPDX 2.3 document covering the 11 resolved Swift
 packages, generated from `Package.resolved` by `scripts/generate_sbom.py`. Each
 entry carries its version, its resolved commit SHA as a checksum, a Package URL
-for vulnerability matching, and a declared licence.
+of the `swift` type the GitHub Advisory Database matches Swift advisories on,
+and a declared licence.
 
 It is **deterministic** — the same lockfile always produces a byte-identical
 document, so it can be committed without generating diff noise — and

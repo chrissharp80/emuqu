@@ -29,6 +29,10 @@ source "$(dirname "$0")/lib/preflight.sh"
 #                Assistant's own SwiftUI files (`Sources/Assistant/Views/`)
 #                fall in this bucket too; the floors were measured that way.
 #   • VIEWS    — paths under `/Sources/Views/`. Snapshot tests move it.
+#   • AREAS    — one floor per path prefix in `.ci/min_coverage_areas.txt`:
+#                each source folder, and within them the persistence core,
+#                the assistant's confirmation step and the log scrubber. An
+#                aggregate can rise while one of these falls; this cannot.
 #
 # Raising LOGIC is the meaningful goal. Raising OVERALL materially requires
 # snapshot tests for the view layer — tracked as its own piece of work.
@@ -76,6 +80,11 @@ floor() {
 MIN_COVERAGE="$(floor .ci/min_coverage.txt "${2:-${MIN_COVERAGE:-}}")" || exit $?
 MIN_LOGIC_COVERAGE="$(floor .ci/min_coverage_logic.txt "${MIN_LOGIC_COVERAGE:-}")" || exit $?
 MIN_VIEWS_COVERAGE="$(floor .ci/min_coverage_views.txt "${MIN_VIEWS_COVERAGE:-}")" || exit $?
+AREA_FLOORS=.ci/min_coverage_areas.txt
+if [[ ! -f "$AREA_FLOORS" ]]; then
+    echo "Coverage floor file missing: $AREA_FLOORS. The committed floor is the gate." >&2
+    exit 66
+fi
 
 if [[ ! -d "$RESULT_BUNDLE" ]]; then
     echo "Result bundle not found: $RESULT_BUNDLE" >&2
@@ -95,7 +104,7 @@ fi
 
 # The report is passed as a FILE PATH, not on stdin — stdin is already carrying
 # the Python program itself via the heredoc, and it cannot carry both.
-SUMMARY="$(python3 - "$MIN_COVERAGE" "$MIN_LOGIC_COVERAGE" "$PER_FILE_REPORT" "${SKIP_OVERALL_COVERAGE:-0}" "${SKIP_LOGIC_COVERAGE:-0}" "$MIN_VIEWS_COVERAGE" <<'PY'
+SUMMARY="$(python3 - "$MIN_COVERAGE" "$MIN_LOGIC_COVERAGE" "$PER_FILE_REPORT" "${SKIP_OVERALL_COVERAGE:-0}" "${SKIP_LOGIC_COVERAGE:-0}" "$MIN_VIEWS_COVERAGE" "$AREA_FLOORS" <<'PY'
 import re
 import sys
 
@@ -155,6 +164,35 @@ if view_pct + 1e-9 < min_views:
     print(f"FAIL: views coverage {view_pct:.2f}% < {min_views:.1f}%")
     print("  Snapshot tests are what move this. See EmuquTests/ViewSnapshotTests.swift.")
     failed = True
+
+# Per-area floors. An area the report has no lines for fails too: a renamed
+# folder would otherwise drop its floor without anyone choosing to.
+areas_path = sys.argv[7]
+with open(areas_path, encoding="utf-8") as fh:
+    area_lines = [line.split() for line in fh if line.strip() and not line.lstrip().startswith("#")]
+seen_areas = set()
+for fields in area_lines:
+    if fields and fields[0] in seen_areas:
+        print(f"FAIL: area {fields[0]} is listed twice in {areas_path}")
+        failed = True
+        continue
+    seen_areas.add(fields[0] if fields else "")
+    if len(fields) != 2 or not re.fullmatch(r"\d+(\.\d+)?", fields[1]):
+        print(f"FAIL: unreadable line in {areas_path}: {' '.join(fields)}")
+        failed = True
+        continue
+    prefix, area_min = fields[0], float(fields[1])
+    inside = [(c, t) for p, c, t in rows if p.split("/Sources/", 1)[-1].startswith(prefix)]
+    covered, lines = sum(c for c, _ in inside), sum(t for _, t in inside)
+    if not lines:
+        print(f"FAIL: no coverage rows for area {prefix}; fix its line in {areas_path}")
+        failed = True
+        continue
+    area_pct = 100.0 * covered / lines
+    print(f"Line coverage ({prefix}): {area_pct:.2f}% ({covered}/{lines})  minimum {area_min:.0f}%")
+    if area_pct + 1e-9 < area_min and not skip_logic:
+        print(f"FAIL: {prefix} coverage {area_pct:.2f}% < {area_min:.0f}%")
+        failed = True
 
 raise SystemExit(1 if failed else 0)
 PY

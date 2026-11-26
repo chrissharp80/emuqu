@@ -12,7 +12,13 @@ version: 2
 #
 # To do a dependency sweep deliberately: raise the limit, let it open PRs, run
 # `make ci` locally against each, then set it back to 0. That sweep covers the
-# GitHub Actions only; see the note on the Swift entry below.
+# GitHub Actions only. Dependabot's Swift updater reads Package.swift, which
+# this repository does not have (its pins are in the Xcode project's
+# Package.resolved), so there is no Swift entry. Swift advisories still raise
+# alerts: security.yml submits sbom.spdx.json to the dependency graph. Sweep
+# Swift packages in Xcode (File → Packages → Update to Latest Package
+# Versions), then `make sbom`, bring the in-app acknowledgements in line
+# (`make sbom-guard` says where), and `make ci`.
 
 updates:
   - package-ecosystem: "github-actions"
@@ -22,19 +28,3 @@ updates:
     open-pull-requests-limit: 0
     commit-message:
       prefix: "ci"
-
-  # Swift packages are pinned in the Xcode project's Package.resolved
-  # (Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm); there is no
-  # Package.swift. Transitive pins such as Zip only move when polar-ble-sdk
-  # moves. Dependabot's Swift updater reads Package.swift manifests, so this
-  # entry has nothing to update and raising its limit opens no pull requests.
-  # Sweep Swift packages in Xcode instead (File → Packages → Update to Latest
-  # Package Versions), then run `make sbom`, bring the in-app
-  # acknowledgements in line (`make sbom-guard` says where), and `make ci`.
-  - package-ecosystem: "swift"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 0
-    commit-message:
-      prefix: "deps"

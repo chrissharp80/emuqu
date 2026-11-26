@@ -1,23 +1,31 @@
 name: Security
 
-# The repository had good static hygiene (no
-# hard-coded secrets, no ATS exceptions, SHA-pinned Actions, a log-redaction
-# guard) and no scanner of any kind. Dependabot raises advisories for
-# dependencies (its version-bump PRs are switched off, see dependabot.yml), but
-# nothing at all looked at the app's own code for injection, path traversal,
-# or unsafe deserialization.
+# Three jobs:
 #
-# Two jobs, deliberately separate:
-#
+#   • dependency-submission — sends sbom.spdx.json (generated from the Xcode
+#                     project's Package.resolved, kept in step by `make
+#                     sbom-check`) to GitHub's dependency graph. GitHub does not
+#                     read an Xcode project's Package.resolved, and Dependabot's
+#                     Swift updater needs a Package.swift this repository does
+#                     not have, so without this the Swift packages get no
+#                     vulnerability alerts at all. Its purls are the swift type
+#                     the Advisory Database files Swift advisories under.
 #   • codeql        — SAST over the Swift we write. Needs a real build, so it
 #                     runs on macOS and takes as long as a normal compile.
-#   • dependency-review — fails when the dependencies changed between two refs
-#                     bring in a known advisory or a denied licence.
+#   • dependency-review — fails a pull request whose dependency changes bring
+#                     in a known advisory or a denied licence.
 #
-# MANUAL ONLY, same reasoning as ci.yml — CodeQL for Swift needs a real macOS
-# compile, which is the single most expensive job in the repository. Run it when
-# you want a security pass, not on a timer.
+# Continuous, as GitHub's default setup is: every pull request, every push to
+# main, and weekly, so an advisory published against a pin nobody touched
+# still reaches the code. The repository is public, so these minutes are free.
 on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays 06:17 UTC: new CodeQL queries and new advisories against pins
+    # that did not change.
+    - cron: "17 6 * * 1"
   workflow_dispatch:
     inputs:
       base-ref:
@@ -37,10 +45,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependency-submission:
+    name: Submit Swift dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # The dependency submission API needs write on contents.
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          # A pull request's snapshot is the branch's own commit, the one
+          # dependency-review compares, not the merge commit.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Require the SBOM to match Package.resolved
+        run: python3 scripts/generate_sbom.py --check
+
+      - name: Submit the SBOM
+        uses: advanced-security/spdx-dependency-submission-action@b009efcf8b9d562a4569d2028c276522232e631f  # v0.4.0
+        with:
+          filePattern: "sbom.spdx.json"
+          manifestPath: "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          repoSha: ${{ github.event.pull_request.head.sha || github.sha }}
+          repoRef: ${{ github.event.pull_request && format('refs/heads/{0}', github.head_ref) || github.ref }}
+
   codeql:
     name: CodeQL (Swift)
     runs-on: macos-26
-    # Never on a pull request: see the cost note on the triggers above.
     timeout-minutes: 60
     permissions:
       contents: read
@@ -88,11 +121,14 @@ jobs:
 
   dependency-review:
     name: Dependency review
+    # A pull request compares its base with its head; a manual run compares
+    # the two refs it is given. A push or the weekly run has nothing to compare.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: dependency-submission
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Diffs two refs. Cheap (Ubuntu, 1x). See the note on the steps below for
-    # which refs a manual run compares. No pull request is ever involved, so
-    # it needs no write permission and posts no comment.
+    # Diffs two refs' dependency snapshots, the Swift ones submitted by the
+    # job above. Reads only, and posts no comment.
     permissions:
       contents: read
 
@@ -110,6 +146,7 @@ jobs:
       # different commits. Pass `base-ref` (an earlier tag or SHA, say the last
       # release) so the diff covers the dependency changes since then.
       - name: Refuse an empty comparison
+        if: github.event_name == 'workflow_dispatch'
         env:
           BASE_REF: ${{ inputs.base-ref || github.event.repository.default_branch }}
           HEAD_REF: ${{ inputs.head-ref || github.sha }}
@@ -141,7 +178,11 @@ jobs:
       # success, Zip included. So every package pinned there must appear in the
       # repository's dependency-graph SBOM, or the run fails instead of
       # reporting a review that left the Swift packages out.
+      # The repository's SBOM is the default branch's, so this runs on a
+      # manual run; a pull request's review reads the snapshots submitted for
+      # its own two commits.
       - name: Require the Swift packages in the dependency graph
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -164,16 +205,18 @@ jobs:
           fi
           echo "Every pinned Swift package is in the dependency graph."
 
-      # This job is `workflow_dispatch`-only, and on a manual run the action
-      # cannot derive either ref from the event payload: `getRefs` throws when
-      # neither is supplied and neither a pull_request nor a push context
-      # exists. So both refs are passed explicitly, the same two the step
-      # above checked.
+      # On a manual run the action cannot derive either ref from the event
+      # payload (`getRefs` throws without a pull_request or push context), so
+      # both are passed: the pull request's base and head, else the inputs
+      # the steps above checked.
       - name: Review dependencies
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
         with:
-          base-ref: ${{ inputs.base-ref || github.event.repository.default_branch }}
-          head-ref: ${{ inputs.head-ref || github.sha }}
+          base-ref: ${{ github.event.pull_request.base.sha || inputs.base-ref || github.event.repository.default_branch }}
+          head-ref: ${{ github.event.pull_request.head.sha || inputs.head-ref || github.sha }}
+          # The head's Swift snapshot is submitted moments before; wait for it
+          # rather than review a commit the graph has not seen yet.
+          retry-on-snapshot-warnings: true
           # Fail on high and critical. Moderate and low are surfaced in the
           # summary without blocking — this is a solo project and a blocking
           # gate nobody can override becomes a gate somebody disables.

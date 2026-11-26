@@ -78,12 +78,18 @@ def spdx_id(identity: str) -> str:
 
 
 def purl(pin: dict) -> str:
-    """Package URL, the identifier vulnerability scanners actually match on."""
+    """Package URL, the identifier vulnerability scanners actually match on.
+
+    The swift type (`pkg:swift/github.com/apple/swift-crypto@4.5.0`) is the
+    one the GitHub Advisory Database files Swift advisories under, so the
+    submitted SBOM (`security.yml`) raises Dependabot alerts for these pins.
+    A `pkg:github` purl names a repository, which no Swift advisory matches.
+    """
     location = pin.get("location", "").removesuffix(".git")
     version = pin.get("state", {}).get("version") or pin.get("state", {}).get("revision", "")
     if location.startswith("https://github.com/"):
         owner_repo = location.removeprefix("https://github.com/")
-        return f"pkg:github/{owner_repo.lower()}@{version}"
+        return f"pkg:swift/github.com/{owner_repo}@{version}"
     return f"pkg:generic/{pin['identity']}@{version}"
 
 

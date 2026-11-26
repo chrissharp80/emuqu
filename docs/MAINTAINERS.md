@@ -1355,7 +1355,8 @@ bash scripts/check_refactor_spec_conformance.sh
     full-scope run fits its time limit. Its last step writes the job's result
     to the run summary.
   - **Job 5 `tests`** — `xcodebuild test` with coverage, against the floors in
-    `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt` (scope `full`;
+    `.ci/min_coverage.txt`, `.ci/min_coverage_logic.txt` and the per-area
+    `.ci/min_coverage_areas.txt` (scope `full`;
     `unit` runs the unit target against the Views floor only). Its last step
     writes the scope and the job's result to the run summary.
 - **`gates.yml`** — on pushes to `main` and every pull request, ubuntu runner:
@@ -1363,10 +1364,12 @@ bash scripts/check_refactor_spec_conformance.sh
   no Xcode). About a minute. `main` requires
   this job ("Script gates (no Xcode)") and the five `ci.yml` jobs above to
   pass, on a branch that is up to date with `main`, before anything merges.
-- **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
-  (macOS) and dependency review (ubuntu). Before the review, every package
-  pinned in `Package.resolved` must appear in the repository's dependency-graph
-  SBOM, or the job fails rather than review a graph that left them out.
+- **`security.yml`** — every pull request, every push to `main`, Mondays
+  06:17 UTC, and on demand — submits `sbom.spdx.json` to the dependency graph
+  (the only way the Swift packages get Dependabot alerts), CodeQL over the
+  Swift (macOS), and on a pull request a dependency review (ubuntu) of its
+  base against its head. A manual review of two refs first requires every
+  package pinned in `Package.resolved` in the dependency-graph SBOM.
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
 - **`testflight.yml`** — `workflow_dispatch` only — TestFlight build + upload.
   The deploy job runs in the `testflight` environment, which holds the signing
