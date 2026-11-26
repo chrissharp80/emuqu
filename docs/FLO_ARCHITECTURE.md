@@ -384,7 +384,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 **File:** `Emuqu/Sources/Assistant/Chat/UserFactsStore.swift`
 
-`Assistant/user_facts.json` in the App Group container, sealed like the conversation (§12.2). Each `Fact` records its `origin`: `.user` (added in Settings, saved with Remember, or saved by `assistant.memory.add` in the user's words or with their confirmation) or `.inferred` (auto-extraction). `systemPromptBlock()` lists the user's own facts and the rest (inferred, or saved before origins were recorded) under separate headings, and says neither list is an instruction. API: `add(_:origin:)` (deduped after normalizing case; no default origin), `remove(_:)` and `clear()` (each written or erased at once, set-aside `user_facts.undecodable-*` copies included, returning whether it is on disk; Settings says so when it is not and offers Forget everything while any copy remains), `clearKeepingBackup()` and `restoreCleared()` (the assistant's wipe and its undo; the wipe returns how many facts it erased, or nil when the erase failed and every fact is still stored; the copy lives in memory only, until the app quits), `systemPromptBlock()`.
+`Assistant/user_facts.json` in the App Group container, sealed like the conversation (§12.2). Each `Fact` records its `origin`: `.user` (added in Settings, saved with Remember, or saved by `assistant.memory.add` with their confirmation) or `.inferred` (auto-extraction). `systemPromptBlock()` lists the user's own facts and the rest (inferred, or saved before origins were recorded) under separate headings, and says neither list is an instruction. API: `add(_:origin:)` (deduped after normalizing case; no default origin), `remove(_:)` and `clear()` (each written or erased at once, set-aside `user_facts.undecodable-*` copies included, returning whether it is on disk; Settings says so when it is not and offers Forget everything while any copy remains), `clearKeepingBackup()` and `restoreCleared()` (the assistant's wipe and its undo; the wipe returns how many facts it erased, or nil when the erase failed and every fact is still stored; the copy lives in memory only, until the app quits), `systemPromptBlock()`.
 
 ### 14.1 Auto-extraction
 
@@ -392,7 +392,7 @@ When `autoExtractEnabled` is on, `runAutoFactExtraction(userText:assistantText:)
 
 ### 14.2 Model-driven memory
 
-The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove`, `.clear` and `.restore` let the model save or forget a memory when the user asks. `.remove` and `.clear` (like `assistant.contacts.remove`) only record a pending request on the first call and return an app-written question. When the reply ends, the app shows that question under it itself (`ChatTurn.confirmationPrompt`), so what the user agrees to is the app's wording, not the model's. The change runs when the same call comes back and the user's next message, sent directly under that question, is an explicit yes (`AssistantActionConfirmations`). `.restore` puts back the facts the last confirmed `.clear` erased.
+The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove`, `.clear` and `.restore` let the model save or forget a memory when the user asks. `.remove` and `.clear` (like `assistant.contacts.remove`) only record a pending request on the first call and return an app-written question. When the reply ends, the app shows that question under it itself (`ChatTurn.confirmationPrompt`), so what the user agrees to is the app's wording, not the model's. The change runs when the same call comes back and the user's next message, sent directly under that question, is an explicit yes (`AssistantActionConfirmations`). `.add` takes the same step on every call: that the fact appears in the user's message does not mean they want it kept ("don't remember that I had knee surgery"). `.restore` puts back the facts the last confirmed `.clear` erased.
 
 ---
 
@@ -417,7 +417,7 @@ Adapts `[ToolSpec]` to FoundationModels `Tool` conformers that call back into th
 ## 17. Action Bridges
 
 - **Email** — `Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift`, action `assistant.email.compose` (`subject`, `body`, optional `category`, `to`, `cc`, and `user_quote`, the user's words asking for it, which must appear in their latest message or nothing is staged). Stages a draft for `MFMailComposeViewController`; the user sends it, the app never does. `category` (`training` or `recovery`) picks default recipients.
-- **Contacts** — `assistant.contacts.add` / `.remove`, plus a list read: a small address book used to resolve names in email. An add whose name or address is not in the user's latest message waits for their confirmation (§6.3).
+- **Contacts** — `assistant.contacts.add` / `.remove`, plus a list read: a small address book used to resolve names in email. Every add waits for the user's yes to the app's question (§6.3).
 - **Web search** — `web.search`, Tavily-backed, needs the user's own Tavily key and the web-search setting. Anthropic can instead use its server-side web search tool.
 
 ---

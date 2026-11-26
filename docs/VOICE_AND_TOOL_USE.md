@@ -567,21 +567,24 @@ but the contract is stricter:
    pending request (`AssistantActionConfirmations`) and returns
    `status=confirmation_required` with an app-written `ask_user` question.
    The same call made again runs only when the user's message directly after
-   the request is a short, explicit yes (`AffirmationReply`, at most five
-   words, no negation, affirmations in the shipped languages). Another
+   the request is a short, explicit yes (`AffirmationReply`: at most five
+   words, opening with an affirmation in a shipped language, no negation,
+   and every other word an affirmation, a polite filler or a word of the
+   app's question, so "yes, maybe later" does not confirm). Another
    reply, an intervening turn or ten minutes cancels it. The `user_quote`
    check alone is not authorization: an instruction in a web result or a
    pasted email can make the model quote any span of the user's message.
    `assistant.memory.restore` undoes the last confirmed wipe until the app
    quits.
-7. **What the user did not say is confirmed first.** `assistant.memory.add`,
-   `assistant.contacts.add`, `location.set_address` and
+7. **What the model would save is confirmed first.** `assistant.memory.add`,
+   `assistant.contacts.add`, `assistant.artifacts.add`,
+   `assistant.artifacts.update_status`, `location.set_address` and
    `routes.library.rename` change nothing on the first call, and answer
-   `confirmation_required` the same way, whenever a value they would write
-   is not, as whole words, in the user's own latest message
-   (`DestructiveActionContext.gateUnlessUserStated`). A value the model
-   took from a web page, an email or a tool result is shown to the user
-   before it is saved. `assistant.email.compose` stages a draft only when
+   `confirmation_required` the same way, every time
+   (`DestructiveActionContext.gate`). Finding the value in the user's
+   message is not consent: "don't remember that I had knee surgery"
+   contains the fact it refuses. A value the model took from a web page,
+   an email or a tool result is shown to the user before it is saved. `assistant.email.compose` stages a draft only when
    its `user_quote` appears in the user's latest message.
 8. **No retry elsewhere after a change.** Once a mutating tool
    (`AssistantToolRunner.mutatingToolNames`) has run in a turn, a provider

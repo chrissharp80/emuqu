@@ -2,15 +2,17 @@
 import XCTest
 
 /// The assistant's destructive actions (forget a memory fact, clear memory,
-/// remove a contact) must not run on the model's say-so.
+/// remove a contact) and the writes whose content the model supplies (a
+/// memory fact, a contact) must not run on the model's say-so.
 ///
-/// The old guard only checked that `user_quote` appeared in the user's
-/// latest message. "Summarize this article" passed it, and so did any three
-/// words of a pasted email that told the model to wipe memory. Now the first
-/// call only records a request; the change happens when the same call comes
-/// back AND the user's very next message is a plain "yes". These tests drive
-/// the action cores with their own stores and a hand-built transcript, the
-/// same code the live tool path runs after its argument checks.
+/// A `user_quote` found in the user's latest message proves nothing: any
+/// three words of a pasted email pass it. Nor does finding the value in that
+/// message: "don't remember that I had knee surgery" contains the fact. The
+/// first call only records a request; the change happens when the same call
+/// comes back AND the user's very next message is a plain "yes" to the app's
+/// own question. These tests drive the action cores with their own stores
+/// and a hand-built transcript, the same code the live tool path runs after
+/// its argument checks.
 @MainActor
 final class AssistantActionConfirmationTests: XCTestCase {
     private lazy var tempDir: URL = {
@@ -306,15 +308,32 @@ final class AssistantActionConfirmationTests: XCTestCase {
         AssistantMemoryNamespace.addContact(name: name, email: email, notes: nil, store: store, context: context())
     }
 
-    /// A fact in the user's own words is saved at once, as theirs.
-    func testAFactTheUserStatedIsSavedWithoutAsking() {
+    /// A fact the user asked to keep is shown back to them and saved, as
+    /// theirs, on their yes.
+    func testAFactTheUserAskedForIsSavedOnTheirYes() {
         let store = factsStore([])
         userSays("Remember I'm training for a marathon in October")
+        asksForConfirmation(saveFact("Training for a marathon in October", to: store))
+        XCTAssertTrue(store.facts.isEmpty)
 
-        let result = saveFact("Training for a marathon in October", to: store)
-
-        guard case .boolean(true)? = field(result, "added") else { return XCTFail("the user's own fact must be saved") }
+        userSays("yes")
+        guard case .boolean(true)? = field(saveFact("Training for a marathon in October", to: store), "added") else {
+            return XCTFail("the confirmed fact must be saved")
+        }
         XCTAssertEqual(store.facts.map(\.origin), [.user])
+    }
+
+    /// The user's message contains the fact word for word, as a refusal. A
+    /// model that saves it anyway is asked first, and the user's no keeps it
+    /// out.
+    func testAFactTheUserRefusedIsNotSavedBecauseTheySaidIt() {
+        let store = factsStore([])
+        userSays("Do not remember that I had knee surgery")
+        asksForConfirmation(saveFact("I had knee surgery", to: store))
+
+        userSays("No, I said don't")
+        asksForConfirmation(saveFact("I had knee surgery", to: store))
+        XCTAssertTrue(store.facts.isEmpty, "a refusal that names the fact saved it")
     }
 
     /// A web page told the model to remember something. Nothing is saved
@@ -341,11 +360,13 @@ final class AssistantActionConfirmationTests: XCTestCase {
         XCTAssertTrue(store.facts.isEmpty)
     }
 
-    /// A contact whose name and address the user typed is added at once; one
-    /// the model took from a pasted email waits for a yes.
-    func testAContactNeedsConfirmationUnlessTheUserGaveItsDetails() {
+    /// Every contact waits for the user's yes to the app's question, whether
+    /// they typed its details or the model took them from a pasted email.
+    func testAContactIsAddedOnlyOnTheUsersYes() {
         let store = contactsStore([])
         userSays("Add chris@example.com as Chris")
+        asksForConfirmation(addContact("Chris", "chris@example.com", to: store))
+        userSays("yes")
         XCTAssertEqual(status(addContact("Chris", "chris@example.com", to: store)), "added")
 
         userSays("Add the sender of this email to my contacts")
@@ -357,16 +378,6 @@ final class AssistantActionConfirmationTests: XCTestCase {
         XCTAssertEqual(store.contacts.map(\.name), ["Chris", "Sam"])
     }
 
-    /// Stated means whole words of the user's message, ignoring case and
-    /// punctuation.
-    func testStatedMeansTheUsersOwnWords() {
-        XCTAssertTrue(AssistantMemoryNamespace.isStated("chris@example.com", in: "add Chris@Example.com as Chris"))
-        XCTAssertTrue(AssistantMemoryNamespace.isStated("Morning Loop", in: "rename Daily 1 to morning loop."))
-        XCTAssertFalse(AssistantMemoryNamespace.isStated("Chris", in: "add Christina"))
-        XCTAssertFalse(AssistantMemoryNamespace.isStated("Morning Loop", in: "summarize this page"))
-        XCTAssertFalse(AssistantMemoryNamespace.isStated("", in: "anything"))
-        XCTAssertFalse(AssistantMemoryNamespace.isStated("Chris", in: nil))
-    }
 
     // MARK: - The user_quote check
 
@@ -409,5 +420,36 @@ final class AssistantActionConfirmationTests: XCTestCase {
         for reply in replies {
             XCTAssertFalse(AffirmationReply.isExplicitYes(reply), reply)
         }
+    }
+
+    /// A yes that puts the action off is not a yes to doing it now: every
+    /// word past the affirmation must be filler or a word of the app's own
+    /// question.
+    func testAYesThatDefersIsNotAYes() {
+        let question = "Delete all 3 saved memory facts?"
+        for reply in ["yes, maybe later", "yes tomorrow", "sure, after lunch", "ok in a bit", "ja, morgen", "oui, plus tard", "yes, if needed"] {
+            XCTAssertFalse(AffirmationReply.isExplicitYes(reply, question: question), reply)
+        }
+    }
+
+    /// Words of the app's question may follow the yes: "yes, delete it"
+    /// answers "Delete all 3 saved memory facts?".
+    func testAYesThatRepeatsTheQuestionConfirms() {
+        let question = "Delete all 3 saved memory facts?"
+        for reply in ["yes, delete it", "Yes delete them all", "ok, delete memory", "yes please, thanks", "ja, bitte"] {
+            XCTAssertTrue(AffirmationReply.isExplicitYes(reply, question: question), reply)
+        }
+        XCTAssertFalse(AffirmationReply.isExplicitYes("yes, archive it", question: question), "a word from neither the question nor the filler list")
+    }
+
+    /// The deferral reaches the action path too: the repeated call after
+    /// "yes, maybe later" clears nothing.
+    func testClearingAfterAYesThatDefersClearsNothing() {
+        let store = factsStore(threeFacts)
+        userSays("Clear my memory")
+        asksForConfirmation(clear(store))
+        userSays("yes, maybe later")
+        asksForConfirmation(clear(store))
+        XCTAssertEqual(store.facts.count, 3)
     }
 }

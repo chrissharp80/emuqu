@@ -555,11 +555,12 @@ healthy.
 A small set of `[ACTION]` tools let the AI act on your data, not just
 read it. The AI will only invoke these on explicit, unambiguous
 instruction — never inferred — and always reads the result back to
-you for confirmation. When what it would save (a memory fact, an email
-contact, your address, a route's new name) is not in your own words in
-your latest message, it asks you first and changes nothing until you
-say yes; an email draft or a new contact is staged only when your latest
-message asked for it:
+you for confirmation. Before it saves anything (a memory fact, a saved
+note or list, an email contact, your address, a route's new name), the
+app shows you what would change and changes nothing until you answer
+with a plain yes, even when you said the words yourself. A yes that
+adds anything else ("yes, maybe later") cancels it. An email draft or a
+new contact is staged only when your latest message asked for it:
 
 - **Saved routes** — rename one ("rename Daily 1 to Morning Loop"),
   save a recent workout to your library ("save my last walk as Long
