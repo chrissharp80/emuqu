@@ -16,6 +16,11 @@ enum SnapshotFixtures {
     /// 08:00:00 UTC on 1 June 2021.
     static let anchor = Date(timeIntervalSince1970: 1_622_534_400)
 
+    /// Noon in America/Chicago on 1 June 2021, after the fixture overnight
+    /// ends: the "today" a screen that lays itself out from today is given
+    /// (`EnvironmentValues.currentDate`).
+    static let today = anchor.addingTimeInterval(9 * 3600)
+
     static let sessionId =
         UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE") ?? UUID()
 
@@ -123,14 +128,14 @@ enum SnapshotFixtures {
         }
     }
 
-    static func workoutSession() -> HRVSession {
+    static func workoutSession(start: Date = anchor) -> HRVSession {
         var meta = WorkoutMetadata(sport: .run)
         meta.samples = workoutSamples()
         meta.distanceMeters = 10_800
         meta.elevationGainMeters = 60
         meta.elevationLossMeters = 12
-        var session = HRVSession(startDate: anchor, sessionType: .workout)
-        session.endDate = anchor.addingTimeInterval(2_400)
+        var session = HRVSession(startDate: start, sessionType: .workout)
+        session.endDate = start.addingTimeInterval(2_400)
         session.state = .complete
         session.workoutMetadata = meta
         return session
@@ -193,19 +198,77 @@ extension SnapshotFixtures {
     static let emptyArchiveDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("SnapshotFixtures-EmptyArchive", isDirectory: true)
 
-    /// A collector over `emptyArchiveDirectory` instead of the app's archive.
+    /// A collector over `emptyArchiveDirectory` instead of the app's archive,
+    /// with a baseline of its own there too: the dashboard gates its verdict
+    /// on the baseline's night count, which the app's baseline would set to
+    /// whatever the simulator running the tests has recorded.
+    /// A test that needs nights in the baseline passes a tracker of its own.
     @MainActor
-    static func collector() -> RRCollector {
-        RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
-            archive: SessionArchive(directory: emptyArchiveDirectory),
+    static func collector(baselineTracker: BaselineTracker? = nil) -> RRCollector {
+        let archive = SessionArchive(directory: emptyArchiveDirectory)
+        let hermetic = AppDependencies()
+        hermetic.overrides.sessionArchive = archive
+        hermetic.overrides.baselineTracker = baselineTracker ?? BaselineTracker(
+            baselineFile: emptyArchiveDirectory.appendingPathComponent("HRVBaseline.json")
+        )
+        return RRCollector(
+            polarManager: polarManager(), healthKit: HealthKitManager.forTests(),
+            archive: archive,
+            baselineTracker: hermetic.collection.baselineTracker,
             settingsManager: AppDependencies.current.app.settingsManager,
-            services: CollectorServices(.current)
+            services: CollectorServices(hermetic)
         )
     }
 }
 
+extension SnapshotFixtures {
+    /// A Polar manager that knows no strap and has never connected one. A new
+    /// manager loads the pairings saved on the device, which on a test host
+    /// are whatever the suites run before it paired; they are cleared here in
+    /// memory only, so nothing saved is changed.
+    @MainActor
+    static func polarManager() -> PolarManager {
+        let polar = PolarManager()
+        polar.pairings.knownDevices = []
+        polar.pairings.lastConnectedTime = nil
+        return polar
+    }
+
+    /// The sync manager a container over `emptyArchiveDirectory` builds: its
+    /// upload queue sits beside that archive, so it holds nothing. The app's
+    /// counts the uploads other suites queued.
+    @MainActor
+    static func syncManager() -> CloudKitSyncManager {
+        let hermetic = AppDependencies()
+        hermetic.overrides.sessionArchive = SessionArchive(directory: emptyArchiveDirectory)
+        return hermetic.storage.cloudKitSyncManager
+    }
+}
+
 extension XCTestCase {
+    /// The health disclaimer, accepted or not, for this test; restored
+    /// afterwards. The flag is kept in `UserDefaults`, so on a test host it
+    /// holds whatever that simulator or an earlier suite left, and it decides
+    /// whether the disclaimer is shown as the first-launch gate.
+    @MainActor
+    func useHealthDisclaimerAccepted(_ value: Bool) {
+        let settings = SettingsManager.shared
+        let saved = settings.hasAcceptedDisclaimer
+        settings.hasAcceptedDisclaimer = value
+        addTeardownBlock { @MainActor in settings.hasAcceptedDisclaimer = saved }
+    }
+
+    /// The assistant's data-handling notice, accepted or not, for this test;
+    /// restored afterwards. Also kept in `UserDefaults`; it decides whether
+    /// the coach opens on the notice or on its home.
+    @MainActor
+    func useAssistantDisclaimerAccepted(_ value: Bool) {
+        let model = AppDependencies.current.assistant.assistantViewModel
+        let saved = model.hasAcceptedDisclaimer
+        model.hasAcceptedDisclaimer = value
+        addTeardownBlock { @MainActor in model.hasAcceptedDisclaimer = saved }
+    }
+
     /// Puts `SettingsManager.shared` on fresh-install defaults for this test
     /// and restores the settings it found afterwards. The settings manager has
     /// no injectable instance, so this is how a snapshot stops depending on
@@ -215,5 +278,47 @@ extension XCTestCase {
         let saved = SettingsManager.shared.settings
         SettingsManager.shared.settings = UserSettings()
         addTeardownBlock { @MainActor in SettingsManager.shared.settings = saved }
+    }
+}
+
+extension XCTestCase {
+    /// Empties the dashboard's cold-start cache for this test and puts back
+    /// what it held afterwards. With no sessions the dashboard paints the
+    /// last score it cached, which on the machine running the tests is
+    /// whatever that simulator last showed; the cache has no injectable
+    /// instance, so this is how an empty-dashboard snapshot stops depending
+    /// on it.
+    @MainActor
+    func useEmptyDashboardCache() {
+        let cache = AppDependencies.current.storage.uiStateCache
+        let saved = (dashboard: cache.dashboard, fitness: cache.fitness)
+        cache.forgetAfterPurge()
+        addTeardownBlock { @MainActor in
+            if let dashboard = saved.dashboard { cache.setDashboard(dashboard) }
+            if let fitness = saved.fitness { cache.setFitness(fitness) }
+        }
+    }
+}
+
+// MARK: - Log screens
+
+extension SnapshotFixtures {
+    /// A container whose debug logger holds a few fixed lines, two of them
+    /// problems the error catalog lists, in place of the process's own log.
+    @MainActor
+    static func loggedDependencies() -> AppDependencies {
+        let entries: [DebugLogger.LogEntry] = [
+            .init(timestamp: anchor.addingTimeInterval(60), message: "[Archive] Loaded 12 sessions from archive",
+                  category: "SessionArchive", level: .info),
+            .init(timestamp: anchor.addingTimeInterval(120), message: "[Baseline] Loaded 12 data points, baseline: available",
+                  category: "BaselineTracker", level: .info),
+            .init(timestamp: anchor.addingTimeInterval(180), message: "[HealthKit] Sleep query returned no samples for the night",
+                  category: "HealthKitManager", level: .warning),
+            .init(timestamp: anchor.addingTimeInterval(240), message: "[CloudKit] Upload failed: the network is unavailable",
+                  category: "CloudKitSyncManager", level: .error)
+        ]
+        let dependencies = AppDependencies()
+        dependencies.overrides.debugLogger = DebugLogger(inMemory: entries)
+        return dependencies
     }
 }

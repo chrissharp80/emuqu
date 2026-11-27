@@ -332,6 +332,29 @@ extension FitnessPostSummaryView {
         .modifier(PartialBannerChrome())
     }
 
+    /// The workout's save failed: what that means for the user's data, and a
+    /// way to try now rather than wait for the next unlock or return to the app.
+    func notSavedYetBanner(retry: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(String(localized: "Not saved yet", bundle: LanguageManager.appBundle))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            Text(String(localized: "Your workout is kept on this phone and will be saved as soon as it can be, for example after you unlock the phone or free up space.", bundle: LanguageManager.appBundle))
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(String(localized: "Try again", bundle: LanguageManager.appBundle), action: retry)
+                .font(.footnote.weight(.semibold))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(PartialBannerChrome())
+    }
+
     private struct PartialBannerChrome: ViewModifier {
         func body(content: Content) -> some View {
             content

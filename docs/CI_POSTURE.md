@@ -225,7 +225,10 @@ release against everything.
 `scripts/run_tests_with_coverage.sh` passes
 `-warn-long-expression-type-checking` and `-warn-long-function-bodies` to the
 build it already runs, so a Swift expression that is slow to type-check fails
-CI as a named diagnostic rather than as the frontend's hard limit.
+CI as a named diagnostic rather than as the frontend's hard limit. The timer
+measures wall time, so a build that fails only on it, before any test runs, is
+rebuilt once: a busy runner can push a trivial expression over the limit, and
+a site that is really slow is over it again on the rebuild.
 
 The spec-conformance scan covers the whole app target, including
 `Emuqu/EmuquApp.swift`, which sits outside `Emuqu/Sources`, and

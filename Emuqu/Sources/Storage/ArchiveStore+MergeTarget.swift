@@ -10,7 +10,7 @@ import Foundation
 
 extension ArchiveStore {
     /// The archived entry `session` should be merged into, or nil when it
-    /// stands alone. Caller must hold archive.archiveLock.
+    /// stands alone. Caller must hold state.archiveLock.
     ///
     /// A candidate has the same session type, is neither linked to `session`
     /// nor absorbed into another entry's linked series, and for an overnight
@@ -20,8 +20,8 @@ extension ArchiveStore {
     /// than the gap are separate sleeps and never merge.
     func mergeTarget(for session: HRVSession, sameSleepGap: TimeInterval?) -> SessionArchiveEntry? {
         let sessionSpan = SessionMerger.span(of: session)
-        let absorbed = Set(archive.index.flatMap { $0.linkedSessionIds ?? [] })
-        let related = archive.index
+        let absorbed = Set(state.index.flatMap { $0.linkedSessionIds ?? [] })
+        let related = state.index
             .filter { !absorbed.contains($0.sessionId) && isMergeCandidate($0, for: session) }
             .map { entry in
                 let entrySpan = SessionMerger.span(of: entry)
@@ -49,7 +49,7 @@ extension ArchiveStore {
     /// The archived overnight `entry` and a recording starting at `start`
     /// fall in the same night of the user's sleep schedule.
     func sharesNightAnchor(_ entry: SessionArchiveEntry, start: Date) -> Bool {
-        let schedule = archive.sleepScheduleProvider()
+        let schedule = state.mergeSettings.sleepSchedule()
         return schedule.overnightWindowStart(relativeTo: entry.date)
             == schedule.overnightWindowStart(relativeTo: start)
     }
@@ -58,16 +58,16 @@ extension ArchiveStore {
     /// for an overnight while merging is on, otherwise none (only copies of
     /// the same recording merge).
     func sameSleepGap(for session: HRVSession) -> TimeInterval? {
-        guard session.sessionType == .overnight, archive.sessionMergeModeProvider() != .off else { return nil }
-        return archive.mergeGapProvider()
+        guard session.sessionType == .overnight, state.mergeSettings.mode() != .off else { return nil }
+        return state.mergeSettings.gap()
     }
 
     /// Whether the archive already holds a copy of `session`'s recording:
     /// same type, overlapping spans. Takes the lock.
     func holdsCopy(of session: HRVSession) -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        return archive.index.contains { $0.sessionId == session.id } || mergeTarget(for: session, sameSleepGap: nil) != nil
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        return state.index.contains { $0.sessionId == session.id } || mergeTarget(for: session, sameSleepGap: nil) != nil
     }
 
     /// Whether `entry`, written earlier in the same batch, is a copy of

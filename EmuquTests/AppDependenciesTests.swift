@@ -108,4 +108,18 @@ final class AppDependenciesTests: XCTestCase {
         XCTAssertTrue(stores.assistant.userFactsStore() === facts)
         XCTAssertTrue(stores.location.breadcrumbStore() === trails)
     }
+
+    /// Apple Intelligence's availability comes from the container: a
+    /// substitute reaches the Apple provider and the registry built over it,
+    /// so a test or snapshot does not depend on the host's model.
+    func testAppleIntelligenceAvailabilityIsTheContainers() {
+        let ready = AppDependencies()
+        ready.overrides.appleIntelligenceStatus = .available
+        XCTAssertTrue(AppleFoundationProvider(services: AIProviderServices(ready)).isAvailable)
+
+        let downloading = AppDependencies()
+        downloading.overrides.appleIntelligenceStatus = .modelDownloading
+        XCTAssertFalse(AppleFoundationProvider(services: AIProviderServices(downloading)).isAvailable)
+        XCTAssertEqual(downloading.providers.appleIntelligenceStatus, .modelDownloading)
+    }
 }

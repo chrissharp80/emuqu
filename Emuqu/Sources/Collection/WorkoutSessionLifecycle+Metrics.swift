@@ -13,15 +13,18 @@ extension WorkoutSessionLifecycle {
     // TrainingPeaks-style NP: 30-second rolling mean → raise to the 4th
     // power per window → take the mean → 4th root. Captures how
     // physiologically stressful a variable-intensity effort was (intervals,
-    // hills) vs. the raw arithmetic mean, which understates the cost. At
-    // ~1 Hz sample rate, we use a 30-sample rolling window.
+    // hills) vs. the raw arithmetic mean, which understates the cost.
     // NP = (mean of [30-s rolling-avg power]^4)^0.25 — Allen & Coggan, Training
     // and Racing with a Power Meter.
-    // NOTE: 30-SAMPLE window assumes ~1 Hz power sampling = Coggan's 30 s; if
-    // sample cadence differs, derive window length from cadence.
-    // A row without power (a dropout) ends a run of rows, and windows are
-    // taken within runs only, so no window splices seconds from either side
-    // of a dropout.
+    // Samples are one per second of moving time, keyed by whole-second
+    // `offsetSec`. A run is a stretch of rows with power at consecutive
+    // offsets, so 30 rows of a run are exactly 30 seconds. A row without
+    // power (a dropout) or an offset that is not the previous one plus a
+    // second (the recorder jumps the clock after a suspension, leaving those
+    // seconds unsampled) ends the run, and windows are taken within runs
+    // only, so no window splices seconds from either side of a gap. A
+    // repeated offset is the same second again and is skipped. A 0 W
+    // reading (coasting) is a reading and stays in the run.
     static func computeNormalizedPower(samples: [WorkoutSample]) -> Double? {
         let windowMeans = powerRuns(samples).flatMap { Self.rollingThirtySampleMeans($0) }
         guard !windowMeans.isEmpty else { return nil }  // need at least one full window
@@ -29,23 +32,27 @@ extension WorkoutSessionLifecycle {
         return pow(meanFourth, 0.25)
     }
 
-    /// Runs of consecutive rows that carry power, in order.
+    /// Runs of rows that carry power at consecutive one-second offsets, in
+    /// order. The first row for an offset is the one kept.
     private static func powerRuns(_ samples: [WorkoutSample]) -> [[Double]] {
         var runs: [[Double]] = []
         var current: [Double] = []
-        for sample in samples {
-            if let watts = sample.powerWatts {
-                current.append(Double(watts))
-            } else if !current.isEmpty {
+        var previousOffset: Int?
+        for sample in samples where sample.offsetSec != previousOffset {
+            let watts = sample.powerWatts.map(Double.init)
+            let continuesRun = watts != nil && previousOffset.map { sample.offsetSec == $0 + 1 } == true
+            if !continuesRun, !current.isEmpty {
                 runs.append(current)
                 current = []
             }
+            if let watts { current.append(watts) }
+            previousOffset = sample.offsetSec
         }
         if !current.isEmpty { runs.append(current) }
         return runs
     }
 
-    /// The mean of every 30-sample window in one run; empty under 30 samples.
+    /// The mean of every 30-second window in one run; empty under 30 seconds.
     private static func rollingThirtySampleMeans(_ watts: [Double]) -> [Double] {
         guard watts.count >= 30 else { return [] }
         return (29 ..< watts.count).map { i in watts[(i - 29) ... i].reduce(0, +) / 30.0 }
@@ -160,75 +167,12 @@ extension WorkoutSessionLifecycle {
         ]
     }
 
-    /// Persist the finished workout, then fan out the redundant-backup cleanup,
-    /// cloud upload and HealthKit export.
-    ///
-    /// archive success is logged explicitly so the
-    /// user's debug log shows the workout actually persisted. The
-    /// failure path logs ("Archive failed: …"); with a silent happy
-    /// path, when the AI claims "no workout history" and the log
-    /// lacks any "archived" line, we can't tell whether the write
-    /// succeeded silently or never ran. Both paths are visible.
-    ///
-    /// On failure the persisted state + unarchived raw backup stay in place so
-    /// the next app launch can recover via SessionRecoveryService. The
-    /// session is still shown in .finished state so the user sees
-    /// what was captured; recovery is a safety net, not the primary path.
-    ///
-    /// An accidental start (finalize classifies a session with no heart
-    /// rate, no movement and under 30 samples as `.failed`) is not archived:
-    /// its backups are retired as for an archived one, and it never reaches
-    /// history, iCloud or Apple Health.
-    func archive(session: HRVSession) async {
-        guard session.state != .failed else {
-            retireRedundantBackups(for: session)
-            debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) (no heart rate, movement or samples) — not archived")
-            return
-        }
-        do {
-            _ = try core.archive.archive(session)
-            debugLog("[WorkoutRecorder] archived session id=\(session.id.uuidString.prefix(8)) sport=\(session.workoutMetadata?.sport.rawValue ?? "?") type=\(session.sessionType.rawValue)")
-            core.notifyArchiveChanged()
-            retireRedundantBackups(for: session)
-            let cloudSync = core.cloudSyncManager
-            Task(priority: .utility) {
-                await cloudSync.uploadSession(session)
-            }
-            exportToHealthKitIfAvailable(session)
-        } catch {
-            debugLog("[WorkoutRecorder] Archive failed: \(error) — leaving raw backup for recovery", level: .warning)
-        }
-    }
-
-    /// A successful archive makes the raw backup redundant. Marking it stops
-    /// SessionRecoveryService offering to "recover" a session that already
-    /// lives in history, and clearing persisted state stops the next app
-    /// launch prompting the user to recover.
-    ///
-    /// The workout-side track + samples + baro backups are redundant too (the
-    /// same data lives inside the session's `WorkoutMetadata`), so they're
-    /// dropped rather than left to accumulate as stale per-session files in
-    /// the App Group.
-    ///
-    /// The persisted state is one key shared with RRCollector's overnight and
-    /// quick recordings, so it is cleared only when it is this workout's; the
-    /// check and clear run on `recordingStateQueue` after the start's save.
-    private func retireRedundantBackups(for session: HRVSession) {
-        core.rawBackup.markAsArchived(session.id)
-        services.workoutTrackBackup.discard(session.id)
-        let sessionId = session.id
-        Self.recordingStateQueue.async {
-            guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
-            PersistedRecordingState.clear()
-        }
-    }
-
     /// Publish to HealthKit as an HKWorkout so the session appears in
     /// Apple Fitness / Health and is visible to third-party apps
     /// linked through HealthKit (TrainingPeaks, Athlytic, Zones).
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
-    private func exportToHealthKitIfAvailable(_ session: HRVSession) {
+    func exportToHealthKitIfAvailable(_ session: HRVSession) {
         let healthStore = core.healthAccess.store
         let sampleStore = core.healthSampleStore
         let weight = settingsProvider().effectiveBodyWeightKg

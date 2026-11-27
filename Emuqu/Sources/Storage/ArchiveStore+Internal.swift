@@ -3,15 +3,15 @@ import Foundation
 import os
 
 // The archive's internals. The underscored and private helpers assume the
-// caller already holds `archive.archiveLock`; the public entry points further
+// caller already holds `state.archiveLock`; the public entry points further
 // down (`exists`, `delete`, …) and `archiveBatch` (`ArchiveStore+Batch.swift`)
 // take it themselves. `SessionArchive.swift` is the public API and its
 // initialisation.
 
 extension ArchiveStore {
-    // MARK: - Internal Methods (caller must hold archive.archiveLock)
+    // MARK: - Internal Methods (caller must hold state.archiveLock)
 
-    /// Internal archive — caller must hold archive.archiveLock.
+    /// Internal archive: the caller holds state.archiveLock.
     @discardableResult
     func _archive(_ session: HRVSession, skipSameNightMerge: Bool = false) throws -> SessionArchiveEntry {
         try guardWritable(session)
@@ -35,7 +35,7 @@ extension ArchiveStore {
     /// permanently destroy the v2-only fields. Refuse the write; the
     /// newer build that understands the payload remains its only writer.
     private func guardWritable(_ session: HRVSession) throws {
-        if archive.deletedSessionIds.contains(session.id) {
+        if state.deletedSessionIds.contains(session.id) {
             debugLog("[Archive] Blocked re-archive of deleted session \(session.id.uuidString.prefix(8))")
             throw SessionArchive.ArchiveError.sessionWasDeleted
         }
@@ -62,13 +62,13 @@ extension ArchiveStore {
     /// payload."
     ///
     /// The splice must not fail SILENTLY when
-    /// `_retrieve` throws (stale archive.index hash after an interrupted
+    /// `_retrieve` throws (stale index hash after an interrupted
     /// write, decrypt failure, EPERM): the re-archive would then
     /// overwrite the file with rrSeries=nil, permanently
     /// destroying the night's beat data. The common failure
     /// is a stale HASH with perfectly decodable bytes, so fall
     /// back to the hash-agnostic reader; the write below then
-    /// heals the archive.index hash too.
+    /// heals the index hash too.
     ///
     /// When neither reader can open the file, the write goes ahead only if
     /// the stored bytes were read and decrypted and still did not decode:
@@ -76,7 +76,7 @@ extension ArchiveStore {
     /// decrypt failure (file locked, encryption key unreachable) throws
     /// instead, so the intact beats are not overwritten by a beat-less copy.
     private func preservingRRSeries(_ session: HRVSession) throws -> HRVSession {
-        guard session.rrSeries == nil, archive.index.contains(where: { $0.sessionId == session.id }) else {
+        guard session.rrSeries == nil, state.index.contains(where: { $0.sessionId == session.id }) else {
             return session
         }
         var session = session
@@ -100,11 +100,11 @@ extension ArchiveStore {
     /// The error reading or decrypting the stored file's bytes, or nil when
     /// they come back as plaintext (or there is no file to protect).
     private func storedBytesError(for id: UUID) -> Error? {
-        guard let entry = archive.index.first(where: { $0.sessionId == id }) else { return nil }
-        let fileURL = archive.resolveFileURL(for: entry)
-        guard archive.fileManager.fileExists(atPath: fileURL.path) else { return nil }
+        guard let entry = state.index.first(where: { $0.sessionId == id }) else { return nil }
+        let fileURL = state.resolveFileURL(for: entry)
+        guard state.fileManager.fileExists(atPath: fileURL.path) else { return nil }
         do {
-            _ = try Self.plaintextBytes(try Data(contentsOf: fileURL), id: id, encryption: archive.encryption)
+            _ = try Self.plaintextBytes(try Data(contentsOf: fileURL), id: id, encryption: state.encryption)
             return nil
         } catch {
             return error
@@ -140,9 +140,9 @@ extension ArchiveStore {
         if let existing = hashCheckedRead(id) {
             return existing.rrSeries.map { .preserved($0, viaRawDecode: false) } ?? .noBeatsStored
         }
-        guard let entry = archive.index.first(where: { $0.sessionId == id }),
+        guard let entry = state.index.first(where: { $0.sessionId == id }),
               let salvaged = attempt("Archive.storedRRSeries.rawRead", {
-                  try Self.loadAndDecodeSessionFile(at: archive.resolveFileURL(for: entry), decoder: SessionArchive.sessionDecoder, encryption: archive.encryption)
+                  try Self.loadAndDecodeSessionFile(at: state.resolveFileURL(for: entry), decoder: SessionArchive.sessionDecoder, encryption: state.encryption)
               })
         else { return .unreadable }
         return salvaged.rrSeries.map { .preserved($0, viaRawDecode: true) } ?? .noBeatsStored
@@ -178,7 +178,7 @@ extension ArchiveStore {
     /// by the OLDER session's UUID and date, so a fresh recording
     /// can appear to "vanish" if it gets folded into an older placeholder-style
     /// entry. The diagnostic log below records each fold so a trace shows it.
-    /// A archive.retrieve failure on the existing same-night session (transient
+    /// A full-read failure on the existing same-night session (transient
     /// decrypt/decode failure, or an entry the id lookup no longer finds)
     /// must NOT fall through to the standalone
     /// write — that would create the exact same-night duplicate this exists to
@@ -197,7 +197,7 @@ extension ArchiveStore {
     private func sameNightMerge(
         of session: HRVSession, skipSameNightMerge: Bool
     ) throws -> SessionArchiveEntry? {
-        let isReArchive = archive.index.contains { $0.sessionId == session.id }
+        let isReArchive = state.index.contains { $0.sessionId == session.id }
         let hasExplicitLinks = !(session.linkedSessionIds ?? []).isEmpty
         guard !isReArchive, !skipSameNightMerge, session.sessionType == .overnight, !hasExplicitLinks,
               let gap = sameSleepGap(for: session),
@@ -217,7 +217,7 @@ extension ArchiveStore {
         }
     }
 
-    /// Write the session file, then update and persist the archive.index.
+    /// Write the session file, then update and persist the index.
     ///
     /// Write to file atomically, with an explicit protection-class option in
     /// addition to `.atomic`. The directory-level `setAttributes`
@@ -229,9 +229,9 @@ extension ArchiveStore {
     /// fail with EPERM while the device is locked. Setting the option
     /// explicitly here bypasses the inheritance gap.
     ///
-    /// If the archive.index save fails, roll back both the in-memory mutation and the
+    /// If the index save fails, roll back both the in-memory mutation and the
     /// file write so the archive doesn't end up with an orphan file on disk
-    /// and a stale archive.index. (A hard crash between the file write and archive.index save
+    /// and a stale index. (A hard crash between the file write and index save
     /// still leaves an orphan; `reconcileOrphanFiles()` on the next launch
     /// picks those up. A rewrite of an archived session killed there leaves
     /// a marker `healInterruptedRewrites()` re-hashes it by.)
@@ -240,24 +240,24 @@ extension ArchiveStore {
     /// over the new file, and the session would fail its hash check.
     ///
     /// The archive entry stores the relative filename, not an absolute path.
-    /// All archive.index fields (incl. meanSDNN + the sleep-stage/dip mirrors) are
+    /// All index fields (incl. meanSDNN + the sleep-stage/dip mirrors) are
     /// populated by the shared factory; see SessionArchiveEntry.make.
     private func writeAndIndex(_ session: HRVSession) throws -> SessionArchiveEntry {
         let fileName = "\(session.id.uuidString).json"
-        let filePath = archive.archiveDirectory.appendingPathComponent(fileName)
+        let filePath = state.archiveDirectory.appendingPathComponent(fileName)
         let (data, hashString, format) = try encodedForDisk(session)
         // Snapshot pre-write state so we can roll back on failure.
-        let preIndex = archive.index
-        let prior = try PriorFile(at: filePath, id: session.id, fileManager: archive.fileManager)
+        let preIndex = state.index
+        let prior = try PriorFile(at: filePath, id: session.id, fileManager: state.fileManager)
         let rewriting = entryById(session.id) != nil
         if rewriting { markRewriteStarting(session.id) }
         defer { if rewriting { markRewriteSettled(session.id) } }
         try writeArchiveBytes(data, to: filePath, format: format, sessionID: session.id)
         let entry = SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
-        archive.index.removeAll { $0.sessionId == session.id }
-        archive.index.append(entry)
+        state.index.removeAll { $0.sessionId == session.id }
+        state.index.append(entry)
         do {
-            try archive.saveIndex()
+            try state.saveIndex()
         } catch {
             rollBackWrite(to: preIndex, filePath: filePath, prior: prior, id: session.id)
             throw error
@@ -296,18 +296,18 @@ extension ArchiveStore {
     private func encodedForDisk(
         _ session: HRVSession
     ) throws -> (Data, String, SessionArchive.SessionFileCodec.DiskFormat) {
-        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.sessionEncoder, encryption: archive.encryption)
+        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.sessionEncoder, encryption: state.encryption)
         return (result.bytes, result.hash, result.format)
     }
 
-    /// Restore the pre-write state after a failed archive.index save. Caller
-    /// holds archive.archiveLock (`writeAndIndex`, and the relink migration's
+    /// Restore the pre-write state after a failed index save. Caller
+    /// holds state.archiveLock (`writeAndIndex`, and the relink migration's
     /// `relinkUnderLock`).
     ///
-    /// `archive.saveIndex()` nils the derived caches before persisting; on a failed
-    /// save we restore `archive.index` but must also drop those caches so a stale
-    /// archive.sortedEntriesCache/archive.sessionIdLookup can't keep serving the rolled-back
-    /// entry. If the file rollback itself fails, the on-disk archive.index is left
+    /// `state.saveIndex()` nils the derived caches before persisting; on a failed
+    /// save we restore `state.index` but must also drop those caches so a stale
+    /// state.sortedEntriesCache/state.sessionIdLookup can't keep serving the rolled-back
+    /// entry. If the file rollback itself fails, the on-disk index is left
     /// mid-write while the in-memory one has been restored — the one
     /// divergence in this file a later read cannot detect, so it must be loud.
     ///
@@ -318,9 +318,9 @@ extension ArchiveStore {
     func rollBackWrite(
         to preIndex: [SessionArchiveEntry], filePath: URL, prior: PriorFile, id: UUID
     ) {
-        archive.index = preIndex
-        archive.sortedEntriesCache = nil
-        archive.sessionIdLookup = nil
+        state.index = preIndex
+        state.sortedEntriesCache = nil
+        state.sessionIdLookup = nil
         if let previous = prior.data {
             let format: SessionArchive.SessionFileCodec.DiskFormat =
                 prior.wasPendingEncryption ? .plaintextPendingEncryption : .encrypted
@@ -330,19 +330,19 @@ extension ArchiveStore {
         } else if !prior.existed {
             PendingEncryptionLedger.clear(id)
             attempt("archive.index.rollbackRemove") {
-                try archive.fileManager.removeItem(at: filePath)
+                try state.fileManager.removeItem(at: filePath)
             }
         }
     }
 
-    /// Internal archive.retrieve — caller must hold archive.archiveLock.
+    /// Internal retrieve: the caller holds state.archiveLock.
     func _retrieve(_ id: UUID) throws -> HRVSession? {
         guard let entry = entryById(id) else {
             return nil
         }
         let rawBytes = try readSessionBytes(for: entry, id: id)
         try verifyHash(of: rawBytes, against: entry, id: id)
-        let plaintext = try Self.plaintextBytes(rawBytes, id: id, encryption: archive.encryption)
+        let plaintext = try Self.plaintextBytes(rawBytes, id: id, encryption: state.encryption)
         do {
             return try SessionArchive.sessionDecoder.decode(HRVSession.self, from: plaintext)
         } catch {
@@ -352,10 +352,10 @@ extension ArchiveStore {
     }
 
     /// The session file's bytes as stored. Resolves both relative (new) and
-    /// absolute (legacy) archive.index paths.
+    /// absolute (legacy) index paths.
     private func readSessionBytes(for entry: SessionArchiveEntry, id: UUID) throws -> Data {
-        let fileURL = archive.resolveFileURL(for: entry)
-        guard archive.fileManager.fileExists(atPath: fileURL.path) else {
+        let fileURL = state.resolveFileURL(for: entry)
+        guard state.fileManager.fileExists(atPath: fileURL.path) else {
             debugLog("[Archive] ERROR: File not found for session \(id)")
             debugLog("[Archive] Session date: \(entry.date)")
             throw SessionArchive.ArchiveError.fileNotFound
@@ -469,7 +469,7 @@ extension ArchiveStore {
     /// doesn't advance past its start (nothing to contribute to the night).
     private func segmentInfo(forLinked linkedId: UUID) -> LinkedSegmentInfo? {
         do {
-            guard let linked = try archive.retrieve(linkedId) else { return nil }
+            guard let linked = try retrieveCounted(linkedId) else { return nil }
             let end = linked.endDate ?? linked.startDate
             guard end > linked.startDate else { return nil }
             return LinkedSegmentInfo(id: linked.id, startDate: linked.startDate, endDate: end)
@@ -625,25 +625,25 @@ extension ArchiveStore {
         return merged
     }
 
-    /// O(1) lookup of an archive entry by session ID. Caller must hold archive.archiveLock.
+    /// O(1) lookup of an archive entry by session ID. Caller must hold state.archiveLock.
     func entryById(_ id: UUID) -> SessionArchiveEntry? {
-        if let lookup = archive.sessionIdLookup {
+        if let lookup = state.sessionIdLookup {
             return lookup[id]
         }
-        let built = Dictionary(archive.index.map { ($0.sessionId, $0) }, uniquingKeysWith: { _, last in last })
-        archive.sessionIdLookup = built
+        let built = Dictionary(state.index.map { ($0.sessionId, $0) }, uniquingKeysWith: { _, last in last })
+        state.sessionIdLookup = built
         return built[id]
     }
 
-    /// Get all archive entries (cached sort — invalidated on every `archive.saveIndex()`)
+    /// Get all archive entries (cached sort, invalidated on every `state.saveIndex()`)
     var entries: [SessionArchiveEntry] {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        if let cached = archive.sortedEntriesCache {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        if let cached = state.sortedEntriesCache {
             return cached
         }
-        let sorted = archive.index.sorted { $0.date > $1.date }
-        archive.sortedEntriesCache = sorted
+        let sorted = state.index.sorted { $0.date > $1.date }
+        state.sortedEntriesCache = sorted
         return sorted
     }
 
@@ -677,20 +677,20 @@ extension ArchiveStore {
 
     /// Check if a session exists in archive
     func exists(_ id: UUID) -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        return archive.index.contains { $0.sessionId == id }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        return state.index.contains { $0.sessionId == id }
     }
 
     /// Check if a session exists near a given date (within tolerance window)
     /// Used to determine if H10 data has already been archived
     func hasSessionNear(date: Date, toleranceMinutes: Int = 30) -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         let tolerance = TimeInterval(toleranceMinutes * 60)
         let windowStart = date.addingTimeInterval(-tolerance)
         let windowEnd = date.addingTimeInterval(tolerance)
-        return archive.index.contains { $0.date >= windowStart && $0.date <= windowEnd }
+        return state.index.contains { $0.date >= windowStart && $0.date <= windowEnd }
     }
 
     /// Delete an archived session (moves to trash, tracks as intentionally deleted)
@@ -708,8 +708,8 @@ extension ArchiveStore {
     /// done nothing, for an id the archive does not hold.
     @discardableResult
     func delete(_ id: UUID) throws -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         guard let entry = entryById(id) else {
             return false
         }
@@ -717,11 +717,11 @@ extension ArchiveStore {
         debugLog("[Archive] delete: \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue) score=\(scoreStr)", level: .warning)
         try dropFromIndex(entry)
         do {
-            try moveToTrash(archive.resolveFileURL(for: entry), id: id)
+            try moveToTrash(state.resolveFileURL(for: entry), id: id)
         } catch {
             debugLog("[Archive] ⚠️ Could not move session \(id.uuidString.prefix(8)) to the trash; keeping it: \(error)", level: .warning)
             undoDrop(entry)
-            attempt("Archive.delete.restoreIndex") { try archive.saveIndex() }
+            attempt("Archive.delete.restoreIndex") { try state.saveIndex() }
             throw error
         }
         return true
@@ -740,42 +740,42 @@ extension ArchiveStore {
     /// Returns false, having done nothing, for an id the archive does not hold.
     @discardableResult
     func deleteWithoutTrash(_ id: UUID) throws -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         guard let entry = entryById(id) else { return false }
         debugLog("[Archive] delete (deleted on another device): \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue)", level: .warning)
         try dropFromIndex(entry)
-        let fileURL = archive.resolveFileURL(for: entry)
-        guard archive.fileManager.fileExists(atPath: fileURL.path),
-              attempt("Archive.deleteWithoutTrash.removeFile", { try archive.fileManager.removeItem(at: fileURL) }) == nil
+        let fileURL = state.resolveFileURL(for: entry)
+        guard state.fileManager.fileExists(atPath: fileURL.path),
+              attempt("Archive.deleteWithoutTrash.removeFile", { try state.fileManager.removeItem(at: fileURL) }) == nil
         else { return true }
         do {
             try moveToTrash(fileURL, id: id)
         } catch {
             debugLog("[Archive] ⚠️ Could not remove or move the file of \(id.uuidString.prefix(8)), deleted on another device; keeping it: \(error)", level: .warning)
             undoDrop(entry)
-            attempt("Archive.deleteWithoutTrash.restoreIndex") { try archive.saveIndex() }
+            attempt("Archive.deleteWithoutTrash.restoreIndex") { try state.saveIndex() }
             throw error
         }
         return true
     }
 
-    /// Remove from the active archive.index (in-memory) then persist both indexes,
+    /// Remove from the active index (in-memory) then persist both indexes,
     /// tombstone first: an index saved without its tombstone would let the
     /// next launch's orphan scan adopt the deleted session back. If either
     /// save fails, both in-memory changes and the deletion time are rolled
     /// back, and a tombstone already written is rewritten without the entry.
     ///
-    /// `archive.saveIndex()` nils the derived caches before persisting; drop them on
-    /// the rollback path too so a stale archive.sortedEntriesCache/archive.sessionIdLookup
+    /// `state.saveIndex()` nils the derived caches before persisting; drop them on
+    /// the rollback path too so a stale state.sortedEntriesCache/state.sessionIdLookup
     /// can't keep serving (or hiding) the rolled-back entry.
     private func dropFromIndex(_ entry: SessionArchiveEntry) throws {
-        archive.index.removeAll { $0.sessionId == entry.sessionId }
-        archive.deletedSessionIds.insert(entry.sessionId)
+        state.index.removeAll { $0.sessionId == entry.sessionId }
+        state.deletedSessionIds.insert(entry.sessionId)
         Self.recordDeletionTime(entry.sessionId)
         do {
-            try archive.saveDeletedIndex()
-            try archive.saveIndex()
+            try state.saveDeletedIndex()
+            try state.saveIndex()
         } catch {
             undoDrop(entry)
             throw error
@@ -787,26 +787,26 @@ extension ArchiveStore {
     /// save leaves a file that is neither listed nor tombstoned, which the
     /// next launch's orphan scan adopts back.
     private func undoDrop(_ entry: SessionArchiveEntry) {
-        archive.index.append(entry)
-        archive.deletedSessionIds.remove(entry.sessionId)
+        state.index.append(entry)
+        state.deletedSessionIds.remove(entry.sessionId)
         Self.forgetDeletionTime(entry.sessionId)
-        archive.sortedEntriesCache = nil
-        archive.sessionIdLookup = nil
-        attempt("Archive.delete.rollbackTombstone") { try archive.saveDeletedIndex() }
+        state.sortedEntriesCache = nil
+        state.sessionIdLookup = nil
+        attempt("Archive.delete.rollbackTombstone") { try state.saveDeletedIndex() }
     }
 
     /// Check if a session was intentionally deleted by the user
     func wasIntentionallyDeleted(_ id: UUID) -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        return archive.deletedSessionIds.contains(id)
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        return state.deletedSessionIds.contains(id)
     }
 
     /// Get all intentionally deleted session IDs
     var deletedIds: Set<UUID> {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        return archive.deletedSessionIds
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        return state.deletedSessionIds
     }
 
     /// Remove a session from the deleted list: a trash restore, or a session
@@ -816,13 +816,13 @@ extension ArchiveStore {
     /// A save that throws puts the mark and its time back, so memory and the
     /// file agree that the session is still deleted.
     func unmarkAsDeleted(_ id: UUID) throws {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         let deletedAt = deletionTime(of: id)
-        let removed = archive.deletedSessionIds.remove(id) != nil
+        let removed = state.deletedSessionIds.remove(id) != nil
         Self.forgetDeletionTime(id)
         do {
-            try archive.saveDeletedIndex()
+            try state.saveDeletedIndex()
         } catch {
             if removed { putBackDeletionMark(id, deletedAt: deletedAt) }
             throw error
@@ -831,7 +831,7 @@ extension ArchiveStore {
 
     /// The mark and its time as they were. Caller holds `archiveLock`.
     private func putBackDeletionMark(_ id: UUID, deletedAt: Date?) {
-        archive.deletedSessionIds.insert(id)
+        state.deletedSessionIds.insert(id)
         Self.stageDeletionTime(deletedAt.map { .recorded($0.timeIntervalSince1970) } ?? .forgotten, for: id)
     }
 
@@ -839,11 +839,11 @@ extension ArchiveStore {
     /// so a restore that could not be written loses to nothing it would not
     /// have lost to before. Logged when the deleted list cannot be saved.
     func reinstateDeletion(_ id: UUID, deletedAt: Date?) {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         putBackDeletionMark(id, deletedAt: deletedAt)
         do {
-            try archive.saveDeletedIndex()
+            try state.saveDeletedIndex()
         } catch {
             debugLog("[Archive] ⚠️ Could not save the reinstated deletion of \(id.uuidString.prefix(8)): \(error)", level: .error)
         }
@@ -856,15 +856,15 @@ extension ArchiveStore {
     /// so the session is not hidden for the rest of the run while the file
     /// says it is not deleted.
     func markAsDeleted(_ id: UUID) throws {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
-        let added = archive.deletedSessionIds.insert(id).inserted
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        let added = state.deletedSessionIds.insert(id).inserted
         Self.recordDeletionTime(id)
         do {
-            try archive.saveDeletedIndex()
+            try state.saveDeletedIndex()
         } catch {
             if added {
-                archive.deletedSessionIds.remove(id)
+                state.deletedSessionIds.remove(id)
                 Self.forgetDeletionTime(id)
             }
             throw error
@@ -949,10 +949,10 @@ extension ArchiveStore {
     /// Uses a 1-hour window to detect duplicates during import
     /// This allows multiple sessions per day while preventing true duplicates
     func sessionExists(for date: Date) -> Bool {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
         let oneHour = SessionArchive.Tuning.importDuplicateWindow
-        return archive.index.contains { entry in
+        return state.index.contains { entry in
             abs(entry.date.timeIntervalSince(date)) < oneHour
         }
     }

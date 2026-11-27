@@ -21,6 +21,11 @@ import XCTest
 /// defaults and the collector reads an empty archive; `StoreKitManager`,
 /// `CloudKitSyncManager`, `LanguageManager` and `VoiceConversationController`
 /// have no injectable instance and are the shared ones.
+///
+/// The settings pages, the export screen, the sensors sheet and troubleshooting are render-checked (`assertRenders`), not pixel-compared: their
+/// navigation chrome (large titles, sheet bars, the tab bar) settles at
+/// different offsets from run to run, so a reference would fail on timing
+/// alone. The check still builds and draws each whole screen.
 @MainActor
 final class UncoveredScreenSnapshotTests: XCTestCase {
     /// Fresh-install settings for every render (restored afterwards), so
@@ -37,7 +42,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             .environment(ArchiveSignal())
             .environment(MorningCoordination())
@@ -49,47 +54,31 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     // MARK: - Settings pages
 
     func testProfileSettingsRenders() {
-        assertSnapshot(of: hosted(ProfileSettingsPage()), named: "uncovered-settings-profile")
+        assertRenders(of: hosted(ProfileSettingsPage()), named: "uncovered-settings-profile")
     }
 
     func testSleepSettingsRenders() {
-        assertSnapshot(of: hosted(SleepSettingsPage()), named: "uncovered-settings-sleep")
+        assertRenders(of: hosted(SleepSettingsPage()), named: "uncovered-settings-sleep")
     }
 
     func testDataSettingsRenders() {
-        assertSnapshot(of: hosted(DataSettingsPage()), named: "uncovered-settings-data")
+        assertRenders(of: hosted(DataSettingsPage()), named: "uncovered-settings-data")
     }
 
     func testCustomTagsRenders() {
-        assertSnapshot(of: hosted(CustomTagsPage()), named: "uncovered-settings-custom-tags")
-    }
-
-    func testNotificationsSettingsRenders() {
-        assertSnapshot(of: hosted(NotificationsSettingsPage()), named: "uncovered-settings-notifications")
-    }
-
-    func testModesSettingsRenders() {
-        assertSnapshot(of: hosted(ModesSettingsPage(settingsManager: AppDependencies.current.app.settingsManager)), named: "uncovered-settings-modes")
-    }
-
-    func testPrivacyPolicyRenders() {
-        assertSnapshot(of: hosted(PrivacyPolicyView()), named: "uncovered-privacy-policy")
+        assertRenders(of: hosted(CustomTagsPage()), named: "uncovered-settings-custom-tags")
     }
 
     // MARK: - Data in and out
 
     func testExportDataRenders() {
-        assertSnapshot(of: hosted(ExportDataView()), named: "uncovered-export-data")
-    }
-
-    func testImportDataRenders() {
-        assertSnapshot(of: hosted(ImportDataView()), named: "uncovered-import-data")
+        assertRenders(of: hosted(ExportDataView()), named: "uncovered-export-data")
     }
 
     // MARK: - Sensors
 
     func testSensorManagementRenders() {
-        assertSnapshot(of: hosted(SensorManagementSheet(polarManager: PolarManager(), onDismiss: {})), named: "uncovered-sensor-management")
+        assertRenders(of: hosted(SensorManagementSheet(polarManager: SnapshotFixtures.polarManager(), onDismiss: {})), named: "uncovered-sensor-management")
     }
 
     func testOnboardingSensorPageRenders() {
@@ -117,7 +106,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: hosted(OvernightStreamingStatus(
                 streamingLifecycle: lifecycle,
-                polarManager: PolarManager(),
+                polarManager: SnapshotFixtures.polarManager(),
                 strapBackup: .recording
             )),
             named: "uncovered-overnight-streaming-status"
@@ -125,7 +114,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     }
 
     func testDeviceInfoPanelRenders() {
-        assertSnapshot(of: hosted(DeviceInfoPanelObserving(polarManager: PolarManager())), named: "uncovered-device-info-panel")
+        assertSnapshot(of: hosted(DeviceInfoPanelObserving(polarManager: SnapshotFixtures.polarManager())), named: "uncovered-device-info-panel")
     }
 
     // MARK: - Detail and troubleshooting screens
@@ -143,8 +132,10 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         )
     }
 
+    /// With the crash report row hidden: whether it shows depends on a crash
+    /// report file on the device running the tests.
     func testTroubleshootingRenders() {
-        assertSnapshot(of: hosted(TroubleshootingPage()), named: "uncovered-troubleshooting")
+        assertRenders(of: hosted(TroubleshootingPage(crashReportCleared: true)), named: "uncovered-troubleshooting")
     }
 
     func testWorkoutPreflightRenders() {

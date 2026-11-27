@@ -40,7 +40,7 @@ extension ArchiveStore {
     /// unannounced stays different from its iCloud copy.
     @discardableResult
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int {
-        let outcome = archive.archiveLock.withLock { writeBatch(sessions) }
+        let outcome = state.archiveLock.withLock { writeBatch(sessions) }
         postBatchChangeNotifications(outcome)
         if let failure = outcome.failure { throw failure }
         return outcome.newEntries.count + outcome.updatedIds.count
@@ -53,7 +53,7 @@ extension ArchiveStore {
             for session in sessions {
                 try archiveOne(session, into: &outcome)
             }
-            if !outcome.newEntries.isEmpty { try archive.saveIndex() }
+            if !outcome.newEntries.isEmpty { try state.saveIndex() }
         } catch {
             savePartialBatch(outcome.newEntries)
             outcome.failure = error
@@ -67,7 +67,7 @@ extension ArchiveStore {
     /// them.
     private func savePartialBatch(_ newEntries: [SessionArchiveEntry]) {
         guard !newEntries.isEmpty else { return }
-        _ = attempt("Archive.saveIndexAfterFailedBatch") { try archive.saveIndex() }
+        _ = attempt("Archive.saveIndexAfterFailedBatch") { try state.saveIndex() }
     }
 
     /// A batch-written entry joins the in-memory index at once, so a later
@@ -75,9 +75,9 @@ extension ArchiveStore {
     /// same sleep then merges into it as `_archive` would merge it. The
     /// derived caches are dropped, as `saveIndex` would drop them.
     private func indexBatchEntry(_ entry: SessionArchiveEntry, into outcome: inout BatchOutcome) {
-        archive.index.append(entry)
-        archive.sortedEntriesCache = nil
-        archive.sessionIdLookup = nil
+        state.index.append(entry)
+        state.sortedEntriesCache = nil
+        state.sessionIdLookup = nil
         outcome.newEntries.append(entry)
     }
 
@@ -94,12 +94,12 @@ extension ArchiveStore {
     /// earlier in this batch. Two readings that do not
     /// overlap and are not one sleep are both kept, however close.
     private func archiveOne(_ session: HRVSession, into outcome: inout BatchOutcome) throws {
-        if archive.deletedSessionIds.contains(session.id) {
+        if state.deletedSessionIds.contains(session.id) {
             debugLog("[Archive] archiveBatch: skipping tombstoned session \(session.id.uuidString.prefix(8))")
             return
         }
         // Skip exact duplicates by ID
-        if archive.index.contains(where: { $0.sessionId == session.id }) { return }
+        if state.index.contains(where: { $0.sessionId == session.id }) { return }
         if let existingEntry = mergeTarget(for: session, sameSleepGap: sameSleepGap(for: session)) {
             try mergeIntoExisting(session, entry: existingEntry, outcome: &outcome)
             return
@@ -135,10 +135,10 @@ extension ArchiveStore {
         }
     }
 
-    /// Write one new session's file and build its archive.index entry.
+    /// Write one new session's file and build its index entry.
     ///
-    /// Uses the archive.index encoder (pretty-printed) — a historical divergence
-    /// from `_archive`'s compact `archive.sessionEncoder`: batch-written session
+    /// Uses the index encoder (`SessionArchive.indexEncoder`, pretty-printed), a historical divergence
+    /// from `_archive`'s compact `SessionArchive.sessionEncoder`: batch-written session
     /// files are pretty-printed and therefore hash differently than the
     /// same session written by `_archive`. Deliberately preserved
     /// — the hash-over-bytes-as-written contract makes the
@@ -150,12 +150,12 @@ extension ArchiveStore {
     ///
     /// Entry built by the shared factory, so batch-built
     /// entries carry meanSDNN + the sleep-stage/dip
-    /// mirror fields exactly as `_archive`'s do (no archive.index
+    /// mirror fields exactly as `_archive`'s do (no index
     /// drift) — see SessionArchiveEntry.make.
     private func writeBatchSession(_ session: HRVSession) throws -> SessionArchiveEntry {
         let fileName = "\(session.id.uuidString).json"
-        let filePath = archive.archiveDirectory.appendingPathComponent(fileName)
-        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder, encryption: archive.encryption)
+        let filePath = state.archiveDirectory.appendingPathComponent(fileName)
+        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder, encryption: state.encryption)
         try writeArchiveBytes(result.bytes, to: filePath, format: result.format, sessionID: session.id)
         return SessionArchiveEntry.make(from: session, hash: result.hash, filePath: fileName)
     }

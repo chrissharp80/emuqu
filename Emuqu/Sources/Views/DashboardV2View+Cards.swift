@@ -193,7 +193,7 @@ extension DashboardV2View {
     private var heroAgeCaption: some View {
         if ScoreAppearancePolicy.showsScore(baselineNights: baselineNights),
            let session = latestOvernightComplete, (session.recoveryScore ?? session.readinessScore) != nil,
-           let age = nightAgeLabel(for: session) {
+           let age = nightAgeLabel(for: session, now: currentDate()) {
             Text(verbatim: age)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textTertiary)

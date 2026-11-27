@@ -550,7 +550,8 @@ struct WorkoutAIContext: Equatable {
     /// whether the data path exists. When a foot pod is connected we
     /// ALWAYS emit a line — value when present, "silent" when the
     /// BLE packet hasn't arrived this tick. Without that, every BLE
-    /// gap would look to the AI like "no foot pod paired".
+    /// gap would look to the AI like "no foot pod paired". A 0 W power
+    /// reading (coasting, standing) is a value, not silence.
     private func cadenceAndPowerLines() -> [String] {
         var out = ["footPodConnected=\(footPodActive)"]
         if let cad = cadenceStepsPerMin, cad > 0 {
@@ -558,12 +559,16 @@ struct WorkoutAIContext: Equatable {
         } else if footPodActive {
             out.append("cadenceSpm=silent")
         }
-        if let watts = powerWatts, watts > 0 {
-            out.append("powerW=\(watts)")
-        } else if footPodActive {
-            out.append("powerW=silent")
-        }
+        if let line = Self.powerLine(powerWatts, footPodActive: footPodActive) { out.append(line) }
         return out
+    }
+
+    /// The live power line: the watts when a reading arrived, 0 W included;
+    /// "silent" when a foot pod is connected but sent no current reading;
+    /// nothing without a foot pod or a reading.
+    static func powerLine(_ watts: Int?, footPodActive: Bool) -> String? {
+        if let watts { return "powerW=\(watts)" }
+        return footPodActive ? "powerW=silent" : nil
     }
 
     /// Fact-sheet section: Map / terrain.

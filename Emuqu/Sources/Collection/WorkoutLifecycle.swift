@@ -27,6 +27,21 @@ final class WorkoutLifecycle {
     /// transitions to `.finished`; cleared on `acknowledgeFinished()`.
     var finishedSession: HRVSession?
 
+    /// How `finishedSession`'s save came out, shown on the summary: `.saved`
+    /// once a retry saves it. Nil while no workout has finished.
+    var saveOutcome: WorkoutSaveOutcome?
+
+    /// Finished workouts whose archive write failed, oldest first, each kept
+    /// until a retry saves it (`WorkoutSessionLifecycle.retryUnsavedWorkouts`).
+    /// Their raw backups are left out of lost-session recovery while they are
+    /// here (`SessionRecoveryCoordinator.liveRecordingIds`).
+    var unsavedSessions: [HRVSession] = []
+
+    /// Whether the workout with `id` is waiting for its save to be retried.
+    func isUnsaved(_ id: UUID) -> Bool {
+        unsavedSessions.contains { $0.id == id }
+    }
+
     /// Elapsed seconds since the user tapped Start.
     var elapsedSeconds: Int = 0
 

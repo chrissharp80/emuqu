@@ -47,12 +47,7 @@ final class AppleFoundationProvider: AIProvider {
         // Cached inside ProviderRegistry, but other call sites bypass
         // the cache; this measures every actual call.
         services.keyboardPerfSignpost.interval("AppleFoundationProvider.isAvailable") {
-            #if canImport(FoundationModels)
-                if #available(iOS 26, *) {
-                    return SystemLanguageModel.default.availability == .available
-                }
-            #endif
-            return false
+            services.appleIntelligenceStatus == .available
         }
     }
 

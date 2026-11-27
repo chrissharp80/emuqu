@@ -12,15 +12,16 @@ import Foundation
 /// type-size gate counts a type across all of its files, so an extension in a
 /// new file is the same object with another window.
 ///
-/// The coupling is measured rather than assumed: 33 view-model
-/// members — the provider registry, the turn list, streaming state. Routing is
-/// genuinely part of running a conversation and does not claim otherwise. What
-/// changes is that the reads are `owner.` and countable.
+/// The coupling is named rather than assumed: the router holds the view
+/// model only as `TurnRouterHost` (`AssistantTurnHosts.swift`), the
+/// provider registry, the turn list, the streaming and routing state, the
+/// summary and the fact registry it reads. Routing is genuinely part of
+/// running a conversation and does not claim otherwise; the protocol is what
+/// it may reach.
 ///
 /// A plain strong reference: the view model builds a router on demand
 /// (`AssistantViewModel.router`) and never stores it, so no cycle forms.
 @MainActor
 struct AssistantTurnRouter {
-    let owner: AssistantViewModel
-
+    let owner: any TurnRouterHost
 }

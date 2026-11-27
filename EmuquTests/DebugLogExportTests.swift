@@ -46,4 +46,57 @@ final class DebugLogExportTests: XCTestCase {
         XCTAssertTrue(source.contains("the log file could not be read"), source)
         XCTAssertTrue(source.contains("planted read failure"), source)
     }
+
+    // MARK: - Size bound while running
+
+    private func fileSize(_ url: URL) throws -> Int {
+        try XCTUnwrap(try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int)
+    }
+
+    /// Every flush keeps the file at or under the bound, not only the launch
+    /// trim: a long session of logging never grows it past the size the
+    /// export promises. The newest lines are the ones kept, whole.
+    func testWritesKeepTheFileUnderItsBoundAndKeepTheNewestLines() throws {
+        let url = directory.appendingPathComponent("debug_log.txt")
+        let file = BoundedLogFile(url: url, bound: 1_000, trimTarget: 500)
+        for number in 0..<300 {
+            file.write(Data("line \(number) of the running log\n".utf8))
+            XCTAssertLessThanOrEqual(try fileSize(url), 1_000, "after line \(number)")
+        }
+        let text = try XCTUnwrap(String(data: Data(contentsOf: url), encoding: .utf8))
+        XCTAssertTrue(text.hasSuffix("line 299 of the running log\n"))
+        XCTAssertTrue(text.hasPrefix("line "), "the kept text starts on a whole line")
+    }
+
+    /// A file already over the bound when this run starts writing (another
+    /// process, an older build) is trimmed by the first write, by bytes.
+    func testTheFirstWriteTrimsAFileAlreadyOverTheBound() throws {
+        let url = directory.appendingPathComponent("debug_log.txt")
+        let oversized = (0..<400).map { "old line \($0)\n" }.joined()
+        try Data(oversized.utf8).write(to: url)
+        let file = BoundedLogFile(url: url, bound: 1_000, trimTarget: 500)
+        file.write(Data("new line\n".utf8))
+        XCTAssertLessThanOrEqual(try fileSize(url), 500)
+        let text = try XCTUnwrap(String(data: Data(contentsOf: url), encoding: .utf8))
+        XCTAssertTrue(text.hasSuffix("old line 399\nnew line\n"))
+    }
+}
+
+/// A logger built from fixed lines shows those lines and catalogs the ones
+/// the app would, and leaves the process's log alone.
+@MainActor
+final class InMemoryDebugLoggerTests: XCTestCase {
+    func testItHoldsTheLinesItIsGivenAndCatalogsTheProblems() {
+        let at = Date(timeIntervalSince1970: 1_622_534_400)
+        let entries: [DebugLogger.LogEntry] = [
+            .init(timestamp: at, message: "[Archive] Loaded", category: "SessionArchive", level: .info),
+            .init(timestamp: at, message: "[Sync] Upload failed", category: "CloudKit", level: .error),
+            .init(timestamp: at, message: "⚠️ low battery", category: "Polar", level: .info)
+        ]
+        let logger = DebugLogger(inMemory: entries)
+        XCTAssertEqual(logger.entries.map(\.message), entries.map(\.message))
+        XCTAssertEqual(logger.errorCatalog.map(\.message), ["[Sync] Upload failed", "⚠️ low battery"])
+        XCTAssertFalse(logger.persistentLoggingEnabled, "a fixture logger must never write a log file")
+        XCTAssertFalse(logger === DebugLogger.shared)
+    }
 }

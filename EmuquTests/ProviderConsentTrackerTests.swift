@@ -85,9 +85,9 @@ final class ProviderConsentTrackerTests: XCTestCase {
         }
     }
 
-    /// Tool calls a model asked for are not run once its provider's consent
-    /// is gone: web search and route lookups send the model's arguments out.
-    func testToolCallsStopWhenConsentIsWithdrawn() throws {
+    /// The tool gate refuses a provider without consent and lets Apple
+    /// Intelligence, which needs none, through.
+    func testTheToolGateRefusesAProviderWithoutConsent() throws {
         ProviderConsentTracker.shared.acknowledge(.openai)
         XCTAssertNoThrow(try AssistantToolRunner.requireConsentForTools(of: .openai, consent: .shared))
         ProviderConsentTracker.shared.revoke(.openai)
@@ -256,6 +256,134 @@ final class ProviderConsentTrackerTests: XCTestCase {
         XCTAssertTrue(ProviderConsentTracker().requiresConsent(.grok))
     }
 
+    // MARK: - Withdrawal during a turn
+
+    private func makeViewModel() -> AssistantViewModel {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ProviderConsentTrackerTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        return AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+    }
+
+    /// Switches the OpenAI provider on for the test and back afterwards.
+    private func enableOpenAI() {
+        let flags = FeatureFlags.shared
+        let wasOn = flags.value(for: .providerOpenAIEnabled)
+        flags.set(true, for: .providerOpenAIEnabled)
+        addTeardownBlock { flags.set(wasOn, for: .providerOpenAIEnabled) }
+    }
+
+    /// Waits up to five seconds for `condition`, checking every 10 ms.
+    private func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async throws {
+        let deadline = Date().addingTimeInterval(5)
+        while !condition() {
+            guard Date() < deadline else { return XCTFail("timed out waiting", file: file, line: line) }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+    }
+
+    /// Consent withdrawn while the first of two tool calls is waiting on the
+    /// outside world: the second call never runs and no further request goes
+    /// to the model. The loop is driven directly, with no stream task to
+    /// cancel, so only the per-call check can stop it.
+    func testWithdrawingConsentDuringAToolCallStopsTheRestOfTheBatch() async throws {
+        enableOpenAI()
+        ProviderConsentTracker.shared.acknowledge(.openai)
+        let viewModel = makeViewModel()
+        let question = ChatTurn(role: .user, text: "Where am I and what is the weather?")
+        let reply = ChatTurn(role: .assistant, text: "", providerID: .openai)
+        viewModel.turns = [question, reply]
+        let (held, second, requests) = (HeldTool(), ToolRunCounter(), RequestCounter())
+        let registry = FactResolverRegistry()
+        registry.register(TwoLocationToolsNamespace(first: held, second: second))
+        let provider = ScriptedRoundsProvider(id: .openai, rounds: [
+            [.toolUse(id: "1", name: "location_current", inputJSON: "{}"), .toolUse(id: "2", name: "location_situation", inputJSON: "{}"), .done],
+            [.textDelta("Done."), .done]
+        ], requests: requests)
+
+        let loop = Task {
+            try await viewModel.tools.runToolUseLoop(
+                provider: provider, model: AppleFoundationProvider.model, outbound: [question],
+                systemPrompt: "", tools: [], factRegistry: registry, turnID: reply.id
+            )
+        }
+        try await waitUntil { held.started }
+        ProviderConsentTracker.shared.revoke(.openai)
+        held.finish()
+
+        do {
+            _ = try await loop.value
+            XCTFail("the turn went on after consent was withdrawn")
+        } catch let AIProviderError.consentWithdrawn(provider) {
+            XCTAssertEqual(provider, .openai)
+        }
+        XCTAssertEqual(second.runs, 0, "a tool ran after consent was withdrawn")
+        XCTAssertEqual(requests.count, 1, "a request went to the model after consent was withdrawn")
+    }
+
+    /// A reply streaming from a provider whose consent is withdrawn stops at
+    /// once: the task is cancelled, the text already shown stays, marked
+    /// incomplete, and the banner says sharing is off.
+    func testWithdrawingConsentStopsATurnStreamingFromThatProvider() async throws {
+        ProviderConsentTracker.shared.acknowledge(.openai)
+        let viewModel = makeViewModel()
+        let reply = ChatTurn(role: .assistant, text: "Your recovery is", providerID: .openai)
+        viewModel.turns = [ChatTurn(role: .user, text: "How did I recover?"), reply]
+        let stream = startStandInStream(in: viewModel, turnID: reply.id, provider: .openai)
+
+        ProviderConsentTracker.shared.revoke(.openai)
+        try await waitUntil { !viewModel.isStreaming }
+
+        XCTAssertTrue(stream.isCancelled, "the stream kept running after consent was withdrawn")
+        XCTAssertEqual(viewModel.turns.last?.text, "Your recovery is", "the text already shown was lost")
+        XCTAssertEqual(viewModel.turns.last?.incomplete, true)
+        XCTAssertEqual(viewModel.errorMessage, AIProviderError.consentWithdrawn(.openai).errorDescription)
+    }
+
+    /// Withdrawing another provider's consent leaves the turn running.
+    func testWithdrawingAnotherProvidersConsentLeavesTheTurnRunning() async throws {
+        ProviderConsentTracker.shared.acknowledge(.openai)
+        ProviderConsentTracker.shared.acknowledge(.anthropic)
+        let viewModel = makeViewModel()
+        let reply = ChatTurn(role: .assistant, text: "Your recovery is", providerID: .anthropic)
+        viewModel.turns = [ChatTurn(role: .user, text: "How did I recover?"), reply]
+        let stream = startStandInStream(in: viewModel, turnID: reply.id, provider: .anthropic)
+
+        ProviderConsentTracker.shared.revoke(.openai)
+        try await Task.sleep(nanoseconds: 200_000_000)
+
+        XCTAssertTrue(viewModel.isStreaming)
+        XCTAssertFalse(stream.isCancelled)
+        XCTAssertNil(viewModel.errorMessage)
+        viewModel.cancel()
+    }
+
+    /// Marks `viewModel` as streaming `turnID` from `provider`, with a task
+    /// that waits until it is cancelled in place of a provider stream.
+    private func startStandInStream(in viewModel: AssistantViewModel, turnID: UUID, provider: ProviderID) -> Task<Void, Never> {
+        let stream = Task<Void, Never> {
+            do {
+                try await Task.sleep(nanoseconds: 60_000_000_000)
+            } catch {
+                // swallow-ok: cancellation is how the stand-in stream ends.
+            }
+        }
+        viewModel.streamTask = stream
+        viewModel.isStreaming = true
+        viewModel.streamingTurn = AssistantViewModel.StreamingTurn(turnID: turnID, provider: provider)
+        return stream
+    }
+
     func testRequiresConsentSetMatchesEnum() {
         // Defensive: every cloud provider in ProviderID should be in the
         // requiring-consent set. Forgetting to add a new provider here
@@ -267,5 +395,84 @@ final class ProviderConsentTrackerTests: XCTestCase {
                 "New cloud provider \(p.rawValue) is missing from providersRequiringConsent — would silently bypass the gate"
             )
         }
+    }
+}
+
+// MARK: - Scripted tool-loop fixtures
+
+/// A provider that plays one scripted round per request, picked by how many
+/// tool rounds the request carries, and counts its requests.
+struct ScriptedRoundsProvider: AIProvider {
+    let id: ProviderID
+    let rounds: [[AIStreamEvent]]
+    let requests: RequestCounter
+    var availableModels: [ModelOption] { [AppleFoundationProvider.model] }
+    var requiresKey: Bool { false }
+    var isAvailable: Bool { true }
+
+    func send(
+        messages _: [ChatTurn], model _: ModelOption, contextRendered _: String, systemPrompt _: String,
+        tools _: [ToolSpec], toolRounds: [[ToolExchange]]
+    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        let events = toolRounds.count < rounds.count ? rounds[toolRounds.count] : []
+        let requests = requests
+        return AsyncThrowingStream { continuation in
+            Task { @MainActor in
+                requests.count += 1
+                for event in events { continuation.yield(event) }
+                continuation.finish()
+            }
+        }
+    }
+}
+
+/// How many requests a scripted provider received.
+@MainActor
+final class RequestCounter {
+    var count = 0
+}
+
+/// How many times a test tool ran.
+@MainActor
+final class ToolRunCounter {
+    private(set) var runs = 0
+
+    func run() -> FactValue {
+        runs += 1
+        return .string("ran")
+    }
+}
+
+/// A tool that waits, once it starts, until the test lets it finish.
+@MainActor
+final class HeldTool {
+    private(set) var started = false
+    private var release: CheckedContinuation<Void, Never>?
+
+    func run() async -> FactValue {
+        started = true
+        await withCheckedContinuation { release = $0 }
+        return .string("held")
+    }
+
+    func finish() {
+        release?.resume()
+        release = nil
+    }
+}
+
+/// Two allowed action tools: `location_current` runs `first`,
+/// `location_situation` runs `second`.
+struct TwoLocationToolsNamespace: FactNamespaceResolver {
+    let first: HeldTool
+    let second: ToolRunCounter
+    var namespace: String { "location" }
+
+    var entries: [FactEntry] {
+        let (first, second) = (first, second)
+        return [
+            .actionAsync(key: "location.current", description: "test", parameters: []) { _ in await first.run() },
+            .actionAsync(key: "location.situation", description: "test", parameters: []) { _ in second.run() }
+        ]
     }
 }

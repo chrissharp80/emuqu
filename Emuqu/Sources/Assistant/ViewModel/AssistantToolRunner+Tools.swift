@@ -79,6 +79,13 @@ extension AssistantToolRunner {
     /// fallback starts the turn over from the user's message and would run
     /// that tool again (a second contact, a second staged email, the route
     /// re-engaged).
+    ///
+    /// Returns whether this provider ran a mutating tool during the turn,
+    /// so a caller can tell an empty reply that changed something from one
+    /// that did nothing. It also records the provider as the one streaming
+    /// the turn (`AssistantViewModel.streamingTurn`), which a withdrawal of
+    /// its consent stops.
+    @discardableResult
     func runToolUseLoop(
         provider: AIProvider,
         model: ModelOption,
@@ -87,7 +94,8 @@ extension AssistantToolRunner {
         tools: [ToolSpec],
         factRegistry: FactResolverRegistry?,
         turnID: UUID
-    ) async throws {
+    ) async throws -> Bool {
+        owner.streamingTurn = AssistantViewModel.StreamingTurn(turnID: turnID, provider: provider.id)
         var state = ToolLoopState(outbound: outbound)
         var grokQuirks = GrokQuirkPolicy(owner: owner, provider: provider, turnID: turnID)
         while true {
@@ -104,7 +112,7 @@ extension AssistantToolRunner {
             )
             if done {
                 grokQuirks.substituteFallbackIfTurnEndedBlankOrAnnounced()
-                return
+                return ranMutatingTool(provider, state.toolRounds)
             }
         }
     }
@@ -187,18 +195,36 @@ extension AssistantToolRunner {
             return false
         }
         try requireConsentForTools(of: round.provider)
-        return try await recordResolutions(thisRound, factRegistry: round.factRegistry, state: &state)
+        return try await recordResolutions(thisRound, round: round, state: &state)
     }
 
     /// Tool calls run only while the provider that asked for them still has
     /// data-sharing consent and is switched on. Web search, weather and
     /// route lookups send the model's arguments to outside services, so a
     /// withdrawal during the turn stops them as well as the next request.
+    /// Checked before each batch and again after it; within the batch each
+    /// call checks for itself (`toolRefusal`).
     private func requireConsentForTools(of provider: AIProvider) throws {
         try Self.requireConsentForTools(of: provider.id, consent: owner.services.providerConsentTracker)
         guard owner.registry.isEnabled(provider.id) else {
             debugLog("[Assistant] tool calls not run — \(provider.id.rawValue) was switched off", level: .warning)
             throw AIProviderError.consentWithdrawn(provider.id)
+        }
+    }
+
+    /// Why one tool call from `provider` may not run now, as the result the
+    /// call gets in place of running: its consent was withdrawn or it was
+    /// switched off since the batch began, so nothing goes to an outside
+    /// service. Nil when it may run.
+    private func toolRefusal(for provider: AIProvider) -> FactValue? {
+        do {
+            try requireConsentForTools(of: provider)
+            return nil
+        } catch {
+            return .missing(
+                reason: .invalidParameter,
+                detail: "sharing with \(provider.id.displayName) was switched off during this turn, so this tool did not run"
+            )
         }
     }
 
@@ -211,17 +237,21 @@ extension AssistantToolRunner {
     /// Resolve this round's tool calls into `state` and report whether the
     /// loop should stop (it never should here — resolution always feeds
     /// another round).
+    ///
+    /// Consent withdrawn while the batch ran ends the loop here, before the
+    /// results would go back to the model.
     private func recordResolutions(
         _ thisRound: [PendingToolCall],
-        factRegistry: FactResolverRegistry?,
+        round: RoundContext,
         state: inout ToolLoopState
     ) async throws -> Bool {
         let resolution = try await resolveToolCalls(
-            thisRound: thisRound, totalToolCalls: state.totalToolCalls, factRegistry: factRegistry
+            thisRound: thisRound, totalToolCalls: state.totalToolCalls, round: round
         )
         state.toolRounds.append(resolution.exchanges)
         state.totalToolCalls += thisRound.count
         if resolution.overBudget { state.budgetExhausted = true }
+        try requireConsentForTools(of: round.provider)
         return false
     }
 
@@ -522,10 +552,14 @@ extension AssistantToolRunner {
     /// user has moved on. Resolvers are cheap closures (microseconds)
     /// but the check keeps the contract honest for future heavier
     /// implementations that might hit the archive or network.
+    ///
+    /// Consent is checked the same way: a call awaits the outside world
+    /// (web search, geocoding), the user can withdraw consent meanwhile, and
+    /// every later call in the batch is then refused (`toolRefusal`).
     private func resolveToolCalls(
         thisRound: [PendingToolCall],
         totalToolCalls: Int,
-        factRegistry: FactResolverRegistry?
+        round: RoundContext
     ) async throws -> (exchanges: [ToolExchange], overBudget: Bool) {
         try Task.checkCancellation()
         let budgetLeft = max(0, Self.maxToolCallsPerTurn - totalToolCalls)
@@ -537,7 +571,7 @@ extension AssistantToolRunner {
                 toolUseID: pending.id,
                 toolName: pending.name,
                 inputJSON: pending.inputJSON,
-                resultJSON: await resultJSON(for: pending, overBudget: offset >= budgetLeft, factRegistry: factRegistry)
+                resultJSON: await resultJSON(for: pending, overBudget: offset >= budgetLeft, round: round)
             ))
         }
         return (exchanges, thisRound.count > budgetLeft)
@@ -562,14 +596,15 @@ extension AssistantToolRunner {
     private func resultJSON(
         for pending: PendingToolCall,
         overBudget: Bool,
-        factRegistry: FactResolverRegistry?
+        round: RoundContext
     ) async -> String {
         if overBudget {
             return FactValue.missing(
                 reason: .rateLimited, detail: "tool budget exceeded for this turn"
             ).toolResultJSON
         }
-        guard let registry = factRegistry else {
+        if let refusal = toolRefusal(for: round.provider) { return refusal.toolResultJSON }
+        guard let registry = round.factRegistry else {
             return FactValue.missing(reason: .internalError, detail: "no resolver registered").toolResultJSON
         }
         let router = CompactToolRouter(registry: registry)
@@ -582,7 +617,7 @@ extension AssistantToolRunner {
     /// An empty assistant turn is removed. One that kept text is marked
     /// incomplete (`ChatTurn.incomplete`): the bubble says so, and history
     /// assembly leaves it out of the next request.
-    func handleStreamFailure(error: Error, turnID: UUID) async {
+    func handleStreamFailure(error: Error, turnID: UUID) {
         owner.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         if let index = owner.liveTurnIndex(for: turnID), owner.turns[index].role == .assistant {
             if owner.turns[index].text.isEmpty {
@@ -600,6 +635,11 @@ extension AssistantToolRunner {
     enum FallbackEnding {
         /// The fallback finished and left text in the turn.
         case answered
+        /// The fallback ran a mutating tool and finished with no text. The
+        /// reply carries a note saying so (`noteActionWithoutReply`) and the
+        /// chain ends: the next fallback would start the turn over and run
+        /// that tool again.
+        case acted
         /// The user stopped it.
         case stopped
         /// It ended the chain (its safety stop, or a failure after it ran a
@@ -642,7 +682,8 @@ extension AssistantToolRunner {
     /// partial reply (`failedPartial`) was taken out of it first, so the
     /// bubble shows one answer under the badge of the provider that wrote it.
     ///
-    /// - `.answered`: the fallback's answer stays and the badge is re-stamped
+    /// - `.answered`, `.acted`: the fallback's answer (or the note saying it
+    ///   acted without replying) stays and the badge is re-stamped
     ///   to the fallback. Without that the bubble would show "Apple
     ///   Intelligence" over text Claude wrote.
     /// - `.stopped`: the same when the fallback had shown text; otherwise the
@@ -657,7 +698,7 @@ extension AssistantToolRunner {
         modelID: String
     ) {
         let fallbackTextStands = switch ending {
-        case .answered: true
+        case .answered, .acted: true
         case .stopped: !AssistantViewModel.isEmptyAssistantTurn(turn)
         case .blocked, .failed: false
         }
@@ -752,11 +793,11 @@ extension AssistantToolRunner {
     ) async -> FallbackEnding {
         let failedPartial = setAsidePartialText(turnID: turnID)
         do {
-            try await runFallbackLoop(
+            let ranAction = try await runFallbackLoop(
                 provider: provider, model: model, outbound: outbound, tools: tools,
                 factRegistry: factRegistry, turnID: turnID, voiceMode: voiceMode
             )
-            let ending = endingOfFinishedFallback(provider: provider, turnID: turnID)
+            let ending = endingOfFinishedFallback(provider: provider, turnID: turnID, ranAction: ranAction)
             settleFallback(ending, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
             return ending
         } catch let error where Self.isStop(error) {
@@ -765,7 +806,7 @@ extension AssistantToolRunner {
         } catch {
             let ending = Self.ending(ofFailedFallback: error)
             settleFallback(ending, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
-            return await endFailedFallback(error, ending: ending, provider: provider, turnID: turnID)
+            return endFailedFallback(error, ending: ending, provider: provider, turnID: turnID)
         }
     }
 
@@ -782,6 +823,9 @@ extension AssistantToolRunner {
     /// Each fallback gets the history re-cut to ITS budget
     /// (`fallbackOutbound`), not the primary's: an Apple primary's 1,200-token
     /// window would otherwise starve a cloud fallback.
+    ///
+    /// Returns whether the fallback ran a mutating tool (`runToolUseLoop`),
+    /// read before the Apple dispatcher is cleared.
     private func runFallbackLoop(
         provider: AIProvider,
         model: ModelOption,
@@ -790,14 +834,14 @@ extension AssistantToolRunner {
         factRegistry: FactResolverRegistry?,
         turnID: UUID,
         voiceMode: Bool
-    ) async throws {
+    ) async throws -> Bool {
         let supportsTools = !tools.isEmpty && factRegistry != nil
         let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
         debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
         let dispatcher = provider.id == .apple && supportsTools ? owner.services.appleToolDispatcher : nil
         dispatcher?.setRegistry(factRegistry)
         defer { dispatcher?.setRegistry(nil) }
-        try await runToolUseLoop(
+        return try await runToolUseLoop(
             provider: provider, model: model,
             outbound: fallbackOutbound(for: provider, turnID: turnID, primaryOutbound: outbound), systemPrompt: prompt,
             tools: supportsTools ? tools : [],
@@ -805,15 +849,41 @@ extension AssistantToolRunner {
         )
     }
 
-    /// `.answered` for a fallback whose tool loop finished, or `.failed` when
-    /// it left the reserved turn empty: an empty reply is no answer, so the
-    /// next fallback may give one and, if none does, the primary's error is
-    /// shown over its partial reply.
-    private func endingOfFinishedFallback(provider: AIProvider, turnID: UUID) -> FallbackEnding {
+    /// `.answered` for a fallback whose tool loop finished with text.
+    /// `.failed` when it left the reserved turn empty without changing
+    /// anything: an empty reply is no answer, so the next fallback may give
+    /// one and, if none does, the primary's error is shown over its partial
+    /// reply. `.acted` when it left the turn empty after running a mutating
+    /// tool (`ranAction`): the reply gets the note, and the chain ends.
+    private func endingOfFinishedFallback(provider: AIProvider, turnID: UUID, ranAction: Bool) -> FallbackEnding {
         guard let index = owner.liveTurnIndex(for: turnID),
               AssistantViewModel.isEmptyAssistantTurn(owner.turns[index]) else { return .answered }
-        debugLog("[Assistant] fallback \(provider.id.rawValue) came back empty")
-        return .failed
+        guard ranAction else {
+            debugLog("[Assistant] fallback \(provider.id.rawValue) came back empty")
+            return .failed
+        }
+        debugLog("[Assistant] fallback \(provider.id.rawValue) ran an action and came back empty; ending the chain")
+        noteActionWithoutReply(turnID: turnID)
+        return .acted
+    }
+
+    /// A turn that ran a mutating tool and finished with no reply text gets a
+    /// short note in place of the reply. The turn is then not dropped as
+    /// empty, so the app's confirmation question still shows under it
+    /// (`AssistantActionConfirmations.showPending`), and the user learns that
+    /// something ran before asking again. Returns whether it wrote the note;
+    /// a turn that has text, or is gone, is left alone.
+    @discardableResult
+    func noteActionWithoutReply(turnID: UUID) -> Bool {
+        guard let index = owner.liveTurnIndex(for: turnID),
+              AssistantViewModel.isEmptyAssistantTurn(owner.turns[index]) else { return false }
+        owner.turns[index].text = String(
+            localized: "Flo took an action for this message but didn't write a reply. Check the result before you ask again, so it doesn't run twice.",
+            bundle: LanguageManager.appBundle
+        )
+        owner.speakableTextCursor[turnID] = owner.turns[index].text.count
+        owner.store.save(owner.turns)
+        return true
     }
 
     /// `.blocked` for a safety stop (`AIProviderError.isBlockedReply`) and for
@@ -838,13 +908,13 @@ extension AssistantToolRunner {
         ending: FallbackEnding,
         provider: AIProvider,
         turnID: UUID
-    ) async -> FallbackEnding {
+    ) -> FallbackEnding {
         guard ending == .blocked else {
             debugLog("[Assistant] fallback \(provider.id.rawValue) also failed: \(error.localizedDescription)")
             return .failed
         }
         debugLog("[Assistant] fallback \(provider.id.rawValue) ended the chain: \(error.localizedDescription)")
-        await handleStreamFailure(error: error, turnID: turnID)
+        handleStreamFailure(error: error, turnID: turnID)
         return .blocked
     }
 
@@ -913,6 +983,7 @@ extension AssistantToolRunner {
         }
         owner.isStreaming = false
         owner.streamTask = nil
+        owner.streamingTurn = nil
         if owner.actionConfirmations.showPending(in: &owner.turns) { owner.store.save(owner.turns) }
 
         // Drain queued send. We move it to a local first because dispatch()

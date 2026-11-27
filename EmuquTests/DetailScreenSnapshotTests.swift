@@ -15,7 +15,7 @@ import XCTest
 final class DetailScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(ArchiveSignal())

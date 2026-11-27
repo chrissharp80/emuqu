@@ -11,6 +11,11 @@ import XCTest
 /// screen at once.
 ///
 /// Inputs come from `SnapshotFixtures`, which is entirely frozen.
+///
+/// The error catalog, debug log, Get Me Back and the tag sheet are render-checked (`assertRenders`), not pixel-compared: their
+/// navigation chrome (large titles, sheet bars, the tab bar) settles at
+/// different offsets from run to run, so a reference would fail on timing
+/// alone. The check still builds and draws each whole screen.
 @MainActor
 final class ScreenSnapshotTests: XCTestCase {
     // MARK: - Chart furniture
@@ -27,13 +32,17 @@ final class ScreenSnapshotTests: XCTestCase {
     }
 
     // MARK: - History
+    //
+    // The calendar opens on the month that contains today and rings today,
+    // so it is given a fixed today (`SnapshotFixtures.today`).
 
     func testHistoryCalendarWithSessionsRenders() {
         let sessions = (0 ..< 12).map { SnapshotFixtures.overnightSession(dayOffset: -$0) }
         assertSnapshot(
             of: NavigationStack {
                 HistoryCalendarView(allSessions: sessions, onDelete: { _ in false })
-            },
+            }
+            .environment(\.currentDate) { SnapshotFixtures.today },
             named: "screen-history-calendar"
         )
     }
@@ -44,7 +53,8 @@ final class ScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: NavigationStack {
                 HistoryCalendarView(allSessions: [], onDelete: { _ in false })
-            },
+            }
+            .environment(\.currentDate) { SnapshotFixtures.today },
             named: "screen-history-calendar-empty"
         )
     }
@@ -52,31 +62,39 @@ final class ScreenSnapshotTests: XCTestCase {
     // MARK: - Settings subpages
     //
     // Reached rarely, so rarely looked at, and the diagnostic ones are what a
-    // user opens when something has already gone wrong.
+    // user opens when something has already gone wrong. The log screens read
+    // a logger holding fixed lines (`SnapshotFixtures.loggedDependencies`),
+    // not the process's own log, which the tests before them write to.
 
     func testErrorCatalogRenders() {
-        assertSnapshot(
-            of: NavigationStack { ErrorCatalogView() },
+        assertRenders(
+            of: NavigationStack { ErrorCatalogView() }
+                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
             named: "screen-error-catalog"
         )
     }
 
     func testDebugLogRenders() {
-        assertSnapshot(
-            of: NavigationStack { DebugLogView() },
+        assertRenders(
+            of: NavigationStack { DebugLogView() }
+                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
             named: "screen-debug-log"
         )
     }
 
+    /// Render-checked: `CrashLogView` reads the crash report file at a fixed
+    /// path on the device running the tests, so what it lists is the host's.
     func testCrashLogRenders() {
-        assertSnapshot(
+        assertRenders(
             of: NavigationStack { CrashLogView() },
             named: "screen-crash-log"
         )
     }
 
+    /// Render-checked: the page shows the Apple Health, notification,
+    /// location and Bluetooth authorization the simulator holds.
     func testPermissionsSettingsRenders() {
-        assertSnapshot(
+        assertRenders(
             of: NavigationStack { PermissionsSettingsPage() },
             named: "screen-permissions"
         )
@@ -87,7 +105,7 @@ final class ScreenSnapshotTests: XCTestCase {
     /// The get-me-back screen is a safety feature: it is opened by someone who
     /// is lost. It must render.
     func testGetMeBackRenders() {
-        assertSnapshot(
+        assertRenders(
             of: NavigationStack { GetMeBackView() },
             named: "screen-get-me-back"
         )
@@ -115,7 +133,7 @@ final class ScreenSnapshotTests: XCTestCase {
     // editing behaviour, which is what a snapshot can honestly check.
 
     func testAddTagSheetRenders() {
-        assertSnapshot(
+        assertRenders(
             of: AddTagSheet(
                 tagName: .constant("Post-travel"),
                 tagColor: .constant(.orange),
@@ -127,7 +145,7 @@ final class ScreenSnapshotTests: XCTestCase {
 
     func testAddTagSheetEmptyNameRenders() {
         // The empty name is the state the save button should reflect.
-        assertSnapshot(
+        assertRenders(
             of: AddTagSheet(tagName: .constant(""), tagColor: .constant(.blue), onSave: {}),
             named: "sheet-add-tag-empty"
         )

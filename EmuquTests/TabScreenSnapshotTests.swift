@@ -14,6 +14,11 @@ import XCTest
 /// on fresh-install defaults. `LanguageManager`, `CloudKitSyncManager`,
 /// `StoreKitManager` and `VoiceConversationController` have no injectable
 /// instance and are the shared ones.
+///
+/// All of these tab screens are render-checked (`assertRenders`), not pixel-compared: their
+/// navigation chrome (large titles, sheet bars, the tab bar) settles at
+/// different offsets from run to run, so a reference would fail on timing
+/// alone. The check still builds and draws each whole screen.
 @MainActor
 final class TabScreenSnapshotTests: XCTestCase {
     /// Fresh-install settings for every render (restored afterwards), so
@@ -31,7 +36,7 @@ final class TabScreenSnapshotTests: XCTestCase {
             .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             // SwiftUI fatal-errors when a view reads an `@EnvironmentObject`
             // nothing supplied — `PurchaseStatusView` inside Settings reads
@@ -48,25 +53,25 @@ final class TabScreenSnapshotTests: XCTestCase {
     }
 
     func testSettingsRenders() {
-        assertSnapshot(of: hosted(SettingsView(scrollToTopToken: UUID())),
+        assertRenders(of: hosted(SettingsView(scrollToTopToken: UUID())),
                        named: "tab-settings")
     }
 
     func testTrendsRenders() {
-        assertSnapshot(of: hosted(TrendsV2View()), named: "tab-trends")
+        assertRenders(of: hosted(TrendsV2View()), named: "tab-trends")
     }
 
     func testImportDataRenders() {
-        assertSnapshot(of: hosted(ImportDataView()), named: "screen-import-data")
+        assertRenders(of: hosted(ImportDataView()), named: "screen-import-data")
     }
 
     func testFitnessTabRenders() {
-        assertSnapshot(of: hosted(FitnessTabView(scrollToTopToken: UUID())),
+        assertRenders(of: hosted(FitnessTabView(scrollToTopToken: UUID())),
                        named: "tab-fitness")
     }
 
     func testRecordTabRenders() {
-        assertSnapshot(
+        assertRenders(
             of: hosted(RecordView(selectedTab: .constant(.record), breathingAudio: BreathingAudioManager(dependencies: .current))),
             named: "tab-record"
         )

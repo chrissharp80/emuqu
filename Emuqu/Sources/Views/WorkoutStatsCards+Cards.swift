@@ -206,18 +206,24 @@ extension WorkoutStatsCards {
 
     /// Power (watts) over time, from whatever filled `powerWatts`: a running
     /// foot pod (Stryd etc.), a cycling power meter or a rower. Titled
-    /// "Running Power" only for on-foot sports.
+    /// "Running Power" only for on-foot sports. A 0 W reading (coasting) is
+    /// plotted; a row without power is not.
     func powerChartCard(samples: [WorkoutSample]) -> some View {
-        let points: [(Double, Double)] = samples.compactMap { s in
-            guard let w = s.powerWatts, w > 0 else { return nil }
-            return (Double(s.offsetSec) / 60.0, Double(w))
-        }
+        let points = Self.powerChartPoints(samples)
         return chartShell(title: powerChartTitle) {
             if points.count >= 2 {
                 simpleLineChart(points: points, tint: .yellow, samples: samples, height: 140)
             } else {
                 emptyChartText(String(localized: "No power data.", bundle: LanguageManager.appBundle))
             }
+        }
+    }
+
+    /// (minutes, watts) for each row with a power reading, 0 W included.
+    static func powerChartPoints(_ samples: [WorkoutSample]) -> [(Double, Double)] {
+        samples.compactMap { s in
+            guard let w = s.powerWatts else { return nil }
+            return (Double(s.offsetSec) / 60.0, Double(w))
         }
     }
 

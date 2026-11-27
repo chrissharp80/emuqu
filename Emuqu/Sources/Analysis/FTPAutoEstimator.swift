@@ -18,8 +18,8 @@ import Foundation
 ///     trail run, walk, hike, treadmill). Cycling FTP would use
 ///     its own estimator from a power meter on the bike.
 ///   • A rolling 20-minute window of moving time in which at least
-///     90 % of the seconds carry a power reading. Its mean power is the
-///     candidate; the highest candidate wins. A whole-session average
+///     90 % of the seconds carry a power reading (0 W counts as one). Its
+///     mean power is the candidate; the highest candidate wins. A whole-session average
 ///     dilutes a hard 20 minutes with the warm-up and cool-down, so it
 ///     under-reads threshold.
 ///   • Only the last 90 days, so the estimate follows the user down
@@ -196,13 +196,16 @@ enum FTPAutoEstimator {
     }
 
     /// Power at each second of moving time (the samples' offsets), nil
-    /// where no reading was taken.
+    /// where no reading was taken. A 0 W reading (coasting, a stop at a
+    /// crossing) is a reading and counts toward the mean, as in Coggan's
+    /// mean-maximal power: easing off is part of the effort. Only a missing
+    /// reading (nil) is left out.
     private static func perSecondPower(_ samples: [WorkoutSample]) -> [Int?] {
         let valid = samples.filter { $0.offsetSec >= 0 && $0.offsetSec < 24 * 3600 }
         guard let last = valid.map(\.offsetSec).max() else { return [] }
         var perSecond = [Int?](repeating: nil, count: last + 1)
         for sample in valid {
-            if let watts = sample.powerWatts, watts > 0 { perSecond[sample.offsetSec] = watts }
+            if let watts = sample.powerWatts { perSecond[sample.offsetSec] = watts }
         }
         return perSecond
     }

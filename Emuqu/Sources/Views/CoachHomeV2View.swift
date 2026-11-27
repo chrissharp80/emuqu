@@ -505,7 +505,7 @@ private struct CoachModelPickerSheet: View {
                 ModelOptionRow(registry: registry, model: model)
             }
         } else if provider.id == .apple {
-            Text(AppleIntelligenceStatus.current.explanation)
+            Text(dependencies.providers.appleIntelligenceStatus.explanation)
                 .scaledFont(size: 13)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

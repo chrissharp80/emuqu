@@ -10,6 +10,8 @@ import UIKit
 extension WorkoutFinalizer {
     /// Assemble the finished `HRVSession` from the captured RR series, the
     /// per-tick sample buffer and the sensor/context caches, then archive it.
+    /// Returns the session with how its save came out, so the summary can say
+    /// when it is not saved yet.
     ///
     /// The archive is kept SYNCHRONOUS. Detaching it to a background task
     /// would make the .finished phase transition appear instantly, but it is a
@@ -22,10 +24,10 @@ extension WorkoutFinalizer {
         rrPoints: [RRPoint],
         stopDate: Date,
         hrrSamples: [HRRSample]
-    ) async -> HRVSession {
+    ) async -> (session: HRVSession, saveOutcome: WorkoutSaveOutcome) {
         guard var session = recording.session, let startDate = recording.startDate else {
             debugLog("[WorkoutRecorder.finalize] no current session or start date — nothing to finalize or archive", level: .warning)
-            return HRVSession(sessionType: .workout)
+            return (HRVSession(sessionType: .workout), .notArchived)
         }
         let analysis = analyzeWorkoutForFinalize(rrPoints: rrPoints, session: session, startDate: startDate)
         var metadata = makeBaseMetadata(session: session, sport: analysis.sport, computed: analysis.computed)
@@ -39,8 +41,7 @@ extension WorkoutFinalizer {
         )
         attachAIContextSnapshot(to: &session, sport: analysis.sport, stopDate: stopDate)
         await attachTrainingSnapshot(to: &session, stopDate: stopDate)
-        await sessionLifecycle.archive(session: session)
-        return session
+        return (session, sessionLifecycle.archive(session: session))
     }
 
     /// Finalize stages 2–11 — every metadata mutation between the base

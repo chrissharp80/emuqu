@@ -885,6 +885,7 @@ struct AIProviderServices: Sendable {
     init(_ container: AppDependencies) { self.container = container }
 
     var apiKeyStore: APIKeyStore { container.providers.apiKeyStore }
+    var appleIntelligenceStatus: AppleIntelligenceStatus { container.providers.appleIntelligenceStatus }
     @MainActor
     var appleToolDispatcher: AppleToolDispatcher { container.providers.appleToolDispatcher }
     var keyboardPerfSignpost: KeyboardPerfSignpost { container.app.keyboardPerfSignpost }

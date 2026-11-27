@@ -34,7 +34,7 @@ final class ComposerState {
 /// turn, using the same provider, same history, same context.
 @Observable
 @MainActor
-final class AssistantViewModel {
+final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
 
     // MARK: - Published state
 
@@ -137,6 +137,16 @@ final class AssistantViewModel {
 
     @ObservationIgnored var streamTask: Task<Void, Never>?
 
+    /// The reply the stream task is filling and the provider writing it,
+    /// which a fallback changes. Set when the stream starts and by each
+    /// attempt; cleared by `cancel()` and `finishStream`.
+    @ObservationIgnored var streamingTurn: StreamingTurn?
+
+    struct StreamingTurn: Equatable {
+        let turnID: UUID
+        let provider: ProviderID
+    }
+
     /// Pending text to send the moment the current stream finishes. Set
     /// when `send(text:)` is called while `isStreaming == true` so the
     /// user's message isn't silently dropped — common with voice mode where
@@ -223,7 +233,8 @@ final class AssistantViewModel {
         registry: ProviderRegistry? = nil,
         store: ConversationStore? = nil,
         contextSource: AssistantContextSource? = nil,
-        factsStore: UserFactsStore? = nil
+        factsStore: UserFactsStore? = nil,
+        notificationCenter: NotificationCenter = .default
     ) {
         self.services = services
         let resolvedRegistry = registry ?? services.providerRegistry
@@ -232,6 +243,7 @@ final class AssistantViewModel {
         self.store = store
         self.contextSource = contextSource ?? services.assistantContextSource
         self.factsStore = factsStore ?? services.userFactsStore
+        self.notificationCenter = notificationCenter
         turns = store.load()
         hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: Self.disclaimerKey)
         priorSummary = store.loadSummary(migratingFrom: UserDefaults.standard, key: Self.summaryKey)
@@ -240,7 +252,32 @@ final class AssistantViewModel {
         wireArchiveInvalidation()
         wireProtectedDataRecovery()
         wireComposerState(resolvedRegistry)
+        wireConsentWithdrawal()
     }
+
+    /// Withdrawing a provider's data-sharing consent stops the turn that
+    /// provider is streaming at once, as the Settings footer promises: the
+    /// next request would be refused anyway, and this also stops the reply
+    /// still arriving and any tool call not yet made.
+    private func wireConsentWithdrawal() {
+        consentObservation = ObservationLoop.observe(self, read: { $0.services.providerConsentTracker.acknowledgedProviders }, onChange: { vm, _ in
+            vm.stopTurnIfSharingWasWithdrawn()
+        })
+    }
+
+    /// Stops the streaming turn when its provider no longer has consent. The
+    /// stream ends as Stop ends it; the text already shown stays, marked
+    /// incomplete so the next request leaves it out, and the banner says
+    /// sharing with that provider is off.
+    func stopTurnIfSharingWasWithdrawn() {
+        guard isStreaming, let streaming = streamingTurn,
+              services.providerConsentTracker.requiresConsent(streaming.provider) else { return }
+        debugLog("[Assistant] consent withdrawn from \(streaming.provider.rawValue) mid-turn; stopping the turn", level: .warning)
+        cancel()
+        tools.handleStreamFailure(error: AIProviderError.consentWithdrawn(streaming.provider), turnID: streaming.turnID)
+    }
+
+    @ObservationIgnored private var consentObservation: ObservationHandle?
 
     /// The history, the summary and the remembered facts cannot be read while
     /// the phone is locked. When this view model was created in that state,
@@ -289,7 +326,7 @@ final class AssistantViewModel {
     /// Listening for the archive notification posts the same
     /// invalidation automatically. The next send rebuilds the registry
     /// fresh against the live archive.
-    func wireArchiveInvalidation() {
+    private func wireArchiveInvalidation() {
         // `queue: nil`, not `.main`. A non-nil queue makes
         // `post` block the posting thread until the block finishes on that queue.
         // Archive writes post from background threads, so `.main` adds a
@@ -297,7 +334,9 @@ final class AssistantViewModel {
         // main was itself waiting on those writes). This block only schedules a
         // `Task { @MainActor }`, so running it on the posting thread is
         // equivalent — minus the blocking wait. See `ArchiveSignal.init`.
-        NotificationCenter.default.addObserver(
+        //
+        // The token is kept in `archiveObservers` and removed in `deinit`.
+        archiveObservers.add(notificationCenter.addObserver(
             forName: .flowRecoveryArchiveChanged,
             object: nil,
             queue: nil
@@ -305,7 +344,7 @@ final class AssistantViewModel {
             Task { @MainActor [weak self] in
                 self?.invalidateFactRegistry()
             }
-        }
+        })
     }
 
     // Cancel any in-flight stream when this VM is torn
@@ -315,10 +354,15 @@ final class AssistantViewModel {
     deinit {
         streamTask?.cancel()
         unlockObservers.removeAll()
+        archiveObservers.removeAll(from: notificationCenter)
     }
 
     /// The protected-data observers `wireProtectedDataRecovery` installs.
     @ObservationIgnored private let unlockObservers = NotificationTokens()
+    /// The archive observer `wireArchiveInvalidation` installs, on
+    /// `notificationCenter`.
+    @ObservationIgnored private let archiveObservers = NotificationTokens()
+    @ObservationIgnored private let notificationCenter: NotificationCenter
 
     // MARK: - Public API
 
@@ -604,6 +648,7 @@ final class AssistantViewModel {
         streamGeneration += 1
         streamTask?.cancel()
         streamTask = nil
+        streamingTurn = nil
         isStreaming = false
         // Drop any queued pending message — user explicitly hit Stop.
         pendingSendOnFinish = nil

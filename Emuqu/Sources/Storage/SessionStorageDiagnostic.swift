@@ -142,7 +142,7 @@ enum SessionStorageDiagnostic {
         backup: RawRRBackup
     ) -> SessionReport {
         // (1) Archive file size — useful regardless of decode outcome.
-        let fileURL = archive.resolveFileURL(for: entry)
+        let fileURL = archive.state.resolveFileURL(for: entry)
         let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int64) ?? 0
         // Looked up before the decode: an unreadable archive file whose beats
         // survive in the backup is exactly the case the audit exists to show.

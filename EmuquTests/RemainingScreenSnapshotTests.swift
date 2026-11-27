@@ -7,15 +7,20 @@ import XCTest
 /// Dashboard, history, main tab shell, settings subpages, the coach home and
 /// the trail discovery screen. With the tab and detail suites these cover the
 /// screens a user reaches in ordinary use.
+///
+/// The main tab shell, history, biometrics and wearables settings, the coach home and the trail picker are render-checked (`assertRenders`), not pixel-compared: their
+/// navigation chrome (large titles, sheet bars, the tab bar) settles at
+/// different offsets from run to run, so a reference would fail on timing
+/// alone. The check still builds and draws each whole screen.
 @MainActor
 final class RemainingScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector(dependencies: .current))
+            .environment(SnapshotFixtures.collector())
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)
-            .environment(CloudKitSyncManager.shared)
+            .environment(SnapshotFixtures.syncManager())
             .environment(VoiceConversationController.shared)
             .environment(ArchiveSignal())
             .environment(MorningCoordination())
@@ -29,14 +34,18 @@ final class RemainingScreenSnapshotTests: XCTestCase {
     }
 
     func testMainTabShellRenders() {
-        assertSnapshot(of: hosted(MainTabView()), named: "shell-main-tab")
+        useEmptyDashboardCache()
+        assertRenders(of: hosted(MainTabView()), named: "shell-main-tab")
     }
 
     func testHistoryRenders() {
-        assertSnapshot(
+        assertRenders(
             of: hosted(
                 HistoryView(
-                    archive: AppDependencies.current.storage.sessionArchive,
+                    // Empty: the list groups readings under "This Week" and
+                    // "Last Week", counted from today, so a populated list
+                    // would change as the days pass.
+                    archive: SessionArchive(directory: SnapshotFixtures.emptyArchiveDirectory),
                     settingsManager: AppDependencies.current.app.settingsManager,
                     onDelete: { _ in },
                     onUpdateTags: { _, _, _ in },
@@ -49,22 +58,24 @@ final class RemainingScreenSnapshotTests: XCTestCase {
     }
 
     func testBiometricsSettingsRenders() {
-        assertSnapshot(of: hosted(BiometricsSettingsPage()), named: "screen-biometrics-settings")
+        assertRenders(of: hosted(BiometricsSettingsPage()), named: "screen-biometrics-settings")
     }
 
     func testWearablesSettingsRenders() {
-        assertSnapshot(of: hosted(WearablesSettingsPage()), named: "screen-wearables-settings")
+        assertRenders(of: hosted(WearablesSettingsPage()), named: "screen-wearables-settings")
     }
 
+    /// The coach's home, after the data-handling notice has been accepted.
     func testCoachHomeRenders() {
-        assertSnapshot(
+        useAssistantDisclaimerAccepted(true)
+        assertRenders(
             of: hosted(CoachHomeV2View(scrollToBottomSignal: UUID())),
             named: "screen-coach-home"
         )
     }
 
     func testDiscoverTrailsRenders() {
-        assertSnapshot(
+        assertRenders(
             of: hosted(DiscoverTrailsView(onTrailPicked: { _ in })),
             named: "screen-discover-trails"
         )

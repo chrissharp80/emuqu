@@ -169,6 +169,7 @@ extension WorkoutRecorder {
     func acknowledgeFinished() {
         if lifecycle.phase == .finished {
             lifecycle.finishedSession = nil
+            lifecycle.saveOutcome = nil
             lifecycle.phase = .idle
             if core.strapStream.isStreaming {
                 _ = core.strapStream.stopStreaming()

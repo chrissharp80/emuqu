@@ -34,7 +34,12 @@ struct HistoryCalendarView: View {
 
     @Environment(\.dependencies) private var dependencies
 
-    @State private var visibleMonth: Date = HistoryCalendarView.startOfMonth(Date())
+    /// Today, as the starting month and the ringed day count it.
+    @Environment(\.currentDate) private var currentDate
+    /// The month shown once the calendar has appeared or the user has stepped;
+    /// before that, the month that contains today.
+    @State private var chosenMonth: Date?
+    private var visibleMonth: Date { chosenMonth ?? Self.startOfMonth(currentDate()) }
     @State private var selectedDaySheet: DaySheetIdentity?
 
     // Memoized calendar grid + month stats. Without
@@ -80,7 +85,10 @@ struct HistoryCalendarView: View {
         .sheet(item: $selectedDaySheet) { item in
             DaySummarySheet(date: item.date, sessions: item.sessions, onDelete: onDelete)
         }
-        .onAppear { rebuildMemoIfNeeded() }
+        .onAppear {
+            holdOpeningMonth()
+            rebuildMemoIfNeeded()
+        }
         .onChange(of: visibleMonth) { _, _ in rebuildMemoIfNeeded() }
         .onChange(of: sessionsFingerprint) { _, _ in rebuildMemoIfNeeded() }
     }
@@ -342,7 +350,7 @@ struct HistoryCalendarView: View {
     }
 
     private func dayCellTile(_ day: DayCell) -> some View {
-        let isToday = Calendar.current.isDateInToday(day.date)
+        let isToday = Calendar.current.isDate(day.date, inSameDayAs: currentDate())
         return VStack(spacing: 3) {
             Text(verbatim: "\(Calendar.current.component(.day, from: day.date))")
                 .scaledFont(size: 13, weight: isToday ? .bold : .semibold)
@@ -560,6 +568,12 @@ struct HistoryCalendarView: View {
 
     // MARK: - Navigation
 
+    /// Holds the month the calendar opened on, so past midnight on the last
+    /// day of a month the page stays where the user left it.
+    private func holdOpeningMonth() {
+        if chosenMonth == nil { chosenMonth = visibleMonth }
+    }
+
     private var canStepBack: Bool {
         let cal = Calendar.current
         guard let earliest = allSessions.map({ Self.calendarDay(of: $0, cal: cal) }).min() else { return false }
@@ -568,7 +582,7 @@ struct HistoryCalendarView: View {
     }
 
     private var canStepForward: Bool {
-        visibleMonth < Self.startOfMonth(Date())
+        visibleMonth < Self.startOfMonth(currentDate())
     }
 
     /// One month back or forward (`delta` is -1 or 1), under the same rule as
@@ -579,7 +593,7 @@ struct HistoryCalendarView: View {
         if delta > 0, !canStepForward { return }
         guard let next = Calendar.current.date(byAdding: .month, value: delta, to: visibleMonth) else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
-            visibleMonth = Self.startOfMonth(next)
+            chosenMonth = Self.startOfMonth(next)
         }
     }
 

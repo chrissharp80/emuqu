@@ -191,6 +191,13 @@ check "snapshot_refs/deleted_reference" \
     "EmuquTests/__Snapshots__/alpha1-report.raw" \
     "import pathlib;pathlib.Path('EmuquTests/__Snapshots__/alpha1-report.raw').unlink()"
 
+# Two references with the same bytes: the renderer drew something other than
+# the views, and both tests pass against it whatever their views do.
+check "snapshot_refs/identical_references" \
+    "./scripts/check_snapshot_references.sh" \
+    "EmuquTests/__Snapshots__/badge-morning-feeling.raw" \
+    "import pathlib;d=pathlib.Path('EmuquTests/__Snapshots__');(d/'badge-morning-feeling.raw').write_bytes((d/'alpha1-report.raw').read_bytes())"
+
 # `1 ..< xs.count` traps when xs is empty — a shape that recurs, and that
 # ships as a latent crash.
 check "empty_range/unguarded_loop" \

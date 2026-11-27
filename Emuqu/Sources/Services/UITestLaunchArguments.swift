@@ -69,7 +69,7 @@ enum UITestLaunchArguments {
 
         @MainActor
         static func plantIfRequested(into collector: RRCollector) async {
-            guard UITestLaunchArguments.seedsArchive, collector.archive.index.isEmpty else { return }
+            guard UITestLaunchArguments.seedsArchive, collector.archive.state.index.isEmpty else { return }
             let points = syntheticOvernightPoints()
             // Background-refinement mode: the sleep-boundary poll makes one
             // HealthKit attempt instead of fifteen, since no Watch will ever

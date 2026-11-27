@@ -456,7 +456,7 @@ struct FloSetupCard: View {
     private var setupText: some View {
         VStack(spacing: 10) {
             Text(String(localized: "Flo is your coach for recovery, sleep, training and live workouts. It needs an AI model to answer with, and none is ready yet.", bundle: LanguageManager.appBundle))
-            Text(AppleIntelligenceStatus.current.explanation)
+            Text(dependencies.providers.appleIntelligenceStatus.explanation)
             Text(String(localized: "Or add your own API key for Claude, ChatGPT, Gemini, Grok or DeepSeek. Usage is billed to your account with that provider, and before anything is sent Flo shows what the provider will receive and asks you.", bundle: LanguageManager.appBundle))
         }
         .font(.callout)

@@ -10,8 +10,9 @@ import UIKit
 /// only in a bounded in-memory ring buffer (`maxMemoryEntries`) for the error catalog
 /// and export UI.
 ///
-/// When disk persistence is enabled, logs are append-only to a file in the App
-/// Group container, rotated on launch if the file exceeds `maxFileSize`.
+/// When disk persistence is enabled, logs are appended to a file in the App
+/// Group container that is kept at or under `maxFileSize` as it is written
+/// (`BoundedLogFile`).
 @Observable
 @MainActor
 final class DebugLogger {
@@ -86,6 +87,8 @@ final class DebugLogger {
     @ObservationIgnored private let pendingEntries = OSAllocatedUnfairLock<[LogEntry]>(initialState: [])
     @ObservationIgnored private var flushTimer: Timer?
     private let logFileURL: URL
+    /// The file the flushes write, held under `maxFileSize`.
+    private let logFile: BoundedLogFile
 
     nonisolated private init() {
         queue = DispatchQueue(label: "com.hrv.debuglogger", qos: .utility)
@@ -100,10 +103,26 @@ final class DebugLogger {
         persistentBox = OSAllocatedUnfairLock(initialState: enabled)
 
         logFileURL = Self.resolveLogFileURL()
+        logFile = BoundedLogFile(url: logFileURL, bound: Self.maxFileSize, trimTarget: Self.maxFileSize / 2)
         Self.relaxFileProtection(at: logFileURL)
         if enabled { deferDiskLoad() }
         Task { @MainActor in self.startFlushTimer() }
         observeAppLifecycle()
+    }
+
+    /// A logger holding `entries` in memory and nothing else: no log file is
+    /// read or written, no flush timer runs, no app-lifecycle observer is
+    /// added. The error catalog is the entries the app would catalog. For a
+    /// preview or test that shows the log screens fixed lines in place of the
+    /// process's own log.
+    nonisolated init(inMemory entries: [LogEntry]) {
+        queue = DispatchQueue(label: "com.hrv.debuglogger.inmemory", qos: .utility)
+        _persistentLoggingEnabled = false
+        persistentBox = OSAllocatedUnfairLock(initialState: false)
+        logFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("debug_log-\(UUID().uuidString).txt")
+        logFile = BoundedLogFile(url: logFileURL, bound: Self.maxFileSize, trimTarget: Self.maxFileSize / 2)
+        _entries = entries
+        _errorCatalog = entries.filter { Self.shouldCatalog(message: $0.message, level: $0.level) }
     }
 
     /// Resolve the log file path once, preferring the shared app-group container
@@ -119,7 +138,7 @@ final class DebugLogger {
     /// user sleeps, and any diagnostic captures from that period are empty. Use
     /// `.completeUntilFirstUserAuthentication` so the file is still encrypted at
     /// rest but stays accessible after first unlock.
-    nonisolated private static func relaxFileProtection(at url: URL) {
+    nonisolated static func relaxFileProtection(at url: URL) {
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         do {
             try FileManager.default.setAttributes(
@@ -141,8 +160,8 @@ final class DebugLogger {
     /// — and the same hang re-triggers if anyone touches the shared logger
     /// before the file exists.
     ///
-    /// Both calls are idempotent and self-contained: rotate checks file size and
-    /// trims; load reads the file into the in-memory ring buffer used by the
+    /// Both calls are idempotent and self-contained: the trim checks file size
+    /// and cuts the file under the bound; load reads the file into the in-memory ring buffer used by the
     /// export UI. Deferring both to the logger's serial queue is safe because the
     /// flush timer and write path don't depend on either having completed (writes
     /// append; reads only matter for the export sheet, which already runs async).
@@ -150,7 +169,7 @@ final class DebugLogger {
     /// Settings → Troubleshooting open is invisible to the user.
     nonisolated private func deferDiskLoad() {
         queue.async { [weak self] in
-            self?.rotateIfNeeded()
+            self?.logFile.trimIfOverBound()
             self?.loadFromDisk()
         }
     }
@@ -310,55 +329,7 @@ final class DebugLogger {
         guard !lines.isEmpty, persistentBox.withLock({ $0 }) else { return }
         let batch = lines.map { Self.scrubPHI($0) }.joined(separator: "\n") + "\n"
         guard let data = batch.data(using: .utf8) else { return }
-        if FileManager.default.fileExists(atPath: logFileURL.path) {
-            append(data)
-        } else {
-            createLogFile(with: data)
-        }
-    }
-
-    /// Throwing calls: the legacy `write(_:)` raises an uncatchable exception
-    /// on a full disk. NSLog on failure, for the reason `createLogFile` gives.
-    nonisolated private func append(_ data: Data) {
-        let handle: FileHandle
-        do {
-            handle = try FileHandle(forWritingTo: logFileURL)
-        } catch {
-            NSLog("[DebugLog] opening the log file failed, batch dropped: %@", error.localizedDescription)
-            return
-        }
-        do {
-            try handle.seekToEnd()
-            try handle.write(contentsOf: data)
-            try handle.close()
-        } catch {
-            NSLog("[DebugLog] append failed: \(error)")
-            do { try handle.close() } catch { NSLog("[DebugLog] close failed: \(error)") }
-        }
-    }
-
-    /// NSLog, not `attempt`/`debugLog`: this IS the logger, and routing a flush
-    /// failure back through it would append to the buffer whose flush just
-    /// failed. NSLog goes straight to the system log and cannot re-enter.
-    ///
-    /// Same rule as the init path: a `.complete` protection class makes the
-    /// log file unwritable while the device is locked.
-    /// `.completeUntilFirstUserAuthentication` lets background
-    /// recording sessions keep logging.
-    nonisolated private func createLogFile(with data: Data) {
-        do {
-            try data.write(to: logFileURL, options: .atomic)
-        } catch {
-            NSLog("[DebugLogger] flush to disk failed: %@", error.localizedDescription)
-        }
-        do {
-            try FileManager.default.setAttributes(
-                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                ofItemAtPath: logFileURL.path
-            )
-        } catch {
-            NSLog("[DebugLogger] setting log file protection failed: %@", error.localizedDescription)
-        }
+        logFile.write(data)
     }
 
     // MARK: - PHI scrub
@@ -533,27 +504,6 @@ final class DebugLogger {
         return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: template)
     }
 
-    /// If the log file exceeds `maxFileSize`, keep only the second half (most recent).
-    /// The atomic rewrite is a new file, so its protection class is set again.
-    nonisolated private func rotateIfNeeded() {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: logFileURL.path),
-              let size = attrs[.size] as? Int, size > Self.maxFileSize else { return }
-
-        guard let content = try? String(contentsOf: logFileURL, encoding: .utf8) else { return }
-        let lines = content.components(separatedBy: "\n")
-        let keepFrom = lines.count / 2
-        let trimmed = lines[keepFrom...].joined(separator: "\n")
-        do {
-            try trimmed.write(to: logFileURL, atomically: true, encoding: .utf8)
-            Self.relaxFileProtection(at: logFileURL)
-        } catch {
-            // Same reentrancy reasoning as the flush path above. A failed trim
-            // means the log file keeps growing past `maxFileSize`, which is
-            // worth knowing about before it fills the container.
-            NSLog("[DebugLogger] log rotation failed, file will keep growing: %@", error.localizedDescription)
-        }
-    }
-
     /// Load existing log entries from disk into memory (called once at init)
     nonisolated private func loadFromDisk() {
         guard let content = try? String(contentsOf: logFileURL, encoding: .utf8),
@@ -624,7 +574,10 @@ final class DebugLogger {
         errorCatalog.removeAll()
         pendingLines.withLock { $0.removeAll() }
         pendingEntries.withLock { $0.removeAll() }
-        return queue.sync { [logFileURL] in Self.removeLogFile(at: logFileURL) }
+        return queue.sync { [logFileURL, logFile] in
+            defer { logFile.forgetSize() }
+            return Self.removeLogFile(at: logFileURL)
+        }
     }
 
     nonisolated private static func removeLogFile(at url: URL) -> Bool {
@@ -863,4 +816,136 @@ func debugLogExternal(
     line: Int = #line
 ) {
     debugLog("[external · \(cause.rawValue)] \(message())", level: .info, file: file, line: line)
+}
+
+/// The persisted debug log file, kept at or under `bound` bytes while the app
+/// runs, not only at launch. Each write adds its byte count to a running total
+/// (read from the file's attributes when it is not known), so checking the
+/// size costs nothing per flush. A write that takes the file over the bound
+/// cuts it to its newest `trimTarget` bytes at a line boundary; trimming well
+/// below the bound keeps that rewrite rare. Every call runs on the logger's
+/// serial queue.
+///
+/// NSLog on failure, never `attempt`/`debugLog`: this IS the logger, and
+/// routing a write failure back through it would append to the buffer whose
+/// flush just failed. NSLog goes straight to the system log and cannot
+/// re-enter.
+///
+/// Protection class `.completeUntilFirstUserAuthentication` on the new file
+/// and after each trim (the atomic rewrite is a new file), not `.complete`:
+/// the log must stay writable while the device is locked, during an overnight
+/// recording or a screen-locked workout.
+final class BoundedLogFile: Sendable {
+    let url: URL
+    /// The most bytes the file holds once a write returns.
+    let bound: Int
+    /// What a trim keeps: the newest whole lines that fit in this many bytes.
+    let trimTarget: Int
+    /// The file's size as this object last wrote it; nil when not known.
+    private let trackedBytes = OSAllocatedUnfairLock<Int?>(initialState: nil)
+
+    init(url: URL, bound: Int, trimTarget: Int) {
+        self.url = url
+        self.bound = bound
+        self.trimTarget = min(trimTarget, bound)
+    }
+
+    /// Appends `data`, creating the file when there is none, then trims the
+    /// file when the write took it over the bound.
+    func write(_ data: Data) {
+        let existed = FileManager.default.fileExists(atPath: url.path)
+        let known = existed ? trackedBytes.withLock { $0 } : 0
+        guard existed ? append(data) : create(with: data) else {
+            forgetSize()
+            return
+        }
+        let size = known.map { $0 + data.count } ?? Self.fileSize(at: url)
+        trackedBytes.withLock { $0 = size }
+        if let size, size > bound { trim() }
+    }
+
+    /// Trims the file when it is over the bound, whoever wrote it.
+    func trimIfOverBound() {
+        guard let size = Self.fileSize(at: url) else { return }
+        trackedBytes.withLock { $0 = size }
+        if size > bound { trim() }
+    }
+
+    /// Drops the tracked size, after the file was removed or a write failed;
+    /// the next write reads it from the file.
+    func forgetSize() {
+        trackedBytes.withLock { $0 = nil }
+    }
+
+    /// Throwing calls: the legacy `write(_:)` raises an uncatchable exception
+    /// on a full disk.
+    private func append(_ data: Data) -> Bool {
+        let handle: FileHandle
+        do {
+            handle = try FileHandle(forWritingTo: url)
+        } catch {
+            NSLog("[DebugLog] opening the log file failed, batch dropped: %@", error.localizedDescription)
+            return false
+        }
+        do {
+            try handle.seekToEnd()
+            try handle.write(contentsOf: data)
+            try handle.close()
+            return true
+        } catch {
+            NSLog("[DebugLog] append failed: \(error)")
+            do { try handle.close() } catch { NSLog("[DebugLog] close failed: \(error)") }
+            return false
+        }
+    }
+
+    private func create(with data: Data) -> Bool {
+        let fitted = data.count > bound ? Self.newestLines(of: data, atMost: trimTarget) : data
+        return replaceContents(with: fitted)
+    }
+
+    /// Rewrites the file with its newest whole lines that fit in `trimTarget`.
+    private func trim() {
+        let content: Data
+        do {
+            content = try Data(contentsOf: url)
+        } catch {
+            NSLog("[DebugLogger] reading the log file to trim it failed: %@", error.localizedDescription)
+            forgetSize()
+            return
+        }
+        _ = replaceContents(with: Self.newestLines(of: content, atMost: trimTarget))
+    }
+
+    private func replaceContents(with data: Data) -> Bool {
+        do {
+            try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        } catch {
+            NSLog("[DebugLogger] writing the log file failed, it may stay over its size bound: %@", error.localizedDescription)
+            forgetSize()
+            return false
+        }
+        DebugLogger.relaxFileProtection(at: url)
+        trackedBytes.withLock { $0 = data.count }
+        return true
+    }
+
+    /// The newest whole lines of `data` that fit in `limit` bytes. The cut
+    /// lands after a newline, so no partial line is kept.
+    static func newestLines(of data: Data, atMost limit: Int) -> Data {
+        guard data.count > limit else { return data }
+        let tail = data.suffix(max(0, limit))
+        guard let newline = tail.firstIndex(of: UInt8(ascii: "\n")) else { return Data() }
+        return Data(tail[tail.index(after: newline)...])
+    }
+
+    private static func fileSize(at url: URL) -> Int? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        do {
+            return try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int
+        } catch {
+            NSLog("[DebugLogger] reading the log file size failed: %@", error.localizedDescription)
+            return nil
+        }
+    }
 }

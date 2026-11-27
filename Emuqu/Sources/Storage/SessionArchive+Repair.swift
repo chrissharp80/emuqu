@@ -30,18 +30,18 @@ extension SessionArchive {
         archiveLock.lock()
         defer { archiveLock.unlock() }
         let files = try archiveFiles()
-        index = rebuiltIndex(from: files).sorted { $0.date > $1.date }
+        state.index = rebuiltIndex(from: files).sorted { $0.date > $1.date }
         // Dropped now, not by `saveIndex`: a save that fails before it gets
         // there would leave them serving the index this repair replaced.
-        sortedEntriesCache = nil
-        sessionIdLookup = nil
+        state.sortedEntriesCache = nil
+        state.sessionIdLookup = nil
         do {
-            try saveIndex()
+            try state.saveIndex()
         } catch {
             debugLog("[Archive] ⚠️ Failed to save index after repair: \(error)")
             throw error
         }
-        return index.count
+        return state.index.count
     }
 
     /// The archive directory's entries; a listing that fails is logged and
@@ -56,7 +56,7 @@ extension SessionArchive {
     }
 
     private func rebuiltIndex(from files: [URL]) -> [SessionArchiveEntry] {
-        let existingEntriesById = Dictionary(index.map { ($0.sessionId, $0) }, uniquingKeysWith: { first, _ in first })
+        let existingEntriesById = Dictionary(state.index.map { ($0.sessionId, $0) }, uniquingKeysWith: { first, _ in first })
         return files
             .filter { $0.pathExtension == "json" && $0.lastPathComponent != "index.json" && $0.lastPathComponent != "deleted.json" }
             .compactMap { rebuiltEntry(for: $0, existing: existingEntriesById) }
@@ -86,7 +86,7 @@ extension SessionArchive {
         let filename = fileURL.deletingPathExtension().lastPathComponent
         guard let sessionId = UUID(uuidString: filename) else { return nil }
         // Skip deleted sessions
-        if deletedSessionIds.contains(sessionId) { return nil }
+        if state.deletedSessionIds.contains(sessionId) { return nil }
         let fileData: Data
         do {
             fileData = try Data(contentsOf: fileURL)
@@ -160,9 +160,9 @@ extension SessionArchive {
     func repairSessionHashIfDecodable(sessionId: UUID) -> HashRepair {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        guard let idx = index.firstIndex(where: { $0.sessionId == sessionId }) else { return .notNow }
-        let entry = index[idx]
-        let fileURL = resolveFileURL(for: entry)
+        guard let idx = state.index.firstIndex(where: { $0.sessionId == sessionId }) else { return .notNow }
+        let entry = state.index[idx]
+        let fileURL = state.resolveFileURL(for: entry)
         guard let fileData = Self.bytesForRepair(at: fileURL, id: sessionId, encryption: encryption) else { return .notNow }
         // Only re-hash a file that decodes to a real session.
         guard let session = Self.decodeRepairable(fileData, id: sessionId, encryption: encryption) else {
@@ -172,7 +172,7 @@ extension SessionArchive {
         // Already matches? Nothing to repair (defensive — caller only calls on mismatch).
         let currentHash = SessionFileCodec.sha256Hex(fileData)
         if currentHash == entry.fileHash { return .repaired }
-        index[idx] = SessionArchiveEntry.make(
+        state.index[idx] = SessionArchiveEntry.make(
             from: session, hash: currentHash, filePath: fileURL.lastPathComponent,
             overridingSessionId: sessionId, recoveryScoreFallback: session.readinessScore
         )
@@ -209,7 +209,7 @@ extension SessionArchive {
     /// fails; the next successful save writes it.
     private func persistRehash(sessionId: UUID, from oldHash: String, to currentHash: String) -> Bool {
         do {
-            try saveIndex()
+            try state.saveIndex()
         } catch {
             debugLog("[Archive] Repair: failed to save index after re-hashing \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
             return false
@@ -221,14 +221,14 @@ extension SessionArchive {
     /// Verify archive integrity
     func verifyIntegrity() -> [UUID: Bool] {
         archiveLock.lock()
-        let entriesToVerify = index
+        let entriesToVerify = state.index
         archiveLock.unlock()
 
         var results: [UUID: Bool] = [:]
 
         for entry in entriesToVerify {
             do {
-                let data = try Data(contentsOf: resolveFileURL(for: entry))
+                let data = try Data(contentsOf: state.resolveFileURL(for: entry))
                 results[entry.sessionId] = (SessionFileCodec.sha256Hex(data) == entry.fileHash)
             } catch {
                 results[entry.sessionId] = false

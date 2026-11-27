@@ -269,6 +269,18 @@ unexplained_failures() {
         done
 }
 
+# True when the build failed only on the type-check timer (TYPE_CHECK_FLAGS)
+# and no test ran: every compile error is "<site> took <n>ms to type-check".
+# The timer measures wall time, so a busy runner can push a trivial expression
+# past it; a site that is really slow is slow again on the rebuild and fails it.
+timing_only_build_failure() {
+    local log="$1" errors
+    errors="$(grep -E ": error: " "$log" || true)"
+    [[ -n "$errors" ]] || return 1
+    if grep -qE "Test [Cc]ase '[^']+' (failed|passed)" "$log"; then return 1; fi
+    ! grep -qvE ": error: .+ took [0-9]+ms to type-check \(limit: [0-9]+ms\)" <<< "$errors"
+}
+
 TEST_LOG="$(gate_mktemp xcodebuild-tests)" || exit $?
 trap 'rm -f "$TEST_LOG"' EXIT
 
@@ -282,6 +294,16 @@ while :; do
 
     if (( test_status == 0 )); then
         break
+    fi
+
+    if (( attempt < max_attempts )) && timing_only_build_failure "$TEST_LOG"; then
+        echo ""
+        echo "The build failed only on the type-check timer, and no test ran. The timer"
+        echo "measures wall time, so this can be a busy runner: rebuilding once"
+        echo "(attempt $((attempt + 1))/$max_attempts). A site over the limit again fails the run."
+        rm -rf "$RESULT_BUNDLE"
+        attempt=$((attempt + 1))
+        continue
     fi
 
     failed_tests="$(grep -cE "Test [Cc]ase '[^']+' failed" "$TEST_LOG" || true)"

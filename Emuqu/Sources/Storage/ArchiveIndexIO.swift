@@ -5,7 +5,7 @@ import Foundation
 // the layer beneath the lock-free session methods in `ArchiveStore+Internal.swift`
 // that reads and writes the index file itself.
 
-extension SessionArchive {
+extension ArchiveIndexState {
     // MARK: - Private
 
     /// Resolve the on-disk file URL for an archive entry.
@@ -52,7 +52,7 @@ extension SessionArchive {
     /// inherit).
     func createArchiveDirectoryIfNeeded() {
         if !fileManager.fileExists(atPath: archiveDirectory.path) {
-            _ = attempt("SessionArchive+IndexIO.create") { try fileManager.createDirectory(at: archiveDirectory, withIntermediateDirectories: true) }
+            _ = attempt("ArchiveIndexIO.create") { try fileManager.createDirectory(at: archiveDirectory, withIntermediateDirectories: true) }
         }
         do {
             try fileManager.setAttributes(Self.protectionAttributes, ofItemAtPath: archiveDirectory.path)
@@ -159,7 +159,7 @@ extension SessionArchive {
             return
         }
         do {
-            (index, newerBuildIndexEntries) = try Self.decodeIndex(Self.indexJSON(data, encryption: encryption))
+            (index, newerBuildIndexEntries) = try SessionArchive.decodeIndex(SessionArchive.indexJSON(data, encryption: encryption))
             sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
@@ -180,7 +180,7 @@ extension SessionArchive {
         let data = try readStoredIndex()
         indexReadFailed = false
         do {
-            let onDisk = try Self.decodeIndex(Self.indexJSON(data, encryption: encryption))
+            let onDisk = try SessionArchive.decodeIndex(SessionArchive.indexJSON(data, encryption: encryption))
             let known = Set(index.map(\.sessionId))
             index += onDisk.entries.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
             newerBuildIndexEntries.merge(onDisk.newer)
@@ -205,32 +205,6 @@ extension SessionArchive {
         let stored = try Data(contentsOf: indexFile)
         guard ArchiveStore.looksEncrypted(stored), !encryption.isAvailable else { return stored }
         throw EncryptionManager.EncryptionError.keyNotFound
-    }
-
-    /// The index JSON in `stored`: unsealed, or as it is when a build that
-    /// did not seal the index wrote it as plain JSON
-    /// (`EncryptionManager.openStoredJSON`). Throws when sealed bytes do not
-    /// open, which `loadIndex` treats as corruption.
-    static func indexJSON(_ stored: Data, encryption: EncryptionManager) throws -> Data {
-        try encryption.openStoredJSON(stored)
-    }
-
-    /// The index entries in `data`, each decoded on its own: an entry this
-    /// build cannot read (a field or case a newer build added, arriving
-    /// through a shared container or a restore) is left out and logged, and
-    /// the rest of the index still loads. Its session file stays on disk for
-    /// a build that can read it. That entry, and one that decoded from a
-    /// schema newer than this build writes, come back in `newer` as the JSON
-    /// they were read as, so a save does not drop them or their newer fields.
-    /// Throws only when `data` is not an index at all.
-    static func decodeIndex(_ data: Data) throws -> (entries: [SessionArchiveEntry], newer: IndexEntriesFromNewerBuild) {
-        let decoded = try sessionDecoder.decode([LenientIndexEntry].self, from: data).map(\.entry)
-        let entries = decoded.compactMap { $0 }
-        guard decoded.contains(where: { $0?.isFromNewerSchema ?? true }) else { return (entries, IndexEntriesFromNewerBuild()) }
-        guard let objects = try JSONSerialization.jsonObject(with: data) as? [Any], objects.count == decoded.count else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        return (entries, try IndexEntriesFromNewerBuild(decoded: decoded, objects: objects))
     }
 
     /// The first save after a failed load writes a near-empty index over the
@@ -291,7 +265,7 @@ extension SessionArchive {
     }
 
     private static func decodeDeletedIds(_ data: Data) throws -> Set<UUID> {
-        Set(try sessionDecoder.decode([String].self, from: data).compactMap { UUID(uuidString: $0) })
+        Set(try SessionArchive.sessionDecoder.decode([String].self, from: data).compactMap { UUID(uuidString: $0) })
     }
 
     /// Not emptied and then saved over: the next deletion would write a
@@ -312,7 +286,7 @@ extension SessionArchive {
         try PurgeGate.admitWrite {
             try mergeDeletedIndexThatFailedToLoad()
             let uuidStrings = deletedSessionIds.map(\.uuidString)
-            let data = try Self.indexEncoder.encode(uuidStrings)
+            let data = try SessionArchive.indexEncoder.encode(uuidStrings)
             try data.write(to: deletedIndexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }
     }
@@ -362,6 +336,34 @@ extension SessionArchive {
                   !ArchiveStore.looksEncrypted(stored) else { return }
             _ = attempt("Archive.resealIndex") { try saveIndex() }
         }
+    }
+}
+
+extension SessionArchive {
+    /// The index JSON in `stored`: unsealed, or as it is when a build that
+    /// did not seal the index wrote it as plain JSON
+    /// (`EncryptionManager.openStoredJSON`). Throws when sealed bytes do not
+    /// open, which `loadIndex` treats as corruption.
+    static func indexJSON(_ stored: Data, encryption: EncryptionManager) throws -> Data {
+        try encryption.openStoredJSON(stored)
+    }
+
+    /// The index entries in `data`, each decoded on its own: an entry this
+    /// build cannot read (a field or case a newer build added, arriving
+    /// through a shared container or a restore) is left out and logged, and
+    /// the rest of the index still loads. Its session file stays on disk for
+    /// a build that can read it. That entry, and one that decoded from a
+    /// schema newer than this build writes, come back in `newer` as the JSON
+    /// they were read as, so a save does not drop them or their newer fields.
+    /// Throws only when `data` is not an index at all.
+    static func decodeIndex(_ data: Data) throws -> (entries: [SessionArchiveEntry], newer: IndexEntriesFromNewerBuild) {
+        let decoded = try sessionDecoder.decode([LenientIndexEntry].self, from: data).map(\.entry)
+        let entries = decoded.compactMap { $0 }
+        guard decoded.contains(where: { $0?.isFromNewerSchema ?? true }) else { return (entries, IndexEntriesFromNewerBuild()) }
+        guard let objects = try JSONSerialization.jsonObject(with: data) as? [Any], objects.count == decoded.count else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return (entries, try IndexEntriesFromNewerBuild(decoded: decoded, objects: objects))
     }
 
     // MARK: - Errors
