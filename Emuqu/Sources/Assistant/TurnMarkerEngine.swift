@@ -137,7 +137,7 @@ enum TurnMarkerEngine {
         let legElev = max(0, context.elevationGainMeters - working.legStartElevationMeters)
         let legPaceSecPerKm = legDistance > 50 ? Double(legDuration) / (legDistance / 1000.0) : nil
         let legAvgHR = working.legHRCount > 0
-            ? Int(Double(working.legHRSum) / Double(working.legHRCount))
+            ? Int((Double(working.legHRSum) / Double(working.legHRCount)).rounded())
             : nil
         return TurnMarkerPayload(
             completedInstruction: step.currentInstruction,

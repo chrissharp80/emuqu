@@ -640,7 +640,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
-            Text(String(localized: "\(Int(overnightStats.minHR))-\(Int(overnightStats.maxHR)) bpm", bundle: LanguageManager.appBundle))
+            Text(String(localized: "\(Int(overnightStats.minHR.rounded()))-\(Int(overnightStats.maxHR.rounded())) bpm", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.terracottaText)
         }
@@ -681,7 +681,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
         )
         .frame(height: 180)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "HRV chart. Peak RMSSD \(Int(overnightStats.peakRMSSD)) milliseconds at \(overnightStats.peakHRVTimeFormatted). Analysis window \(overnightStats.windowStartTimeFormatted) to \(overnightStats.windowEndTimeFormatted).", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "HRV chart. Peak RMSSD \(Int(overnightStats.peakRMSSD.rounded())) milliseconds at \(overnightStats.peakHRVTimeFormatted). Analysis window \(overnightStats.windowStartTimeFormatted) to \(overnightStats.windowEndTimeFormatted).", bundle: LanguageManager.appBundle))
         // The pin-and-Analyze-Here controls are drag-only and hidden by
         // `.ignore`; VoiceOver users get the same reanalysis as an action.
         .accessibilityActions { analyzeAtPeakAction }
@@ -712,7 +712,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
-            Text(String(localized: "Peak: \(Int(overnightStats.peakRMSSD)) ms", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Peak: \(Int(overnightStats.peakRMSSD.rounded())) ms", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.sageText)
         }

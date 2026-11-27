@@ -7,21 +7,52 @@ import Foundation
 /// so a day's load and the EWMA step are computed one way only; the two paths
 /// differ only in how many days they replay.
 enum TrainingLoadSeries {
-    /// The heart rates a workout without a precomputed load is scored against
-    /// (Banister TRIMP's heart-rate reserve). Resolved once per refresh and
-    /// handed to both paths. Not everything TRIMP reads: its sex weighting
-    /// comes from the biological-sex setting when the load is computed
-    /// (`WorkoutSummary.effectiveLoad`); the cache's `LoadSettings` carries
-    /// that setting, so a change to it rebuilds both paths.
-    struct HeartRateAnchors: Equatable, Codable, Sendable {
+    /// Everything a workout without a precomputed load is scored against:
+    /// the heart rates of Banister TRIMP's heart-rate reserve and the
+    /// coefficients for the user's biological sex, and the LTHR that puts
+    /// every TRIMP-scale load on the TSS scale (`tss(fromTRIMP:)`). Resolved
+    /// once per refresh and handed to both paths; the cache's `LoadSettings`
+    /// carries the settings behind them, so a change rebuilds both paths.
+    struct HeartRateAnchors: Hashable, Codable, Sendable {
         let restingHR: Double
         let maxHR: Double
+        /// Lactate-threshold HR: one hour here is 100 on the TSS scale.
+        let lthr: Double
+        /// Banister's coefficients: female for a female setting, else male.
+        let sex: WorkoutAnalyzer.BanisterSex
+
+        /// `lthr` nil, or at or below `restingHR`, takes the estimate the
+        /// strap's hrTSS falls back to (`WorkoutAnalyzer.computeHrTSS`):
+        /// 0.88 x max HR.
+        init(restingHR: Double, maxHR: Double, lthr: Double? = nil, sex: WorkoutAnalyzer.BanisterSex = .male) {
+            self.restingHR = restingHR
+            self.maxHR = maxHR
+            self.lthr = lthr.flatMap { $0 > restingHR ? $0 : nil } ?? maxHR * 0.88
+            self.sex = sex
+        }
 
         /// Resting HR is Apple's measured value when Health has one, else the
         /// user's resting-HR setting (`UserSettings.effectiveRestingHR`);
-        /// max HR is the user's physiological max (`effectiveMaxHR`).
-        static func resolve(appleRestingHR: Double?, settingRestingHR: Int, settingMaxHR: Int) -> HeartRateAnchors {
-            HeartRateAnchors(restingHR: appleRestingHR ?? Double(settingRestingHR), maxHR: Double(settingMaxHR))
+        /// max HR is the user's physiological max (`effectiveMaxHR`); LTHR is
+        /// the user's (`effectiveLTHR`), the one the strap's hrTSS divides by;
+        /// the sex is the setting's, male when it is not set, as at finalize.
+        static func resolve(
+            appleRestingHR: Double?, settingRestingHR: Int, settingMaxHR: Int, settingLTHR: Int? = nil,
+            settingSex: UserSettings.BiologicalSex? = nil
+        ) -> HeartRateAnchors {
+            HeartRateAnchors(
+                restingHR: appleRestingHR ?? Double(settingRestingHR), maxHR: Double(settingMaxHR),
+                lthr: settingLTHR.map(Double.init), sex: WorkoutAnalyzer.BanisterSex(settingSex)
+            )
+        }
+
+        /// `trimp` (Banister's scale) on the TSS scale the power, hrTSS and
+        /// METs tiers share, through the strap's own hrTSS rule
+        /// (`WorkoutAnalyzer.hrTSS(fromTRIMP:)`) at these anchors. Anchors
+        /// with no reserve cannot place it, and score a workout's own HR 0
+        /// already; a stored TRIMP is then returned as it is.
+        func tss(fromTRIMP trimp: Double) -> Double {
+            WorkoutAnalyzer.hrTSS(fromTRIMP: trimp, lthr: lthr, maxHR: maxHR, restHR: restingHR, sex: sex) ?? trimp
         }
     }
 
@@ -51,8 +82,9 @@ enum TrainingLoadSeries {
     /// Load per local calendar day from `firstDay` through `lastDay`, every
     /// day present (rest days 0, so the EWMA decays across them).
     ///
-    /// Each workout adds its `effectiveLoad` (precomputed power/HR/METs load,
-    /// else Banister TRIMP against `anchors`). Workouts outside the window are
+    /// Each workout adds its `effectiveLoad`, on the TSS scale whatever its
+    /// source (power TSS, hrTSS, METs load, or a TRIMP placed on that scale at
+    /// `anchors`). Workouts outside the window are
     /// skipped: one older than `firstDay` would sit in a bucket with no rest
     /// days around it, and a future-dated one is a bad clock or import. Each
     /// day is capped at `TrainingConstants.TRIMP.maxDailyLoad`, a backstop
@@ -75,7 +107,7 @@ enum TrainingLoadSeries {
         for workout in workouts {
             let workoutDay = calendar.startOfDay(for: workout.date)
             guard daily[workoutDay] != nil else { continue }
-            daily[workoutDay, default: 0] += workout.effectiveLoad(restingHR: anchors.restingHR, maxHR: anchors.maxHR)
+            daily[workoutDay, default: 0] += workout.effectiveLoad(anchors: anchors)
         }
         return daily.mapValues { min($0, TrainingConstants.TRIMP.maxDailyLoad) }
     }

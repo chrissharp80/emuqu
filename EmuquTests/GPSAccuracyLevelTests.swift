@@ -21,7 +21,8 @@ final class GPSAccuracyLevelTests: XCTestCase {
     }
 
     func testOrdinaryAccuracyStillFormats() {
-        XCTAssertEqual(GPSAccuracyLevel.displayMetres(12.6), 12)
+        XCTAssertEqual(GPSAccuracyLevel.displayMetres(12.6), 13)
+        XCTAssertEqual(GPSAccuracyLevel.displayMetres(12.4), 12)
         XCTAssertEqual(GPSAccuracyLevel.displayMetres(0), 0)
     }
 

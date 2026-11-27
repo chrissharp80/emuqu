@@ -494,7 +494,7 @@ struct WorkoutAIContext: Equatable {
         if let avg = sessionAverageHR { out.append(String(format: "sessionAverageHR=%.0f", avg)) }
         out.append("userMaxHR=\(userMaxHR)")
         if let hr = heartRate, userMaxHR > 0 {
-            out.append("percentOfMaxHR=\(Int((Double(hr) / Double(userMaxHR)) * 100.0))")
+            out.append("percentOfMaxHR=\(Int((Double(hr) / Double(userMaxHR) * 100.0).rounded()))")
             out.append("zone=\(HRZone.classify(hr: hr, userMaxHR: userMaxHR)?.label ?? "below_z1")")
         }
         if let drift = hrDriftPercent { out.append(String(format: "hrDriftPercent=%.1f", drift)) }

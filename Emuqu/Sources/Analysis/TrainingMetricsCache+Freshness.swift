@@ -7,19 +7,38 @@ import Foundation
 extension TrainingMetricsCache {
     /// The settings training load depends on: the resting- and max-HR
     /// settings and biological sex (Banister TRIMP for workouts without a
-    /// precomputed load) and the FTPs (read-time power TSS). A change to any
-    /// of them changes every day's load, so it rebuilds the cache at once.
+    /// precomputed load), the LTHR (which puts every TRIMP on the TSS scale)
+    /// and the FTPs (read-time power TSS). A change to any of them changes
+    /// every day's load, so it rebuilds the cache at once. A cache saved
+    /// without `lthr` decodes it as `unrecorded`, which no setting equals, so
+    /// it reads as a settings change and is rebuilt.
     struct LoadSettings: Equatable, Codable, Sendable {
         let restingHR: Int
         let maxHR: Int
+        let lthr: Int
         let isFemale: Bool
         let ftp: TrainingLoadPrecedence.FTPAnchors
 
         init(_ settings: UserSettings) {
             restingHR = settings.effectiveRestingHR
             maxHR = settings.effectiveMaxHR
+            lthr = settings.effectiveLTHR
             isFemale = settings.biologicalSex == .female
             ftp = .current(settings)
+        }
+
+        /// The `lthr` of a cache saved before it was recorded.
+        static let unrecorded = -1
+
+        private enum CodingKeys: String, CodingKey { case restingHR, maxHR, lthr, isFemale, ftp }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            restingHR = try c.decode(Int.self, forKey: .restingHR)
+            maxHR = try c.decode(Int.self, forKey: .maxHR)
+            lthr = try c.decodeIfPresent(Int.self, forKey: .lthr) ?? Self.unrecorded
+            isFemale = try c.decode(Bool.self, forKey: .isFemale)
+            ftp = try c.decode(TrainingLoadPrecedence.FTPAnchors.self, forKey: .ftp)
         }
     }
 

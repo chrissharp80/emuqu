@@ -49,7 +49,7 @@ enum GPSAccuracyLevel: String, CaseIterable, Equatable {
     static func displayMetres(_ meters: Double?) -> Int? {
         guard let meters, meters.isFinite,
               meters >= Double(Int.min), meters < Double(Int.max) else { return nil }
-        return Int(meters)
+        return Int(meters.rounded())
     }
 
     /// Whether a direction arrow may be drawn at all: only with a usable fix.

@@ -383,7 +383,7 @@ extension WorkoutTicker {
             return
         }
         dfa.ingest(points: Array(buffer[capture.lastIngestedPointCount ..< buffer.count]))
-        if let derivedHR = Self.medianSmoothedHR(recent: buffer.suffix(8)) {
+        if let derivedHR = Array(buffer.suffix(8)).medianHeartRateBPM {
             workoutHR.currentHR = derivedHR
             signals.hrFromWrist = false
             if derivedHR > workoutHR.peakHR { workoutHR.peakHR = derivedHR }
@@ -421,19 +421,6 @@ extension WorkoutTicker {
     static func newStrapReading(hr: Int?, at readingAt: Date?, lastStrapHRAt: Date?) -> (hr: Int, at: Date)? {
         guard let hr, hr > 0, let readingAt, readingAt > (lastStrapHRAt ?? .distantPast) else { return nil }
         return (hr, readingAt)
-    }
-
-    /// Smoothed HR: median of the last ~8 beats. Raw rr_ms swings
-    /// wildly with normal RR variation (a single beat might read
-    /// 48 or 92 from the same heart rate). The median reads like a
-    /// real heart rate rather than a jittering number.
-    private static func medianSmoothedHR(recent: ArraySlice<RRPoint>) -> Int? {
-        let rrValues = recent.filter { $0.rr_ms > 0 }.map { Double($0.rr_ms) }.sorted()
-        guard !rrValues.isEmpty else { return nil }
-        let median = rrValues.count.isMultiple(of: 2)
-            ? (rrValues[rrValues.count / 2 - 1] + rrValues[rrValues.count / 2]) / 2
-            : rrValues[rrValues.count / 2]
-        return Int(60_000.0 / median)
     }
 
     /// Tick stage — Watch direct-strap fallback: drain queued RR, synthesize points, feed DFA + live HR.

@@ -101,7 +101,15 @@ enum WorkoutAnalyzer {
     /// Sex coefficients for Banister's exponential TRIMP (Banister 1991).
     /// Men:   y = 0.64 × e^(1.92 × HRR)
     /// Women: y = 0.86 × e^(1.67 × HRR)
-    enum BanisterSex { case male, female }
+    enum BanisterSex: Codable, Sendable {
+        case male, female
+
+        /// The coefficients for a biological-sex setting: female for
+        /// `.female`, else male (the published default) rather than a guess.
+        init(_ setting: UserSettings.BiologicalSex?) {
+            self = setting == .female ? .female : .male
+        }
+    }
 
     /// Steps of a track (step `i` runs from fix `i - 1` to fix `i`) that a
     /// paused stretch makes not count: `paused` steps add neither distance nor
@@ -354,21 +362,21 @@ enum WorkoutAnalyzer {
               maxHR > restHR
         else { return nil }
         let lthr = (userLTHR.map { $0 > 0 ? Double($0) : nil } ?? nil) ?? Double(maxHR) * 0.88
-        let referenceTRIMP = oneHourAtLTHRTRIMP(lthr: lthr, maxHR: maxHR, restHR: restHR, sex: sex)
-        guard referenceTRIMP > 0 else { return nil }
-        return (sessionTRIMP / referenceTRIMP) * 100.0
+        return hrTSS(fromTRIMP: sessionTRIMP, lthr: lthr, maxHR: Double(maxHR), restHR: Double(restHR), sex: sex)
     }
 
-    /// The denominator of hrTSS: a synthetic "one hour entirely at LTHR" run
-    /// through Banister at the same user coefficients. Sixty simulated minutes
-    /// of beats at `lthr` give the reference a 100-point session is measured
-    /// against.
-    private static func oneHourAtLTHRTRIMP(lthr: Double, maxHR: Int, restHR: Int, sex: BanisterSex) -> Double {
-        let referenceBeats: [(Double, Double)] = Array(
-            repeating: (lthr, 60.0 * 60.0 / 60.0 /* 60 s per simulated minute */ ),
-            count: 60
-        )
-        return banisterTRIMP(hrs: referenceBeats, maxHR: Double(maxHR), restHR: Double(restHR), sex: sex)
+    /// A Banister TRIMP on the TSS scale (HRSS): `trimp` divided by the TRIMP
+    /// of one hour at `lthr` through the same coefficients, times 100, so one
+    /// hour at threshold is 100 as it is for power TSS. The one rule every
+    /// TRIMP-scale load goes through before it is added to or compared with a
+    /// TSS: the strap's stored hrTSS, an Apple Health workout scored from its
+    /// average HR, a stored TRIMP or route estimate with no hrTSS. Nil when
+    /// the anchors leave no reserve, or LTHR sits at or below resting HR.
+    static func hrTSS(fromTRIMP trimp: Double, lthr: Double, maxHR: Double, restHR: Double, sex: BanisterSex) -> Double? {
+        guard maxHR > restHR else { return nil }
+        let reference = banisterTRIMP(minutes: 60, heartRateReserve: (lthr - restHR) / (maxHR - restHR), sex: sex)
+        guard reference > 0 else { return nil }
+        return trimp / reference * 100.0
     }
 
     // MARK: - GPS derivations

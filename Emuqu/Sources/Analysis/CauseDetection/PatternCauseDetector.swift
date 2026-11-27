@@ -28,7 +28,7 @@ final class PatternCauseDetector: CauseDetectionStrategy {
         let significantImpact = dayImpact.impact > 0.15
 
         if significantImpact, dayImpact.isLowDay, context.rmssd < HRVThresholds.rmssdGood {
-            let percent = NarrativeLanguage.integer(Int(dayImpact.impact * 100))
+            let percent = NarrativeLanguage.integer(Int((dayImpact.impact * 100).rounded()))
             causes.append(DetectedCause(
                 cause: WeekdayPatternCopy.title(weekday: dayImpact.weekday),
                 confidence: .low,

@@ -474,7 +474,7 @@ struct OvernightHRChartCanvas: View {
         let nadirCircle = Path(ellipseIn: CGRect(x: nadirX - 6, y: nadirY - 6, width: 12, height: 12))
         context.fill(nadirCircle, with: .color(AppTheme.mist))
         context.stroke(nadirCircle, with: .color(.white), lineWidth: 2)
-        let nadirText = Text("\(Int(stats.nadirHR))")
+        let nadirText = Text("\(Int(stats.nadirHR.rounded()))")
             .font(.caption.bold())
             .foregroundColor(AppTheme.mist)
         context.draw(nadirText, at: CGPoint(x: nadirX, y: nadirY - 16))

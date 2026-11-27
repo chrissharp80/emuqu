@@ -82,7 +82,7 @@ enum TCXExporter {
         let durationSec = session.activeWorkoutSeconds ?? 0
         let distance = metadata?.distanceMeters ?? 0
         var xml = ""
-        let meanHR = session.meanHR.map { Int($0) } ?? 0
+        let meanHR = session.meanHR.map { Int($0.rounded()) } ?? 0
 
         xml += "      <Lap StartTime=\"\(iso.string(from: session.startDate))\">\n"
         xml += "        <TotalTimeSeconds>\(durationSec)</TotalTimeSeconds>\n"

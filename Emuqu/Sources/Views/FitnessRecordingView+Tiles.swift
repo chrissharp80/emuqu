@@ -855,14 +855,14 @@ private struct StableMapCard: View {
     @ViewBuilder
     private var gpsAccuracyBadge: some View {
         if let acc = accuracy, acc > 20 {
-            Text(String(localized: "GPS ±\(Int(acc))m", bundle: LanguageManager.appBundle))
+            Text(String(localized: "GPS ±\(Int(acc.rounded()))m", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Capsule().fill(.black.opacity(0.55)))
                 .foregroundStyle(.white)
                 .padding(6)
-                .accessibilityLabel(Text(String(localized: "GPS accuracy plus or minus \(Int(acc)) metres", bundle: LanguageManager.appBundle)))
+                .accessibilityLabel(Text(String(localized: "GPS accuracy plus or minus \(Int(acc.rounded())) metres", bundle: LanguageManager.appBundle)))
         }
     }
 

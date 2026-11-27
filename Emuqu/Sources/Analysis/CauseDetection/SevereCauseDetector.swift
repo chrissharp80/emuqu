@@ -28,7 +28,7 @@ final class SevereCauseDetector: CauseDetectionStrategy {
             return [DetectedCause(
                 cause: String(localized: "Sharp HRV Drop", bundle: NarrativeLanguage.bundle),
                 confidence: .critical,
-                explanation: String(localized: "Your HRV (\(NarrativeLanguage.integer(Int(context.rmssd)))ms) is \(NarrativeLanguage.number(abs(deviationPercent)))% below your average (\(NarrativeLanguage.number(stats.avgRMSSD))ms). Drops this large most often follow hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; this reading cannot tell you which. Keep today easy. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.", bundle: NarrativeLanguage.bundle),
+                explanation: String(localized: "Your HRV (\(NarrativeLanguage.integer(Int(context.rmssd.rounded())))ms) is \(NarrativeLanguage.number(abs(deviationPercent)))% below your average (\(NarrativeLanguage.number(stats.avgRMSSD))ms). Drops this large most often follow hard training, short or poor sleep, alcohol, stress or travel, and sometimes the start of an illness; this reading cannot tell you which. Keep today easy. If you feel unwell, rest, and talk to a clinician about symptoms that concern you.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.99
             )]
         }
@@ -37,7 +37,7 @@ final class SevereCauseDetector: CauseDetectionStrategy {
         return [DetectedCause(
                 cause: String(localized: "Major HRV Drop", bundle: NarrativeLanguage.bundle),
                 confidence: .veryHigh,
-                explanation: String(localized: "Your HRV is \(NarrativeLanguage.number(abs(deviationPercent)))% below your baseline (\(NarrativeLanguage.integer(Int(context.rmssd)))ms vs \(NarrativeLanguage.number(stats.avgRMSSD))ms average). This significant deviation suggests your body is under substantial stress. Take it very easy today.", bundle: NarrativeLanguage.bundle),
+                explanation: String(localized: "Your HRV is \(NarrativeLanguage.number(abs(deviationPercent)))% below your baseline (\(NarrativeLanguage.integer(Int(context.rmssd.rounded())))ms vs \(NarrativeLanguage.number(stats.avgRMSSD))ms average). This significant deviation suggests your body is under substantial stress. Take it very easy today.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.92
         )]
     }

@@ -226,7 +226,7 @@ struct SessionNamespace: FactNamespaceResolver {
             "date": .date(session.startDate),
             "end_date": .from(session.endDate),
             "duration_sec": .from(session.duration.map { Int($0) }),
-            "mean_hr_bpm": .from(session.meanHR.map { Int($0) }),
+            "mean_hr_bpm": .from(session.meanHR.map { Int($0.rounded()) }),
             "data_quality": .from(session.hrvDataQuality?.rawValue),
             "reliable_for_trends": .boolean(session.isReliableForHRVAggregates)
         ]
@@ -294,7 +294,7 @@ extension SessionNamespace {
             "distance_m": .from(meta?.distanceMeters),
             "elevation_gain_m": .from(meta?.elevationGainMeters),
             "elevation_loss_m": .from(meta?.elevationLossMeters),
-            "mean_hr_bpm": .from(s.meanHR.map { Int($0) }),
+            "mean_hr_bpm": .from(s.meanHR.map { Int($0.rounded()) }),
             "max_hr_bpm": .from(meta?.samples?.compactMap(\.heartRate).max()),
             "recognized_route": .from(meta?.recognizedRouteName),
             "workout_feeling": .from(meta?.workoutFeeling),
@@ -305,9 +305,11 @@ extension SessionNamespace {
     /// `load` is the preferred (power-first) number
     /// the AI should anchor on. `trimp` and `hr_tss` stay exposed
     /// for back-compat / debugging, but `load` + `load_source`
-    /// is the canonical pair, scored under the FTPs `ftp`.
+    /// is the canonical pair, scored under the FTPs `ftp` and on the TSS
+    /// scale (a stored TRIMP placed on it), so `load` compares across
+    /// sessions whatever their source.
     private static func loadFields(_ meta: WorkoutMetadata?, ftp: TrainingLoadPrecedence.FTPAnchors) -> [String: FactValue] {
-        let load = meta?.preferredTrainingLoad(ftp: ftp)
+        let load = meta?.preferredTrainingLoad(ftp: ftp, heartRate: WorkoutLoadRestingHR.anchors)
         return [
             "load": .from(load?.value),
             "load_source": .from(load?.source.rawValue),

@@ -213,7 +213,7 @@ struct SessionHRVDetailView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(String(localized: "RR interval tachogram", bundle: LanguageManager.appBundle))
                 .accessibilityValue(result.markingEstimate(String(
-                    localized: "RMSSD \(Int(result.timeDomain.rmssd)) milliseconds, SDNN \(Int(result.timeDomain.sdnn)) milliseconds", bundle: LanguageManager.appBundle
+                    localized: "RMSSD \(Int(result.timeDomain.rmssd.rounded())) milliseconds, SDNN \(Int(result.timeDomain.sdnn.rounded())) milliseconds", bundle: LanguageManager.appBundle
                 ), for: .sdnn))
         }
         .zenCard()

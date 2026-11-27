@@ -262,7 +262,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         XCTAssertTrue(
             HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75).isEmpty
         )
-        XCTAssertEqual(HealthKitWorkoutExport.netMETs(0.5), 0)
+        XCTAssertEqual(WorkoutEnergy.netMETs(0.5), 0)
     }
 
     func testNegativeMETsAreRejected() {

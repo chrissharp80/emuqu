@@ -227,14 +227,14 @@ extension AssistantContext {
     private static func motionBits(_ loc: AmbientLocationSnapshot) -> [String] {
         var bits: [String] = []
         if let cardinal = loc.headingCardinal {
-            let degrees = loc.headingDegrees.map { " (\(Int($0))°)" } ?? ""
+            let degrees = loc.headingDegrees.map { " (\(Int($0.rounded()))°)" } ?? ""
             bits.append("heading \(cardinal)\(degrees)")
         }
         if let speed = loc.speedMS, speed >= 0 {
             bits.append(String(format: "speed %.1f m/s (%.1f km/h)", speed, speed * 3.6))
         }
-        if let alt = loc.altitudeMeters { bits.append("alt \(Int(alt))m") }
-        if let acc = loc.accuracyMeters, acc > 0 { bits.append("GPS ±\(Int(acc))m") }
+        if let alt = loc.altitudeMeters { bits.append("alt \(Int(alt.rounded()))m") }
+        if let acc = loc.accuracyMeters, acc > 0 { bits.append("GPS ±\(Int(acc.rounded()))m") }
         if let age = loc.ageSeconds { bits.append("(\(age)s old)") }
         return bits
     }
@@ -258,13 +258,13 @@ extension AssistantContext {
         }
         if let locality = live.currentLocality { locBits.append("in \(locality)") }
         if let cardinal = live.currentHeadingCardinal {
-            let degrees = live.currentHeadingDegrees.map { " (\(Int($0))°)" } ?? ""
+            let degrees = live.currentHeadingDegrees.map { " (\(Int($0.rounded()))°)" } ?? ""
             locBits.append("heading \(cardinal)\(degrees)")
         }
         if let speed = live.currentSpeedMS {
             locBits.append("speed \(formatNum(speed, 1)) m/s (\(formatNum(speed * 3.6, 1)) km/h)")
         }
-        if let acc = live.gpsAccuracyMeters { locBits.append("GPS ±\(Int(acc))m") }
+        if let acc = live.gpsAccuracyMeters { locBits.append("GPS ±\(Int(acc.rounded()))m") }
         guard !locBits.isEmpty else { return [] }
         return ["📍 LIVE LOCATION: " + locBits.joined(separator: ", ")]
     }
@@ -346,7 +346,7 @@ extension AssistantContext {
             "snapshot_age_sec=\(max(0, Int(generatedAt.timeIntervalSince(live.snapshotAt))))"
         ]
         if let hr = live.heartRate {
-            let pct = live.userMaxHR > 0 ? Int((Double(hr) / Double(live.userMaxHR)) * 100) : nil
+            let pct = live.userMaxHR > 0 ? Int((Double(hr) / Double(live.userMaxHR) * 100).rounded()) : nil
             bits.append(pct.map { "HR \(hr) (\($0)% of max \(live.userMaxHR))" } ?? "HR \(hr)")
         }
         if live.peakHR > 0 { bits.append("peak HR \(live.peakHR)") }
@@ -738,7 +738,7 @@ extension AssistantContext {
         }
         if let dist = w.distanceMeters, dist >= 100 { bits.append("\(formatNum(dist / 1000.0, 2))km") }
         if let pace = w.averagePaceSecPerKm {
-            bits.append(String(format: "%d:%02d/km", Int(pace) / 60, Int(pace) % 60))
+            bits.append(String(format: "%d:%02d/km", Int(pace.rounded()) / 60, Int(pace.rounded()) % 60))
         }
         if let avg = w.averageHR { bits.append("avgHR \(formatNum(avg, 0))") }
         if let mx = w.maxHRInSession { bits.append("maxHR \(mx)") }

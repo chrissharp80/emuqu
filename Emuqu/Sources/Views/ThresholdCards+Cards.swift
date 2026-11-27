@@ -331,13 +331,12 @@ extension ThresholdCards {
         )
     }
 
-    /// 1 MET = 1 kcal/kg/hr, so kcal/hr = METs × weight.
+    /// Active energy (`WorkoutEnergy`, the figure written to Apple Health)
+    /// per hour of the workout.
     private func calorieRateRow(samples: [WorkoutSample], duration: Double) -> DerivedRow? {
-        guard duration > 60 else { return nil }
-        let metsValues = samples.compactMap { $0.mets }
-        guard !metsValues.isEmpty else { return nil }
-        let avgMETs = metsValues.reduce(0, +) / Double(metsValues.count)
-        let kcalPerHour = avgMETs * settings.weightKg
+        guard duration > 60,
+              let kcal = WorkoutEnergy.activeKilocalories(samples: samples, bodyWeightKg: settings.weightKg) else { return nil }
+        let kcalPerHour = kcal / (duration / 3_600.0)
         return .init(
             label: String(localized: "Calorie rate", bundle: LanguageManager.appBundle),
             value: String(format: "%.0f kcal/h", locale: LanguageManager.appLocale, kcalPerHour),
@@ -397,7 +396,7 @@ extension ThresholdCards {
         let dominantZone = (zoneSecs.enumerated().max(by: { $0.element < $1.element })?.offset ?? 0) + 1
         return VStack(alignment: .leading, spacing: 10) {
             zoneCardHeader(dominantZone: dominantZone,
-                           dominantPct: Int(Double(zoneSecs[dominantZone - 1]) / Double(total) * 100))
+                           dominantPct: Int((Double(zoneSecs[dominantZone - 1]) / Double(total) * 100).rounded()))
             zoneStackedBar(zoneSecs: zoneSecs, total: total)
             zoneLegend(zoneSecs: zoneSecs)
             // Narrative: what the zone distribution means
@@ -502,13 +501,16 @@ extension ThresholdCards {
 struct UserSettingsBridge {
     let userMaxHR: Int
     let weightKg: Double
+    /// The FTPs a workout's load is scored with (`preferredTrainingLoad`).
+    let ftp: TrainingLoadPrecedence.FTPAnchors
 
     /// Snapshot `settingsManager`'s current state.
     static func snapshot(of settingsManager: SettingsManager) -> UserSettingsBridge {
         let s = settingsManager.settingsSnapshot
         return UserSettingsBridge(
             userMaxHR: s.effectiveMaxHR,
-            weightKg: s.effectiveBodyWeightKg
+            weightKg: s.effectiveBodyWeightKg,
+            ftp: .current(s)
         )
     }
 }
@@ -665,7 +667,7 @@ private func derivedMetricSublabel(_ sub: String?) -> some View {
 private func movingTimeRow(samples: [WorkoutSample], duration: Double) -> ThresholdCards.DerivedRow? {
     guard samples.count >= 10, duration > 10, samples.contains(where: hasMovementSignal) else { return nil }
     let movingSec = movingSeconds(samples: samples)
-    let pct = Int(min(100, max(0, Double(movingSec) / duration * 100.0)))
+    let pct = Int(min(100, max(0, Double(movingSec) / duration * 100.0)).rounded())
     return .init(
         label: String(localized: "Moving time", bundle: LanguageManager.appBundle),
         value: "\(pct)%",

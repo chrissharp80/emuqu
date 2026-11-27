@@ -129,7 +129,7 @@ enum ScoreBreakdownCopy {
     /// only when the SpO₂ penalty is the only one that applied.
     private static func vitalsPenaltyMessage(_ breakdown: Breakdown, weakest: Factor?) -> String? {
         guard !breakdown.penalties.isEmpty, breakdown.gapFromFactors > 1 else { return nil }
-        let points = Int(breakdown.gapFromFactors)
+        let points = Int(breakdown.gapFromFactors.rounded())
         let onlySpO2 = breakdown.spo2PenaltyApplied && breakdown.penalties.count == 1
         if scoredFactors(breakdown).allSatisfy({ $0.score >= 60 }) {
             guard !onlySpO2 else {
