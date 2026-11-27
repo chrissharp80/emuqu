@@ -159,8 +159,8 @@ final class SessionRecoveryService {
         let counts = beatCounts(of: orphans)
         // Backups too short to analyze, counted after a fuller file of them
         // is adopted, are discarded permanently so they stop showing up on
-        // every scan; the cloud copy goes too so another device doesn't
-        // re-seed them. A pause/resume fragment an archived session links to
+        // every scan; the cloud copy of one this device uploaded goes too
+        // (`retireOwnCloudFragment`). A pause/resume fragment an archived session links to
         // is kept: its beats belong to that night.
         let linkedIds = Set(archive.store.entries.flatMap { $0.linkedSessionIds ?? [] })
         discardUnrecoverable(orphans.map(\.id).filter { (counts[$0] ?? Int.max) < Self.minRecoverableBeatCount && !linkedIds.contains($0) })
@@ -227,8 +227,23 @@ final class SessionRecoveryService {
                 debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard unrecoverable backup \(id.uuidString.prefix(8)): \(error)")
                 continue
             }
-            Task { await cloudSyncManager.deleteLiveBackup(sessionId: id) }
+            retireOwnCloudFragment(id)
         }
+    }
+
+    /// The iCloud copy of a discarded fragment goes only when this device
+    /// uploaded it: its own uploads never hold more than its backup. Another
+    /// device's may have grown past this fragment since it was pulled, and
+    /// is that device's to retire (`cloudBackupDisposition`).
+    private func retireOwnCloudFragment(_ id: UUID) {
+        guard Self.retiresCloudCopyOfDiscardedFragment(id, uploadedHere: cloudSyncManager.liveBackupsUploadedHere) else { return }
+        Task { await cloudSyncManager.deleteLiveBackup(sessionId: id) }
+    }
+
+    /// Whether discarding a fragment's local backup retires its iCloud copy
+    /// too: only one this device uploaded (`retireOwnCloudFragment`).
+    static func retiresCloudCopyOfDiscardedFragment(_ id: UUID, uploadedHere: Set<UUID>) -> Bool {
+        uploadedHere.contains(id)
     }
 
     /// Pull iCloud backups, but no more than once per `cloudPullMinInterval`.
@@ -284,21 +299,15 @@ final class SessionRecoveryService {
         return true
     }
 
-    /// Saves each pulled backup this device does not hold, and retires the
-    /// cloud copy of each whose night is over or that this device uploaded
+    /// Saves each pulled backup that holds beats no copy here has, and
+    /// retires the cloud copy of each whose beats a copy here covers
     /// (`cloudBackupDisposition`).
     private func seed(_ cloudBackups: [LiveBackupSummary], excluding live: Set<UUID>) {
-        guard !cloudBackups.isEmpty else { return }
-        let holdings = CloudBackupHoldings(
-            finished: Set(archive.store.entries.map(\.sessionId))
-                .union(archive.foldedRecordingIds)
-                .union(archive.store.deletedIds)
-                .union(ForgottenSessions.ids),
-            heldLocally: Set(rawBackup.allBackups().map(\.id)),
-            uploadedHere: cloudSyncManager.liveBackupsUploadedHere
-        )
-        for backup in cloudBackups where !live.contains(backup.sessionId) {
-            switch Self.cloudBackupDisposition(of: backup.sessionId, holdings: holdings) {
+        let pulled = cloudBackups.filter { !live.contains($0.sessionId) }
+        guard !pulled.isEmpty else { return }
+        let holdings = cloudBackupHoldings(for: pulled.map(\.sessionId))
+        for backup in pulled {
+            switch Self.cloudBackupDisposition(of: backup.sessionId, beats: backup.beatCount, holdings: holdings) {
             case .retire: retireCloudBackup(backup.sessionId)
             case .save: savePulledBackup(backup)
             case .keep: continue
@@ -306,13 +315,43 @@ final class SessionRecoveryService {
         }
     }
 
+    /// What this device holds of the sessions `ids` name. A recording folded
+    /// into a night the user deleted counts as removed with that night.
+    private func cloudBackupHoldings(for ids: [UUID]) -> CloudBackupHoldings {
+        let deleted = archive.store.deletedIds.union(ForgottenSessions.ids)
+        let removed = Set(ids.filter { deleted.contains($0) || deleted.contains(archive.archivedId(of: $0)) })
+        let local = rawBackup.allBackups().map { ($0.id, $0.beatCount) }
+        return CloudBackupHoldings(
+            removed: removed,
+            archivedNightBeats: archivedNightBeats(of: ids.filter { !removed.contains($0) }),
+            localBeats: Dictionary(local, uniquingKeysWith: max),
+            uploadedHere: cloudSyncManager.liveBackupsUploadedHere
+        )
+    }
+
+    /// The beats of the archived night each recording is kept in, under its
+    /// own id or the night it was folded into (`SessionArchive.archivedId`),
+    /// for the recordings the archive holds; nil for a night that could not
+    /// be read, which then covers nothing.
+    private func archivedNightBeats(of ids: [UUID]) -> [UUID: Int?] {
+        var beats: [UUID: Int?] = [:]
+        for id in ids where archive.holdsNight(id) {
+            let night = archive.retrieveOrLog(archive.archivedId(of: id), caller: "SessionRecoveryService.archivedNightBeats")
+            beats[id] = night.map { $0.rrSeries?.points.count ?? 0 }
+        }
+        return beats
+    }
+
     /// What this device knows of the sessions behind iCloud's live backups.
     struct CloudBackupHoldings {
-        /// Archived (under its own id or folded into another night), deleted,
-        /// or deleted forever here.
-        let finished: Set<UUID>
-        /// Sessions with a local raw backup, this device's own or pulled.
-        let heldLocally: Set<UUID>
+        /// Deleted, or deleted forever, here, directly or with the night the
+        /// recording was folded into.
+        let removed: Set<UUID>
+        /// The beats of the archived night holding each recording the archive
+        /// holds; nil when that night could not be read.
+        let archivedNightBeats: [UUID: Int?]
+        /// The beats of each local raw backup, this device's own or pulled.
+        let localBeats: [UUID: Int]
         /// Sessions whose iCloud backup this device uploaded.
         let uploadedHere: Set<UUID>
     }
@@ -321,25 +360,40 @@ final class SessionRecoveryService {
     enum CloudBackupDisposition: Equatable {
         /// Delete the iCloud copy.
         case retire
-        /// Save it as a local raw backup.
+        /// Save it as a local raw backup, over a smaller one, and keep the
+        /// iCloud copy.
         case save
         /// Leave both copies as they are.
         case keep
     }
 
-    /// A backup whose night is over here, or that this device uploaded and
-    /// holds locally, is retired. One held locally only because a scan here
-    /// pulled it belongs to another device, which may still be recording
-    /// that night: its iCloud copy is that recording's crash-safety backup
-    /// and stays until the night is archived or deleted. Anything else is
-    /// saved for recovery.
-    static func cloudBackupDisposition(of id: UUID, holdings: CloudBackupHoldings) -> CloudBackupDisposition {
-        if holdings.finished.contains(id) { return .retire }
-        guard holdings.heldLocally.contains(id) else { return .save }
+    /// Decided by what each copy holds (`FullerCopy`), never by which copy
+    /// exists. A night the user removed has its backup retired. An archived
+    /// night retires it only when the night holds as many beats: a night
+    /// recovered from an early pull of another device's backup is a fragment,
+    /// and the later, fuller backup is saved here and kept in iCloud until the
+    /// night holds its beats. A local backup with fewer beats than iCloud's is
+    /// replaced by it. One that covers it retires it only when this device
+    /// uploaded it; another device's backup is that recording's crash-safety
+    /// copy and stays until its night is archived. A backup no copy here
+    /// holds is saved for recovery, unless it is another device's below the
+    /// recovery floor, which the scan would only discard again.
+    static func cloudBackupDisposition(of id: UUID, beats: Int, holdings: CloudBackupHoldings) -> CloudBackupDisposition {
+        if holdings.removed.contains(id) { return .retire }
+        if let night = holdings.archivedNightBeats[id] {
+            if FullerCopy.covers(night, beats) { return .retire }
+            return FullerCopy.covers(holdings.localBeats[id], beats) ? .keep : .save
+        }
+        guard let local = holdings.localBeats[id] else {
+            if beats >= minRecoverableBeatCount { return .save }
+            if holdings.uploadedHere.contains(id) { return .retire }
+            return .keep
+        }
+        guard FullerCopy.covers(local, beats) else { return .save }
         return holdings.uploadedHere.contains(id) ? .retire : .keep
     }
 
-    /// Already have it locally — retire the cloud copy.
+    /// A copy here covers it, or its night was removed: the iCloud copy goes.
     private func retireCloudBackup(_ sessionId: UUID) {
         Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
     }

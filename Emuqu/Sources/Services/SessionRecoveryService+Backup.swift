@@ -39,6 +39,7 @@ extension SessionRecoveryService {
         debugLog("[SessionRecoveryService] Attempting to recover session \(sessionId) from backup")
 
         guard let data = await retrieveBackupWithParentMerge(sessionId) else { return nil }
+        if let stored = keptArchivedCopy(over: data, sessionId: sessionId) { return stored }
 
         var session = HRVSession(
             id: sessionId, startDate: data.sessionStart, endDate: data.endDate,
@@ -185,6 +186,29 @@ extension SessionRecoveryService {
         }
     }
 
+    /// The archived copy that holds more than the backup
+    /// (`archivedCopyHoldingMore`), with the backup marked archived: the
+    /// night holds all of it.
+    private func keptArchivedCopy(over data: BackupData, sessionId: UUID) -> HRVSession? {
+        guard let stored = archivedCopyHoldingMore(than: data.series.points.count, sessionId: sessionId) else { return nil }
+        rawBackup.markAsArchived(sessionId)
+        return stored
+    }
+
+    /// The copy the archive holds under `sessionId` when it has more beats
+    /// than the `backupBeatCount` rebuilt from the backup. Written over by the rebuild,
+    /// the night would lose what only it holds (a strap fetch merged in, a
+    /// fuller copy from another device), so recovery keeps it
+    /// (`FullerCopy`). Nil when the archive holds no readable copy, or one
+    /// the rebuild covers.
+    func archivedCopyHoldingMore(than backupBeatCount: Int, sessionId: UUID) -> HRVSession? {
+        guard archive.store.exists(sessionId),
+              let stored = archive.retrieveOrLog(sessionId, caller: "SessionRecoveryService.archivedCopyHoldingMore"),
+              !FullerCopy.covers(backupBeatCount, stored.rrSeries?.points.count ?? 0) else { return nil }
+        debugLog("[SessionRecoveryService] The archive holds more of \(sessionId.uuidString.prefix(8)) than its backup (\(backupBeatCount) beats), so the archived copy is kept")
+        return stored
+    }
+
     /// When an interrupted recording paused: where its beats ran out, never
     /// later than `now`; `now` when nothing dates it. The app is relaunched
     /// after the recording stopped, often hours after; dated by the relaunch,
@@ -211,15 +235,13 @@ extension SessionRecoveryService {
     ) async -> HRVSession? {
         debugLog("[SessionRecoveryService] Recovering interrupted session \(sessionId.uuidString.prefix(8)) to paused state")
         guard let data = await retrieveBackupWithParentMerge(sessionId) else { return nil }
+        if let stored = archivedCopyHoldingMore(than: data.series.points.count, sessionId: sessionId) { return stored }
         var session = HRVSession(
             id: sessionId, startDate: data.sessionStart, endDate: data.endDate,
             state: .collecting, sessionType: sessionType,
             rrSeries: data.series, analysisResult: nil, artifactFlags: data.flags
         )
-        await analyzeSession(
-            &session, series: data.series, flags: data.flags,
-            analyze: analyze, analyzeWithCapacity: analyzeWithCapacity
-        )
+        await analyzeSession(&session, series: data.series, flags: data.flags, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity)
         session.state = .paused
         session.pausedDate = Self.interruptedPauseDate(lastBeatEnd: data.endDate, now: Date())
         // Never folded into another same-night entry: the merge would keep

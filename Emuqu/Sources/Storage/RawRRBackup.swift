@@ -462,7 +462,7 @@ final class RawRRBackup: @unchecked Sendable {
     private func replaceableIndexEntry(_ sessionId: UUID, newCount: Int) throws -> BackupIndex? {
         try mergeIndexIfLaunchReadFailed()
         guard let existing = existingIndexEntry(sessionId) else { return nil }
-        if Self.beatCount(of: existing) > newCount {
+        if !FullerCopy.covers(newCount, Self.beatCount(of: existing)) {
             throw BackupError.wouldReplaceLargerBackup(existing: Self.beatCount(of: existing), new: newCount)
         }
         return existing
