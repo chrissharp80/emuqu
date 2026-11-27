@@ -11,6 +11,11 @@ import XCTest
 /// screen at once.
 ///
 /// Inputs come from `SnapshotFixtures`, which is entirely frozen.
+///
+/// The error catalog, debug log, Get Me Back and the tag sheet are render-checked (`assertRenders`), not pixel-compared: their
+/// navigation chrome (large titles, sheet bars, the tab bar) settles at
+/// different offsets from run to run, so a reference would fail on timing
+/// alone. The check still builds and draws each whole screen.
 @MainActor
 final class ScreenSnapshotTests: XCTestCase {
     // MARK: - Chart furniture
@@ -54,14 +59,57 @@ final class ScreenSnapshotTests: XCTestCase {
         )
     }
 
-    // Not snapshot-tested: the error catalog, debug log and Get Me Back screens and the tag sheet. The layout includes system navigation
-    // chrome (large titles, sheet bars, the tab bar) that settles at different
-    // offsets with timing, the content is static or covered by the component
-    // snapshots, and the behaviour is covered by unit and UI tests.
+    // MARK: - Settings subpages
     //
-    // Not pinned at all: `CrashLogView` reads the crash report file at a fixed
-    // path on the device running the tests, and `PermissionsSettingsPage` shows
-    // the Apple Health authorization the simulator happens to hold.
+    // Reached rarely, so rarely looked at, and the diagnostic ones are what a
+    // user opens when something has already gone wrong. The log screens read
+    // a logger holding fixed lines (`SnapshotFixtures.loggedDependencies`),
+    // not the process's own log, which the tests before them write to.
+
+    func testErrorCatalogRenders() {
+        assertRenders(
+            of: NavigationStack { ErrorCatalogView() }
+                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
+            named: "screen-error-catalog"
+        )
+    }
+
+    func testDebugLogRenders() {
+        assertRenders(
+            of: NavigationStack { DebugLogView() }
+                .environment(\.dependencies, SnapshotFixtures.loggedDependencies()),
+            named: "screen-debug-log"
+        )
+    }
+
+    /// Render-checked: `CrashLogView` reads the crash report file at a fixed
+    /// path on the device running the tests, so what it lists is the host's.
+    func testCrashLogRenders() {
+        assertRenders(
+            of: NavigationStack { CrashLogView() },
+            named: "screen-crash-log"
+        )
+    }
+
+    /// Render-checked: the page shows the Apple Health, notification,
+    /// location and Bluetooth authorization the simulator holds.
+    func testPermissionsSettingsRenders() {
+        assertRenders(
+            of: NavigationStack { PermissionsSettingsPage() },
+            named: "screen-permissions"
+        )
+    }
+
+    // MARK: - Safety
+
+    /// The get-me-back screen is a safety feature: it is opened by someone who
+    /// is lost. It must render.
+    func testGetMeBackRenders() {
+        assertRenders(
+            of: NavigationStack { GetMeBackView() },
+            named: "screen-get-me-back"
+        )
+    }
 
     // MARK: - Frequency bands
     //
@@ -76,6 +124,30 @@ final class ScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: FrequencyBandsView(frequencyDomain: bands),
             named: "chart-frequency-bands"
+        )
+    }
+
+    // MARK: - Tag sheet
+    //
+    // Bindings are supplied as constants: this pins the rendering, not the
+    // editing behaviour, which is what a snapshot can honestly check.
+
+    func testAddTagSheetRenders() {
+        assertRenders(
+            of: AddTagSheet(
+                tagName: .constant("Post-travel"),
+                tagColor: .constant(.orange),
+                onSave: {}
+            ),
+            named: "sheet-add-tag"
+        )
+    }
+
+    func testAddTagSheetEmptyNameRenders() {
+        // The empty name is the state the save button should reflect.
+        assertRenders(
+            of: AddTagSheet(tagName: .constant(""), tagColor: .constant(.blue), onSave: {}),
+            named: "sheet-add-tag-empty"
         )
     }
 }

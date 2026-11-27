@@ -518,9 +518,36 @@ extension SnapshotTesting {
     }
 }
 
-// MARK: - The assertion
+// MARK: - The assertions
 
 extension XCTestCase {
+    /// Assert a view renders: drawn through the same real window with the
+    /// same isolated fixtures as `assertSnapshot`, settled, and neither blank
+    /// nor the unsupported-content placeholder. Nothing is compared and no
+    /// file is written.
+    ///
+    /// For screens whose system navigation chrome (a large title, a sheet's
+    /// bar, the tab bar) settles at different offsets from run to run, so a
+    /// pixel reference would fail on timing alone. The check still runs the
+    /// whole screen, its `onAppear` and `task` included.
+    @MainActor
+    func assertRenders(
+        of view: some View,
+        named name: String,
+        size: CGSize = SnapshotTesting.defaultSize,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        pinEnglishLanguage()
+        guard let shot = SnapshotTesting.render(view, size: size) else {
+            XCTFail("render check '\(name)': view failed to render", file: file, line: line)
+            return
+        }
+        if let refusal = SnapshotTesting.refusal(of: shot.pixels, width: shot.width, size: size) {
+            XCTFail("render check '\(name)': \(refusal)", file: file, line: line)
+        }
+    }
+
     /// Assert a view renders the same as its committed reference.
     ///
     /// References live in `EmuquTests/__Snapshots__/<name>.raw` (raw RGBA plus

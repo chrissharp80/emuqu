@@ -13,6 +13,11 @@ import XCTest
 ///
 /// Every verdict tier is pinned too, because the tier drives the colour and a
 /// mis-mapped tier would tell someone they are recovered when they are not.
+///
+/// The privacy policy and Help & Learn are render-checked (`assertRenders`), not pixel-compared: their
+/// navigation chrome (large titles, sheet bars, the tab bar) settles at
+/// different offsets from run to run, so a reference would fail on timing
+/// alone. The check still builds and draws each whole screen.
 @MainActor
 final class StateSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
@@ -135,8 +140,16 @@ final class StateSnapshotTests: XCTestCase {
         )
     }
 
-    // Not snapshot-tested: the privacy policy and Help & Learn screens. The layout includes system navigation
-    // chrome (large titles, sheet bars, the tab bar) that settles at different
-    // offsets with timing, the content is static or covered by the component
-    // snapshots, and the behaviour is covered by unit and UI tests.
+    // MARK: - Static content screens
+
+    func testPrivacyPolicyRenders() {
+        assertRenders(of: NavigationStack { PrivacyPolicyView() }, named: "screen-privacy-policy")
+    }
+
+    /// The category list follows the user's age (`HelpContent.categories(forAge:)`),
+    /// so the snapshot runs on fresh-install settings, not the host's.
+    func testHelpCenterRenders() {
+        useDefaultSettings()
+        assertRenders(of: hosted(NavigationStack { HelpCenterView() }), named: "screen-help-center")
+    }
 }

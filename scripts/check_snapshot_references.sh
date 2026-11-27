@@ -12,6 +12,9 @@
 # On a fresh clone, or after someone deletes a reference to "fix" a failure,
 # CI would record and go green. This closes that.
 #
+# `assertRenders` calls compare against no reference and write none, so they
+# are not counted here: only `assertSnapshot` needs a committed reference.
+#
 # It also fails when two or more references are byte-identical. Different
 # views, states or fixtures render differently; identical bytes mean the
 # renderer drew something other than the view (a flat colour, or the yellow
