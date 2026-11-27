@@ -15,7 +15,7 @@ import re
 import sys
 from decimal import Decimal, InvalidOperation
 
-CURRENT_SCHEME = "decl-literals"
+CURRENT_SCHEME = "decl-tokens"
 
 # --- static-lets ----------------------------------------------------------
 # `static let <name> = <number>` declarations only, in two files and two
@@ -345,7 +345,265 @@ def decl_literals_hash():
     return digest.hexdigest()[:16], seen
 
 
-SCHEMES = {"static-lets": static_lets_hash, CURRENT_SCHEME: decl_literals_hash}
+# --- decl-tokens ----------------------------------------------------------
+# The code of every declaration that decides a recovery score, token by
+# token: numbers, operators, identifiers and keywords, keyed by declaration
+# as in `decl-literals`. A flipped comparison or a swapped operand moves the
+# hash as a moved number does; comments, whitespace, string contents, access
+# modifiers and attributes do not. The scoring files are read whole. Outside
+# them, the gate starts from the declarations listed in TOKEN_ROOTS (the
+# baseline statistics the z-score divides by, the statistics helpers they
+# call) and follows every reference it can resolve by name, from those roots
+# and from the scoring files alike: a constant or static function written
+# `Type.name`, `Self.name` or bare inside its own type, and every member of a
+# type named as `Type.self`. A constant that reaches the score is therefore
+# hashed wherever it is declared, while the rest of a big file such as
+# BaselineTracker.swift (storage, logging, file handling) is not, so editing
+# it needs no version bump. A value read through an instance (a field of the
+# baseline stats, a session property) is followed only from its listed root.
+TOKEN_SOURCE_ROOT = "Emuqu/Sources"
+TOKEN_ROOTS = {
+    "Emuqu/Sources/Utilities/Constants.swift": ["ScoringBounds", "ScoringWeights"],
+    "Emuqu/Sources/Analysis/BaselineTracker.swift": [
+        "BaselineTracker.recoveryBaselineStats",
+        "BaselineTracker.stats",
+        "BaselineTracker.RecoveryBaselineStats",
+        "BaselineTracker.maxHistoricalPoints",
+    ],
+    "Emuqu/Sources/Utilities/Statistics.swift": ["[Double].mean", "[Double].sampleSD"],
+}
+# Types whose code only puts a score into words (breakdown copy, the
+# narrative language, PDF layout, bundle lookup): a reference into them is
+# not followed, so rewording the copy needs no version bump.
+TOKEN_TEXT_TYPES = {"ScoreBreakdownCopy", "NarrativeLanguage", "LanguageManager", "PDFReadingDirection", "String", "NSAttributedString", "AppConfig"}
+# Words that change no number a declaration computes.
+TOKEN_SKIPPED = {"private", "fileprivate", "internal", "public", "open", "final", "nonisolated", "static", "override"}
+
+
+class _TokenScope:
+    def __init__(self, kind, name):
+        self.kind = kind  # "type", "func" or "block"
+        self.name = name
+        self.member = ""
+
+
+class TokenWalker:
+    """Records every token of one file under its declaration.
+
+    A key is the dotted path of the enclosing types and functions
+    (`BaselineTracker.stats`); at type level a stored property, enum case or
+    type alias records under `<type path>#<name>`, and a type's own header
+    under `<type path>#`. Each key also names the declaration it belongs to
+    (`decl`, the outermost function or member) and the type that encloses it
+    (`type`), which reference resolution reads.
+    """
+
+    def __init__(self):
+        self.stack = []
+        self.pending = None
+        self.items = {}
+
+    def _names(self, kinds):
+        return [s.name for s in self.stack if s.kind in kinds]
+
+    def _type_path(self):
+        names = []
+        for scope in self.stack:
+            if scope.kind == "func":
+                break
+            if scope.kind == "type":
+                names.append(scope.name)
+        return ".".join(names)
+
+    def _where(self):
+        """(key, declaration path, enclosing type path) of the next token."""
+        tpath = self._type_path()
+        join = lambda *parts: ".".join(p for p in parts if p)
+        if self.pending and self.pending[0] == "func":
+            return join(tpath, self.pending[1]), join(tpath, self.pending[1]), tpath
+        if self.pending and self.pending[0] == "type":
+            name = join(tpath, self.pending[1])
+            return name + "#", name, name
+        funcs = [s for s in self.stack if s.kind == "func"]
+        if funcs:
+            decl = join(tpath, funcs[0].name)
+            return ".".join(self._names({"type", "func"})), decl, tpath
+        types = [s for s in self.stack if s.kind == "type"]
+        member = types[-1].member if types else ""
+        return tpath + "#" + member, join(tpath, member), tpath
+
+    def _record(self, tok):
+        key, decl, tpath = self._where()
+        entry = self.items.setdefault(key, {"tokens": [], "decl": decl, "type": tpath})
+        entry["tokens"].append(tok)
+
+    def _next_name(self, tokens, i):
+        j = i + 1
+        while j < len(tokens) and tokens[j] == "\n":
+            j += 1
+        if j < len(tokens) and tokens[j] == "[":
+            end = j
+            while end < len(tokens) and tokens[end] != "]":
+                end += 1
+            return "".join(tokens[j:end + 1])
+        parts = []
+        while j < len(tokens) and re.match(r"[A-Za-z_`]", tokens[j]):
+            parts.append(tokens[j].strip("`"))
+            if j + 1 < len(tokens) and tokens[j + 1] == ".":
+                j += 2
+                continue
+            break
+        return ".".join(parts) if parts else (tokens[j] if j < len(tokens) else "")
+
+    def _in_function(self):
+        return any(s.kind == "func" for s in self.stack)
+
+    def _declare(self, tokens, i, tok):
+        if i and tokens[i - 1] == ".":
+            return
+        nxt = self._next_name(tokens, i)
+        if tok in TYPE_KEYWORDS and nxt not in DECL_MODIFIERS:
+            self.pending = ("type", nxt)
+        elif tok == "func" or tok in FUNC_KEYWORDS:
+            self.pending = ("func", nxt if tok == "func" else tok)
+        elif tok in ("let", "var", "case", "typealias") and not self._in_function():
+            if self.stack and self.stack[-1].kind == "type":
+                self.stack[-1].member = nxt
+            self.pending = ("func", nxt) if tok == "var" else None
+
+    def walk(self, text):
+        tokens = TOKEN_RE.findall(strip_comments_and_strings(text))
+        skip_next = False
+        for i, tok in enumerate(tokens):
+            if tok == "\n" or tok in TOKEN_SKIPPED:
+                continue
+            if skip_next:
+                skip_next = False
+                continue
+            if tok in ("@", "import"):
+                skip_next = True
+                continue
+            self._declare(tokens, i, tok)
+            if tok == "{":
+                kind, name = self.pending or ("block", "")
+                self.stack.append(_TokenScope(kind, name))
+                self.pending = None
+                continue
+            if tok == "}":
+                if self.stack:
+                    self.stack.pop()
+                self.pending = None
+                continue
+            if tok == "=" and self.pending and self.pending[0] == "func" and not self._in_function():
+                self.pending = None
+            self._record(_normalize_number(tok) if NUMBER_RE.match(tok) else tok)
+        return self.items
+
+
+def _token_index():
+    """{file: TokenWalker items} for every Swift file under the app sources."""
+    index = {}
+    for path in sorted(pathlib.Path(TOKEN_SOURCE_ROOT).rglob("*.swift")):
+        index[str(path)] = TokenWalker().walk(path.read_text(encoding="utf-8"))
+    return index
+
+
+def _by_decl(index):
+    """{declaration path: [(file, key)]} for the members of types, not the
+    type headers, and none of the text-only types."""
+    decls = {}
+    for name, items in index.items():
+        for key, entry in items.items():
+            text_only = entry["decl"].split(".")[0] in TOKEN_TEXT_TYPES
+            if entry["type"] and not key.endswith("#") and not text_only:
+                decls.setdefault(entry["decl"], []).append((name, key))
+    return decls
+
+
+def _chains(tokens):
+    """Each `a.b.c` identifier chain not itself reached through a `.`."""
+    i = 0
+    while i < len(tokens):
+        if re.match(r"[A-Za-z_]", tokens[i]) and (i == 0 or tokens[i - 1] != "."):
+            chain = [tokens[i]]
+            while i + 2 < len(tokens) and tokens[i + 1] == "." and re.match(r"[A-Za-z_]", tokens[i + 2]):
+                chain.append(tokens[i + 2])
+                i += 2
+            yield chain
+        i += 1
+
+
+def _resolve(chain, tpath, decls):
+    """The declaration paths a chain written inside type `tpath` names."""
+    scope = tpath.split(".") if tpath else []
+    if chain[0] == "Self":
+        chain = scope + chain[1:]
+    for k in range(len(scope), -1, -1):
+        for j in range(len(chain), 0, -1):
+            path = ".".join(scope[:k] + chain[:j])
+            if j < len(chain) and chain[j] == "self":
+                members = [d for d in decls if d == path or d.startswith(path + ".")]
+                if members:
+                    return members
+            if path in decls:
+                return [path]
+    return []
+
+
+def _root_decls(index, decls):
+    found = []
+    for name, roots in TOKEN_ROOTS.items():
+        if name not in index:
+            raise ConfigError(f"missing {name}")
+        for root in roots:
+            mine = sorted({entry["decl"] for entry in index[name].values()
+                           if entry["decl"] in decls and (entry["decl"] == root or entry["decl"].startswith(root + "."))})
+            if not mine:
+                raise ConfigError(f"{root} not found in {name}")
+            found.extend(mine)
+    return found
+
+
+def decl_tokens_items():
+    """{key: [token, ...]}: the scoring files whole, the roots, and every
+    declaration they reach by name, each key once."""
+    index = _token_index()
+    decls = _by_decl(index)
+    whole = set()
+    for label, names in _decl_sources():
+        if not any(_has_number({k: e["tokens"] for k, e in index.get(n, {}).items()}) for n in names):
+            raise ConfigError(f"no numeric literals found in {label}")
+        whole.update(names)
+    chosen = {(name, key) for name in whole for key in index[name]}
+    work = list(chosen)
+    for decl in _root_decls(index, decls):
+        work.extend(decls[decl])
+    seen_decls = set()
+    while work:
+        name, key = work.pop()
+        chosen.add((name, key))
+        entry = index[name][key]
+        for chain in _chains(entry["tokens"]):
+            for decl in _resolve(chain, entry["type"], decls):
+                if decl not in seen_decls:
+                    seen_decls.add(decl)
+                    work.extend(ref for ref in decls[decl] if ref not in chosen)
+    merged = {}
+    for name, key in sorted(chosen):
+        merged.setdefault(key, []).extend(index[name][key]["tokens"])
+    return merged
+
+
+def decl_tokens_hash():
+    digest = hashlib.sha256()
+    seen = 0
+    for key, values in sorted(decl_tokens_items().items()):
+        digest.update(f"{key}={' '.join(values)}\n".encode())
+        seen += len(values)
+    return digest.hexdigest()[:16], seen
+
+
+SCHEMES = {"static-lets": static_lets_hash, "decl-literals": decl_literals_hash, CURRENT_SCHEME: decl_tokens_hash}
 
 
 def scheme_of(fields):
@@ -356,8 +614,8 @@ def scheme_of(fields):
 if __name__ == "__main__":
     scheme = sys.argv[1] if len(sys.argv) > 1 else CURRENT_SCHEME
     if scheme == "--dump":
-        for key, values in sorted(decl_literals_items().items()):
-            print(f"{key}={','.join(values)}")
+        for key, values in sorted(decl_tokens_items().items()):
+            print(f"{key}={' '.join(values)}")
         raise SystemExit(0)
     try:
         h, n = SCHEMES[scheme]()

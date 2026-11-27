@@ -293,6 +293,131 @@ final class SessionImmutabilityTests: XCTestCase {
         XCTAssertEqual(cloud.liveBackupsCleared, [second.id])
     }
 
+    // MARK: - An unusable recording's heart rate is not a sleep HR
+
+    private func vitals(restingHeartRate: Double?) -> RecoveryVitals {
+        RecoveryVitals(
+            respiratoryRate: 14, respiratoryRateBaseline: 14, oxygenSaturation: 97, oxygenSaturationMin: 95,
+            wristTemperature: nil, wristTemperatureBaseline: nil, restingHeartRate: restingHeartRate
+        )
+    }
+
+    private func breakdown(
+        meanHR: Double, vitals: RecoveryVitals, useBaselineHRV: Bool
+    ) -> RecoveryScoreCalculator.ScoreBreakdown {
+        let stats = BaselineTracker.RecoveryBaselineStats(
+            lnRmssdMean: log(40.0), lnRmssdSD: 0.3, lnRmssdCV7Day: 6.0,
+            meanHRBaseline: 52.0, meanHRSD: 3.0, daysInWindow: 30
+        )
+        return RecoveryScoreCalculator.calculateWithBreakdown(
+            RecoveryScoreCalculator.ScoreInputs(
+                hrvReadiness: nil, rmssd: 15, meanHR: meanHR, dfaAlpha1: 0.85, baselineStats: stats,
+                sleepData: sleep(minutes: 480), vitals: vitals, typicalSleepHours: 7.5
+            ),
+            // Sleep and vitals both present: the three-factor tier, where the
+            // vitals sub-score weighs in.
+            trainingContext: nil, config: rescoreContext(baseline: nil).scoringConfig,
+            useBaselineHRV: useBaselineHRV, referenceDate: anchor
+        )
+    }
+
+    /// A recording made awake (22:00 to 23:00, `.preSleep`) has a mean HR of
+    /// 70 against a 52 ± 3 sleep-HR baseline. A pass that ran before the
+    /// recording was classified copied that 70 into the vitals as resting
+    /// HR. Scored from the baseline, the night must read as having no sleep
+    /// HR, not as "Sleep HR 70 (+18 bpm)".
+    func testAnUnusableRecordingsHeartRateIsNotScoredAsSleepHR() {
+        let copied = breakdown(meanHR: 70, vitals: vitals(restingHeartRate: 70), useBaselineHRV: true)
+        let none = breakdown(meanHR: 70, vitals: vitals(restingHeartRate: nil), useBaselineHRV: true)
+        XCTAssertEqual(copied.compositeScore, none.compositeScore, accuracy: 1e-9)
+        let factors = copied.factors.map { "\($0.label) \($0.score) \($0.facts?.vitals?.sleepHR ?? -1)" }
+        XCTAssertEqual(factors, none.factors.map { "\($0.label) \($0.score) \($0.facts?.vitals?.sleepHR ?? -1)" })
+        // HealthKit's resting HR is a different number and still counts.
+        let health = breakdown(meanHR: 70, vitals: vitals(restingHeartRate: 60), useBaselineHRV: true)
+        XCTAssertNotEqual(health.compositeScore, none.compositeScore, accuracy: 1e-6)
+    }
+
+    /// The snapshot rule: a usable recording's strap HR stands as sleep HR; an
+    /// unusable one keeps HealthKit's resting HR, and drops a value copied
+    /// from its own mean HR.
+    func testTheSleepHeartRateRuleUsesTheStrapOnlyForAUsableRecording() {
+        var usable = session(quality: .good)
+        usable.analysisResult = depressedResult()
+        XCTAssertEqual(usable.withSleepHeartRate(vitals(restingHeartRate: 62)).restingHeartRate, 58)
+        var awake = session(quality: .preSleep)
+        awake.analysisResult = depressedResult()
+        XCTAssertNil(awake.strapSleepHeartRate)
+        XCTAssertEqual(awake.withSleepHeartRate(vitals(restingHeartRate: 62)).restingHeartRate, 62)
+        XCTAssertNil(awake.withSleepHeartRate(vitals(restingHeartRate: 58)).restingHeartRate)
+    }
+
+    // MARK: - A sleep edit on a night with no baseline
+
+    private func scoredWithoutBaseline(sleepMinutes: Int) -> HRVSession {
+        var night = session(quality: .good)
+        night.endDate = anchor.addingTimeInterval(8 * 3600)
+        night.analysisResult = depressedResult()
+        night.sleepSnapshot = sleep(minutes: sleepMinutes)
+        let scored = ReanalysisService.rescoredBreakdown(
+            of: night, result: depressedResult(), training: nil, referenceDate: anchor,
+            context: rescoreContext(baseline: nil)
+        )
+        night.scoreBreakdown = scored
+        night.recoveryScore = RecoveryScoreCalculator.toTenScale(scored.compositeScore)
+        return night
+    }
+
+    private func sleep(minutes: Int) -> SleepData {
+        let end = anchor.addingTimeInterval(8 * 3600)
+        let start = end.addingTimeInterval(-Double(minutes) * 60)
+        return SleepData(
+            date: end, inBedStart: start, sleepStart: start, sleepEnd: end,
+            totalSleepMinutes: minutes, inBedMinutes: minutes,
+            deepSleepMinutes: minutes / 5, remSleepMinutes: minutes / 5, awakeMinutes: 0,
+            sleepEfficiency: 92, boundarySource: .healthKit,
+            segments: [], stageIntervals: [], boundaryValidation: nil, hrSleepQuality: nil
+        )
+    }
+
+    private func rescoreContext(baseline: BaselineTracker.RecoveryBaselineStats?) -> RescoreContext {
+        RescoreContext(
+            baselineStats: baseline, typicalSleepHours: 8,
+            scoringConfig: RecoveryScoreCalculator.ScoringConfiguration(
+                enableTrainingLoadIntegration: false, isOnTrainingBreak: false,
+                enableSleepIntegration: true, penalizeMissingSleep: false, userAge: 40
+            )
+        )
+    }
+
+    /// One of a user's first nights, scored with no baseline, has its sleep
+    /// edited from 8 hours to 3. The re-score reads the edited sleep, so the
+    /// stored score is not left computed on the old night.
+    func testASleepEditRescoresANightFirstScoredWithoutABaseline() {
+        var night = scoredWithoutBaseline(sleepMinutes: 480)
+        let before = night.scoreBreakdown?.compositeScore
+        night.sleepSnapshot = sleep(minutes: 180)
+        let inputs = SleepBoundaryWrite.Inputs(context: rescoreContext(baseline: nil), fallbackTraining: nil)
+        SleepBoundaryWrite.rescore(&night, sessionEnd: anchor.addingTimeInterval(8 * 3600), inputs: inputs)
+        let after = ReanalysisService.rescoredBreakdown(
+            of: night, result: depressedResult(), training: nil, referenceDate: anchor.addingTimeInterval(8 * 3600),
+            context: inputs.context
+        )
+        XCTAssertNotEqual(night.scoreBreakdown?.compositeScore, before)
+        XCTAssertEqual(night.scoreBreakdown?.compositeScore, after.compositeScore)
+    }
+
+    /// A night scored against a baseline that can no longer be rebuilt keeps
+    /// its stored score: a no-baseline score would replace it.
+    func testANightScoredAgainstABaselineKeepsItsScoreWhenNoneCanBeRebuilt() {
+        var night = session(quality: .good)
+        night.analysisResult = depressedResult()
+        night.recoveryScore = 6
+        night.scoreBreakdown = breakdown(meanHR: 58, vitals: vitals(restingHeartRate: nil), useBaselineHRV: false)
+        XCTAssertTrue(ReanalysisService.keepsStoredScore(night, baseline: nil))
+        night.scoreBreakdown = scoredWithoutBaseline(sleepMinutes: 480).scoreBreakdown
+        XCTAssertFalse(ReanalysisService.keepsStoredScore(night, baseline: nil))
+    }
+
     private func depressedResult() -> HRVAnalysisResult {
         HRVAnalysisResult(
             windowStart: 0, windowEnd: 400,

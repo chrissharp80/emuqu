@@ -105,7 +105,7 @@ struct SleepDetailV2View: View {
     /// daytime RHR sample even on sessions accepted before the
     /// strap-override path existed.
     private var effectiveVitals: RecoveryVitals? {
-        let stored = recoveryVitals
+        let stored = recoveryVitals.map { session.withSleepHeartRate($0) }
         let fresh = refreshedVitals
         let strapHR = VitalsDetailV2View.strapMeanHR(of: session)
         let mergedRHR = strapHR ?? stored?.restingHeartRate ?? fresh?.restingHeartRate

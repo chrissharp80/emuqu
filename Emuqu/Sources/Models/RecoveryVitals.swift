@@ -106,16 +106,32 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
     /// physiologically self-consistent (both sides nocturnal-strap-
     /// derived). When `strapHR` is nil, the receiver is returned
     /// unchanged so the HealthKit fallback survives.
+    ///
+    /// Callers pass `HRVSession.strapSleepHeartRate`, which is nil for a
+    /// recording unusable for HRV, so its awake heart rate never stands in.
     func withStrapNocturnalRHR(_ strapHR: Double?) -> RecoveryVitals {
         guard let strapHR else { return self }
-        return RecoveryVitals(
+        return replacingRestingHeartRate(strapHR)
+    }
+
+    /// A copy without `restingHeartRate` when it equals `recordingHR`, the mean
+    /// HR of a recording unusable for HRV: that value was copied from the
+    /// recording and is not a resting HR. Any other value is HealthKit's and
+    /// stays.
+    func droppingRestingHeartRate(copiedFrom recordingHR: Double?) -> RecoveryVitals {
+        guard let recordingHR, restingHeartRate == recordingHR else { return self }
+        return replacingRestingHeartRate(nil)
+    }
+
+    private func replacingRestingHeartRate(_ heartRate: Double?) -> RecoveryVitals {
+        RecoveryVitals(
             respiratoryRate: respiratoryRate,
             respiratoryRateBaseline: respiratoryRateBaseline,
             oxygenSaturation: oxygenSaturation,
             oxygenSaturationMin: oxygenSaturationMin,
             wristTemperature: wristTemperature,
             wristTemperatureBaseline: wristTemperatureBaseline,
-            restingHeartRate: strapHR
+            restingHeartRate: heartRate
         )
     }
 }

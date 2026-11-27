@@ -651,10 +651,12 @@ check "scoring_governance/version_bump_without_baseline" \
 
 # A constant changed and the baseline rewritten to match, with the version
 # left as it is: the baseline is edited in the same change, so the gate reads
-# the version the base branch recorded. The gate refreshes a copy of the
-# baseline each run, as an author updating it in step would.
+# the version the base recorded. The gate refreshes a copy of the baseline
+# each run, as an author updating it in step would, and measures from the
+# checked-out commit, so a branch that has already bumped the version for
+# its own changes still has a base under that version.
 check "scoring_governance/baseline_relabelled_without_version_bump" \
-    'b="$BACKUP_DIR/relabelled_baseline.txt"; h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; sed "s/ [0-9a-f]\{16\}/ $h/" .ci/scoring_constants_hash.txt > "$b"; SCORING_BASELINE="$b" ./scripts/check_scoring_governance.sh' \
+    'b="$BACKUP_DIR/relabelled_baseline.txt"; h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; sed "s/ [0-9a-f]\{16\}/ $h/" .ci/scoring_constants_hash.txt > "$b"; SCORING_BASELINE="$b" SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
@@ -699,6 +701,36 @@ check "scoring_governance/sleep_cap_edit" \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift');s=p.read_text();o='max(typicalSleepHours, 1.0), 1.2)';assert s.count(o)==1;p.write_text(s.replace(o,'max(typicalSleepHours, 1.0), 1.3)'))"
 
+# A constant that reaches the score from outside the scoring files, and the
+# scoring code's operators, move the hash too: the baseline SD floor, the
+# baseline's night window and minimum night count, a fragmentation weight
+# the sleep analyzer reads, and a comparison flipped in the band
+# interpolation each go red with the version left alone.
+check "scoring_governance/baseline_sd_floor_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift');s=p.read_text();o='static let lnRmssdSDFloor: Double = 0.10';assert s.count(o)==1;p.write_text(s.replace(o,'static let lnRmssdSDFloor: Double = 0.30'))"
+
+check "scoring_governance/baseline_window_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/BaselineTracker.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/BaselineTracker.swift');s=p.read_text();o='static let recoveryWindowNights = 60';assert s.count(o)==1;p.write_text(s.replace(o,'static let recoveryWindowNights = 7'))"
+
+check "scoring_governance/baseline_minimum_days_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/BaselineTracker.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/BaselineTracker.swift');s=p.read_text();o='static let minimumDays = 3';assert s.count(o)==1;p.write_text(s.replace(o,'static let minimumDays = 1'))"
+
+check "scoring_governance/fragmentation_weight_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift');s=p.read_text();o='static let fragmentationWakePercentWeight: Double = 2.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let fragmentationWakePercentWeight: Double = 3.0'))"
+
+check "scoring_governance/flipped_operator" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
+
 # A change of hashing scheme must not open a window for a constant change:
 # with the base's baseline written under the older `static-lets` scheme, a
 # constant edited and the baseline rewritten under the current scheme still
@@ -706,9 +738,19 @@ check "scoring_governance/sleep_cap_edit" \
 # commits a `static-lets` baseline as the base, then takes the working copy's
 # constants and gate and records their current-scheme hash.
 check "scoring_governance/scheme_change_hides_constant_change" \
-    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s decl-tokens\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-tokens | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
+
+# A scheme that measures more must not carry an edit only it can see: with
+# the base recorded under `decl-literals`, which reads numbers only, a
+# comparison flipped in the scoring code and the baseline rewritten under the
+# current scheme, version unchanged, still fails, because the base's own
+# sources are hashed under the current scheme as well.
+check "scoring_governance/scheme_change_hides_operator_change" \
+    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s decl-tokens\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-tokens | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
 
 # The mutation harness credits a mutation only to a recorded assertion
 # failure. With that requirement taken out, a run that stopped after a test

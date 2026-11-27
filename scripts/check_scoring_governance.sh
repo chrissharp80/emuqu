@@ -17,25 +17,30 @@
 #    user can see would present a made-up figure as a confidence. It may not
 #    leave Analysis/CauseDetection.
 #
-# 2. Every number that shapes a recovery score is hashed
-#    (scripts/lib/scoring_hash.py, scheme `decl-literals`): the named constants
-#    of RecoveryScoreConstants.swift, HRVThresholds.swift and the
-#    ScoringBounds / ScoringWeights enums of Constants.swift, and the literals
-#    written inline in the scoring code itself (RecoveryScoreCalculator*.swift,
-#    ScoreDetailBuilder, VitalsScoring, SleepScienceAnalyzer): the z-score band
-#    tables and the `defaultScoringParameters` binding, the age/sex norms,
-#    clamps and caps. Comments and string literals are stripped, and each
-#    number is keyed by the declaration it sits in, so moving or reordering
-#    declarations leaves the hash alone. Change a weight, a band, a threshold
-#    or the table the score binds to and the hash moves; the gate then requires
-#    ScoringVersion.current to have moved too. This is what stops an archive
-#    quietly becoming a mixture of two algorithms under one version string,
-#    the failure the version stamp exists to prevent.
+# 2. The code that decides a recovery score is hashed token by token
+#    (scripts/lib/scoring_hash.py, scheme `decl-tokens`): the scoring files
+#    whole (RecoveryScoreConstants.swift, HRVThresholds.swift,
+#    RecoveryScoreCalculator*.swift, ScoreDetailBuilder, VitalsScoring,
+#    SleepScienceAnalyzer), named roots elsewhere (the ScoringBounds /
+#    ScoringWeights enums of Constants.swift, the baseline statistics the
+#    z-score divides by), and every declaration those reach by name, wherever
+#    it is declared: the baseline SD floors, the night window and minimum
+#    night count, the fragmentation weights. Numbers, operators and names all
+#    count; comments, whitespace, string contents and access modifiers do
+#    not, and each token is keyed by the declaration it sits in, so moving or
+#    reordering declarations leaves the hash alone. Change a weight, a band,
+#    a threshold, a comparison or the table the score binds to and the hash
+#    moves; the gate then requires ScoringVersion.current to have moved too.
+#    This is what stops an archive quietly becoming a mixture of two
+#    algorithms under one version string, the failure the version stamp
+#    exists to prevent.
 #
 #    The baseline line is `<version> <hash> <scheme>`. A change to how the
 #    hash is computed rehashes with no scoring change, so the scheme is
 #    recorded and a base is always compared under its own scheme: the tree
-#    is hashed the base's way too, and a number that moved still fails.
+#    is hashed the base's way too, and a number that moved still fails. The
+#    base's own sources are hashed under the current scheme as well, so a
+#    scheme that measures more cannot carry a change only it sees.
 #
 #    The baseline must match both the current version and the current hash, so
 #    a version bump is refreshed into it in the same change. Because that file
@@ -94,6 +99,14 @@ if MERGE_BASE="$(git merge-base HEAD "$BASE_REF" 2>/dev/null)"; then
         echo "check_scoring_governance: $BASE_REF has no $TRACKED_BASELINE at $MERGE_BASE" >&2
         exit 2
     fi
+    # The base's own sources, so they can be hashed under this gate's scheme.
+    BASE_TREE="$(mktemp -d)"
+    trap 'rm -rf "$BASE_TREE"' EXIT
+    if ! git archive "$MERGE_BASE" Emuqu/Sources | tar -x -C "$BASE_TREE"; then
+        echo "check_scoring_governance: cannot read the sources at $MERGE_BASE" >&2
+        exit 2
+    fi
+    export BASE_TREE
 elif [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     echo "check_scoring_governance: cannot resolve $BASE_REF; CI must check out full history" >&2
     exit 2
@@ -198,10 +211,30 @@ if len(base_fields) in (2, 3):
             f"{version!r}. Editing {baseline_path} does not stand in for a version bump."
         )
 
+# The base's sources hashed under the current scheme too, so a change of
+# scheme that measures more (an operator, a constant outside the scoring
+# files) cannot carry an edit only the new scheme sees: the base and the tree
+# are compared under one scheme. A base the current scheme cannot read
+# (a root it lacks) leaves the comparison above to stand alone.
+base_tree = os.environ.get("BASE_TREE", "")
+if base_tree and len(base_fields) in (2, 3) and version == base_fields[0]:
+    import subprocess
+    run = subprocess.run(
+        [sys.executable, str(pathlib.Path("scripts/lib/scoring_hash.py").resolve()), scheme],
+        cwd=base_tree, capture_output=True, text=True,
+    )
+    base_now = run.stdout.split()[0] if run.returncode == 0 and run.stdout.split() else ""
+    if base_now and base_now != current_hash:
+        problems.append(
+            f"scoring code differs from the base branch under the current {scheme!r} scheme "
+            f"({base_now} -> {current_hash}) while ScoringVersion.current is still the base's "
+            f"{version!r}."
+        )
+
 for problem in problems:
     print(f"  {problem}", file=sys.stderr)
 
-print(f"check_scoring_governance: {seen} scoring literals hashed ({current_hash}) under {scheme}, "
+print(f"check_scoring_governance: {seen} scoring tokens hashed ({current_hash}) under {scheme}, "
       f"version {version}; rankingWeight contained to CauseDetection")
 
 if problems:

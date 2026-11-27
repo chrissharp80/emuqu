@@ -424,6 +424,19 @@ enum RecoveryScoreCalculator {
             )
         }
 
+        /// The same inputs without the recording's own mean HR in the vitals.
+        /// For a recording unusable for HRV, a resting HR copied from it is
+        /// an awake heart rate, not a sleep HR; HealthKit's resting HR, when
+        /// the vitals carry it instead, stays (`HRVSession.withSleepHeartRate`).
+        fileprivate func droppingRecordingHeartRate() -> ScoreInputs {
+            ScoreInputs(
+                hrvReadiness: hrvReadiness, rmssd: rmssd, meanHR: meanHR, dfaAlpha1: dfaAlpha1,
+                baselineStats: baselineStats, sleepData: sleepData,
+                vitals: vitals?.droppingRestingHeartRate(copiedFrom: meanHR),
+                typicalSleepHours: typicalSleepHours
+            )
+        }
+
         /// The same inputs with wrist temperature re-expressed as tonight's
         /// deviation from the user's own baseline — see
         /// `wristTemperatureAgainstPersonalBaseline`.
@@ -508,23 +521,23 @@ enum RecoveryScoreCalculator {
         referenceDate: Date = Date()
     ) -> ScoreBreakdown {
         _ = trainingContext // see doc comment above
-        // The baseline stands in only when there is one. With none, the
-        // recording is all there is and is scored as it stands; the blend
-        // below, whose note says the baseline was used, is then skipped.
-        let standIn = useBaselineHRV ? inputs.baselineStats : nil
+        // An unusable recording's HR is never sleep HR. The baseline stands in
+        // only when there is one; with none, the recording scores as it stands.
+        let night = useBaselineHRV ? inputs.droppingRecordingHeartRate() : inputs
+        let standIn = useBaselineHRV ? night.baselineStats : nil
         let effective = FiniteHRVInputs(
-            readiness: inputs.hrvReadiness, rmssd: inputs.rmssd, meanHR: inputs.meanHR, dfaAlpha1: inputs.dfaAlpha1
+            readiness: night.hrvReadiness, rmssd: night.rmssd, meanHR: night.meanHR, dfaAlpha1: night.dfaAlpha1
         ).substitutingBaseline(standIn)
         // ANS balance was computed from the same unusable recording, so it is
         // dropped with the recording's other session-specific modifiers.
         let breakdown = computeBreakdown(
-            inputs.substitutingHRV(effective), config: config,
+            night.substitutingHRV(effective), config: config,
             ansBalance: standIn == nil ? ansBalance : nil, referenceDate: referenceDate
         )
         guard standIn != nil, let perceived = perceivedReadiness else { return breakdown }
         return blendingPerceivedReadiness(
-            perceived, vitals: inputs.vitals,
-            missingSleep: missingSleepPenaltyApplies(inputs, tier: breakdown.tier, config: config),
+            perceived, vitals: night.vitals,
+            missingSleep: missingSleepPenaltyApplies(night, tier: breakdown.tier, config: config),
             into: breakdown
         )
     }

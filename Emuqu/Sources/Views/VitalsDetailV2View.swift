@@ -47,21 +47,20 @@ struct VitalsDetailV2View: View {
         // Strap-derived nocturnal mean from the latest session's analysis
         // window. Wins over both stored and fresh (Apple) RHR samples.
         Self.mergedVitals(
-            stored: latestOvernight.map(\.vitalsSnapshot) ?? vitals,
+            stored: latestOvernight.map(\.vitalsWithSleepHeartRate) ?? vitals,
             fresh: refreshedVitals,
             strapHR: Self.strapMeanHR(of: latestOvernight)
         )
     }
 
     /// The strap's nocturnal mean HR from a session's analysis window, nil
-    /// when there is none or it is an estimate (an Elite HRV summary with no
-    /// mean HR): an analysis that found no heart rate stores 0,
-    /// which must not win the merge or plot as 0 bpm. The rule every detail
-    /// screen applies (`RecoveryScoreDetailView.strapSleepHR`).
+    /// when there is none, it is an estimate (an Elite HRV summary with no
+    /// mean HR), or the recording is unusable for HRV: an analysis that found
+    /// no heart rate stores 0, which must not win the merge or plot as 0 bpm,
+    /// and an awake recording's heart rate is not a sleep HR. The rule every
+    /// detail screen applies (`HRVSession.strapSleepHeartRate`).
     nonisolated static func strapMeanHR(of session: HRVSession?) -> Double? {
-        guard let result = session?.analysisResult,
-              let meanHR = result.measured(result.timeDomain.meanHR, as: .meanHR), meanHR > 0 else { return nil }
-        return meanHR
+        session?.strapSleepHeartRate
     }
 
     /// The one merge rule for a night's vitals on the detail screens: the

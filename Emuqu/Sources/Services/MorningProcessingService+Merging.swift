@@ -501,7 +501,7 @@ extension MorningProcessingService {
         }
         if let frozenVitals = session.vitalsSnapshot { return (sleepData, frozenVitals) }
         let fresh = await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
-        return (sleepData, fresh.withStrapNocturnalRHR(result.timeDomain.meanHR))
+        return (sleepData, session.withSleepHeartRate(fresh, from: result))
     }
 
     func freshSleepData(
