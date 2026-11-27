@@ -384,14 +384,8 @@ final class MorningResultsLiveSleepTests: XCTestCase {
 /// the screen shows is what the archive holds.
 @MainActor
 final class MorningResultsReadinessTests: XCTestCase {
-    private var directory: URL!
-    private var archive: SessionArchive!
-
-    override func setUp() async throws {
-        try await super.setUp()
-        directory = FileManager.default.temporaryDirectory.appendingPathComponent("MorningReadiness-\(UUID().uuidString)")
-        archive = SessionArchive(directory: directory)
-    }
+    private let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MorningReadiness-\(UUID().uuidString)")
+    private lazy var archive = SessionArchive(directory: directory)
 
     override func tearDown() async throws {
         do {
