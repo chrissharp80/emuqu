@@ -100,6 +100,50 @@ final class ReuploadRequestTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: archive.store.interruptedRewriteMarker(for: late.id).path))
     }
 
+    /// A rescore is not stamped, yet its copy is uploaded again: the request
+    /// is on disk before the rescored file is written.
+    func testARescoreIsAskedToUploadBeforeItsFileIsWritten() throws {
+        let archive = makeArchive()
+        let session = night()
+        try archive.archive(session)
+        var rescored = session
+        rescored.recoveryScore = 6.4
+
+        let seen = try atKillPoint(of: archive) {
+            _ = try RescoreWrite.write(rescored, readFrom: session, kind: .scoreOnly(healedTraining: false), to: archive)
+        }
+
+        XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 6.4, "the fixture expects the rescore written")
+        XCTAssertEqual(seen[session.id]?.requested, true, "a kill after the write lost the rescore's upload")
+    }
+
+    /// Duplicate cleanup killed after the tombstones, before the index save:
+    /// the retired copy's fold onto its keeper is already on disk, so a screen
+    /// still naming the copy writes to the keeper after the next launch.
+    func testACleanupKilledBeforeTheIndexSaveKeepsTheCopyUnderItsKeeper() throws {
+        let archive = makeArchive()
+        let start = ArchiveIntegrityTests.nightAnchoredDate(daysAgo: 30)
+        var keeper = night(start: start)
+        keeper.recoveryScore = 7.2
+        let copy = HRVSession(
+            id: UUID(), startDate: start.addingTimeInterval(3600), endDate: start.addingTimeInterval(7 * 3600), state: .complete,
+            sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        _ = try archive.archive(keeper, skipSameNightMerge: true)
+        _ = try archive.archive(copy, skipSameNightMerge: true)
+        let (foldFile, keeperId) = (archive.state.foldedIndexFile, keeper.id)
+        let folded = OSAllocatedUnfairLock(initialState: false)
+
+        ArchiveStore.$betweenFileAndIndex.withValue({ id in
+            guard id == copy.id, let stored = attempt("test.readFolds", { try Data(contentsOf: foldFile) }) else { return }
+            let pairs = attempt("test.decodeFolds", { try JSONDecoder().decode([String: String].self, from: stored) }) ?? [:]
+            folded.withLock { $0 = pairs[copy.id.uuidString] == keeperId.uuidString }
+        }, operation: { archive.migrations.removeDuplicates() })
+
+        XCTAssertTrue(archive.store.deletedIds.contains(copy.id), "the fixture expects the copy retired")
+        XCTAssertTrue(folded.withLock { $0 }, "a kill here left the retired copy resolving to nothing")
+    }
+
     // MARK: - Sync takes the requests
 
     /// A request a killed launch left is taken into the pending queue at the

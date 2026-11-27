@@ -13,8 +13,9 @@ import Foundation
 // (`repairSessionHashIfDecodable`).
 
 extension ArchiveStore {
-    /// Called between a rewrite's file write and its index save, the step a
-    /// kill interrupts, with the session's id. A test binds it to see what a
+    /// Called with the session's id between the two writes of a change a
+    /// kill can interrupt: a rewrite's file and its index save, a duplicate
+    /// cleanup's tombstones and its index save. A test binds it to see what a
     /// kill there leaves on disk; nothing else binds it.
     @TaskLocal static var betweenFileAndIndex: (@Sendable (UUID) -> Void)?
 
