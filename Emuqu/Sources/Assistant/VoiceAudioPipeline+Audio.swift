@@ -459,6 +459,8 @@ extension VoiceAudioPipeline {
     /// "Recent Problems") AND shows a short user-facing banner. If the guard
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
+        let lastAssistant = controller.assistantViewModel.turns.last(where: { $0.role == .assistant })?.text ?? ""
+        if VoiceEchoHeuristics.mustReachGuard(transcript, lastAssistantTurn: lastAssistant) { return false }
         if controller.looksLikeEcho(of: transcript), !answersHeardConfirmation(transcript) {
             debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
             controller.services.assistantInbox.flashTransientNotice(String(
@@ -497,6 +499,13 @@ extension VoiceAudioPipeline {
               controller.assistantViewModel.turns.last(where: { $0.role == .assistant })?.text == reply
         else { return false }
         return controller.echoOverlapRatio(transcript: transcript, against: reply) >= 0.4
+    }
+
+    /// A crisis or emergency report that interrupted the reply: sent like a
+    /// finished turn, so the guard answers it and the answer is spoken.
+    func answerInterruptingFragment(_ fragment: String) {
+        debugLog("[VoiceConv] barge-in fragment of \(fragment.count) characters reaches the guard", level: .warning)
+        dispatchTranscript(fragment)
     }
 
     /// Hand the transcript to the shared chat view model. It appends a user

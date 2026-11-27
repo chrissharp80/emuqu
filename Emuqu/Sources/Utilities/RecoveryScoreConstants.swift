@@ -115,9 +115,11 @@ enum RecoveryScoreConstants {
         /// Exponential decay time constant (hours) for acute fatigue
         static let acuteFatigueTauHours: Double = 24.0
 
-        /// CTL threshold above which capacity-ratio model is used. Below
-        /// this, the "novel load" model kicks in — meaning any workout
-        /// looks like a lot relative to an effectively-zero fitness base.
+        /// The CTL below which there is no meaningful fitness base: the
+        /// acute:chronic ratio is then noise, and the training advice and the
+        /// analysis summary do not read it (`TrainingAdviceGate`). Readiness
+        /// itself has no switch here; its ratio divides by at least
+        /// `capacityRatioCTLFloor`.
         ///
         /// In TSS per day, the scale every load is on
         /// (`HeartRateAnchors.tss`). The boundary, "has a meaningful fitness
@@ -126,8 +128,19 @@ enum RecoveryScoreConstants {
         /// anchors (resting 60, max 180, LTHR 0.88 x max), so the same base
         /// is 3.2 / 1.52 = 2.1 TSS per day.
         static let ctlThreshold: Double = 2.1
-        /// CTL < ctlThreshold path: readiness points per unit of load (TSS).
-        static let novelLoadStrainCoefficient: Double = 0.5
+
+        /// The smallest CTL the capacity ratio divides by, in TSS per day:
+        /// one hour at threshold a week, 100 TSS / 7 days. Below it the
+        /// ratio is noise around a near-zero denominator (one 30-TSS walk at
+        /// CTL 2.1 reads as a ratio of 6); against this floor the same walk
+        /// reads near 1, "matched". At this floor the capacity map's first
+        /// segment (15 points per 0.8 of ratio) takes about 0.57 points per
+        /// TSS of a same-day workout counted at 0.43 of its load (ATL's
+        /// 1 - e^(-1/7) plus the 0.30 acute share), the rate a pure strain
+        /// model of 0.5 points per TSS of ATL plus the undamped load gives,
+        /// so a beginner's first light workout reads as a strain model
+        /// would read it.
+        static let capacityRatioCTLFloor: Double = 100.0 / 7.0
 
         /// Capacity ratio breakpoints and corresponding readiness values
         static let capacityRatioBreak1: Double = 0.8
@@ -190,9 +203,6 @@ enum RecoveryScoreConstants {
         static let modelTrustCeiling: Double = 0.55
         /// Recovery uplift fraction when model underestimates
         static let recoveryUpliftFraction: Double = 0.30
-
-        /// Floor for readiness and capacity model
-        static let readinessFloor: Double = 10.0
     }
 
     // MARK: - Readiness Labels & Messages

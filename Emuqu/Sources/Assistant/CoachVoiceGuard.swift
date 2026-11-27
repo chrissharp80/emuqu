@@ -41,6 +41,10 @@ import NaturalLanguage
 ///     pattern cannot follow in seventeen languages: sentence-final in
 ///     Japanese and Korean, split in French ("ne … pas"), a negative verb in
 ///     Finnish. A missed negation would hand the claim through unchanged.
+///     The one exception is the app's own disclaimer: a clearance, diagnosis
+///     or treatment named inside a negated clause ("Emuqu is not
+///     FDA-approved", "ne diagnostique aucune affection") is not a claim
+///     about anyone, so it passes (`MedicalTermLexicon.disclaimableClaims`).
 ///   • Replacement is regex-based and case-insensitive; the deflection
 ///     replaces the entire matched phrase plus the sentence it sits in,
 ///     since "you may have COVID, so see a doctor" needs the whole
@@ -401,8 +405,7 @@ enum CoachVoiceGuard {
             "[CoachVoiceGuard] cross-sentence match for rule \(entry.rule.id)",
             level: .error
         )
-        let whole = NSRange(output.startIndex..., in: output)
-        guard let match = entry.regex.firstMatch(in: output, options: [], range: whole),
+        guard let match = MedicalTermLexicon.claimMatch(of: entry.regex, concept: entry.rule.id, in: output),
               let matched = Range(match.range, in: output),
               let rebuilt = replacing(segments, spanning: matched, with: entry.rule.deflection),
               firstMatchingEntry(in: rebuilt, among: active) == nil
@@ -493,10 +496,12 @@ enum CoachVoiceGuard {
         return plain == text ? nil : firstMatch(in: plain, among: active)
     }
 
+    /// A negated disclaimer ("Emuqu is not FDA-approved") is not a claim, so
+    /// for the disclaimable concepts a match inside a negated clause does not
+    /// count (`MedicalTermLexicon.claimMatch`).
     private static func firstMatch(in text: String, among active: [Entry]) -> Entry? {
-        let range = NSRange(text.startIndex..., in: text)
-        return active.first {
-            $0.regex.firstMatch(in: text, options: [], range: range) != nil
+        active.first {
+            MedicalTermLexicon.claimMatch(of: $0.regex, concept: $0.rule.id, in: text) != nil
         }
     }
 

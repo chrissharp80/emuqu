@@ -226,8 +226,13 @@ extension VoiceConversationController {
     /// `.speaking`; the teardown flag suppresses that, so this method's
     /// `beginUserTurn()` is the only restart and two engine restarts never
     /// race on the same engine.
+    ///
+    /// `fragment` is a crisis or emergency report that interrupted the reply
+    /// (`checkForBargeIn`). It is handed to the guard and answered with the
+    /// crisis or emergency reply instead of being dropped with the transcript,
+    /// so the user is not left to say it twice.
     @MainActor
-    func interrupt() {
+    func interrupt(answering fragment: String? = nil) {
         cancelLLM()
         isStoppingFully = true
         assistantViewModel.cancel()
@@ -242,6 +247,10 @@ extension VoiceConversationController {
         // Reset the partial transcript so the fresh turn starts clean rather
         // than inheriting the barge-in fragment that caused the interrupt.
         partialTranscript = ""
+        if let fragment {
+            audio.answerInterruptingFragment(fragment)
+            return
+        }
         Task { @MainActor in await beginUserTurn() }
     }
 

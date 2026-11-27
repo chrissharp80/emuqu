@@ -216,6 +216,32 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     /// when it is sent directly under it. Absent on every other turn.
     var confirmationPrompt: String?
 
+    /// Context this reply was produced with that not every provider may see,
+    /// or nil when every provider may see all of it.
+    ///
+    /// A reply can quote what its model was given: Apple's on-device model is
+    /// given the street the user is on at any time, a cloud provider only
+    /// during a workout. Saved as an ordinary turn, the reply would carry the
+    /// street to a cloud provider in a later turn's history, in a summary, or
+    /// in a fact taken from it. The mark travels with the turn so every path
+    /// that sends turn text applies one rule (`maySend(to:)`,
+    /// `maySendToEveryProvider`). Absent decodes as nil: a turn saved before
+    /// this existed carries no record of its context.
+    var sensitivity: TurnSensitivity?
+
+    /// Whether this turn may go to `provider` as history: it may leave the
+    /// device, and `provider` may see every context it was produced with.
+    func maySend(to provider: ProviderID) -> Bool {
+        !localOnly && sensitivity.map { $0.allows(provider) } != false
+    }
+
+    /// Whether every provider may see this turn. What is built from turn text
+    /// and then sent to whichever provider answers next (the conversation
+    /// summary, memory facts taken from a reply) takes only these turns.
+    var maySendToEveryProvider: Bool {
+        !localOnly && sensitivity == nil
+    }
+
     init(
         id: UUID = UUID(),
         role: Role,
@@ -264,6 +290,24 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
         localOnly = try container.decodeIfPresent(Bool.self, forKey: .localOnly) ?? false
         incomplete = try container.decodeIfPresent(Bool.self, forKey: .incomplete) ?? false
         confirmationPrompt = try container.decodeIfPresent(String.self, forKey: .confirmationPrompt)
+        sensitivity = try container.decodeIfPresent(TurnSensitivity.self, forKey: .sensitivity)
+    }
+}
+
+/// Context that only some providers may be given, and so only some may see in
+/// a reply produced with it (`ChatTurn.sensitivity`).
+enum TurnSensitivity: String, Codable, Hashable, Sendable {
+    /// The street, area and heading of the user outside an active workout.
+    /// Apple's on-device render carries it at any time; ProviderConsentSheet
+    /// tells the user a cloud provider gets the street name during a workout
+    /// only.
+    case ambientLocation
+
+    /// Whether `provider` may be given this context.
+    func allows(_ provider: ProviderID) -> Bool {
+        switch self {
+        case .ambientLocation: provider == .apple
+        }
     }
 }
 

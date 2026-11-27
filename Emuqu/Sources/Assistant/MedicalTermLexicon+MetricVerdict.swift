@@ -74,7 +74,7 @@ extension MedicalTermLexicon {
             "standard\\s+aureo",                                                            // it
             "goldstandard", "ekg[\\s-]+qualit[äa]t",                                          // de
             "gouden\\s+standaard",                                                          // nl
-            "guldstandard", "gullstandard",                                                  // da, sv, nb
+            "guldstandard\\w*", "gullstandard\\w*",                                                  // da, sv, nb
             "kultainen\\s+standardi",                                                       // fi
             "gullsta[ðd]al\\w*",                                                            // is
             "золот(?:ой|ым|ого)\\s+стандарт\\w*",                                            // ru

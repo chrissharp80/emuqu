@@ -774,14 +774,14 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         )
     }
 
-    // --- TRIMP breakdown by sport over a period ---
+    // --- Training load by sport over a period ---
     private var trainingLoadBySportPeriodEntry: FactEntry {
         .parameterized(
             pattern: "training.load.by_sport($period)",
             paramExample: "last_30d",
             description: """
-            Heart-rate TRIMP breakdown by sport type (walking, running, cycling, etc.) over the period, from the app's own recordings. Returns a record keyed by sport name with TRIMP totals. CTL/ATL and the weekly totals use the \
-            power-aware load and include HealthKit-only workouts, so these need not sum to them. Period accepts last_7d / last_14d / last_30d / last_90d / last_180d / last_365d / all_time.
+            Training load breakdown by sport type (walking, running, cycling, etc.) over the period, from the app's own recordings. Returns a record keyed by sport name with load totals on the TSS scale, each workout counted by \
+            the same power-first load CTL/ATL use. CTL/ATL and the weekly totals also include HealthKit-only workouts, so these need not sum to them. Period accepts last_7d / last_14d / last_30d / last_90d / last_180d / last_365d / all_time.
             """,
             availability: { Availability(hasData: true, validRange: nil, lastUpdated: nil) },
             resolve: { param, _ in self.resolveTrainingLoadBySportPeriod(param) }
@@ -797,17 +797,15 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         let sessions = entries.compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
         var totals: [String: Double] = [:]
         for s in sessions {
-            guard let meta = s.workoutMetadata, let trimp = meta.luciaTRIMP else { continue }
-            totals[meta.sport.displayName, default: 0] += trimp
+            guard let meta = s.workoutMetadata,
+                  let load = meta.preferredTrainingLoad(ftp: .current(settings()), heartRate: WorkoutLoadRestingHR.anchors)
+            else { continue }
+            totals[meta.sport.displayName, default: 0] += load.value
         }
         guard !totals.isEmpty else {
-            return .missing(reason: .notRecorded, detail: "no TRIMP-bearing workouts in period")
+            return .missing(reason: .notRecorded, detail: "no load-bearing workouts in period")
         }
-        var record: [String: FactValue] = [:]
-        for (sport, trimp) in totals {
-            record[sport] = .double(trimp)
-        }
-        return .record(record)
+        return .record(totals.mapValues { .double($0) })
     }
 
     /// Parse "yyyy-MM-dd" and look up the corresponding TrainingMetricsCache

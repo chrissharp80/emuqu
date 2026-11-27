@@ -516,7 +516,7 @@ extension DeviceRecordingSession {
     ) async -> HRVSession {
         let clamped = SleepBoundaryResolver.clamp(
             sleepStartMs: outcome.sleepContext.sleepStartMs, sleepEndMs: outcome.sleepContext.wakeTimeMs,
-            recordingDurationMs: series.points.last?.endMs ?? 0
+            recordingDurationMs: BeatTimeline.endMs(series.points)
         )
         let result = outcome.analysis.result
         var finalSession = HRVSession(

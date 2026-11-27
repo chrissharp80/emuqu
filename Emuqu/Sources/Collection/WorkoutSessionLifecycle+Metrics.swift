@@ -304,6 +304,8 @@ extension WorkoutSessionLifecycle {
         /// only filters the index.
         let pastWorkoutIds: [UUID]
         let archive: SessionArchive
+        /// The FTPs the daily report reads a workout's power TSS at.
+        let loadFTP: TrainingLoadPrecedence.FTPAnchors
     }
 
     /// Pulls today's overnight session plus the overnight sessions before it
@@ -346,7 +348,7 @@ extension WorkoutSessionLifecycle {
                 .sorted { $0.date > $1.date }
                 .prefix(CoachReportGenerator.historyLimit)
                 .map(\.sessionId),
-            archive: archive
+            archive: archive, loadFTP: .current(settings)
         )
     }
 
@@ -492,7 +494,7 @@ extension WorkoutSessionLifecycle {
             overnightSession: inputs.todayOvernight, recentOvernightSessions: inputs.recentOvernight,
             userMaxHR: inputs.maxHR, userRestingHR: inputs.restingHR, userLTHR: inputs.lthr,
             userBodyWeightKg: inputs.bodyWeightKg, units: inputs.units, sleepSchedule: inputs.sleepSchedule,
-            temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot
+            temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot, loadFTP: inputs.loadFTP
         )
     }
 

@@ -39,8 +39,8 @@ extension TrainingHealthQueries {
     /// Deduplicate workouts that cover the same physical session.
     ///
     /// Workouts are taken in start order; each one not yet absorbed starts a
-    /// cluster, and a later workout starting within 30 minutes of it joins
-    /// the cluster when either rule holds (`collapseDuplicates`):
+    /// cluster, and a later workout starting before it ends joins the
+    /// cluster when either rule holds (`collapseDuplicates`):
     ///   1. Same type, starting within 5 minutes of it, and their spans
     ///      intersect (two separate same-type workouts — an aborted start,
     ///      then the real one — do not intersect and stay apart).
@@ -67,10 +67,12 @@ extension TrainingHealthQueries {
     /// Absorb every later workout that covers the same physical session into
     /// the one starting at `i`, returning whichever copy carries the richest data.
     ///
-    /// The scan window is 30 min so a session
-    /// and its own HealthKit back-fill still collapse even when their start
-    /// times drift apart (the archive start and the Apple-Health export start
-    /// rarely align to the minute). Same-type near-starts still merge on the
+    /// The scan runs over every workout that starts before the anchor ends,
+    /// the only ones whose spans can intersect it, however far their start
+    /// drifted: a session and its own HealthKit back-fill whose starts do not
+    /// align, or an imported GPX track of a long hike and the app's own
+    /// recording of it started an hour in, are one session by time overlap,
+    /// not by how close their starts are. Same-type near-starts still merge on the
     /// tight 5-min rule (when their spans intersect); drifted or
     /// differently-typed copies merge only on a STRONG span overlap (≥60% of
     /// the shorter), which won't fuse two genuinely distinct back-to-back
@@ -84,15 +86,27 @@ extension TrainingHealthQueries {
         var best = anchor
         for j in (i + 1) ..< sorted.count where !consumed.contains(j) {
             let other = sorted[j]
+            guard other.date < endDate(of: anchor) else { break }
             let gap = other.date.timeIntervalSince(anchor.date)
-            guard gap <= 1800 else { break }
             guard isSameSession(anchor, other, startGap: gap) else { continue }
             consumed.insert(j)
-            if workoutDataScore(other) > workoutDataScore(best) {
-                best = other
-            }
+            best = preferred(best, other)
         }
         return best
+    }
+
+    /// Which of two copies of one session counts. Copies that each cover
+    /// most of the other are the same recording, and the richer one wins;
+    /// a copy nested in a longer one covers only part of the training (a
+    /// recording started an hour into an imported hike), so the longer one
+    /// counts, as `yields` decides between the archive and Health.
+    nonisolated private static func preferred(
+        _ current: HealthKitManager.WorkoutSummary, _ other: HealthKitManager.WorkoutSummary
+    ) -> HealthKitManager.WorkoutSummary {
+        guard coversMostOfBoth(current, other) else {
+            return other.durationMinutes > current.durationMinutes ? other : current
+        }
+        return workoutDataScore(other) > workoutDataScore(current) ? other : current
     }
 
     /// Merge workouts with the H10 ARCHIVE authoritative for anything the app
@@ -229,12 +243,19 @@ extension TrainingHealthQueries {
     /// is nothing to ask, and a query HealthKit refused because workouts were
     /// never authorized (or were denied) is an answer: both are no workouts
     /// rather than a failure, so the load is still built from the archive.
+    ///
+    /// Only other sources' workouts: what Emuqu exported to Apple Health is a
+    /// copy of a session the archive holds (`mergeArchiveAuthoritative`), and
+    /// it stays in Health after the session is trashed, trimmed or edited
+    /// until it is deleted for good. Read back, a trashed workout still
+    /// counted in the load, and the longer export of a trimmed one replaced
+    /// the trimmed recording.
     private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
         guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let startOfReferenceDay = calendar.startOfDay(for: referenceDate)
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: startOfReferenceDay) else { return [] }
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: referenceDate, options: .strictStartDate)
+        let predicate = Self.otherSourcesWorkoutPredicate(from: startDate, to: referenceDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
@@ -246,6 +267,13 @@ extension TrainingHealthQueries {
                 resolve(Self.workoutSummaries(samples, unlessFailed: error))
             }
         }
+    }
+
+    /// Workouts starting in `[start, end]` written by any source but Emuqu.
+    nonisolated static func otherSourcesWorkoutPredicate(from start: Date, to end: Date) -> NSPredicate {
+        let window = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let notOwnSource = NSCompoundPredicate(notPredicateWithSubpredicate: HKQuery.predicateForObjects(from: HKSource.default()))
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [window, notOwnSource])
     }
 
     /// The query's workouts; no workouts when HealthKit answered that the

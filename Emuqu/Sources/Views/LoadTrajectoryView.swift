@@ -187,7 +187,7 @@ struct LoadTrajectoryView: View {
         EmptyState(
             glyph: "chart.bar.xaxis",
             headline: String(localized: "No training data yet", bundle: LanguageManager.appBundle),
-            message: String(localized: "Load & Trajectory needs at least one workout from Apple Health. Once your first workout is logged the curves and TRIMP/CTL/TSB stats appear here.", bundle: LanguageManager.appBundle)
+            message: String(localized: "Load & Trajectory needs at least one workout from Apple Health. Once your first workout is logged the curves and load/CTL/TSB stats appear here.", bundle: LanguageManager.appBundle)
         )
     }
 

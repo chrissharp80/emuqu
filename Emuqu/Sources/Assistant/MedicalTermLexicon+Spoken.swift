@@ -115,7 +115,7 @@ extension MedicalTermLexicon {
         "desmai(?:ar|ando|ada|ado|e)", "perdi\\s+(?:a\\s+)?(?:consci[êe]ncia|os\\s+sentidos)",                    // pt-BR
         "(?:val|viel|vielen)\\s+(?:bijna\\s+)?flauw", "flauw\\s+(?:gevallen|vallen)", "bewusteloos",               // nl
         "(?:ik\\s+ben|hij\\s+is|zij\\s+is|ze\\s+is)\\s+(?:\\w+\\s+)?in\\s+elkaar\\s+gezakt", "buiten\\s+bewustzijn", // not "mijn tempo is in elkaar gezakt"
-        "besvim(?:e|er|t)", "mistede\\s+bevidstheden",
+        "besvim(?:e|er|t|ede)", "mistede\\s+bevidstheden",
         "(?:jeg|han|hun)\\s+(?:\\w+\\s+)?(?:faldt|falt|segnet)\\s+om\\b(?!\\s+(?:natten|kvelden|aftenen|morgenen))",                            // da, nb
         "svimte\\s+av", "mistet\\s+bevisstheten",
         "svimma(?:de|r)?", "tappade\\s+medvetandet", "jag\\s+(?:\\w+\\s+)?kollapsade",                           // sv
@@ -144,7 +144,7 @@ extension MedicalTermLexicon {
         "hart\\s+(?:slaat|klopt)\\s+(?:heel\\s+)?onregelmatig", "hart\\s+slaat\\s+(?:een\\s+slag\\s+)?over",      // nl
         "hjerte(?:t)?\\s+sl[åa]r\\s+uregelm[æae]ss?ig(?:t)?", "hjertet\\s+hopper\\s+over",                       // da, nb
         "hj[äa]rtat\\s+(?:sl[åa]r\\s+oregelbundet|hoppar\\s+[öo]ver)",                                          // sv
-        "syd[äa]n\\s+(?:ly[öo]|hakkaa)\\s+ep[äa]s[äa][äa]nn[öo]llisesti", "muljahtel\\w*",                       // fi
+        "syd[äa](?:n|meni)\\s+(?:ly[öo]|hakkaa)\\s+ep[äa]s[äa][äa]nn[öo]llisesti", "muljahtel\\w*",                       // fi
         "hjarta[ðd]\\s+sl[æa]r\\s+[óo]reglulega",                                                                // is
         "сердце\\s+(?:бь[её]тся|стучит)\\s+(?:неровно|нерегулярно|с\\s+перебоями)", "сердце\\s+(?:замирает|пропускает\\s+удары)" // ru
     ]

@@ -190,16 +190,19 @@ extension CloudDeletionCoordinator {
     /// an abandoned sync during the fetch stops it before anything is written
     /// or recorded (`requireAccountStillConfirmed`); the deletion stays to be
     /// sent by the next sync for the right account.
+    ///
+    /// A deletion is queued (behind a running sync, or as a task) and runs
+    /// later, so it is checked again when it runs and once more before the
+    /// write (`isStillDeletedHere`): one restored from the Trash in between
+    /// writes nothing, and the restore's own upload goes up instead.
     func performUploadDeletion(sessionId: UUID) async {
         guard !manager.schemaUnavailable else { return }
+        guard isStillDeletedHere(sessionId) else { return noteDeletionWithdrawn(sessionId) }
         do {
             try await manager.ensureZoneExists()
-            guard try await flagRecordDeleted(sessionId) else {
-                yieldToRestore(sessionId)
-                return
-            }
-            try requireAccountStillConfirmed()
-            noteDeletionConfirmed(sessionId)
+            try await writeAndConfirmDeletion(sessionId)
+        } catch is DeletionWithdrawn {
+            noteDeletionWithdrawn(sessionId)
         } catch CloudAccountGuard.Halt.stopped {
             debugLog("[CloudKit] Delete sync for \(sessionId.uuidString.prefix(8)) stopped: the account changed or the sync was abandoned", level: .info)
         } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
@@ -210,6 +213,42 @@ extension CloudDeletionCoordinator {
         } catch {
             noteDeletionFailed(error, sessionId: sessionId)
         }
+    }
+
+    /// The tombstone written and recorded as confirmed, or, when a restore
+    /// on another device stands, nothing written (`yieldToRestore`).
+    private func writeAndConfirmDeletion(_ sessionId: UUID) async throws {
+        guard case let .written(at: writtenAt) = try await flagRecordDeleted(sessionId) else {
+            return yieldToRestore(sessionId)
+        }
+        try requireAccountStillConfirmed()
+        noteDeletionConfirmed(sessionId, writtenAt: writtenAt)
+    }
+
+    /// Whether the deletion a queued tombstone write stands for still holds:
+    /// the session is marked deleted here and the archive does not hold it.
+    /// A restore from the Trash drops the mark, so a deletion queued before
+    /// it is withdrawn; a deletion made again since restores the mark.
+    func isStillDeletedHere(_ sessionId: UUID) -> Bool {
+        manager.archive.store.wasIntentionallyDeleted(sessionId) && !manager.archive.store.exists(sessionId)
+    }
+
+    /// The session was restored after its deletion was queued: no tombstone
+    /// goes up, and nothing is recorded as sent.
+    private func noteDeletionWithdrawn(_ sessionId: UUID) {
+        debugLog("[CloudKit] Deletion of \(sessionId.uuidString.prefix(8)) not sent: the session was restored since it was queued", level: .info)
+    }
+
+    /// Thrown by a tombstone write that finds the session restored here
+    /// while it waited for iCloud.
+    struct DeletionWithdrawn: Error {}
+
+    /// What writing a deletion to iCloud did: the tombstone is there, as of
+    /// iCloud's own time for it, or a restore made since on another device
+    /// stands and nothing was written.
+    enum TombstoneWrite: Equatable {
+        case written(at: Date?)
+        case yielded
     }
 
     /// A schema error pauses sync; any other failure is retried next sync,
@@ -240,7 +279,18 @@ extension CloudDeletionCoordinator {
     /// state forgets the session. A session deleted forever here then drops
     /// its deletion mark (`SessionArchive.forgetDeletedSession`), which no
     /// longer needs re-sending.
-    private func noteDeletionConfirmed(_ sessionId: UUID) {
+    ///
+    /// The deletion's time here moves up to iCloud's time for the tombstone
+    /// (`writtenAt`), the time every other device dates it by, so a restore
+    /// made here later reads as newer on all of them whatever this device's
+    /// clock says. A session restored while the write was under way keeps
+    /// its restore queued, dated after the tombstone it replaces.
+    private func noteDeletionConfirmed(_ sessionId: UUID, writtenAt: Date?) {
+        guard isStillDeletedHere(sessionId) else {
+            if let writtenAt { manager.trashRestore.keepRestore(sessionId, after: writtenAt) }
+            return
+        }
+        if let writtenAt { manager.archive.store.raiseDeletionTime(sessionId, to: writtenAt) }
         Self.noteTombstoneConfirmed(sessionId)
         manager.state.markDeleted(sessionId)
         manager.state.saveSyncState()
@@ -269,26 +319,26 @@ extension CloudDeletionCoordinator {
     /// restored from the Trash after this device deleted it. The full sync
     /// re-checks local deletions, so without this a restore on one phone
     /// was undone by the next sync of any other phone that had deleted it.
-    private func flagRecordDeleted(_ sessionId: UUID) async throws -> Bool {
+    private func flagRecordDeleted(_ sessionId: UUID) async throws -> TombstoneWrite {
         let recordID = CKRecord.ID(recordName: sessionId.uuidString, zoneID: manager.zoneID)
         do {
             let existingRecord = try await manager.privateDB.record(for: recordID)
             let deletedAt = manager.archive.store.deletionTime(of: sessionId)
             if TrashRestoreCoordinator.restoreIsNewer(existingRecord, thanDeletionAt: deletedAt) {
-                return false
+                return .yielded
             }
             // A deletion already in iCloud needs no second write, unless an older build left its payload on it.
-            guard (existingRecord["isDeleted"] as? Int64) != 1 || existingRecord["sessionData"] != nil else { return true }
+            guard (existingRecord["isDeleted"] as? Int64) != 1 || existingRecord["sessionData"] != nil else {
+                return .written(at: existingRecord.modificationDate)
+            }
             existingRecord["isDeleted"] = 1 as CKRecordValue
             // A tombstone carries no recording. Keeping the encrypted payload
             // stored health data the user had deleted, and every device
             // re-downloaded it with each pull.
             existingRecord["sessionData"] = nil
-            try await saveTombstone(existingRecord)
-            return true
+            return .written(at: try await saveTombstone(existingRecord, of: sessionId))
         } catch let error as CKError where error.code == .unknownItem {
-            try await saveNewTombstone(sessionId, recordID: recordID)
-            return true
+            return .written(at: try await saveNewTombstone(sessionId, recordID: recordID))
         }
     }
 
@@ -296,20 +346,24 @@ extension CloudDeletionCoordinator {
     /// so other devices still learn of it. It adds a record, so it is written
     /// only while uploads are allowed, read at the write: sync turned off
     /// while deletions run leaves this one pending, like an abandoned sync.
-    private func saveNewTombstone(_ sessionId: UUID, recordID: CKRecord.ID) async throws {
+    private func saveNewTombstone(_ sessionId: UUID, recordID: CKRecord.ID) async throws -> Date? {
         guard manager.cloudUploadsAllowed else { throw CloudAccountGuard.Halt.stopped }
         let record = CKRecord(recordType: manager.recordType, recordID: recordID)
         record["sessionId"] = sessionId.uuidString as CKRecordValue
         record["isDeleted"] = 1 as CKRecordValue
         record["startDate"] = Date() as CKRecordValue // Placeholder
-        try await saveTombstone(record)
+        return try await saveTombstone(record, of: sessionId)
     }
 
     /// Writes a tombstone, only while the account it was checked against is
-    /// still the one signed in (`requireAccountStillConfirmed`).
-    private func saveTombstone(_ record: CKRecord) async throws {
+    /// still the one signed in (`requireAccountStillConfirmed`) and the
+    /// session is still deleted here: the fetch before the write suspends,
+    /// and a restore made meanwhile must not be deleted again
+    /// (`DeletionWithdrawn`). Returns iCloud's time for the saved record.
+    private func saveTombstone(_ record: CKRecord, of sessionId: UUID) async throws -> Date? {
         try requireAccountStillConfirmed()
-        _ = try await manager.privateDB.save(record)
+        guard isStillDeletedHere(sessionId) else { throw DeletionWithdrawn() }
+        return try await manager.privateDB.save(record).modificationDate
     }
 
     /// The account the deletion was checked against is still the one signed

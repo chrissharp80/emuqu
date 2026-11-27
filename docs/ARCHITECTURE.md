@@ -483,7 +483,7 @@ The primary signal is the ratio of current effective load to chronic training lo
 ```
 acuteFatigue  = Σ TRIMP_i × 0.30 × e^(−hoursAgo_i / 24)   (workouts in the last 72 h; today's TRIMP × 0.35 without them)
 effectiveLoad = ATL + acuteFatigue
-capacityRatio = effectiveLoad / CTL          (when CTL ≥ 2.1)
+capacityRatio = effectiveLoad / max(CTL, 100/7)
 ```
 
 Piecewise linear mapping to 0-100:
@@ -497,7 +497,7 @@ ratio 1.5  → 30   (sharp recent increase over the chronic base)
 ratio 2.0+ → 10   (extreme overload)
 ```
 
-When CTL < 2.1 (no training history): `readiness = max(10, 100 - (ATL + undamped acute load) × 0.5)`, where the acute load is the decayed load sum (TSS scale) without the 0.30 factor (`ctlThreshold` = 2.1)
+The CTL floor, 100/7 ≈ 14.3 TSS/day (`capacityRatioCTLFloor`, one hour at threshold a week), keeps the ratio from dividing by a near-zero base: readiness is continuous and non-decreasing in CTL for a given load, with no switch to another model at a CTL boundary.
 
 ### ACWR Modifier (Training Readiness only — NOT the recovery score)
 

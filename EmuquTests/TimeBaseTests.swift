@@ -233,4 +233,76 @@ final class TimeBaseTests: XCTestCase {
         session.endDate = now.addingTimeInterval(60)
         XCTAssertEqual(MorningSessionPipeline.trainingAsOf(session, now: now), now)
     }
+
+    // MARK: - A Watch control that arrives after the phone moved on
+
+    /// A control applies only when it was tapped at or after the last change
+    /// it would act on, or within `watchClockTolerance` before it (the
+    /// Watch's clock a moment behind); one with no tap time, or no change
+    /// before it, applies.
+    func testAWatchControlAppliesOnlyWhenTappedAfterTheLastChange() {
+        let change = Date(timeIntervalSince1970: 1_790_000_000)
+        let cases: [(tap: Date?, last: Date?, applies: Bool)] = [
+            (change.addingTimeInterval(-3), change, false), (change.addingTimeInterval(-2), change, true),
+            (change.addingTimeInterval(-1), change, true), (change, change, true),
+            (change.addingTimeInterval(1), change, true), (nil, change, true), (change, nil, true)
+        ]
+        for testCase in cases {
+            XCTAssertEqual(WorkoutRecorder.controlIsCurrent(tappedAt: testCase.tap, lastChange: testCase.last), testCase.applies, "\(String(describing: testCase))")
+        }
+    }
+
+    /// A Watch Pause tapped before the user resumed on the phone was answered
+    /// by that resume: delivered late, it does not pause the workout again.
+    func testAWatchPauseTappedBeforeThePhoneResumedIsIgnored() {
+        let recorder = recordingWorkout(startedAgo: 600)
+        let now = Date()
+        recorder.pauseControl.pause()
+        recorder.pauseControl.resume(at: now.addingTimeInterval(-60))
+
+        recorder.pauseFromWatch(tappedAt: now.addingTimeInterval(-90), now: now)
+        XCTAssertFalse(recorder.lifecycle.isPaused, "a stale Watch Pause paused the workout again")
+
+        recorder.pauseFromWatch(tappedAt: now.addingTimeInterval(-30), now: now)
+        XCTAssertTrue(recorder.lifecycle.isPaused, "a Watch Pause tapped after the resume applies")
+    }
+
+    /// A Watch Resume tapped before the pause now open began does not end it.
+    func testAWatchResumeTappedBeforeTheOpenPauseIsIgnored() {
+        let recorder = recordingWorkout(startedAgo: 600)
+        let now = Date()
+        recorder.pauseControl.pause()
+        recorder.lifecycle.pauseTimeline.movePauseStart(to: now.addingTimeInterval(-60), atElapsed: 540)
+
+        recorder.resumeFromWatch(tappedAt: now.addingTimeInterval(-90), now: now)
+        XCTAssertTrue(recorder.lifecycle.isPaused, "a stale Watch Resume ended a newer pause")
+
+        recorder.resumeFromWatch(tappedAt: now.addingTimeInterval(-30), now: now)
+        XCTAssertFalse(recorder.lifecycle.isPaused)
+    }
+
+    /// A Watch Done tapped before the workout now finished ended was meant
+    /// for an earlier summary and leaves this one.
+    func testAWatchDoneTappedBeforeThisWorkoutEndedIsIgnored() {
+        let recorder = recordingWorkout(startedAgo: 600)
+        let now = Date()
+        var finished = HRVSession(startDate: now.addingTimeInterval(-600), sessionType: .workout)
+        finished.endDate = now.addingTimeInterval(-60)
+        recorder.lifecycle.finishedSession = finished
+        recorder.lifecycle.phase = .finished
+
+        recorder.acknowledgeFinishedFromWatch(tappedAt: now.addingTimeInterval(-90))
+        XCTAssertEqual(recorder.lifecycle.phase, .finished, "a stale Watch Done dismissed this workout's summary")
+
+        recorder.acknowledgeFinishedFromWatch(tappedAt: now.addingTimeInterval(-30))
+        XCTAssertEqual(recorder.lifecycle.phase, .idle)
+    }
+
+    private func recordingWorkout(startedAgo seconds: TimeInterval) -> WorkoutRecorder {
+        let recorder = WorkoutRecorder(core: collector.recordingCore, conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
+        recorder.lifecycle.sessionStartDate = Date().addingTimeInterval(-seconds)
+        recorder.lifecycle.elapsedSeconds = Int(seconds)
+        recorder.lifecycle.phase = .recording
+        return recorder
+    }
 }

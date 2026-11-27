@@ -86,6 +86,17 @@ extension ArchiveStore {
         }
     }
 
+    /// Moves the deletion time of a session still deleted here up to `time`
+    /// (iCloud's time for its tombstone), never down. A deletion with no
+    /// recorded time keeps none: it predates restore times and loses to any
+    /// restore.
+    func raiseDeletionTime(_ id: UUID, to time: Date) {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        guard state.deletedSessionIds.contains(id), let recorded = deletionTime(of: id), recorded < time else { return }
+        Self.recordDeletionTime(id, at: time)
+    }
+
     /// Deleted sessions older than `keepDays`: Help says deleted sessions are
     /// kept for 90 days. Covers every deleted id, trashed file or not (a
     /// deleted session with only a raw backup is listed in the Trash too).
@@ -94,10 +105,29 @@ extension ArchiveStore {
     /// an id with neither is never treated as expired. The caller removes
     /// each one completely (`SessionRecoveryService.permanentlyDelete`).
     func expiredDeletionIds(keepDays: Int = 90) -> [UUID] {
-        let cutoff = Date().addingTimeInterval(-Double(keepDays) * 86_400)
-        return deletedIds.union(trashedIds).filter { id in
-            (deletionTime(of: id) ?? trashFileDate(id) ?? Date()) < cutoff
-        }
+        let cutoff = Self.expiryCutoff(keepDays: keepDays)
+        return deletedIds.union(trashedIds).filter { isPastExpiry($0, cutoff: cutoff) }
+    }
+
+    /// Whether `id` is still an expired deletion, read under `archiveLock`:
+    /// the archive does not hold it, it is marked deleted or has a Trash
+    /// file, and it is past `keepDays`. The expiry list is made before the
+    /// deletions run, so each id is asked again at its turn: one restored
+    /// or brought back by a pull since is not deleted for good.
+    func isStillExpiredDeletion(_ id: UUID, keepDays: Int = 90) -> Bool {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        guard entryById(id) == nil else { return false }
+        let listed = state.deletedSessionIds.contains(id) || state.fileManager.fileExists(atPath: trashURL(for: id).path)
+        return listed && isPastExpiry(id, cutoff: Self.expiryCutoff(keepDays: keepDays))
+    }
+
+    private static func expiryCutoff(keepDays: Int) -> Date {
+        Date().addingTimeInterval(-Double(keepDays) * 86_400)
+    }
+
+    private func isPastExpiry(_ id: UUID, cutoff: Date) -> Bool {
+        (deletionTime(of: id) ?? trashFileDate(id) ?? Date()) < cutoff
     }
 
     private func trashFileDate(_ id: UUID) -> Date? {

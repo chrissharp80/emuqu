@@ -188,6 +188,17 @@ extension WorkoutRecorder {
         debugLog("[WorkoutRecorder] acknowledgeFinished — stopped lingering Polar stream")
     }
 
+    /// `acknowledgeFinished` for a Watch Done tapped at `tappedAt`, applied
+    /// only when it was tapped after the workout now finished ended
+    /// (`controlIsCurrent`): a Done queued for an earlier workout's summary,
+    /// delivered late, must not dismiss this one or retire its backups.
+    func acknowledgeFinishedFromWatch(tappedAt: Date?) {
+        guard Self.controlIsCurrent(tappedAt: tappedAt, lastChange: lifecycle.finishedSession?.endDate) else {
+            return debugLog("[WorkoutRecorder] Watch Done tapped before this workout ended: ignored")
+        }
+        acknowledgeFinished()
+    }
+
     /// `acknowledgeFinished` for the summary of `workoutId` only. A caller
     /// that suspended first (a delete from the summary) may resume after
     /// another workout finished and owns the summary; that one is left.

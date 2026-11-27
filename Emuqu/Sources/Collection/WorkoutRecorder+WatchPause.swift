@@ -10,16 +10,26 @@ import Foundation
 // the motion counters as they stood at the tap (`PausedMotionLedger`). No
 // per-second samples were taken while paused, so those seconds have none,
 // as after any gap in the ticks.
+//
+// A control that arrives late is applied only when it was tapped after the
+// last pause or resume the phone made (`controlIsCurrent`): a Pause tapped
+// before the user resumed on the phone, or a Resume tapped before the pause
+// now open, was already answered by that change. The tap is stamped by the
+// Watch's clock, so a tap up to `watchClockTolerance` before the change
+// still counts as after it.
 
 extension WorkoutRecorder {
     /// Pauses by hand, as the Watch asked, from `tappedAt` when that is
     /// earlier than `now` (`pauseDate(requested:since:now:)`): the pause
     /// begins at the tap and what was sampled after it is left out
     /// (`keepRecording(throughElapsed:)`). No-op unless recording and not
-    /// already paused.
+    /// already paused, and for a Pause tapped before the last resume.
     func pauseFromWatch(tappedAt: Date?, now: Date = Date()) {
         guard case .recording = lifecycle.phase, !lifecycle.isPaused else { return }
         let resumedAt = lifecycle.pauseTimeline.events.last?.resumedAt
+        guard Self.controlIsCurrent(tappedAt: tappedAt, lastChange: resumedAt) else {
+            return debugLog("[WorkoutRecorder] Watch pause tapped before the workout last resumed: ignored")
+        }
         pauseControl.pause(isAuto: false)
         guard let start = lifecycle.sessionStartDate else { return }
         let pausedAt = Self.pauseDate(requested: tappedAt, since: resumedAt ?? start, now: now)
@@ -32,16 +42,36 @@ extension WorkoutRecorder {
 
     /// Resumes by hand, as the Watch asked, from `tappedAt` when that is
     /// earlier than `now` (`resumeDate(requested:pausedAt:now:)`). No-op
-    /// unless recording and paused.
+    /// unless recording and paused, and for a Resume tapped before the pause
+    /// began.
     func resumeFromWatch(tappedAt: Date?, now: Date = Date()) {
         guard case .recording = lifecycle.phase, lifecycle.isPaused,
               let pausedAt = lifecycle.pauseTimeline.openPauseStart else { return }
+        guard Self.controlIsCurrent(tappedAt: tappedAt, lastChange: pausedAt) else {
+            return debugLog("[WorkoutRecorder] Watch resume tapped before the open pause began: ignored")
+        }
         let resumedAt = Self.resumeDate(requested: tappedAt, pausedAt: pausedAt, now: now)
         guard resumedAt < now else { return pauseControl.resume() }
         pauseControl.resume(at: resumedAt)
         startedLocation?.moveResume(to: resumedAt)
         debugLog("[WorkoutRecorder] Watch resume dated \(Int(now.timeIntervalSince(resumedAt))) s before it arrived")
     }
+
+    /// Whether a Watch control tapped at `tappedAt` still acts on the state
+    /// the phone is in: tapped at or after `lastChange`, the last pause or
+    /// resume it would undo, less `watchClockTolerance`. One with no tap
+    /// time, or with no change before it, applies.
+    nonisolated static func controlIsCurrent(tappedAt: Date?, lastChange: Date?) -> Bool {
+        guard let tappedAt, let lastChange else { return true }
+        return tappedAt >= lastChange.addingTimeInterval(-watchClockTolerance)
+    }
+
+    /// How far the Watch's clock may run behind the phone's for a tap
+    /// stamped just before a change (an auto-resume, say) to still count as
+    /// made after it. A paired Watch takes its time from the phone, so they
+    /// differ by well under a second; a control sent longer before the
+    /// change than this was answered by it.
+    nonisolated static let watchClockTolerance: TimeInterval = 2
 
     /// When a Watch Resume ends the pause: the tap held between the pause's
     /// start and `now`, or `now` when the Watch stamped no tap. A tap stamped

@@ -239,7 +239,7 @@ enum HelpScienceCatalog {
                         (label: "Strain", value: "Your weekly training load multiplied by monotony. The app doesn't show it as a number; high strain with high monotony is the classic accumulated-fatigue pattern the monotony warning points to.")
                     ]),
                     .tip("The fix for high monotony is simple: vary your training. Hard days, easy days, rest days. A 3:1 structure (three progressive days, one recovery) keeps monotony low naturally."),
-                    .note("Training context (ATL, CTL, TSB, yesterday's TRIMP) is permanently baked into every session at capture time. This ensures historical accuracy even if your workout data changes later.")
+                    .note("Training context (ATL, CTL, TSB, yesterday's load) is permanently baked into every session at capture time. This ensures historical accuracy even if your workout data changes later.")
                 ]
             ),
             HelpArticle(

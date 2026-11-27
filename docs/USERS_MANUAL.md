@@ -201,7 +201,7 @@ Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them (it as
   - **Above your usual** (1.3-1.5)
   - **Sharp increase** (>1.5)
 - **Monotony & Strain**: The app also tracks Foster's Monotony (how repetitive your training pattern is) and Strain (total load amplified by monotony). High monotony with high strain surfaces a banner suggesting you mix intensities — it's observational context for planning, not a score component.
-- **Recent Workouts Card**: List of recent workouts with type, date, duration, TRIMP
+- **Recent Workouts Card**: List of recent workouts with type, date, duration, training load (LOAD, on the TSS scale)
 
 ### Vitals Detail View
 - **Status Banner**: Overall status (Normal/Elevated/Warning)
@@ -632,7 +632,7 @@ Rather than ship one custom tool per scenario question, Flo exposes a small set 
 - `training.days_until_converged_from($atl,$ctl,$daily_trimp,$gap)` — days until |ATL − CTL| ≤ gap, from arbitrary starting state. Returns notRecorded when convergence never happens within 60 days (signals the daily load is unsustainable).
 - `training.projected_tsb($daily_trimp)` — single-step projected TSB for the live state.
 
-The AI chains these for multi-stage scenarios: "if I keep 60 TRIMP days until convergence, then switch to 80 TRIMP, what's my TSB at day 28?" — three primitive calls, one composed answer. No per-scenario custom tool.
+The AI chains these for multi-stage scenarios: "if I keep days with a load of 60 until convergence, then switch to 80, what's my TSB at day 28?" — three primitive calls, one composed answer. No per-scenario custom tool.
 
 ### Pre-fab Questions
 
@@ -914,7 +914,7 @@ Comprehensive recovery report accessed from Dashboard or History.
 ### Training Load Section
 *Only appears if training data available*
 - ACR gauge with zone indicator
-- ATL/CTL/TRIMP metrics
+- ATL/CTL and yesterday's load (TSS scale)
 - Recent workouts list (if available)
 - Tap it to open the Training detail: on today's reading it shows your live training load and keeps it current; on a past night it shows the load as it stood that night
 
@@ -998,8 +998,8 @@ the full post-workout report. The hero shows:
 - Sport badge (icon + activity label) + relative time (e.g. "2 hours ago")
 - **Big distance readout** + duration + pace
 - **Mini route polyline** traced from the GPS track (no map tiles — fast)
-- **Scrollable badge row**: peak HR, elevation gain, α1 average, TRIMP,
-  HRSS — only renders the badges with real data
+- **Scrollable badge row**: peak HR, elevation gain, α1 average, training
+  load (LOAD), HRSS — only renders the badges with real data
 
 Below the hero: workout-count tiles for the past 7/30 days, a passive
 activity card (phone-tracked steps/distance), the **Get Me Back card**
@@ -1227,7 +1227,7 @@ Cards shown (each appears only if its underlying data is present):
 
 - **Map** with your route.
 - **Headline stats** — distance, duration, avg pace, top speed, elevation
-  gain, HR avg/peak, cadence, power, METs, calories, TRIMP, HRSS.
+  gain, HR avg/peak, cadence, power, METs, calories, training load (LOAD), HRSS.
 - **Heart Rate Recovery** — 1-min and 2-min drops from your heart rate at Stop, with
   colour-coded thresholds. "No signal" appears when the capture window
   ran but the strap was off, and when no heart rate was coming in at Stop

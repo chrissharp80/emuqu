@@ -393,7 +393,7 @@ extension MorningProcessingService {
         let series = merged.series
         let sleepResult = phase.sleepResult
         // Clamp sleep boundaries
-        let clamped = SleepBoundaryResolver.clamp(sleepStartMs: sleepResult.sleepStartMs, sleepEndMs: sleepResult.wakeTimeMs, recordingDurationMs: series.points.last?.endMs ?? 0)
+        let clamped = SleepBoundaryResolver.clamp(sleepStartMs: sleepResult.sleepStartMs, sleepEndMs: sleepResult.wakeTimeMs, recordingDurationMs: BeatTimeline.endMs(series.points))
         let summary = Self.dataSourceSummary(request, baseSession: baseSession, totalBeats: request.points.count)
         var finalSession = HRVSession(
             id: analyzingSession.id, startDate: analyzingSession.startDate,
@@ -525,14 +525,10 @@ extension MorningProcessingService {
         for session: HRVSession, sessionEnd: Date
     ) async -> SleepData? {
         do {
-            let fetchedSleep = try await healthKit.fetchSleepData(
-                for: session.startDate,
-                recordingEnd: sessionEnd,
-                rrPoints: session.rrSeries?.points
+            return try await healthKit.fetchNightSleep(
+                for: session.startDate, recordingEnd: sessionEnd,
+                rrPoints: session.rrSeries?.points, nightAnchor: session.startDate
             )
-            // Credit the day-before's qualifying nap toward 24h sleep duration.
-            let napMinutes = await healthKit.fetchDaytimeNapMinutes(nightAnchoredAt: session.startDate)
-            return napMinutes > 0 ? fetchedSleep.withNapSleepMinutes(napMinutes) : fetchedSleep
         } catch {
             debugLog("[MorningProcessingService] Recovery score sleep fetch failed: \(error)")
             return nil

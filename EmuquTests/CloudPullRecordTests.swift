@@ -342,4 +342,98 @@ final class CloudPullRecordTests: XCTestCase {
         fetched[CloudKitSessionFreshness.modifiedAtField] = downloadedAt as CKRecordValue
         XCTAssertEqual(manager.pull.remoteCopy(of: fetched, sessionId: id).modifiedAt, downloadedAt)
     }
+
+    // MARK: - A deletion applied later than it was decided
+
+    /// Each way this device can hold a change iCloud does not have yet, met
+    /// by a tombstone from another device: the copy goes to this device's
+    /// Trash, never removed outright. A request to upload again that sync
+    /// has not taken in (an edit made while a long sync held the
+    /// serializer), and a copy edited after the deletion was written, count
+    /// as a queued upload does. A copy with nothing unsent is removed.
+    func testATombstoneKeepsEveryUnsentLocalChangeInTheTrash() throws {
+        let deletedThere = Date(timeIntervalSince1970: 1_800_000_000)
+        let cases = [
+            UnsentChangeCase(name: "upload queued", unsent: true, afterArchive: { self.manager.state.markRemoved($0) }),
+            UnsentChangeCase(name: "re-upload requested on disk", unsent: true, afterArchive: { self.archive.state.reuploadRequests.record([$0]) }),
+            UnsentChangeCase(name: "edited after the deletion", unsent: true, prepare: { $0.modifiedAt = deletedThere.addingTimeInterval(60) }),
+            UnsentChangeCase(name: "edited before the deletion", unsent: false, prepare: { $0.modifiedAt = deletedThere.addingTimeInterval(-60) }),
+            UnsentChangeCase(name: "never edited", unsent: false)
+        ]
+        for (index, testCase) in cases.enumerated() {
+            var session = night(startingAt: 1_790_000_000 + Double(index) * 86_400)
+            testCase.prepare(&session)
+            try archive.archive(session)
+            testCase.afterArchive(session.id)
+
+            _ = manager.pull.handleDeletedRecord(sessionId: session.id, sessionIdString: session.id.uuidString, deletedAt: deletedThere)
+
+            XCTAssertFalse(archive.store.exists(session.id), testCase.name)
+            XCTAssertEqual(archive.store.trashedSession(session.id) != nil, testCase.unsent, "\(testCase.name): Trash copy")
+        }
+    }
+
+    /// One way of holding (or not) a change iCloud does not have yet.
+    private struct UnsentChangeCase {
+        let name: String
+        let unsent: Bool
+        var prepare: (inout HRVSession) -> Void = { _ in }
+        var afterArchive: (UUID) -> Void = { _ in }
+    }
+
+    /// A deletion queued behind a sync, or as a task, stands only while the
+    /// session is still deleted here when it runs: a restore from the Trash
+    /// in between withdraws it, and deleting the session again reinstates it.
+    func testAQueuedDeletionStandsOnlyWhileTheSessionIsStillDeletedHere() throws {
+        let session = night()
+        try archive.archive(session)
+        XCTAssertFalse(manager.deletion.isStillDeletedHere(session.id), "a session the archive holds")
+
+        XCTAssertTrue(try archive.delete(session.id))
+        XCTAssertTrue(manager.deletion.isStillDeletedHere(session.id), "deleted")
+
+        try archive.store.unmarkAsDeleted(session.id)
+        XCTAssertFalse(manager.deletion.isStillDeletedHere(session.id), "restored, its copy not yet written back")
+
+        archive.store.reinstateDeletion(session.id, deletedAt: Date())
+        XCTAssertTrue(manager.deletion.isStillDeletedHere(session.id), "deleted again")
+    }
+
+    /// A restore undoes the deletion this device holds, so it is dated after
+    /// that deletion whatever the device clock says, and after a tombstone
+    /// whose write it overtook.
+    func testARestoreIsDatedAfterTheDeletionItUndoes() throws {
+        let session = night()
+        try archive.archive(session)
+        XCTAssertTrue(try archive.delete(session.id))
+        let deletedAt = try XCTUnwrap(archive.store.deletionTime(of: session.id))
+
+        manager.trashRestore.noteRestored(session.id, at: deletedAt.addingTimeInterval(-600))
+        let restoredAt = try XCTUnwrap(manager.trashRestore.restoreTime(of: session.id))
+        XCTAssertEqual(restoredAt.timeIntervalSince1970, deletedAt.timeIntervalSince1970 + 1, accuracy: 0.01)
+
+        manager.trashRestore.keepRestore(session.id, after: deletedAt.addingTimeInterval(3600))
+        let kept = try XCTUnwrap(manager.trashRestore.restoreTime(of: session.id))
+        XCTAssertEqual(kept.timeIntervalSince1970, deletedAt.timeIntervalSince1970 + 3601, accuracy: 0.01)
+        manager.trashRestore.clear(session.id)
+    }
+
+    /// A confirmed deletion takes iCloud's time for its tombstone when that is
+    /// later, never an earlier one, and a session no longer deleted is left.
+    func testAConfirmedDeletionTakesICloudsLaterTime() throws {
+        let session = night()
+        try archive.archive(session)
+        XCTAssertTrue(try archive.delete(session.id))
+        let local = try XCTUnwrap(archive.store.deletionTime(of: session.id))
+
+        archive.store.raiseDeletionTime(session.id, to: local.addingTimeInterval(-60))
+        XCTAssertEqual(try XCTUnwrap(archive.store.deletionTime(of: session.id)).timeIntervalSince1970, local.timeIntervalSince1970, accuracy: 0.001)
+
+        archive.store.raiseDeletionTime(session.id, to: local.addingTimeInterval(120))
+        XCTAssertEqual(try XCTUnwrap(archive.store.deletionTime(of: session.id)).timeIntervalSince1970, local.timeIntervalSince1970 + 120, accuracy: 0.001)
+
+        try archive.store.unmarkAsDeleted(session.id)
+        archive.store.raiseDeletionTime(session.id, to: local.addingTimeInterval(600))
+        XCTAssertNil(archive.store.deletionTime(of: session.id))
+    }
 }

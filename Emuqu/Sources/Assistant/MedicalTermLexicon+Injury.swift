@@ -36,7 +36,7 @@ extension MedicalTermLexicon {
             // "Идти" is also "go": "не могу идти на тренировку" is a schedule.
             "не\\s+могу\\s+(?:идти(?!\\s+(?:на|в|к|сегодня|завтра)\\b)|ходить|наступить)", "подвернула?\\s+(?:ногу|лодыжку|стопу|колено)",
             "растяжени[ея]\\s+связок", "сотрясени[ея]\\s+мозга"
-        ],
+        ] + brokenBodyPart,
         unbounded: injuryByCauseUnbounded + [
             "怪我をした", "けがをした", "怪我した", "転んだ", "転倒した", "血が出", "歩けない", "捻挫(?:した|して|しま)",
             "骨折(?:した|して|しま)", "足をひねった", // ja
@@ -46,7 +46,7 @@ extension MedicalTermLexicon {
             // is "I have <an illness>", so both need the injury shape.
             "أنا مصاب(?!\\s*ب)", "تعرضت لإصابة", "أصبت بإصابة", "سقطت(?=\\s+(?:على|من|أثناء|وأنا|و)|\\s*[.!؟?،]|\\s*$)",
             "وقعت على الأرض", "أنزف", "لا أستطيع المشي", "التواء في", "كسر في" // ar
-        ] + jointPainUnbounded
+        ] + jointPainUnbounded + brokenBodyPartUnbounded
     )
 
     /// English. "Fell" and "fallen" exclude the idioms that are not falls.
@@ -229,6 +229,32 @@ extension MedicalTermLexicon {
         "(?<!后)(?<!后，)(?:膝盖|脚踝|手腕|髋关节|脚后跟)(?:很|好|突然)?(?:疼|痛)", // zh-Hans
         "(?<!후에 )(?<!후 )(?<!나서 )(?:무릎|발목|손목|고관절)이 (?:너무 |갑자기 )?아파", // ko
         "(?:ركبتي|كاحلي) (?:تؤلمني|يؤلمني)(?!\\s+بعد)", "(?:تؤلمني|يؤلمني) (?:ركبتي|كاحلي)(?!\\s+بعد)" // ar
+    ]
+
+    /// A named body part that is broken or was hurt, in the word orders the
+    /// other lists miss: the subordinate clause ("je crois que mon poignet est
+    /// cassé", "ik denk dat mijn pols gebroken is", "jag tror att handleden är
+    /// bruten") and the past tense with the part as object ("caí e machuquei o
+    /// tornozelo", "jeg faldt og slog min ankel"). The part is always named,
+    /// so a broken record or a hurt pride reaches the model.
+    private static let brokenBodyPart: [String] = [
+        "(?:mon|ma)\\s+" + frenchBodyPart + "\\s+est\\s+(?:cass[ée]e?|fractur[ée]e?|tordue?)",                        // fr
+        "machuquei\\s+(?:o|a|meu|minha)\\s+(?:tornozelo|joelho|p[ée]|bra[çc]o|pulso|dedo|perna|m[ãa]o|costela|ombro|cabe[çc]a)", // pt-BR
+        "essermi\\s+(?:rott[oa]|stort[oa]|fatt[oa]\\s+male\\s+a(?:l|lla))\\s*(?:il|la|l['’])?\\s*(?:caviglia|gamba|braccio|polso|piede|ginocchio|costola|mano|dito)", // it
+        "(?:pols|enkel|been|arm|voet|knie|rib|hand|vinger|sleutelbeen)\\s+(?:is\\s+)?gebroken",                       // nl
+        "sl(?:og|[åa]et)\\s+(?:min|mit)\\s+(?:ankel|kn[æa]|h[åa]ndled|arm|ben|hofte|skulder|fod|hoved)",            // da
+        "(?:h[åa]ndled|ankel|ankl|arm|ben|bein|fod|fot|ribben|ribbein|kraveben|kragebein)(?:det|en|et|n)?\\s+(?:er\\s+)?(?:br[æa]kket|brukket)", // da, nb
+        "jeg\\s+bl[øo]r",                                                                                         // nb
+        "(?:handled|fotled|arm|ben|fot|revben|nyckelben)(?:en|et)?\\s+(?:[äa]r\\s+)?brut(?:en|et|na)",                   // sv
+        "(?:ranne|ranteeni|nilkka|nilkkani|jalka|jalkani|k[äa]si|k[äa]teni|kylkiluu\\w*)\\s+(?:on\\s+)?(?:murtunut|poikki|murtui)", // fi
+        "(?:[úu]lnli[ðd]\\w*|[öo]kkl\\w*|handlegg\\w*|f[óo]tlegg\\w*|f[óo]tur\\w*|rifbein\\w*)\\s+(?:s[ée]|er)\\s+brotin\\w*", // is
+        "(?:сломан[аоы]?|сломал[аи]?)\\s+(?:\\w+\\s+)?(?:запясть\\w*|лодыжк\\w*|рук[аиу]|ног[аиу]|ребр\\w*|пал(?:ец|ьц\\w*)|ключиц\\w*)" // ru
+    ]
+
+    private static let brokenBodyPartUnbounded: [String] = [
+        "(?:手首|足首|腕|足|脚|指|肋骨|骨)が折れ", "(?:足首|膝|手首|腰|肩|足)を痛め(?!ない|ず)",                              // ja
+        "(?:손목|발목|다리|팔|갈비뼈|손가락|발가락)이 부러",                                                               // ko
+        "(?:معصمي|كاحلي|ذراعي|ساقي|قدمي|يدي|ضلعي|إصبعي) مكسور"                                                        // ar
     ]
 
     /// Concepts the INPUT guard answers with the injury reply: call the local

@@ -329,7 +329,7 @@ enum HelpContent {
                         score with your current training load to answer the practical question: should I train hard today?
                         """),
                     .note("""
-                        Training load is shown apart from the score, for planning. Load & Trajectory (tap the Load chip on the Dashboard) shows TRIMP, CTL/ATL/TSB and the ramp rate; the Training Load screen (tap the training-load card in a \
+                        Training load is shown apart from the score, for planning. Load & Trajectory (tap the Load chip on the Dashboard) shows the training load, CTL/ATL/TSB and the ramp rate; the Training Load screen (tap the training-load card in a \
                         recording's full report) adds the acute:chronic workload ratio (ACWR); both warn when your training has been unusually similar day to day (monotony). Training metrics don't feed the recovery score itself — research \
                         (Impellizzeri 2020/2021) showed the acute:chronic workload ratio is too noisy to predict recovery state day-to-day. The score answers \"how recovered am I?\" using your physiology only.
                         """),

@@ -181,7 +181,7 @@ enum SleepBoundaryWrite {
             session.sleepSegments = nil
         }
         // Also update the frozen snapshot so history shows the complete data
-        session.sleepSnapshot = edit.sleepData
+        session.sleepSnapshot = edit.sleepData.keepingNapCredit(of: session.sleepSnapshot)
         if edit.isUserAdjustment {
             session.sleepUserAdjusted = true
         }

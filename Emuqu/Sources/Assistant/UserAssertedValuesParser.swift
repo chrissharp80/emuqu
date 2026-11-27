@@ -186,16 +186,29 @@ enum UserCorrectionDetector {
     /// The text with every sentence about another time or a plan
     /// (`describesAnotherTime`) removed, and every question reduced to the
     /// statements before it (`statementsBeforeTheQuestion`).
+    ///
+    /// A sentence is read across soft line breaks, and the structure around
+    /// it counts as much as its own words (`MetricsVerifier.enclosingStructure`):
+    /// "Yesterday:" over "- rhr 52" places the 52 yesterday.
     private static func statementsOnly(_ text: String) -> String {
+        let joined = MetricsVerifier.softWrapped(text as NSString) as String
         var kept: [String] = []
-        text.enumerateSubstrings(in: text.startIndex..., options: .bySentences) { sentence, _, _, _ in
+        joined.enumerateSubstrings(in: joined.startIndex..., options: .bySentences) { sentence, range, _, _ in
             guard let sentence else { return }
             let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
             let isQuestion = trimmed.hasSuffix("?") || trimmed.hasSuffix("？")
-            if !isQuestion, !describesAnotherTime(trimmed) { kept.append(sentence) }
+            let placedElsewhere = isPlacedAtAnotherTime(NSRange(range, in: joined), in: joined)
+            if !isQuestion, !placedElsewhere, !describesAnotherTime(trimmed) { kept.append(sentence) }
             if isQuestion { kept.append(statementsBeforeTheQuestion(trimmed)) }
         }
         return kept.joined(separator: " ")
+    }
+
+    /// Whether the heading, lead-in or list item over the sentence at
+    /// `range` names another time or a plan.
+    private static func isPlacedAtAnotherTime(_ range: NSRange, in text: String) -> Bool {
+        let ns = text as NSString
+        return MetricsVerifier.enclosingStructure(of: range, in: ns).scopes.contains { describesAnotherTime(ns.substring(with: $0)) }
     }
 
     /// A question quotes no value ("what was my hr at 5 am?"), but a

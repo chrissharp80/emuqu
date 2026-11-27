@@ -89,8 +89,10 @@ final class HRRCaptureService {
         // +120 s cannot exist before then.
         await waitForWatchWindowEnd(stopDate: stopDate)
         let watchSamples = await captureWatchSamples(stopDate: stopDate, stopHR: stopHR)
+        // A Watch reading for a target the strap already read is the same
+        // reading at a slightly different time, not another one.
         let dedupedWatch = watchSamples.filter { sample in
-            !samples.contains { $0.offsetSec == sample.offsetSec && $0.provenance == .strap }
+            !samples.contains { $0.provenance == .strap && $0.target == sample.target }
         }
         samples.append(contentsOf: dedupedWatch)
         debugLog("[HRRCaptureService] tier 2 done — \(watchSamples.count) watch sample(s) (after dedupe vs tier 1: +\(dedupedWatch.count))")
@@ -113,8 +115,9 @@ final class HRRCaptureService {
     }
 
     /// The Watch query reaches this far past the capture window, for a sample
-    /// stamped just after the last target.
-    private static let watchWindowSlackSec: TimeInterval = 15
+    /// stamped just after the last target, as late as a reading may be
+    /// (`HRRSample.targetToleranceSec`).
+    private static let watchWindowSlackSec = TimeInterval(HRRSample.targetToleranceSec)
 
     /// Tier 3 — Apple's precomputed HRR, if a Watch workout detected the
     /// session. Added only when neither strap nor Watch produced a 1-minute
@@ -219,15 +222,15 @@ final class HRRCaptureService {
 
     private func captureStrapSamples(stopDate: Date, stopHR: Int) async -> [HRRSample] {
         var samples: [HRRSample] = []
-        for target in [60, 120] where target <= captureWindowSec {
+        for target in HRRSample.targetOffsetsSec where target <= captureWindowSec {
             let wait = await reachTarget(target, stopDate: stopDate)
             if wait == .cancelled { break }
             guard wait == .ready else { continue }
             guard let hr = strapHR(at: target) else { break }
-            samples.append(HRRSample(
-                offsetSec: Self.measuredOffsetSec(since: stopDate), hr: hr, drop: stopHR - hr,
-                peakHR: stopHR, provenance: .strap
-            ))
+            // Stored only when taken within the tolerance the summary reads it by.
+            let offset = Self.measuredOffsetSec(since: stopDate)
+            guard HRRSample.isReading(atOffset: offset, for: target) else { continue }
+            samples.append(HRRSample(offsetSec: offset, hr: hr, drop: stopHR - hr, peakHR: stopHR, provenance: .strap))
         }
         return samples
     }
@@ -242,9 +245,9 @@ final class HRRCaptureService {
         max(0, Int(now.timeIntervalSince(stopDate).rounded()))
     }
 
-    /// A target already passed by at most this much is still read now, as
-    /// the Watch tier accepts a sample this far from its target.
-    private static let lateReadToleranceSec = 15
+    /// A target already passed by at most this much is still read now: the
+    /// tolerance every tier stores a reading by and the summary reads it with.
+    private static let lateReadToleranceSec = HRRSample.targetToleranceSec
 
     /// Sleeps until `target` s after `stopDate`. `.ready` to read now (also
     /// when the target passed less than `lateReadToleranceSec` ago, so a
@@ -396,7 +399,7 @@ final class HRRCaptureService {
     ) -> [HRRSample] {
         var results: [HRRSample] = []
         var rejected = 0
-        for target in [60, 120] where target <= captureWindowSec {
+        for target in HRRSample.targetOffsetsSec where target <= captureWindowSec {
             guard let (hr, takenAt) = Self.nearestHR(in: samples, at: stopDate.addingTimeInterval(TimeInterval(target))),
                   stopHR - hr > 0 else {
                 rejected += 1
@@ -414,11 +417,11 @@ final class HRRCaptureService {
     }
 
     /// The bpm of the sample nearest `targetTime` and when it was taken, or
-    /// nil when none lies within 15 s of it.
+    /// nil when none lies within `HRRSample.targetToleranceSec` of it.
     private static func nearestHR(in samples: [HKQuantitySample], at targetTime: Date) -> (Int, Date)? {
         guard let nearest = samples.min(by: {
             abs($0.startDate.timeIntervalSince(targetTime)) < abs($1.startDate.timeIntervalSince(targetTime))
-        }), abs(nearest.startDate.timeIntervalSince(targetTime)) <= 15 else { return nil }
+        }), abs(nearest.startDate.timeIntervalSince(targetTime)) <= TimeInterval(HRRSample.targetToleranceSec) else { return nil }
         return (Int(nearest.quantity.doubleValue(for: HKUnit(from: "count/min")).rounded()), nearest.startDate)
     }
 

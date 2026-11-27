@@ -87,6 +87,16 @@ enum BeatTimeline {
             .reduce(0) { $0 + untimedMs(before: $1, times: times, points: points) }
     }
 
+    /// The last beat's end on the real clock, in ms from the recording's
+    /// start; zero without beats. What a wall-clock offset into the
+    /// recording (a sleep end from Apple Health) is clamped to: the beat
+    /// clock's end runs behind real time by every interval a Verity Sense
+    /// rejected or a stream dropped.
+    static func endMs(_ points: [RRPoint]) -> Int64 {
+        guard let last = ms(points).last, let lastBeat = points.last else { return 0 }
+        return last + Int64(lastBeat.rr_ms)
+    }
+
     /// From the first beat's start to the last beat's end on the real clock;
     /// zero without beats.
     static func spanMs(_ points: [RRPoint]) -> Int64 {

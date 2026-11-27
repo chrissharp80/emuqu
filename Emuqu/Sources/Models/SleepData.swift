@@ -176,6 +176,22 @@ struct SleepData: Codable, Sendable {
         )
     }
 
+    /// The copy a fetch hands on: the nap credit added when there is one,
+    /// otherwise the night as fetched.
+    func creditingNap(_ minutes: Int) -> SleepData {
+        minutes > 0 ? withNapSleepMinutes(minutes) : self
+    }
+
+    /// The copy a snapshot write stores over `prior`. The nap credit is part
+    /// of the night's derived snapshot, added by the fetch that first scored
+    /// it, so a write whose sleep carries none (a refresh, an edit built
+    /// from a night read without it) keeps the credit `prior` holds instead
+    /// of dropping it and lowering the stored 24 h duration.
+    func keepingNapCredit(of prior: SleepData?) -> SleepData {
+        guard napSleepMinutes == nil, let priorNap = prior?.napSleepMinutes, priorNap > 0 else { return self }
+        return withNapSleepMinutes(priorNap)
+    }
+
     /// Whether time in bed is the night's sleep plus awake: true for a night
     /// built from sleep stages (the resolver, a trim to the recording start,
     /// the sleep editor). The strap-only estimate (`hrEstimated`, written

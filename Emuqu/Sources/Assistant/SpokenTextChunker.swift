@@ -31,6 +31,13 @@ final class SpokenTextChunker {
     /// sentences said anywhere else do not. `reset()` starts it afresh.
     var safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
 
+    /// The reply spoken since the last `reset()`, as the hallucination guard
+    /// passed it, one utterance per line. The guard reads it with each new
+    /// utterance (`MetricsVerifier.verifyReply(_:after:against:)`): an earlier
+    /// line ("Night before, November 25") can decide what a number in a later
+    /// one is about. `reset()` empties it.
+    var verifiedReply = ""
+
     /// Whether there's any buffered content waiting to be emitted.
     var hasPendingContent: Bool { !pendingBuffer.isEmpty }
 
@@ -55,11 +62,12 @@ final class SpokenTextChunker {
         return speakable.isEmpty ? nil : speakable
     }
 
-    /// Clear the buffer without emitting, and start `safetyCopy` afresh: a
-    /// reset marks the start of a new reply.
+    /// Clear the buffer without emitting, and start `safetyCopy` and
+    /// `verifiedReply` afresh: a reset marks the start of a new reply.
     func reset() {
         pendingBuffer = ""
         safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
+        verifiedReply = ""
     }
 
     /// Take back the last `count` characters appended, as far as they are

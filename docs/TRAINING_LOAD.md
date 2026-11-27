@@ -110,15 +110,21 @@ an hour at threshold gives at the default anchors (resting 60, max 180, LTHR
 
 | Threshold | Value | Source and conversion |
 |---|---|---|
-| `Readiness.ctlThreshold` | 2.1 TSS/day | the "meaningful fitness base" boundary, 3.2 on the TRIMP scale ÷ 1.52 |
+| `Readiness.ctlThreshold` | 2.1 TSS/day | the "meaningful fitness base" boundary below which the ACWR advice is not given, 3.2 on the TRIMP scale ÷ 1.52 |
+| `Readiness.capacityRatioCTLFloor` | 100/7 ≈ 14.3 TSS/day | the smallest CTL the readiness capacity ratio divides by: one hour at threshold a week. Readiness is continuous and non-decreasing in CTL for a given load; at the floor a same-day workout costs about 0.57 points per TSS, the rate of a strain model of 0.5 points per TSS of ATL plus the undamped load |
 | `Training.strainThreshold` | 1600 (unchanged) | Foster's moderate band is 2500 session-RPE units (RPE × min; Foster 1998) for monotony of about 1.5–2.5; at 420 AU per 100 TSS (an hour at threshold, RPE 7) that is near 600, but this app caps monotony at 10, so 600 would warn on a week of seven 20-TSS walks (strain 1400). 1600 is what the strap's TSS loads have been held to |
 | `interpretCTL` bands (Deep Dive PDF) | 20 / 40 / 70 / 100 | TrainingPeaks / Coggan PMC ranges for CTL in TSS/day |
-| `acwrFullConfidenceCTL` 50, `modelTrustDivisor` 40, `novelLoadStrainCoefficient` 0.5, `freshnessGainMultiplier` 1.5 | unchanged | no TRIMP-scale derivation; applied to the strap's hrTSS since hrTSS shipped, so they already act on TSS |
+| `acwrFullConfidenceCTL` 50, `modelTrustDivisor` 40, `freshnessGainMultiplier` 1.5 | unchanged | no TRIMP-scale derivation; applied to the strap's hrTSS since hrTSS shipped, so they already act on TSS |
 
 Ratios (ACWR bands, capacity-ratio breakpoints, Foster monotony) do not depend
 on the scale. TSB, ramp-rate and daily-load bands (TSB ±5/10/25, ramp 8
 TSS/day/week, daily load 50/150/300) were written as TSS conventions and now
-apply to every workout.
+apply to every workout. The daily-load bands grade the Deep Dive report's
+"Yesterday's load" row, which shows the snapshot's prior-day load on the TSS
+scale (`TrainingContext.yesterdayLoad`) and is labelled load, not TRIMP. A
+figure is labelled TRIMP only where it is a Banister TRIMP as computed
+(`luciaTRIMP`: the workout PDF's Banister TRIMP row, the Holistic report's
+internal-load row, the CSV column).
 
 HealthKit-sourced workouts
 (from other apps) carry no `precomputedLoad` and fall to Layer 0b, whose
@@ -173,10 +179,14 @@ for the live value and `TrainingMetricsCache.buildDailySeries`
    `TrainingHealthQueries+Queries.swift`): a HealthKit workout overlapping an
    archive workout by ≥60% of the shorter one is dropped, because the archive
    copy is the same session with strap precision. The rest are deduplicated
-   (`deduplicateWorkouts`): scanning starts up to 30 min apart, two workouts
-   merge when they are the same type starting within 5 min, or overlap by
-   ≥60% of the shorter. The richer copy is kept (precomputed load 8, average
-   HR 4, max HR 2, calories 1).
+   (`deduplicateWorkouts`): every workout starting before another ends is
+   compared with it, however far apart they started, and two workouts merge
+   when they are the same type starting within 5 min with intersecting spans,
+   or overlap by ≥60% of the shorter. Copies that each cover ≥60% of the
+   other keep the richer one (precomputed load 8, average HR 4, max HR 2,
+   calories 1); a copy nested in a longer one (a recording started an hour
+   into an imported GPX hike) gives way to the longer, which covers all of
+   the training.
 3. HealthKit workouts under 1 minute are dropped as ghosts (`summary(for:)`, `TrainingHealthQueries+Queries.swift`).
 4. `daily[startOfDay(workout.date)] += workout.effectiveLoad(restingHR, maxHR)`.
    Workouts before the window's first day or after its last are skipped.

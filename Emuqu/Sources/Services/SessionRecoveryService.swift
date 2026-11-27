@@ -35,6 +35,12 @@ final class SessionRecoveryService {
     /// as acceptance does (`SessionAcceptanceService.exportToHealthIfEnabled`).
     let exportToHealth: @Sendable (HRVSession) -> Void
 
+    /// Trash restores under way (`SessionRecoveryCoordinator.restoreFromTrash`):
+    /// a restore drops the deletion mark first and writes the session back
+    /// only after rebuilding it, so in between the Trash expiry would still
+    /// read it as expired (`isExpiryStillDue`).
+    private(set) var restoresInProgress: Set<UUID> = []
+
     // MARK: - Initialization
 
     init(
@@ -464,17 +470,32 @@ final class SessionRecoveryService {
         return true
     }
 
+    func beginRestore(_ sessionId: UUID) { restoresInProgress.insert(sessionId) }
+    func endRestore(_ sessionId: UUID) { restoresInProgress.remove(sessionId) }
+
+    /// Whether the Trash expiry may still delete `sessionId` for good now:
+    /// no restore of it is under way, and the archive, asked under its lock,
+    /// still holds it as an expired deletion.
+    func isExpiryStillDue(_ sessionId: UUID) -> Bool {
+        !restoresInProgress.contains(sessionId) && archive.store.isStillExpiredDeletion(sessionId)
+    }
+
     /// Deletes each session forever (`permanentlyDelete(_:)`), then hands
     /// the span its recording covered (`deletedSessionSpan`) to
     /// `removeHealthSamples`, which deletes what it exported to Apple Health
     /// and says whether that worked. That runs only after the local delete
     /// succeeded and never undoes it: a failure there is counted, and the
     /// session is gone from the Trash either way.
+    ///
+    /// `stillDue` is asked for each id at its turn, on the main actor with
+    /// the delete that follows, so nothing starts in between; an id it
+    /// refuses is left as it is (the Trash expiry passes `isExpiryStillDue`).
     func permanentlyDelete(
-        _ ids: [UUID], removeHealthSamples: (UUID, ClosedRange<Date>) async -> Bool
+        _ ids: [UUID], stillDue: (UUID) -> Bool = { _ in true }, removeHealthSamples: (UUID, ClosedRange<Date>) async -> Bool
     ) async -> TrashDeletionOutcome {
         var outcome = TrashDeletionOutcome()
         for id in ids {
+            guard stillDue(id) else { continue }
             let span = deletedSessionSpan(id)
             guard permanentlyDelete(id) else {
                 outcome.kept += 1

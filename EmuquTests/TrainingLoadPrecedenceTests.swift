@@ -317,4 +317,17 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
         let kept = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [strap], healthKit: [sameRun])
         XCTAssertEqual(kept.map(\.averageHR), [160], "Health's copy of the strap's own session never replaces it")
     }
+
+    /// The load and heat queries read only other sources' workouts: Emuqu's
+    /// own export is a copy of an archive session, kept in Health after the
+    /// session is trashed or trimmed, and the archive is authoritative for it.
+    func testTheLoadReadsOnlyOtherSourcesWorkouts() throws {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let predicate = TrainingHealthQueries.otherSourcesWorkoutPredicate(from: start, to: start.addingTimeInterval(86_400))
+        let compound = try XCTUnwrap(predicate as? NSCompoundPredicate)
+        XCTAssertEqual(compound.compoundPredicateType, .and)
+        let parts = try XCTUnwrap(compound.subpredicates as? [NSPredicate])
+        XCTAssertEqual(parts.count, 2)
+        XCTAssertEqual((parts.last as? NSCompoundPredicate)?.compoundPredicateType, .not, "Emuqu's own workouts are not excluded")
+    }
 }

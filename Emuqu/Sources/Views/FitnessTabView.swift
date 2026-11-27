@@ -790,11 +790,15 @@ struct FitnessTabView: View {
     /// Listener for Watch → iOS Save & Done confirmations. The app-level
     /// listener acknowledges the recorder; this one dismisses the iPhone
     /// summary sheet so the workout lifecycle fully closes no matter which
-    /// screen the user completed it on.
+    /// screen the user completed it on. A Done tapped before the summary's
+    /// workout ended was meant for an earlier one and leaves it
+    /// (`WorkoutRecorder.controlIsCurrent`).
     @MainActor
     func listenForWatchAcknowledge() async {
         let stream = NotificationCenter.default.notifications(named: .watchAcknowledgedFinished)
-        for await _ in stream {
+        for await note in stream {
+            let tappedAt = note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date
+            guard WorkoutRecorder.controlIsCurrent(tappedAt: tappedAt, lastChange: lastCompletedSession?.endDate) else { continue }
             lastCompletedSession = nil
         }
     }
