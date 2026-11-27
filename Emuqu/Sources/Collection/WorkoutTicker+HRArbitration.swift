@@ -43,7 +43,9 @@ extension WorkoutTicker {
             /// Seconds of recording elapsed (frozen while paused, like the
             /// clock the user sees).
             var recordingElapsedSeconds: Int
-            /// Seconds since the iPhone-paired Polar last produced a beat.
+            /// Seconds since the iPhone-paired Polar last produced a beat or
+            /// sent its own heart rate (`adoptStrapHeartRateReading`): a
+            /// Verity Sense whose PPI intervals are all rejected still sends one.
             var strapSilentFor: TimeInterval
             /// Seconds since the Watch-routed strap path last produced beats.
             /// Deliberately a separate channel from `strapSilentFor` — reusing

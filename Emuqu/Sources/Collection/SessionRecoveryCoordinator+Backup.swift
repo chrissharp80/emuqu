@@ -282,7 +282,8 @@ extension SessionRecoveryCoordinator {
             archive: archive, rawBackup: rawBackup, cloudSyncManager: cloudSyncManager,
             workoutTrackBackup: services.workoutTrackBackup, savedRouteStore: services.savedRouteStore, settingsManager: settingsManager,
             overrideRRPoints: clipped,
-            discardBackupsOnAccept: true // user confirmed — safe to clean up
+            discardBackupsOnAccept: true, // user confirmed — safe to clean up
+            overrideEndSec: endSec
         )
         guard let outcome, outcome.wasArchived else {
             debugLog("[Recovery] Trim of recovered workout \(sessionId.uuidString.prefix(8)) failed — keeping the review card", level: .error)
@@ -295,11 +296,16 @@ extension SessionRecoveryCoordinator {
 
     /// The archived workout's beats up to `endSec`: none when the session is
     /// no longer in the archive or has no beats, nil (logged) when the
-    /// archive could not read it.
+    /// archive could not read it. `endSec` is on the wall clock, as the trim
+    /// card shows the workout, so the beats are cut on it too
+    /// (`WorkoutAnalyzer.rrPoints(_:endingAt:sessionStart:)`): their own
+    /// clock stands still through a strap dropout.
     private func archivedBeats(of sessionId: UUID, upTo endSec: Double) -> [RRPoint]? {
         do {
-            return try archive.retrieve(sessionId)?.rrSeries?.points
-                .filter { $0.t_ms <= Int64(endSec * 1000) } ?? []
+            guard let session = try archive.retrieve(sessionId) else { return [] }
+            return WorkoutAnalyzer.rrPoints(
+                session.rrSeries?.points ?? [], endingAt: session.startDate.addingTimeInterval(endSec), sessionStart: session.startDate
+            )
         } catch {
             debugLog("[Recovery] Could not read recovered workout \(sessionId.uuidString.prefix(8)) to trim it — keeping the review card: \(error)", level: .error)
             return nil

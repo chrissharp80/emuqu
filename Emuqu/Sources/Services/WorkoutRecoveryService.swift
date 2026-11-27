@@ -44,7 +44,8 @@ enum WorkoutRecoveryService {
         startDate: Date,
         track: [CLLocation],
         settings: UserSettings,
-        unitsPreference: UnitsPreference
+        unitsPreference: UnitsPreference,
+        pauses: WorkoutAnalyzer.TrackPauses = WorkoutAnalyzer.TrackPauses()
     ) -> WorkoutMetadata {
         let banisterSex: WorkoutAnalyzer.BanisterSex = settings.biologicalSex == .female ? .female : .male
         return WorkoutAnalyzer.analyze(
@@ -56,7 +57,8 @@ enum WorkoutRecoveryService {
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
             sex: banisterSex,
-            splitDistanceMeters: unitsPreference == .imperial ? UnitConstants.metersPerMile : 1000.0
+            splitDistanceMeters: unitsPreference == .imperial ? UnitConstants.metersPerMile : 1000.0,
+            pauses: pauses
         )
     }
 
@@ -204,7 +206,13 @@ enum WorkoutRecoveryService {
         /// Force the workout distance (meters) instead of computing it from the
         /// track — used to recover a crash-shortened distance from HealthKit's
         /// passive walking/running total (Watch/iPhone log it without GPS).
-        overrideDistanceMeters: Double? = nil
+        overrideDistanceMeters: Double? = nil,
+        /// The end the user chose on the review or trim card, seconds from
+        /// the start on the wall clock. The rebuild ends there whatever the
+        /// beats, track and samples say: with `overrideRRPoints` alone the
+        /// end was the last kept beat, which after a strap dropout or a dead
+        /// strap is earlier than the end the user saw and saved.
+        overrideEndSec: Double? = nil
     ) async -> Outcome? {
         let deps = Dependencies(
             archive: archive, rawBackup: rawBackup, cloudSyncManager: cloudSyncManager,
@@ -215,7 +223,7 @@ enum WorkoutRecoveryService {
         let overrides = Overrides(
             strapRRPoints: strapRRPoints, rrPoints: overrideRRPoints, track: overrideTrack,
             autoTrim: autoTrimOverride, distanceMeters: overrideDistanceMeters,
-            discardBackupsOnAccept: discardBackupsOnAccept
+            discardBackupsOnAccept: discardBackupsOnAccept, endSec: overrideEndSec
         )
         guard let prepared = await Self.prepare(sessionId: sessionId, reason: reason, deps: deps, overrides: overrides) else {
             return nil
@@ -243,6 +251,8 @@ enum WorkoutRecoveryService {
         let autoTrim: Bool
         let distanceMeters: Double?
         let discardBackupsOnAccept: Bool
+        /// The user-chosen end, seconds from the start (`overrideEndSec`).
+        let endSec: Double?
     }
 
     /// What was found on disk for this session.
@@ -344,11 +354,15 @@ enum WorkoutRecoveryService {
     }
 
     /// The timeline and sample streams the rebuild works from.
+    /// `durationSec` is the active time, the pauses left out, as a finished
+    /// workout counts it.
     struct RecoveredWorkout {
         let sport: Sport
         let startDate: Date
         let endDate: Date
         let durationSec: TimeInterval
+        /// The pauses the crash backup holds, ended at `endDate`.
+        let pauses: PauseTimeline
         let rrPoints: [RRPoint]
         let track: [CLLocation]
         let rawTrackWasEmpty: Bool
@@ -361,39 +375,49 @@ enum WorkoutRecoveryService {
 
     /// A trim moves the end in; the per-tick and barometer streams are cut to
     /// it like the beats and the track, so charts and elevation stop there.
+    /// The end is placed on the wall clock (`resolveEndDate`), the pauses the
+    /// backup holds are closed at it, and the active time leaves them out.
     private static func resolveRecovered(
         sessionId: UUID, startDate: Date, prepared: Prepared, overrides: Overrides
     ) -> RecoveredWorkout {
         let record = prepared.workoutRecord
-        let sport = record?.header.sport ?? prepared.existingSession?.workoutMetadata?.sport ?? .run
-        let rawTrack: [CLLocation] = overrides.track ?? record?.track ?? []
-        let liveSamples: [WorkoutSample] = record?.samples ?? []
+        let (rawTrack, liveSamples) = (overrides.track ?? record?.track ?? [], record?.samples ?? [])
         let baroSamples = record?.barometricSamples ?? []
-        let rrPoints = Self.resolveRRPoints(
+        let rr = Self.resolvedRR(
             diskPoints: prepared.rrEntry?.points ?? [], strapPoints: overrides.strapRRPoints, overridePoints: overrides.rrPoints,
             autoTrimOverride: overrides.autoTrim, sessionId: sessionId, startDate: startDate)
-        let track = Self.clipTrack(rawTrack, isOverride: overrides.track != nil, rrPoints: rrPoints, startDate: startDate)
-        let endDate = Self.resolveEndDate(
-            startDate: startDate, rrPoints: rrPoints, track: track, liveSamples: liveSamples, baroSamples: baroSamples
-        )
-        let durationSec = max(1, endDate.timeIntervalSince(startDate))
+        let pauseEvents = Self.pauseEvents(prepared, startDate: startDate)
+        let endDate = overrides.endSec.map { startDate.addingTimeInterval($0) } ?? Self.resolveEndDate(
+            startDate: startDate, rrPoints: rr.points, track: rawTrack, liveSamples: liveSamples, baroSamples: baroSamples,
+            rrEndIsFinal: rr.endIsFinal, pauses: .restored(from: pauseEvents, endingAt: .distantFuture))
+        let pauses = PauseTimeline.restored(from: pauseEvents, endingAt: endDate)
+        let durationSec = max(1, Double(pauses.activeSeconds(sessionStart: startDate, now: endDate)))
         return RecoveredWorkout(
-            sport: sport, startDate: startDate, endDate: endDate, durationSec: durationSec, rrPoints: rrPoints,
-            track: track, rawTrackWasEmpty: rawTrack.isEmpty, backupHealthKitHROffsets: record?.healthKitHROffsets ?? [],
+            sport: Self.recoveredSport(prepared), startDate: startDate, endDate: endDate,
+            durationSec: durationSec, pauses: pauses, rrPoints: rr.points,
+            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate),
+            rawTrackWasEmpty: rawTrack.isEmpty, backupHealthKitHROffsets: record?.healthKitHROffsets ?? [],
             liveSamples: liveSamples.filter { Double($0.offsetSec) <= durationSec },
             baroSamples: baroSamples.filter { $0.timestamp <= endDate }
         )
     }
 
+    private static func recoveredSport(_ prepared: Prepared) -> Sport {
+        prepared.workoutRecord?.header.sport ?? prepared.existingSession?.workoutMetadata?.sport ?? .run
+    }
+
     /// `runAnalyzer` over the recovered beats and track, on a background task.
+    /// The track steps laid down while paused are left out of the distance
+    /// and time (`trackPauses(of:windows:)`), as the live recorder does.
     private static func analyzedOffMain(
         _ recovered: RecoveredWorkout, settings: UserSettings, unitsPreference: UnitsPreference
     ) async -> WorkoutMetadata {
         let (sport, rrPoints, startDate, track) = (recovered.sport, recovered.rrPoints, recovered.startDate, recovered.track)
+        let pauses = Self.trackPauses(of: track, windows: recovered.pauses.pauseWindows(now: recovered.endDate))
         return await Task.detached(priority: .userInitiated) {
             Self.runAnalyzer(
                 sport: sport, rrPoints: rrPoints, startDate: startDate,
-                track: track, settings: settings, unitsPreference: unitsPreference
+                track: track, settings: settings, unitsPreference: unitsPreference, pauses: pauses
             )
         }.value
     }
@@ -429,6 +453,7 @@ enum WorkoutRecoveryService {
             overrideDistanceMeters: overrides.distanceMeters
         )
         metadata.healthKitHROffsets = Self.healthKitHROffsets(recovered.backupHealthKitHROffsets, in: recovered.liveSamples)
+        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)
         if recovered.baroSamples.isEmpty { Self.applyGPSElevation(to: &metadata, track: recovered.track) }
         Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
         if recovered.rawTrackWasEmpty, let existing = prepared.existingSession?.workoutMetadata {
@@ -571,8 +596,26 @@ enum WorkoutRecoveryService {
         sessionId: UUID,
         startDate: Date
     ) -> [RRPoint] {
+        resolvedRR(
+            diskPoints: diskPoints, strapPoints: strapPoints, overridePoints: overridePoints,
+            autoTrimOverride: autoTrimOverride, sessionId: sessionId, startDate: startDate
+        ).points
+    }
+
+    /// The beats, and whether their end is the workout's end: a user's trim
+    /// (`overridePoints`), or a trailing rest cut off the strap's beats,
+    /// says where the workout stopped, which outlasting GPS or samples
+    /// (the phone left recording after it) must not move.
+    static func resolvedRR(
+        diskPoints: [RRPoint],
+        strapPoints: [RRPoint]?,
+        overridePoints: [RRPoint]?,
+        autoTrimOverride: Bool,
+        sessionId: UUID,
+        startDate: Date
+    ) -> (points: [RRPoint], endIsFinal: Bool) {
         if let override = overridePoints {
-            return autoTrimOverride ? trimTrailingRest(override) : override
+            return (autoTrimOverride ? trimTrailingRest(override) : override, true)
         }
         let merged = mergedPoints(
             diskPoints: diskPoints, strapPoints: strapPoints,
@@ -582,7 +625,7 @@ enum WorkoutRecoveryService {
         if trimmed.count < merged.count {
             debugLog("[WorkoutRecovery] trimmed \(merged.count - trimmed.count) trailing rest beats (\(merged.count) → \(trimmed.count))")
         }
-        return trimmed
+        return (trimmed, trimmed.count < merged.count)
     }
 
     /// Prefer the merged strap + disk series; fall back to whichever side has
@@ -602,47 +645,6 @@ enum WorkoutRecoveryService {
             return selection.points
         }
         return strap.count > diskPoints.count ? strap : diskPoints
-    }
-
-    /// Clips the GPS track to the RR end so a trimmed workout's distance
-    /// matches its (shorter) duration.
-    ///
-    /// A Watch route is the authoritative full route and is returned whole —
-    /// it did not come from the phone GPS that the crash truncated.
-    static func clipTrack(
-        _ rawTrack: [CLLocation],
-        isOverride: Bool,
-        rrPoints: [RRPoint],
-        startDate: Date
-    ) -> [CLLocation] {
-        if isOverride { return rawTrack }
-        guard let lastT = rrPoints.last?.t_ms else { return rawTrack }
-        let endTime = startDate.addingTimeInterval(Double(lastT) / 1000.0)
-        return rawTrack.filter { $0.timestamp <= endTime }
-    }
-
-    /// When the workout actually ended.
-    ///
-    /// The last RR beat is the most reliable "we still had a signal" anchor.
-    /// The fallbacks let an indoor workout with no track still get a real
-    /// duration. Returning `startDate` is the last resort; `rebuild` then
-    /// saves nothing (see `hasRecoverableData`).
-    static func resolveEndDate(
-        startDate: Date,
-        rrPoints: [RRPoint],
-        track: [CLLocation],
-        liveSamples: [WorkoutSample],
-        baroSamples: [WorkoutTrackBackup.PersistedBaro]
-    ) -> Date {
-        if let last = rrPoints.last {
-            return startDate.addingTimeInterval(Double(last.t_ms) / 1000.0)
-        }
-        if let last = track.last { return last.timestamp }
-        if let last = liveSamples.last {
-            return startDate.addingTimeInterval(Double(last.offsetSec))
-        }
-        if let last = baroSamples.last { return last.timestamp }
-        return startDate
     }
 
     // MARK: - Trailing-rest trim

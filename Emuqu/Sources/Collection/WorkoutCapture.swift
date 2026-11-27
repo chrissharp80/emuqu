@@ -37,6 +37,9 @@ final class WorkoutCapture {
     /// The crash backup's track and barometer rows, extended each snapshot
     /// by what arrived since the last one.
     @ObservationIgnored var trackBackupRows = TrackBackupRows()
+    /// How many pause events (`PauseTimeline.events`) each workout has handed
+    /// the crash backup, so a tick without a new pause or resume skips it.
+    @ObservationIgnored var pauseEventsBackedUp: [UUID: Int] = [:]
     /// The power readings counted so far, for the average and the peak.
     var power = WorkoutPowerTally()
     /// Beats the Watch forwarded from the strap, this workout. When the user
@@ -47,6 +50,11 @@ final class WorkoutCapture {
     /// re-ingests a payload it already consumed, and finalize merges them
     /// into the RR series.
     var watchRouted = WatchRoutedBeats()
+    /// The distance on display at the stop, when the stop was dated earlier
+    /// than it reached the phone (`WorkoutRecorder.endRecording(at:now:)`):
+    /// the pedometer, foot-pod and erg counters kept running past it and hold
+    /// no history, so finalize caps them at this. Nil for a stop dated now.
+    var distanceAtEarlyStop: Double?
 
     /// Time in zone of the buffer for the user's max HR, from the tally
     /// (`WorkoutLiveTrends.Tally.zoneBreakdown`).

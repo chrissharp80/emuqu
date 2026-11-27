@@ -796,4 +796,16 @@ enum WorkoutAnalyzer {
             return point.t_ms + correctionMs
         }
     }
+
+    /// The beats at or before `endDate`, placed on the wall clock with the
+    /// time lost to strap dropouts added back (`gapCorrectedOffsetsMs`): the
+    /// beats' own clock sums received intervals and falls behind the wall
+    /// clock at each dropout, so a beat received after `endDate` can carry a
+    /// `t_ms` before it.
+    static func rrPoints(_ points: [RRPoint], endingAt endDate: Date, sessionStart: Date) -> [RRPoint] {
+        let endMs = Int64((endDate.timeIntervalSince(sessionStart) * 1000).rounded())
+        return zip(points, gapCorrectedOffsetsMs(points))
+            .filter { $0.1 <= endMs }
+            .map(\.0)
+    }
 }

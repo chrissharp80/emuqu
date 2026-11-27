@@ -799,7 +799,9 @@ struct EmuquApp: App {
     /// the app-level listeners (`runAppLevelWatchWorkoutListeners`) act on;
     /// FitnessTabView also hears acknowledge-finished, to clear its summary.
     private func wireWatchWorkoutTransportTriggers() {
-        watchBridge.onStopWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutStop) }
+        watchBridge.onStopWorkoutFromWatch = { tappedAt in
+            postWatchTransport(.watchRequestedWorkoutStop, userInfo: tappedAt.map { [WatchConnectivityBridge.stopTappedAtKey: $0] })
+        }
         watchBridge.onPauseWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutPause) }
         watchBridge.onResumeWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutResume) }
         watchBridge.onAcknowledgeFinishedFromWatch = { postWatchTransport(.watchAcknowledgedFinished) }
@@ -810,8 +812,8 @@ struct EmuquApp: App {
     /// The `WatchControlRefusal?` return is the refusal shown back on the Watch.
     /// Posting a notification cannot fail, so it is always nil — the four
     /// transport gestures differ only in which name they post.
-    private func postWatchTransport(_ name: Notification.Name) -> WatchControlRefusal? {
-        NotificationCenter.default.post(name: name, object: nil)
+    private func postWatchTransport(_ name: Notification.Name, userInfo: [AnyHashable: Any]? = nil) -> WatchControlRefusal? {
+        NotificationCenter.default.post(name: name, object: nil, userInfo: userInfo)
         return nil
     }
 
