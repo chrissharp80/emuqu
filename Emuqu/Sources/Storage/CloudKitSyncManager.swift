@@ -357,6 +357,8 @@ final class CloudKitSyncManager {
         guard didBootSyncState.setIfClear() else { return }
         state.loadAll()
         lastSyncDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate) as? Date
+        // Upload-again requests a killed launch left before sync saved them.
+        Task { await markSessionsForReupload([]) }
     }
 
     @ObservationIgnored private let didBootSyncState = OSAllocatedUnfairLock(initialState: false)
@@ -612,16 +614,16 @@ final class CloudKitSyncManager {
     /// edit, by the record's new version (`CloudKitSessionFreshness.onTie`),
     /// and yields to a newer edit, which the pull then brings here.
     ///
-    /// The unmark waits in `syncSerializer`, as `markSessionsForReupload`
-    /// does: a push or upload of the same session already in flight, with a
-    /// record built before the change, finishes first, and its `markUploaded`
-    /// cannot land after the unmark and turn the upload below away.
+    /// The unmark is `markSessionsForReupload`'s, which waits in
+    /// `syncSerializer`: a push or upload of the same session already in
+    /// flight, with a record built before the change, finishes first, and its
+    /// `markUploaded` cannot land after the unmark and turn the upload below
+    /// away. The request is on disk from the start, so a kill while it waits
+    /// leaves it for the next launch.
     func forceReuploadSession(_ session: HRVSession, stampingEdit: Bool = true) async {
+        archive.noteReuploadIntent([session.id])
         if stampingEdit { await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive) }
-        await syncSerializer.run { [self] in
-            state.markRemoved(session.id)
-            await state.saveSyncStateAsync()
-        }
+        await markSessionsForReupload([session.id])
         await uploadSession(session)
     }
 
@@ -665,12 +667,19 @@ final class CloudKitSyncManager {
     /// silently diverge across devices until these sessions are re-uploaded.
     /// The sessions themselves aren't uploaded here; the next sync pass picks
     /// them up via the normal `pushPendingSessions` path.
+    ///
+    /// Takes every request the archive keeps on disk as well
+    /// (`ReuploadRequestJournal`), including those a killed launch left, and
+    /// settles them only once the sync state carrying them is saved.
     func markSessionsForReupload(_ ids: Set<UUID>) async {
-        guard !ids.isEmpty else { return }
         await syncSerializer.run { [self] in
-            for id in ids { state.markRemoved(id) }
+            let requested = archive.state.reuploadRequests.pending
+            let marked = ids.union(requested.keys)
+            guard !marked.isEmpty else { return }
+            for id in marked { state.markRemoved(id) }
             await state.saveSyncStateAsync()
-            debugLog("[CloudKit] Marked \(ids.count) sessions for re-upload after local migration")
+            if state.isLoaded, !state.hasUnsavedBookkeeping { archive.state.reuploadRequests.settle(requested) }
+            debugLog("[CloudKit] Marked \(marked.count) sessions for re-upload after a local change")
         }
     }
 

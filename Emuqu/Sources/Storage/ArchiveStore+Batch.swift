@@ -130,6 +130,7 @@ extension ArchiveStore {
             let merge = SessionMerger.mergeSessionDataChangingBeats(from: session, into: &existingSession)
             if merge.changed {
                 existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
+                state.reuploadRequests.record([existingSession.id])
                 try _archive(existingSession)
                 outcome.updatedIds.append(existingSession.id)
             }
@@ -181,10 +182,6 @@ extension ArchiveStore {
         if !outcome.newEntries.isEmpty || !outcome.updatedIds.isEmpty {
             NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
         }
-        if !outcome.updatedIds.isEmpty {
-            NotificationCenter.default.post(
-                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": Set(outcome.updatedIds)]
-            )
-        }
+        if !outcome.updatedIds.isEmpty { requestReupload(of: Set(outcome.updatedIds)) }
     }
 }

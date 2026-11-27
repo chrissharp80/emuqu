@@ -94,6 +94,8 @@ extension ArchiveStore {
         var merged = existing
         let merge = SessionMerger.mergeSessionDataChangingBeats(from: session, into: &merged)
         if merge.changed { merged.modifiedAt = CloudKitSessionFreshness.stamp() }
+        // The fold is uploaded again (`SessionArchive.archive`): asked for before the write.
+        state.reuploadRequests.record([existing.id])
         let entry = try _archive(merged)
         if merge.beatsChanged { NightBeatsEdit.requestReanalysis(of: merged, detail: "a same-night recording was folded in") }
         return entry

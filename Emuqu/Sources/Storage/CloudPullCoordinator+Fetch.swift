@@ -247,11 +247,11 @@ extension CloudPullCoordinator {
             return RecordOutcome(new: counts.new, deleted: counts.deleted)
         }
         if deletedFlag == CloudKitSyncManager.keptOnDeviceMarker {
-            _ = isKnownLocally(sessionId)
+            _ = isKnownLocally(sessionId, listed: record)
             return RecordOutcome()
         }
         let adopting = isRestoreToAdopt(record, sessionId: sessionId)
-        guard adopting || !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
+        guard adopting || !isKnownLocally(sessionId, listed: record) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
         guard let fetched = await assetFile(for: record) else { return RecordOutcome() }
         return await importPulledSession(from: fetched, sessionId: sessionId, sessionIdString: sessionIdString, adoptingRestore: adopting)
     }
@@ -309,16 +309,30 @@ extension CloudPullCoordinator {
     /// a local change waiting to go up, and iCloud holding an older copy does
     /// not make it uploaded. Whether a held copy is replaced by a newer one is
     /// `refreshIfRemoteIsNewer`'s decision.
-    private func isKnownLocally(_ sessionId: UUID) -> Bool {
+    private func isKnownLocally(_ sessionId: UUID, listed record: CKRecord) -> Bool {
         guard manager.archive.store.exists(sessionId) || manager.archive.store.wasIntentionallyDeleted(sessionId) else {
             return false
         }
         // A Trash restore not yet uploaded is not in iCloud, whatever the
         // queue says: its upload clears the flag.
         if !manager.state.pendingUploadIds.contains(sessionId), !manager.trashRestore.isRestored(sessionId) {
-            manager.state.markUploaded(sessionId)
+            markHeldCopy(sessionId, against: record)
         }
         return true
+    }
+
+    /// A held copy edited later than the iCloud copy (`holdsUnsentEdit`) is a
+    /// change iCloud lacks whatever the bookkeeping says, such as one whose
+    /// upload request was lost with the launch that made it: it is queued to
+    /// go up rather than marked uploaded. Any other held copy is what iCloud
+    /// holds, or older.
+    private func markHeldCopy(_ sessionId: UUID, against record: CKRecord) {
+        let local = manager.archive.entryById(sessionId)?.modifiedAt
+        if CloudKitSessionFreshness.holdsUnsentEdit(localModifiedAt: local, remoteModifiedAt: CloudKitSessionFreshness.modifiedAt(of: record)) {
+            manager.state.markRemoved(sessionId)
+        } else {
+            manager.state.markUploaded(sessionId)
+        }
     }
 
     /// Asset read + decompress + JSON decode run off

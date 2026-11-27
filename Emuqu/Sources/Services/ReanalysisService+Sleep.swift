@@ -209,7 +209,7 @@ extension ReanalysisService {
             return nil
         }
         guard let written else { return nil }
-        Task { self.onSessionUploaded(written) }
+        queueUpload(written)
         return written
     }
 
@@ -313,7 +313,7 @@ extension ReanalysisService {
             baselineTracker.update(with: updatedSession, sleepSchedule: settingsProvider().sleepSchedule)
             await MainActor.run { onArchiveChanged() }
             let sessionToUpload = updatedSession
-            Task { self.onSessionUploaded(sessionToUpload) }
+            queueUpload(sessionToUpload)
             debugLog("[ReanalysisService] Applied manual analysis to session \(originalId)")
             return updatedSession
         } catch {
@@ -425,7 +425,7 @@ extension ReanalysisService {
         debugLog("[ReanalysisService] Updated sleep data for session \(session.id.uuidString.prefix(8)): \(oldMinutes)min → \(sleepData.nightSleepMinutes)min\(isUserAdjustment ? " (user adjustment)" : "")")
         Task { @MainActor in self.onArchiveChanged() }
         let sessionToUpload = session
-        Task { self.onSessionUploaded(sessionToUpload) }
+        queueUpload(sessionToUpload)
     }
 
     /// Diagnostic result from training snapshot repair.
@@ -586,7 +586,7 @@ extension ReanalysisService {
             updated = stored
         }
         let synced = updated
-        Task { self.onSessionUploaded(synced) }
+        queueUpload(synced)
     }
 
     /// Unlink a merged segment: strip its beats from the parent's series
@@ -684,7 +684,7 @@ extension ReanalysisService {
         reexportIfReadingsChanged(from: linked, to: final)
         onArchiveChanged()
         let uploaded = final
-        Task { self.onSessionUploaded(uploaded) }
+        queueUpload(uploaded)
         return true
     }
 

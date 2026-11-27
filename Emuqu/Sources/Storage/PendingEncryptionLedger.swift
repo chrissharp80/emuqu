@@ -78,10 +78,15 @@ enum PendingEncryptionLedger {
     /// can itself be waiting for that lock or queue. Writes therefore go
     /// through this serial queue, outside every caller's lock. Each write
     /// stores the list as it is when the write runs, so the last one to run
-    /// leaves the newest list on disk. The cost is a window of milliseconds in
-    /// which an entry exists only in memory; a process killed inside it loses
-    /// the entry, the trade `ArchiveStore.recordDeletionTime` makes too.
+    /// leaves the newest list on disk.
     private static let persistQueue = DispatchQueue(label: "storage.pendingReencryption.persist", qos: .utility)
+
+    /// Every write of the file copy, in order. A file write posts nothing, so
+    /// `record` waits for its own: the id is on disk before the plaintext
+    /// bytes it covers are written. Queued only, a kill in the milliseconds
+    /// before the write ran left a plaintext file nothing listed, and it was
+    /// never re-encrypted.
+    private static let fileQueue = DispatchQueue(label: "storage.pendingReencryption.file", qos: .utility)
 
     /// Session IDs whose on-disk bytes are not encrypted.
     static var pending: Set<UUID> { pending(in: .session) }
@@ -109,7 +114,7 @@ enum PendingEncryptionLedger {
             return ids.count
         }
         guard let count else { return }
-        schedulePersist(store)
+        schedulePersist(store, waitingForFile: true)
         debugLog(
             "[Storage] \(store.label) \(id.uuidString.prefix(8)) written WITHOUT app-layer "
                 + "encryption (key unavailable); queued for re-encryption. Pending: \(count)",
@@ -131,7 +136,7 @@ enum PendingEncryptionLedger {
     /// Drop every entry. Used by the data purge, where the files themselves go.
     static func clearAll() {
         cache.withLockUnchecked { $0 = Dictionary(uniqueKeysWithValues: Store.allCases.map { ($0, Set<UUID>()) }) }
-        Store.allCases.forEach(schedulePersist)
+        Store.allCases.forEach { schedulePersist($0) }
     }
 
     /// Block until every scheduled write has reached `UserDefaults`. For tests
@@ -139,6 +144,7 @@ enum PendingEncryptionLedger {
     /// which is the thread the queue exists to keep out of the wait.
     static func waitForPendingWrites() {
         persistQueue.sync {}
+        fileQueue.sync {}
     }
 
     /// The cached list for `store`, loaded the first time as the union of the
@@ -152,17 +158,23 @@ enum PendingEncryptionLedger {
         return loaded
     }
 
-    private static func schedulePersist(_ store: Store) {
+    /// Queues both copies' writes; with `waitingForFile`, returns once the
+    /// file copy is written.
+    private static func schedulePersist(_ store: Store, waitingForFile: Bool = false) {
         persistQueue.async {
-            let ids = cache.withLockUnchecked { $0[store] ?? [] }
-            let list = ids.map(\.uuidString).sorted()
+            let list = currentList(store)
             if list.isEmpty {
                 UserDefaults.standard.removeObject(forKey: store.rawValue)
             } else {
                 UserDefaults.standard.set(list, forKey: store.rawValue)
             }
-            persistFile(list, for: store)
         }
+        let writeFile: @Sendable () -> Void = { persistFile(currentList(store), for: store) }
+        if waitingForFile { fileQueue.sync(execute: writeFile) } else { fileQueue.async(execute: writeFile) }
+    }
+
+    private static func currentList(_ store: Store) -> [String] {
+        cache.withLockUnchecked { $0[store] ?? [] }.map(\.uuidString).sorted()
     }
 
     /// `Application Support/PendingEncryption/<key>.json`.

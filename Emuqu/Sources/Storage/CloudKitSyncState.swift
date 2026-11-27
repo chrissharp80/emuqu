@@ -187,22 +187,33 @@ struct CloudKitSyncState {
 
     func saveSyncState() {
         guard isLoaded else { return Self.logSkippedSave("sync state") }
-        let (snapshot, versions, url, versionsURL) = (uploadedSessionIds, recordVersions, syncStateURL, recordVersionsURL)
-        Self.writeQueue.sync {
-            Self.writeUUIDsSync(snapshot, to: url, label: "sync state")
-            Self.writeVersionsSync(versions, to: versionsURL)
-        }
+        Self.writeQueue.sync(execute: uploadBookkeepingWrite())
     }
 
     @MainActor
     func saveSyncStateAsync() async {
         guard isLoaded else { return Self.logSkippedSave("sync state") }
-        let snapshot = uploadedSessionIds
-        let versions = recordVersions
-        let url = syncStateURL
-        let versionsURL = recordVersionsURL
-        await Self.enqueueWrite {
-            Self.writeUUIDsSync(snapshot, to: url, label: "sync state")
+        await Self.enqueueWrite(uploadBookkeepingWrite())
+    }
+
+    /// The write of the uploaded set and the record versions, with the
+    /// pending queue written first in the same step. "Upload it again"
+    /// (`markRemoved`) takes a session out of the uploaded set and puts it in
+    /// the pending set; written apart, a kill between the two saves left it
+    /// in neither on disk, and the next pull, finding iCloud holding it,
+    /// marked the older iCloud copy uploaded (`CloudPullCoordinator.isKnownLocally`).
+    /// Pending first, and the uploaded set only once the pending queue
+    /// landed: a kill or failure in between leaves the session in both, which
+    /// costs one upload, never a lost change.
+    private func uploadBookkeepingWrite() -> @Sendable () -> Void {
+        let (uploaded, pending, versions) = (uploadedSessionIds, pendingUploadIds, recordVersions)
+        let (url, pendingURL, versionsURL) = (syncStateURL, pendingQueueURL, recordVersionsURL)
+        return {
+            guard Self.writeUUIDsSync(pending, to: pendingURL, label: "pending queue") else {
+                Self.noteWrite(of: url, succeeded: false)
+                return
+            }
+            Self.writeUUIDsSync(uploaded, to: url, label: "sync state")
             Self.writeVersionsSync(versions, to: versionsURL)
         }
     }
@@ -210,7 +221,7 @@ struct CloudKitSyncState {
     func savePendingQueue() {
         guard isLoaded else { return Self.logSkippedSave("pending queue") }
         let (snapshot, url) = (pendingUploadIds, pendingQueueURL)
-        Self.writeQueue.sync { Self.writeUUIDsSync(snapshot, to: url, label: "pending queue") }
+        Self.writeQueue.sync { _ = Self.writeUUIDsSync(snapshot, to: url, label: "pending queue") }
     }
 
     @MainActor
@@ -226,7 +237,7 @@ struct CloudKitSyncState {
     func saveQuarantineQueue() {
         guard isLoaded else { return Self.logSkippedSave("quarantine queue") }
         let (snapshot, url) = (quarantinedSessionIds, quarantineQueueURL)
-        Self.writeQueue.sync { Self.writeUUIDsSync(snapshot, to: url, label: "quarantine queue") }
+        Self.writeQueue.sync { _ = Self.writeUUIDsSync(snapshot, to: url, label: "quarantine queue") }
     }
 
     @MainActor
@@ -299,15 +310,19 @@ struct CloudKitSyncState {
         debugLog("[CloudKit] \(label) save held until the sync state has loaded")
     }
 
-    private static func writeUUIDsSync(_ ids: Set<UUID>, to url: URL, label: String) {
+    /// True when the write landed.
+    @discardableResult
+    private static func writeUUIDsSync(_ ids: Set<UUID>, to url: URL, label: String) -> Bool {
         do {
             let uuidStrings = ids.map { $0.uuidString }
             let data = try JSONEncoder().encode(uuidStrings)
             try data.write(to: url, options: .atomic)
             noteWrite(of: url, succeeded: true)
+            return true
         } catch {
             debugLog("[CloudKit] Failed to save \(label): \(error)", level: .error)
             noteWrite(of: url, succeeded: false)
+            return false
         }
     }
 

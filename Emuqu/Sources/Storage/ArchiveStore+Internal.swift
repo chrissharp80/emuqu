@@ -251,16 +251,24 @@ extension ArchiveStore {
         if rewriting { markRewriteStarting(session.id) }
         defer { if rewriting { markRewriteSettled(session.id) } }
         try writeArchiveBytes(data, to: filePath, format: format, sessionID: session.id)
+        Self.betweenFileAndIndex?(session.id)
         let entry = SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
-        state.index.removeAll { $0.sessionId == session.id }
+        try indexWritten(entry, rollingBackTo: preIndex, filePath: filePath, prior: prior)
+        return entry
+    }
+
+    /// Indexes the written file; a failed save rolls the write back and throws.
+    private func indexWritten(
+        _ entry: SessionArchiveEntry, rollingBackTo preIndex: [SessionArchiveEntry], filePath: URL, prior: PriorFile
+    ) throws {
+        state.index.removeAll { $0.sessionId == entry.sessionId }
         state.index.append(entry)
         do {
             try state.saveIndex()
         } catch {
-            rollBackWrite(to: preIndex, filePath: filePath, prior: prior, id: session.id)
+            rollBackWrite(to: preIndex, filePath: filePath, prior: prior, id: entry.sessionId)
             throw error
         }
-        return entry
     }
 
     /// The file a write replaces, kept so a failed index save can put it back

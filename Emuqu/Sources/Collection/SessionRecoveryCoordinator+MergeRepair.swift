@@ -260,6 +260,8 @@ extension SessionRecoveryCoordinator {
         if toArchive.vitalsSnapshot == nil {
             toArchive.vitalsSnapshot = archive.retrieveOrLog(rebuilt.id)?.vitalsSnapshot
         }
+        // Uploaded again once written (`archiveRepaired`): asked for first, on disk.
+        archive.noteReuploadIntent([rebuilt.id])
         guard let written = try archive.rewriteKeepingUserEdits(toArchive) else { return nil }
         if Self.carriedEditsChangeScoringInputs(rebuilt: rebuilt, carried: written) {
             NotificationCenter.default.post(
