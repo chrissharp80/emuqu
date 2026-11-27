@@ -100,12 +100,18 @@ extension AssistantMemoryNamespace {
         return .record(["removed": .boolean(true), "id": .string(id.uuidString), "text": .string(fact.text)])
     }
 
-    /// Puts back the facts the last confirmed wipe erased.
+    /// Puts back the facts the last confirmed wipe erased once the user has
+    /// confirmed. The user wiped them to keep them out of every later prompt,
+    /// so content the model read (a web page, an email) cannot bring them
+    /// back on its own.
     @MainActor
-    static func restoreClearedMemory(store: UserFactsStore) -> FactValue {
-        guard !store.clearedBackup.isEmpty else {
+    static func restoreClearedMemory(store: UserFactsStore, context: DestructiveActionContext) -> FactValue {
+        let count = store.clearedBackup.count
+        guard count > 0 else {
             return .missing(reason: .notRecorded, detail: "nothing to restore: no memory wipe since the app started")
         }
+        let question = String(localized: "Put back the \(count) memory facts you cleared?", bundle: LanguageManager.appBundle)
+        if let unconfirmed = context.gate(action: "assistant.memory.restore", target: "cleared", question: question) { return unconfirmed }
         let restored = store.restoreCleared()
         return .record(["restored": .integer(restored), "count": .integer(store.facts.count)])
     }

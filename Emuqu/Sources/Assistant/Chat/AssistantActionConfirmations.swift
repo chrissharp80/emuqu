@@ -15,7 +15,10 @@ import Foundation
 // something else and collect the "yes". The action runs when the model
 // repeats the same call AND the user's very next message, which only the
 // user can write, is a short, explicit "yes" sent directly under the app's
-// question. A different reply, a later turn, a question that was never
+// question, and the repeated call would ask that same question. The question
+// names every field the action stores, so a repeat that changes any of them
+// (another note, a different count, an add turned into a replace) asks again
+// instead of riding on a yes given to something else. A different reply, a later turn, a question that was never
 // shown, a voice reply whose question was not spoken to the end
 // (`markSpoken`), a message sent while the reply was still arriving
 // (`lapseUnshown`), or `lifetime` passing, and the request lapses. One request is
@@ -72,7 +75,7 @@ final class AssistantActionConfirmations {
             return .noUserMessage
         }
         let key = target.lowercased()
-        if confirms(action: action, target: key, turns: turns, now: now) {
+        if confirms(action: action, target: key, question: question, turns: turns, now: now) {
             pending = nil
             return .confirmed
         }
@@ -80,12 +83,13 @@ final class AssistantActionConfirmations {
         return .awaitingConfirmation
     }
 
-    /// The pending request matches and has not expired, the app showed its
-    /// question under the reply just before the latest user message and gave
-    /// it to the user (`delivered`), that reply answered the message the
-    /// request was made during, and the latest message says yes.
-    private func confirms(action: String, target: String, turns: [ChatTurn], now: Date) -> Bool {
-        guard let pending, pending.action == action, pending.target == target, pending.delivered,
+    /// The pending request matches, asks the same question this call would,
+    /// and has not expired, the app showed its question under the reply just
+    /// before the latest user message and gave it to the user (`delivered`),
+    /// that reply answered the message the request was made during, and the
+    /// latest message says yes.
+    private func confirms(action: String, target: String, question: String, turns: [ChatTurn], now: Date) -> Bool {
+        guard let pending, pending.action == action, pending.target == target, pending.question == question, pending.delivered,
               now.timeIntervalSince(pending.requestedAt) <= Self.lifetime,
               let replyIndex = turns.lastIndex(where: { $0.role == .user }), replyIndex >= 2
         else { return false }

@@ -320,10 +320,38 @@ extension WorkoutLiveCoachingNamespace {
     /// address. An address the model took from what it read (a web page, a
     /// route or road name) would move every later location answer.
     @MainActor private func addressUnconfirmed(_ query: String) -> FactValue? {
-        AssistantMemoryNamespace.DestructiveActionContext.live(services).gate(
-            action: "location.set_address", target: query,
-            question: String(localized: "Set your location to “\(query)”?", bundle: LanguageManager.appBundle)
+        Self.unconfirmedAddress(
+            query, action: "location.set_address", question: Self.setAddressQuestion(query),
+            context: .live(services)
         )
+    }
+
+    /// The longest free-text address the assistant may act on. It is shown
+    /// whole in the app's question, and an address is a line, not a page.
+    static let maxAddressLength = 200
+
+    /// Why the assistant may not act on a free-text address the model
+    /// supplied yet: it is too long, or the user has not confirmed it under
+    /// the app's question. Nil once they have.
+    @MainActor
+    static func unconfirmedAddress(
+        _ address: String, action: String, question: String, context: AssistantMemoryNamespace.DestructiveActionContext
+    ) -> FactValue? {
+        guard address.count <= maxAddressLength else {
+            return .missing(
+                reason: .invalidParameter,
+                detail: "the address is \(address.count) characters; keep it to \(maxAddressLength) or fewer and call again"
+            )
+        }
+        return context.gate(action: action, target: address, question: question)
+    }
+
+    static func setAddressQuestion(_ address: String) -> String {
+        String(localized: "Set your location to “\(address)”?", bundle: LanguageManager.appBundle)
+    }
+
+    static func routeToAddressQuestion(_ address: String) -> String {
+        String(localized: "Get directions to “\(address)”?", bundle: LanguageManager.appBundle)
     }
 
     /// What a forward geocode came back with; nil from the timeout race
@@ -388,7 +416,8 @@ extension WorkoutLiveCoachingNamespace {
     / 'walk me back to the trailhead' / 'hospital nearest me' / 'lead me home'. The breadcrumb origin only exists when the user has engaged Get Me Back mode (see the Fitness tab's 'Get Me Back' card) — if the user hasn't, the 'origin' \
     destination returns notRecorded; route to a typed address or a POI category instead. Returns destination label, lat/lon, total distance in meters, expected travel time in seconds, transport mode, and the first 1–3 turn-by-turn \
     step instructions ready to read aloud. Network-required: MKLocalSearch + MKDirections both call out, so this tool returns notRecorded when offline (the offline compass-arrow back to the breadcrumb origin lives in the Get \
-    Me Back screen, not this tool).
+    Me Back screen, not this tool). For destination='address' the first call routes nothing and returns status=confirmation_required with an \
+    ask_user question: ask it and end your reply; call again with the same address only if their next message is a plain yes.
     """
 
     private static let directionsRouteToDestinationDescription = """
@@ -524,12 +553,21 @@ extension WorkoutLiveCoachingNamespace {
         }
     }
 
+    /// A typed address engages turn-by-turn guidance to it, so the user
+    /// confirms it first: an address the model took from what it read (a web
+    /// page, a pasted email) would otherwise lead them somewhere they never
+    /// asked to go. Home, the start point and the nearby-place kinds are the
+    /// app's own places and need no question.
     private func addressDestination(_ args: [String: String]) -> DestinationResolution {
         let addr = (args["address"]?
             .trimmingCharacters(in: .whitespacesAndNewlines)) ?? ""
         guard !addr.isEmpty else {
             return .failed(.missing(reason: .invalidParameter, detail: "address is required when destination=='address'"))
         }
+        let unconfirmed = MainActor.assumeIsolated {
+            Self.unconfirmedAddress(addr, action: "directions.routeTo", question: Self.routeToAddressQuestion(addr), context: .live(services))
+        }
+        if let unconfirmed { return .failed(unconfirmed) }
         return .resolved(.address(addr))
     }
 
