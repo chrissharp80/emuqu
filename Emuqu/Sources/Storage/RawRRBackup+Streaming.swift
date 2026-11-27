@@ -259,9 +259,13 @@ extension RawRRBackup {
     /// before the append failed; reading the live file alone recovered only
     /// what came after.
     ///
-    /// Always merged by timestamp, so a beat written twice (an append retried
-    /// after a partial write) is recovered once. Without siblings the live
-    /// file must exist.
+    /// Always merged in time order, so a beat written twice (an append
+    /// retried after a partial write) is recovered once: a beat is the same
+    /// beat only when every field matches. Two beats may share a timestamp
+    /// (a composite an earlier build saved stamped a streamed batch's beats
+    /// with its one arrival time), so the timestamp alone would keep only one
+    /// of them. Beats with one timestamp keep the order they were written in.
+    /// Without siblings the live file must exist.
     ///
     /// Throws when any part cannot be read: the directory listing that names
     /// the siblings, or a sibling itself. What the other parts hold is not the
@@ -271,19 +275,25 @@ extension RawRRBackup {
     func readAllPointLines(sessionId: UUID, decoder: JSONDecoder) throws -> [RRPoint] {
         let livePath = pointsURL(for: sessionId)
         let siblings = try listedCorruptedSiblingNames(of: livePath)
-        var byTime: [Int64: RRPoint] = [:]
+        var written: [RRPoint] = []
         for name in siblings {
             let url = backupDirectory.appendingPathComponent(name)
             for point in try readPointLines(at: url, sessionId: sessionId, decoder: decoder) {
-                byTime[point.t_ms] = point
+                written.append(point)
             }
         }
         if siblings.isEmpty || fileManager.fileExists(atPath: livePath.path) {
-            for point in try readPointLines(at: livePath, sessionId: sessionId, decoder: decoder) {
-                byTime[point.t_ms] = point
-            }
+            written += try readPointLines(at: livePath, sessionId: sessionId, decoder: decoder)
         }
-        return byTime.values.sorted { $0.t_ms < $1.t_ms }
+        return Self.onceEachInTimeOrder(written)
+    }
+
+    /// `points` without repeats of a beat (every field equal), in timestamp
+    /// order, ties in the order given.
+    static func onceEachInTimeOrder(_ points: [RRPoint]) -> [RRPoint] {
+        var seen = Set<RRPoint>()
+        let unique = points.filter { seen.insert($0).inserted }
+        return unique.enumerated().sorted { ($0.element.t_ms, $0.offset) < ($1.element.t_ms, $1.offset) }.map(\.element)
     }
 
     /// Names of the `.corrupted_*` files set aside from this points file;

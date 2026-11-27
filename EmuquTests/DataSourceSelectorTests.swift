@@ -430,20 +430,22 @@ final class DataSourceSelectorTests: XCTestCase {
     }
 
     func testMergePoints_ClusteredStreamingDuplicates_AllSkipped() {
-        // A tight cluster of streaming points around one internal
-        // beat must ALL be skipped, not just the first. Three streaming beats
-        // at +10/+20/+30ms of the internal at 10_000 collapse to one output.
+        // One streamed batch carries three beats the strap also recorded,
+        // all stamped with the batch's arrival as the third ended. Laid back
+        // from that arrival by their own intervals, each lands on the strap's
+        // own beat, and all three collapse into it.
         let internalPoints = [
             RRPoint(t_ms: 10_000, rr_ms: 800),
-            RRPoint(t_ms: 10_800, rr_ms: 800)
+            RRPoint(t_ms: 10_800, rr_ms: 800),
+            RRPoint(t_ms: 11_600, rr_ms: 800)
         ]
         let streaming = [
-            RRPoint(t_ms: 10_010, rr_ms: 801, wallClockMs: 10_010, hr: 74),
-            RRPoint(t_ms: 10_020, rr_ms: 802, wallClockMs: 10_020, hr: 74),
-            RRPoint(t_ms: 10_030, rr_ms: 803, wallClockMs: 10_030, hr: 74)
+            RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 12_410, hr: 74),
+            RRPoint(t_ms: 800, rr_ms: 800, wallClockMs: 12_410, hr: 74),
+            RRPoint(t_ms: 1_600, rr_ms: 800, wallClockMs: 12_410, hr: 74)
         ]
         let merged = DataSourceSelector.mergePoints(internal: internalPoints, streaming: streaming)
-        XCTAssertEqual(merged.count, 2, "Clustered streaming duplicates must collapse into the internal beats")
+        XCTAssertEqual(merged, internalPoints, "Clustered streaming duplicates must collapse into the internal beats")
     }
 
     func testMergePoints_StreamingGapFill_InsertedAndRebased() {

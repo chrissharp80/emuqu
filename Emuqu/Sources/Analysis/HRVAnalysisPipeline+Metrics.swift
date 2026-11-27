@@ -40,15 +40,18 @@ extension HRVAnalysisPipeline {
         return cleanRR
     }
 
-    /// The start time, in seconds on the session clock (`t_ms`), of each
-    /// beat `extractCleanRRs` keeps, parallel to it.
+    /// The start time, in seconds on the real clock (`BeatTimeline`), of
+    /// each beat `extractCleanRRs` keeps, parallel to it. The beat clock
+    /// `t_ms` leaves out every interval a Verity Sense rejected, and a
+    /// breathing rate read on it comes out high by the share removed.
     static func cleanBeatTimes(
         series: RRSeries,
         flags: [ArtifactFlags],
         windowStart: Int,
         windowEnd: Int
     ) -> [Double] {
-        (windowStart ..< windowEnd).filter { !flags[$0].isArtifact }.map { Double(series.points[$0].t_ms) / 1_000.0 }
+        let beatTimes = BeatTimeline.ms(series.points, in: windowStart ..< windowEnd)
+        return (windowStart ..< windowEnd).filter { !flags[$0].isArtifact }.map { Double(beatTimes[$0 - windowStart]) / 1_000.0 }
     }
 
     /// Breathing rate over the window's longest unbroken stretch

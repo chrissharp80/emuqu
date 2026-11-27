@@ -83,7 +83,7 @@ extension RRDataImporter {
             guard let point = Self.timelinePoint(fields, columns: columns, rr: rr) else { return nil }
             points.append(point)
         }
-        return Self.isTimeline(points, of: rrIntervals) ? points : nil
+        return Self.isTimeline(points, of: rrIntervals) ? Self.spreadingSharedTimes(points) : nil
     }
 
     /// The columns of a header that names `timestamp_ms` and an RR column.
@@ -110,11 +110,25 @@ extension RRDataImporter {
         return RRPoint(t_ms: t, rr_ms: rr, wallClockMs: wall, followsRemovedBeat: removed)
     }
 
-    /// Whether `points` are the beats of `rrIntervals`, rising in time and
-    /// ending inside one recording.
+    /// Whether `points` are the beats of `rrIntervals`, in time order and
+    /// ending inside one recording. A timestamp may repeat only between two
+    /// streamed beats of one batch (the same `wall_clock_ms`): a composite an
+    /// earlier build saved stamped a batch's gap-fill beats with its arrival.
     private static func isTimeline(_ points: [RRPoint], of rrIntervals: [Int]) -> Bool {
         guard points.map(\.rr_ms) == rrIntervals, let last = points.last,
               last.endMs <= maximumRecordingSpanMs else { return false }
-        return zip(points, points.dropFirst()).allSatisfy { $0.t_ms < $1.t_ms }
+        return zip(points, points.dropFirst()).allSatisfy { isInOrder($0, $1) }
+    }
+
+    private static func isInOrder(_ previous: RRPoint, _ next: RRPoint) -> Bool {
+        previous.t_ms < next.t_ms || (previous.t_ms == next.t_ms && previous.wallClockMs != nil && previous.wallClockMs == next.wallClockMs)
+    }
+
+    /// `points` with each beat's timestamp at its real start (`BeatTimeline`)
+    /// when any two share one, so the beats of one batch are laid back from
+    /// its arrival by their own intervals; as read otherwise.
+    static func spreadingSharedTimes(_ points: [RRPoint]) -> [RRPoint] {
+        guard zip(points, points.dropFirst()).contains(where: { $0.t_ms == $1.t_ms }) else { return points }
+        return zip(points, BeatTimeline.ms(points)).map { $0.retimed(t_ms: $1, wallClockMs: $0.wallClockMs) }
     }
 }

@@ -251,14 +251,14 @@ final class RecordingBreakLeftoversTests: XCTestCase {
     /// both are not laid end to end.
     func testWatchStrapBeatsKeepTheTimeBetweenSamples() {
         let first = WatchStrapBeat.beats(rrMillis: [800, 900], sentAt: 1_000)
-        let second = WatchStrapBeat.beats(rrMillis: [850, 10_000, 750], sentAt: 1_010)
+        let second = WatchStrapBeat.beats(rrMillis: [850, 150, 750], sentAt: 1_010)
         XCTAssertEqual(first.map(\.endEpochMs), [999_100, 1_000_000])
-        XCTAssertEqual(second.map(\.rrMillis), [850, 750], "the implausible interval is dropped")
-        XCTAssertEqual(second.map(\.endEpochMs), [1_009_250, 1_010_000])
+        XCTAssertEqual(second.map(\.isRemoved), [false, true, false], "the implausible interval is no beat")
+        XCTAssertEqual(second.map(\.endEpochMs), [1_009_100, 1_009_250, 1_010_000])
         let gapMs = (second[0].endEpochMs - second[0].rrMillis) - first[1].endEpochMs
-        XCTAssertEqual(gapMs, 8_400)
+        XCTAssertEqual(gapMs, 8_250)
         let placed = WatchStrapBeat.placed(first + second, after: 0)
-        XCTAssertEqual(placed.map(\.startEpochMs), [998_300, 999_100, 1_008_400, 1_009_250])
+        XCTAssertEqual(placed.map(\.startEpochMs), [998_300, 999_100, 1_008_250, 1_009_250])
         XCTAssertEqual(placed.map(\.rrMs), [800, 900, 850, 750])
     }
 

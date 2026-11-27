@@ -458,15 +458,16 @@ private func chartPeriodogram(series: RRSeries, flags: [ArtifactFlags], window: 
     return (1 ... maxBin).map { k in (Double(k) * psdResampleHz / Double(n), dftPower(centred, bin: k)) }
 }
 
-/// (seconds from the window's first beat, RR ms) for every clean beat.
+/// (seconds from the window's first beat, RR ms) for every clean beat, on
+/// the real clock (`BeatTimeline`), as the analysis reads its spectrum.
 private func cleanBeatTimes(series: RRSeries, flags: [ArtifactFlags], window: Range<Int>) -> [(Double, Double)] {
     let points = series.points
     let range = window.clamped(to: 0 ..< points.count)
-    guard let first = range.first else { return [] }
-    let t0 = Double(points[first].t_ms)
+    let beatTimes = BeatTimeline.ms(points, in: range)
+    guard let first = range.first, let t0 = beatTimes.first.map(Double.init) else { return [] }
     return range.compactMap { i in
         guard i >= flags.count || !flags[i].isArtifact else { return nil }
-        return ((Double(points[i].t_ms) - t0) / 1000, Double(points[i].rr_ms))
+        return ((Double(beatTimes[i - first]) - t0) / 1000, Double(points[i].rr_ms))
     }
 }
 

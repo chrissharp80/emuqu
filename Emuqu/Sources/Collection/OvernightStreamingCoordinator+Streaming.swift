@@ -608,21 +608,20 @@ extension OvernightStreamingCoordinator {
         sessionState.lastError = RRCollector.CollectorError.strapStillHoldsNight(missingMinutes: gapMinutes)
     }
 
-    /// Minutes of wall clock the streamed beats do not account for.
+    /// Minutes of real time the streamed beats do not account for.
     ///
     /// `wallClockMs` exists on a streamed beat for exactly this ("for gap
     /// detection" — `RRPoint`): `t_ms` accumulates RR intervals, so it only
     /// advances while beats are arriving, while `wallClockMs` keeps running
-    /// through a dropout. The difference between the two spans is the time the
-    /// stream was not receiving. Zero for anything not streamed, which has no
-    /// wall clock to compare against.
+    /// through a dropout. The time the stream was not receiving is read on
+    /// the real clock (`BeatTimeline.unreceivedMs`), which leaves out the
+    /// intervals a Verity Sense received and rejected: those are in its wall
+    /// clock and not in its beat clock too, but no copy on the strap holds
+    /// more of them. Zero for anything not streamed, which has no wall clock
+    /// to compare against.
     static func streamGapMinutes(_ points: [RRPoint]) -> Int {
-        guard let first = points.first, let last = points.last,
-              let firstWall = first.wallClockMs, let lastWall = last.wallClockMs
-        else { return 0 }
-        let wallSpanMs = lastWall - firstWall
-        let beatSpanMs = last.t_ms - first.t_ms
-        return max(0, Int((wallSpanMs - beatSpanMs) / 60_000))
+        guard points.first?.wallClockMs != nil, points.last?.wallClockMs != nil else { return 0 }
+        return Int(BeatTimeline.unreceivedMs(points) / 60_000)
     }
 
     /// Below this a gap is ordinary settling at either end of the night, not a

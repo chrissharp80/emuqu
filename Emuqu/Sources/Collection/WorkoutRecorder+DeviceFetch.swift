@@ -213,18 +213,23 @@ private func selectMergedWorkoutRR(
 }
 
 @MainActor
-/// Time-bound to the workout window. `t_ms` is already on the workout's
-/// clock (`StrapRecording.points(onClockOf:)` shifted it by the arming
-/// delay); a 60 s tolerance absorbs the residual timing slack at either end.
+/// Time-bound to the workout window, each beat at its real start
+/// (`BeatTimeline`): a Verity Sense recording's beat clock leaves out its
+/// rejected intervals, so by `t_ms` its beats from after the stop still fit.
+/// The beats are already on the workout's clock
+/// (`StrapRecording.points(onClockOf:)` shifted them by the arming delay);
+/// a 60 s tolerance absorbs the residual timing slack at either end.
 ///
 /// This is also a paranoia guard for the case where
 /// `clearAnyExistingExercises()` failed before this workout and the H10
 /// still has unrelated samples (e.g. last night's overnight) attached to
 /// the same fetch.
-private func boundedToWorkoutWindow(_ devicePoints: [RRPoint], startDate: Date, stopDate: Date) -> [RRPoint] {
+func boundedToWorkoutWindow(_ devicePoints: [RRPoint], startDate: Date, stopDate: Date) -> [RRPoint] {
     let workoutDurationMs = MillisecondOffset.between(stopDate, and: startDate, fallback: 0)
     let toleranceMs = WorkoutRecorder.DeviceFetchDecision.deviceWindowToleranceMs
-    let bounded = devicePoints.filter { $0.t_ms >= 0 && $0.t_ms <= workoutDurationMs + toleranceMs }
+    let bounded = zip(devicePoints, BeatTimeline.ms(devicePoints))
+        .filter { $0.1 >= 0 && $0.1 <= workoutDurationMs + toleranceMs }
+        .map(\.0)
     if bounded.count != devicePoints.count {
         debugLog("[Recorder.finalize] H10 fetch returned \(devicePoints.count) points, \(devicePoints.count - bounded.count) outside workout window — discarded")
     }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// A single RR interval point
-struct RRPoint: Codable, Equatable {
+struct RRPoint: Codable, Hashable {
     /// Start timestamp in milliseconds since session start (cumulative from RR intervals)
     let t_ms: Int64
     /// RR interval duration in milliseconds
@@ -108,14 +108,17 @@ struct RRSeries: Codable {
         return lastWall - firstWall
     }
 
-    /// Estimated data loss percentage based on wall-clock vs cumulative RR time drift
-    /// Positive value indicates data was likely dropped during streaming
+    /// Estimated share of the recording, in percent, that was never received:
+    /// the real-clock time no beat accounts for (`BeatTimeline.unreceivedMs`)
+    /// over the real-clock span. The beat clock `durationMs` leaves out a
+    /// Verity Sense's rejected intervals as well as dropouts, so set against
+    /// the wall clock it counted every rejected interval as lost. Nil without
+    /// wall-clock timestamps.
     var estimatedDataLossPercent: Double? {
-        guard let wallDuration = wallClockDurationMs, wallDuration > 0 else { return nil }
-        let rrDuration = durationMs
-        let drift = wallDuration - rrDuration
-        guard drift > 0 else { return 0.0 } // No loss or clock drift backwards (unlikely)
-        return (Double(drift) / Double(wallDuration)) * 100.0
+        guard hasWallClockTimestamps else { return nil }
+        let spanMs = BeatTimeline.spanMs(points)
+        guard spanMs > 0 else { return nil }
+        return Double(BeatTimeline.unreceivedMs(points)) / Double(spanMs) * 100.0
     }
 
     /// Find gaps in the data where wall-clock time advanced more than expected
