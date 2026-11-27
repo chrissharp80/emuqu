@@ -1384,6 +1384,51 @@ mutate "remote_deletion_dated_by_apply_time" "EmuquTests/CloudPullRecordTests" \
     "Emuqu/Sources/Storage/CloudPullCoordinator+Fetch.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudPullCoordinator+Fetch.swift');s=p.read_text();o='try manager.archive.deleteWithoutTrash(sessionId, deletedAt: deletedAt)';assert s.count(o)==1;p.write_text(s.replace(o,'try manager.archive.deleteWithoutTrash(sessionId, deletedAt: nil)'))"
 
+# A Watch End queued out of range ends the workout at the tap. Ending it on
+# arrival saves the time after the tap as workout time.
+mutate "watch_stop_ends_at_arrival" "EmuquTests/WorkoutStopTimeTests" \
+    "Emuqu/Sources/Collection/WorkoutRecorder+StopTime.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+StopTime.swift');s=p.read_text();o='return min(max(requested, startedAt ?? requested), now)';assert s.count(o)==1;p.write_text(s.replace(o,'return max(requested, now)'))"
+
+# A Verity Sense whose PPI intervals are all rejected still sends its heart
+# rate. Ignoring that reading reads the strap as silent and drops the HR.
+mutate "strap_hr_reading_ignored_while_intervals_rejected" "EmuquTests/WorkoutStrapOwnershipTests" \
+    "Emuqu/Sources/Collection/WorkoutTicker+Tick.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutTicker+Tick.swift');s=p.read_text();o='        guard lifecycle.activeHRSource == .strap,\n              let reading = Self.newStrapReading(';assert s.count(o)==1;p.write_text(s.replace(o,'        guard lifecycle.activeHRSource == .none,\n              let reading = Self.newStrapReading('))"
+
+# With no morning training snapshot the live load is the anchor. A zero
+# anchor reads a trained athlete as untrained in the morning.
+mutate "live_readiness_missing_morning_atl_is_zero" "EmuquTests/LiveReadinessTests" \
+    "Emuqu/Sources/Analysis/LiveReadiness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveReadiness.swift');s=p.read_text();o='morningContext?.atl ?? live.atl';assert s.count(o)==1;p.write_text(s.replace(o,'morningContext?.atl ?? 0'))"
+mutate "live_readiness_missing_morning_ctl_is_zero" "EmuquTests/LiveReadinessTests" \
+    "Emuqu/Sources/Analysis/LiveReadiness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveReadiness.swift');s=p.read_text();o='morningContext?.ctl ?? live.ctl';assert s.count(o)==1;p.write_text(s.replace(o,'morningContext?.ctl ?? 0'))"
+
+# A recovered workout whose strap died mid-run ends at the last thing
+# recorded. Ending at the last beat cuts the route and time after it.
+mutate "recovery_end_at_last_beat" "EmuquTests/WorkoutRecoveryResolversTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift');s=p.read_text();o='if rrEndIsFinal, let rrEnd { return rrEnd }';assert s.count(o)==1;p.write_text(s.replace(o,'if let rrEnd { return rrEnd }'))"
+
+# The beats' summed clock stands still through a strap dropout. Ending a
+# recovery on it ends the workout early by the length of every dropout.
+mutate "recovery_beat_end_on_summed_clock" "EmuquTests/WorkoutRecoveryResolversTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift');s=p.read_text();o='WorkoutAnalyzer.gapCorrectedOffsetsMs(rrPoints).last.map';assert s.count(o)==1;p.write_text(s.replace(o,'rrPoints.last.map(\\\\.t_ms).map'))"
+
+# The review card's Save keeps the length it showed. Ending at the last kept
+# beat cuts a recovered workout whose strap died before the phone stopped.
+mutate "recovery_save_ignores_chosen_end" "EmuquTests/RecoveredWorkoutReviewTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService.swift');s=p.read_text();o='let endDate = overrides.endSec.map { startDate.addingTimeInterval(\$0) } ?? Self.resolveEndDate(';assert s.count(o)==1;p.write_text(s.replace(o,'let endDate = Self.resolveEndDate('))"
+
+# A recovered workout keeps the pauses its crash backup holds. Dropping them
+# counts paused time as moving in Apple Health and the summary.
+mutate "recovery_drops_pauses" "EmuquTests/RecoveredWorkoutReviewTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService.swift');s=p.read_text();o='        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
 mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=' || words == [\"interval\", \"ms\"]';assert s.count(o)==1;p.write_text(s.replace(o,''))"
