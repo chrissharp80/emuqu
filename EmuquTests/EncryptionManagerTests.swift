@@ -241,11 +241,13 @@ final class EncryptionManagerTests: XCTestCase {
     /// migrated to that class on first use.
     func testTheKeyIsStoredSoItMovesWithTheDeviceBackup() throws {
         try requireEncryptionKey()
+        let accounts = try EncryptionManager.keychainRing().map(\.account)
+        let primary = try XCTUnwrap(EncryptionManager.primaryAccount(among: accounts))
         var result: AnyObject?
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: AppConfig.keychainService,
-            kSecAttrAccount as String: "session-encryption-key",
+            kSecAttrAccount as String: primary,
             kSecReturnAttributes as String: true
         ]
         XCTAssertEqual(SecItemCopyMatching(query as CFDictionary, &result), errSecSuccess)
@@ -260,6 +262,97 @@ final class EncryptionManagerTests: XCTestCase {
         XCTAssertFalse(JSONFileSeal.isKeyLocked(EncryptionManager.EncryptionError.keyNotFound))
         XCTAssertFalse(JSONFileSeal.isKeyLocked(EncryptionManager.EncryptionError.decryptionFailed))
         XCTAssertFalse(JSONFileSeal.isKeyLocked(CryptoKitError.authenticationFailure))
+    }
+
+    // MARK: - Keyring
+
+    /// Keys held in memory in place of the Keychain. `add` mints under an
+    /// account of its own, as the Keychain store does; `restore` puts a key
+    /// under the original account, as a restored or migrated Keychain does.
+    private final class MemoryKeys: @unchecked Sendable {
+        private let lock = NSLock()
+        private var keys: [EncryptionManager.StoredKey] = []
+
+        var accounts: [String] { lock.withLock { keys.map(\.account) } }
+
+        func restore(_ key: SymmetricKey) {
+            lock.withLock {
+                keys.removeAll { $0.account == EncryptionManager.legacyAccount }
+                keys.append(.init(account: EncryptionManager.legacyAccount, key: key))
+            }
+        }
+
+        var store: EncryptionManager.KeyStore {
+            EncryptionManager.KeyStore(
+                read: { self.lock.withLock { self.keys } },
+                add: {
+                    let minted = EncryptionManager.StoredKey(
+                        account: EncryptionManager.ringAccountPrefix + UUID().uuidString, key: SymmetricKey(size: .bits256)
+                    )
+                    self.lock.withLock { self.keys.append(minted) }
+                    return minted
+                }
+            )
+        }
+    }
+
+    /// A phone restored without its Keychain mints a key; the old key comes
+    /// back later under the original account. Both stay: data sealed with
+    /// each opens, on the manager that saw the key arrive and on a new one.
+    func testDataSealedWithEitherKeyOpensOnceASecondKeyArrives() throws {
+        let keys = MemoryKeys()
+        let early = EncryptionManager(keyStore: keys.store, keyRefreshInterval: 0)
+        let sealedWithMinted = try early.encrypt(Data("after the restore".utf8))
+        XCTAssertEqual(keys.accounts.count, 1)
+        XCTAssertTrue(keys.accounts[0].hasPrefix(EncryptionManager.ringAccountPrefix), "the minted key has an account of its own")
+
+        keys.restore(SymmetricKey(size: .bits256))
+        let late = EncryptionManager(keyStore: keys.store, keyRefreshInterval: 0)
+        let sealedWithRestored = try late.encrypt(Data("with the restored key".utf8))
+
+        XCTAssertEqual(keys.accounts.count, 2, "the restored key did not replace the minted one")
+        XCTAssertEqual(try late.decrypt(sealedWithMinted), Data("after the restore".utf8))
+        XCTAssertEqual(try late.decrypt(sealedWithRestored), Data("with the restored key".utf8))
+        XCTAssertEqual(try early.decrypt(sealedWithRestored), Data("with the restored key".utf8), "a key that arrived later is read")
+        XCTAssertEqual(try early.decrypt(sealedWithMinted), Data("after the restore".utf8))
+    }
+
+    /// Restoring the original account's item again (a second restore)
+    /// replaces only that item: the minted key and its data stay readable.
+    func testReplacingTheRestoredItemKeepsTheMintedKeysData() throws {
+        let keys = MemoryKeys()
+        let sealedWithMinted = try EncryptionManager(keyStore: keys.store).encrypt(Data("minted".utf8))
+        keys.restore(SymmetricKey(size: .bits256))
+        keys.restore(SymmetricKey(size: .bits256))
+
+        let manager = EncryptionManager(keyStore: keys.store)
+        XCTAssertEqual(try manager.decrypt(sealedWithMinted), Data("minted".utf8))
+        XCTAssertEqual(keys.accounts.count, 2)
+    }
+
+    /// Opening never mints: with no key held, a sealed blob throws
+    /// `keyNotFound` and the store stays empty.
+    func testOpeningWithNoKeyNeverMintsOne() throws {
+        let sealed = try EncryptionManager(keyStore: MemoryKeys().store).encrypt(Data("elsewhere".utf8))
+        let keys = MemoryKeys()
+        let manager = EncryptionManager(keyStore: keys.store)
+        XCTAssertThrowsError(try manager.decrypt(sealed)) { error in
+            guard case .keyNotFound? = error as? EncryptionManager.EncryptionError else {
+                return XCTFail("expected keyNotFound, got \(error)")
+            }
+        }
+        XCTAssertTrue(keys.accounts.isEmpty)
+    }
+
+    /// The original account seals while it is held; otherwise the lowest
+    /// ring account does, and other accounts never do.
+    func testThePrimaryKeyIsTheOriginalAccountsThenTheLowestRingAccount() {
+        let ringA = EncryptionManager.ringAccountPrefix + "A"
+        let ringB = EncryptionManager.ringAccountPrefix + "B"
+        XCTAssertEqual(EncryptionManager.primaryAccount(among: [ringB, EncryptionManager.legacyAccount, ringA]), EncryptionManager.legacyAccount)
+        XCTAssertEqual(EncryptionManager.primaryAccount(among: [ringB, ringA]), ringA)
+        XCTAssertNil(EncryptionManager.primaryAccount(among: ["session-encryption-key-v2"]))
+        XCTAssertNil(EncryptionManager.primaryAccount(among: []))
     }
 
     private func keychainStatus(account: String) -> OSStatus {
