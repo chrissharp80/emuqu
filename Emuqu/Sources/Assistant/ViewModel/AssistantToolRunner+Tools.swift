@@ -181,11 +181,12 @@ extension AssistantToolRunner {
         state: inout ToolLoopState,
         grokQuirks: inout GrokQuirkPolicy
     ) async throws -> Bool {
-        let buffer = StreamTextBuffer(owner: owner, turnID: round.turnID)
+        let services = owner.services
+        let buffer = StreamTextBuffer(owner: owner, turnID: round.turnID) { services.verifiedAppState }
         let thisRound = try await consumeStreamRound(round, state: state, buffer: buffer)
         applyRoundEndTextPolicy(
             thisRound: thisRound, budgetExhausted: state.budgetExhausted,
-            buffer: buffer, turnID: round.turnID
+            buffer: buffer
         )
         if state.budgetExhausted { return true }
         if thisRound.isEmpty {
@@ -485,57 +486,20 @@ extension AssistantToolRunner {
     /// first tool_use arrives); the rewind pulls the cursor back so the next
     /// round is still spoken from its start.
     ///
-    /// The number check runs after the rewind, on the text that stays.
+    /// The numbers were checked as each sentence was published
+    /// (`StreamTextBuffer`); the corrections in the text that stays are
+    /// reported to the next prompt here, after the rewind.
     private func applyRoundEndTextPolicy(
         thisRound: [PendingToolCall],
         budgetExhausted: Bool,
-        buffer: StreamTextBuffer,
-        turnID: UUID
+        buffer: StreamTextBuffer
     ) {
         if thisRound.isEmpty || budgetExhausted {
             buffer.advanceSpeakableCursorToCurrentEnd()
         } else {
             buffer.rewindToRoundStart()
         }
-        verifyAppStateNumbers(turnID: turnID)
-    }
-
-    /// Hallucination guard for app-state numbers (TSB / ATL /
-    /// CTL / RMSSD / recovery score). The voice path runs the
-    /// existing live-workout-metrics guard separately;
-    /// text-mode (chat) needs its own guard, otherwise fabricated
-    /// TSB-swing claims reach the chat surface unchallenged.
-    /// Runs on EVERY round-end, after the caller's rewind of a tool-use
-    /// round, so it checks only the text that stays visible (a pre-tool-use
-    /// lead-in has already been cut).
-    ///
-    /// Use the verifier's pre-built corrected text instead of
-    /// splicing ranges here. The verifier matches against its own
-    /// normalized text (spelled-out → digits), so splicing those ranges
-    /// into the original would corrupt words mid-way. Its
-    /// `correctedText` is the original text with only the claimed spans
-    /// replaced, so we just swap the whole string.
-    ///
-    /// Resolve the live turn position by id so
-    /// a shifted array (clear / regenerate / removal) can't make this
-    /// verify-and-rewrite land on the wrong turn.
-    ///
-    /// Live-workout claims (HR, power, α1) are checked first, against the
-    /// broker's snapshot (`MetricsVerifier.verify(_:againstLive:)`; nothing
-    /// while no workout records), and the app-state pass runs on their
-    /// corrected text.
-    private func verifyAppStateNumbers(turnID: UUID) {
-        guard let assistantIndex = owner.liveTurnIndex(for: turnID) else { return }
-        let original = owner.turns[assistantIndex].text
-        let live = MetricsVerifier.verify(original, againstLive: owner.services.liveWorkoutBroker.currentSnapshot())
-        let text = MetricsVerifier.correctedText(from: original, applying: live) ?? original
-        let result = MetricsVerifier.verifyAppStateClaims(text, against: owner.services.verifiedAppState)
-        let discrepancies = live + result.discrepancies
-        guard !discrepancies.isEmpty else { return }
-        debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
-        MetricsVerifier.recordCorrections(discrepancies)
-        owner.turns[assistantIndex].text = result.correctedText ?? text
-        owner.store.save(owner.turns)
+        buffer.commitCorrections()
     }
 
     /// Tool-resolution + budget stage of

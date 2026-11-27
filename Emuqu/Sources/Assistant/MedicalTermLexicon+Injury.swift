@@ -30,14 +30,14 @@ import Foundation
 extension MedicalTermLexicon {
     static let injury = Concept(
         id: "injury",
-        latin: englishInjury + europeanInjury + nordicInjury + jointPain + [
+        latin: injuryByCause + englishInjury + europeanInjury + nordicInjury + jointPain + [
             "я\\s+(?:получил|получила)\\s+травму", "я\\s+травмировал(?:ся|ась)",  // ru
             "я\\s+(?:упал|упала|ранен|ранена)", "у\\s+меня\\s+(?:идёт|идет)\\s+кровь",
             // "Идти" is also "go": "не могу идти на тренировку" is a schedule.
             "не\\s+могу\\s+(?:идти(?!\\s+(?:на|в|к|сегодня|завтра)\\b)|ходить|наступить)", "подвернула?\\s+(?:ногу|лодыжку|стопу|колено)",
             "растяжени[ея]\\s+связок", "сотрясени[ея]\\s+мозга"
         ],
-        unbounded: [
+        unbounded: injuryByCauseUnbounded + [
             "怪我をした", "けがをした", "怪我した", "転んだ", "転倒した", "血が出", "歩けない", "捻挫(?:した|して|しま)",
             "骨折(?:した|して|しま)", "足をひねった", // ja
             "我受伤了", "受伤了", "摔倒了", "摔伤", "在流血", "流血了", "走不了路", "不能走路", "扭伤了", "骨折了", "崴了脚", "崴脚", // zh-Hans
@@ -84,6 +84,59 @@ extension MedicalTermLexicon {
         "(?:can['’]?t|cannot|can\\s+not|unable\\s+to)\\s+(?:walk(?!\\s+(?:the\\s+dog|to|with|home|there|far|fast|as\\s+much|it\\s+off)\\b)"
             + "|put\\s+(?:any\\s+)?weight(?!\\s+on\\s+the\\s+bar)"
             + "|move\\s+my\\s+(?:arms?|legs?|neck|head|hands?|feet|foot|fingers?|toes?|ankle|knee|back|shoulder|hip|body))"
+    ]
+
+    /// The injury told by its cause, in every shipped language other than
+    /// English (whose forms are in `englishInjury`): a trip or slip that
+    /// ended in a fall, a car that hit the user, a blow to the head, a torn
+    /// or pulled muscle, and being knocked off the bike. Each names the
+    /// outcome or the body, so "stumbled on a study", "slid down the
+    /// rankings", "beat the record" and "how do I prevent a strain?" reach
+    /// the model.
+    private static let injuryByCause: [String] = [
+        "tr[ée]buch[ée]e?\\s+et\\s+(?:je\\s+suis\\s+)?tomb[ée]e?", "j['’]ai\\s+fait\\s+une\\s+(?:mauvaise\\s+)?chute(?!\\s+d[eu'’])",                     // fr
+        "gliss[ée]e?\\s+sur\\s+(?:la\\s+|le\\s+|du\\s+)?(?:glace|verglas)", "(?:renvers[ée]e?|percut[ée]e?)\\s+par\\s+une\\s+voiture",
+        "une\\s+voiture\\s+m['’]a\\s+(?:renvers[ée]e?|percut[ée]e?)", "je\\s+me\\s+suis\\s+cogn[ée]e?\\s+la\\s+t[êe]te",
+        "je\\s+me\\s+suis\\s+fait\\s+(?:un\\s+)?(?:claquage|d[ée]chirure)", "d[ée]chir[ée]\\s+(?:le|un|les)\\s+(?:mollet|ischio\\w*|muscle|quadriceps)",
+        "renvers[ée]e?\\s+[àa]\\s+v[ée]lo",
+        "tropec[ée]\\s+y\\s+(?:me\\s+)?ca[íi]", "resbal[ée]\\s+(?:en|con|sobre)\\s+(?:el\\s+|la\\s+)?(?:hielo|escarcha)", "me\\s+(?:atropell[óo]|arroll[óo])\\s+(?:un|una|el|la)\\s+(?:coche|carro|auto|moto|ciclista|cami[óo]n)", "me\\s+atropellaron", // es
+        "un\\s+(?:coche|carro|auto)\\s+me\\s+(?:atropell[óo]|golpe[óo]|arroll[óo])", "me\\s+golpe[ée]\\s+la\\s+cabeza", "me\\s+di\\s+un\\s+golpe\\s+en\\s+la\\s+cabeza",
+        "(?:me\\s+)?(?:desgarr[ée]|romp[íi])\\s+(?:el|un)\\s+(?:gemelo|isquio\\w*|cu[áa]driceps|m[úu]sculo|aductor)", "me\\s+dio\\s+un\\s+tir[óo]n", "me\\s+tir[óo]\\s+de\\s+la\\s+bici",
+        "tropecei\\s+e\\s+ca[íi]", "escorreguei\\s+(?:no\\s+gelo|e\\s+ca[íi])", "fui\\s+atropelad[oa]", "um\\s+carro\\s+me\\s+(?:atropelou|pegou|acertou)", // pt-BR
+        "bati\\s+a\\s+cabe[çc]a", "(?:distendi|rompi|estirei)\\s+(?:o|a)\\s+(?:panturrilha|posterior|coxa|m[úu]sculo|quadr[íi]ceps)",
+        "ca[íi]\\s+da\\s+(?:bike|bicicleta)", "derrubad[oa]\\s+da\\s+(?:bike|bicicleta)",
+        "inciampat[oa]\\s+e\\s+(?:sono\\s+)?cadut[oa]", "scivolat[oa]\\s+sul\\s+ghiaccio", "investit[oa]\\s+da\\s+un['’]?\\s*(?:auto|macchina)", // it
+        "una\\s+macchina\\s+mi\\s+ha\\s+investit[oa]", "ho\\s+battuto\\s+la\\s+testa", "strappat[oa]\\s+(?:il|un)\\s+(?:polpaccio|muscolo|flessore|quadricipite)",
+        "ho\\s+(?:uno|avuto\\s+uno)\\s+(?:strappo|stiramento)(?!\\s+alla\\s+regola)", "cadut[oa]\\s+dalla\\s+bici",
+        "gestolpert\\s+und\\s+(?:hingefallen|gest[üu]rzt)", "auf\\s+(?:dem\\s+)?(?:eis|glatteis)\\s+ausgerutscht", "ausgerutscht\\s+und\\s+(?:hingefallen|gest[üu]rzt)", // de
+        "von\\s+einem\\s+auto\\s+(?:angefahren|erfasst|umgefahren)", "ein\\s+auto\\s+hat\\s+mich\\s+(?:angefahren|erfasst|umgefahren)",
+        "den\\s+kopf\\s+(?:angeschlagen|gesto[ßs]en)", "ich\\s+habe\\s+(?:mir\\s+)?(?:eine[n]?\\s+)?(?:zerrung|muskelfaserriss|muskelriss)",
+        "(?:wade|oberschenkel|muskel)\\s+(?:ist\\s+)?(?:gezerrt|gerissen)", "vom\\s+(?:rad|fahrrad)\\s+(?:gefallen|gest[üu]rzt)",
+        "gestruikeld\\s+en\\s+(?:ben\\s+)?gevallen", "uitgegleden\\s+op\\s+(?:het\\s+)?(?:ijs|gladde)", "aangereden\\s+door\\s+een\\s+(?:auto|wagen)", // nl
+        "een\\s+auto\\s+heeft\\s+me\\s+aangereden", "(?:mijn\\s+)?hoofd\\s+gestoten", "(?:kuit|hamstring|spier|bovenbeen)\\s+(?:gescheurd|verrekt)",
+        "heb\\s+een\\s+(?:zweepslag|spierscheuring)", "van\\s+(?:mijn|de)\\s+fiets\\s+(?:gevallen|geduwd)",
+        "snublede\\s+og\\s+faldt", "gled\\s+p[åa]\\s+isen", "ramt\\s+af\\s+en\\s+bil", "en\\s+bil\\s+ramte\\s+mig", "k[øo]rt\\s+ned\\s+af\\s+en\\s+bil", // da
+        "sl(?:og|[åa]et)\\s+hovedet", "fik\\s+en\\s+(?:muskel)?fiberspr[æa]ngning", "faldt\\s+af\\s+cyklen", "v[æa]ltede\\s+p[åa]\\s+cyklen",
+        "snublet\\s+og\\s+falt", "(?:skled|skli|glapp)\\s+p[åa]\\s+isen", "p[åa]kj[øo]rt\\s+av\\s+en\\s+bil", "ble\\s+p[åa]kj[øo]rt", // nb
+        "en\\s+bil\\s+(?:kj[øo]rte\\s+p[åa]|traff)\\s+meg", "sl(?:o|[åa]tt)\\s+hodet", "fikk\\s+(?:en\\s+)?(?:muskelstrekk|strekk\\s+i\\s+(?:leggen|l[åa]ret|baksida))",
+        "falt\\s+av\\s+sykkelen", "veltet\\s+p[åa]\\s+sykkelen",
+        "snubblade\\s+och\\s+(?:f[öo]ll|ramlade)", "halkade\\s+(?:p[åa]\\s+isen|och\\s+(?:f[öo]ll|ramlade))", "p[åa]k[öo]rd\\s+av\\s+en\\s+bil", "blev\\s+p[åa]k[öo]rd", // sv
+        "en\\s+bil\\s+(?:k[öo]rde\\s+p[åa]|tr[äa]ffade)\\s+mig", "sl(?:og|[åa]git)\\s+(?:i\\s+)?huvudet", "fick\\s+en\\s+(?:muskelbristning|str[äa]ckning|bristning)",
+        "ramlade\\s+av\\s+cykeln", "v[äa]lte\\s+med\\s+cykeln",
+        "liukastuin\\s+(?:j[äa][äa]ll[äa]|ja\\s+kaaduin|portaissa)", "auto\\s+(?:t[öo]rm[äa]si\\s+minuun|ajoi\\s+p[äa][äa]lleni)", "j[äa]in\\s+auton\\s+alle", // fi
+        "l[öo]in\\s+p[äa][äa]ni", "(?:revitin|rev[äa]hdytin)\\s+(?:pohkeeni|takareiteni|lihakseni|reiteni)", "sain\\s+(?:lihasrepe[äa]m[äa]n|(?:lihas)?rev[äa]hdyksen)",
+        "putosin\\s+py[öo]r[äa]n\\s+selst[äa]",
+        "hrasa[ðd]i\\s+og\\s+datt", "rann\\s+[áa]\\s+(?:svelli|h[áa]lku|[íi]snum)", "var[ðd]\\s+fyrir\\s+b[íi]l", "b[íi]ll\\s+keyr[ðd]i\\s+[áa]\\s+mig", // is
+        "rak\\s+h[öo]fu[ðd]i[ðd]\\s+[íi]", "f[ée]kk\\s+h[öo]fu[ðd]h[öo]gg", "(?:reif|sleit)\\s+v[öo][ðd]va", "datt\\s+af\\s+hj[óo]li",
+        "споткнул(?:ся|ась)\\s+и\\s+упала?", "поскользнул(?:ся|ась)", "меня\\s+(?:сбила\\s+машина|сбили)", "сбила?\\s+машиной", // ru
+        "ударил(?:ся|ась)\\s+головой", "(?:порвала?|потянула?|надорвала?)\\s+(?:мышцу|икру|заднюю\\s+поверхность\\s+бедра)", "растяжени[ея]\\s+мышц"
+    ]
+
+    private static let injuryByCauseUnbounded: [String] = [
+        "氷で滑", "凍った道で滑", "車にはねられ", "車に轢かれ", "車にひかれ", "頭を打った", "頭をぶつけた", "肉離れ(?:した|を起こ)", "自転車から落ち", // ja
+        "被绊倒", "在冰上滑倒", "滑倒了", "被车撞了", "被车撞倒", "撞到头", "头撞到", "拉伤了", "肌肉撕裂了", "从自行车上摔", // zh-Hans
+        "빙판에서 미끄러", "미끄러져 넘어", "차에 치였", "차에 부딪혔", "머리를 부딪혔", "머리를 박았", "근육이 찢어졌", "근육이 파열", "자전거에서 떨어졌", // ko
+        "انزلقت على الجليد", "انزلقت وسقطت", "صدمتني سيارة", "دهستني سيارة", "ضربت رأسي", "اصطدم رأسي", "تمزق في العضلة", "تمزق عضلي في", "سقطت عن الدراجة" // ar
     ]
 
     /// The idioms "fell asleep / behind / apart / short / in love / for it /

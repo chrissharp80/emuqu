@@ -137,8 +137,10 @@ enum MetricsVerifier {
         )
     }
 
-    /// Live-workout claims (HR, power, α1, drift) against the recorder's
-    /// snapshot. Used by the voice pipeline before TTS.
+    /// Live-workout claims (HR, power, α1, drift) against a recorder
+    /// context. The pipelines check against the broker instead
+    /// (`verifyReply`); this form reads the same fields from the recorder's
+    /// own context.
     static func verify(_ text: String, against snapshot: WorkoutAIContext?) -> [Discrepancy] {
         guard let snapshot else { return [] }
         return verifyLive(text, values: LiveValues(
@@ -147,13 +149,15 @@ enum MetricsVerifier {
         ))
     }
 
-    /// Live-workout claims (HR, power, α1) against the broker's snapshot,
-    /// for a caller that has no recorder at hand (the typed-chat pipeline).
-    /// The broker carries no drift, so drift claims are not checked here.
+    /// Live-workout claims (HR, power, α1, drift) against the broker's
+    /// snapshot: the values the model's live tools return, and the one live
+    /// source both the chat and the voice pipelines check against
+    /// (`verifyReply`), so a spoken number and a saved one cannot come from
+    /// two readings.
     static func verify(_ text: String, againstLive live: AssistantContext.LiveWorkoutSnapshot?) -> [Discrepancy] {
         guard let live else { return [] }
         return verifyLive(text, values: LiveValues(
-            heartRate: live.heartRate, powerWatts: live.powerWatts, alpha1: live.alpha1, hrDriftPercent: nil
+            heartRate: live.heartRate, powerWatts: live.powerWatts, alpha1: live.alpha1, hrDriftPercent: live.liveHRDriftPercent
         ))
     }
 
@@ -193,6 +197,25 @@ enum MetricsVerifier {
         let settings: UserSettings
         let trainingMetricsCache: TrainingMetricsCache
         let archive: SessionArchive
+        /// The live workout broker's snapshot, nil while no workout records.
+        var liveWorkout: AssistantContext.LiveWorkoutSnapshot?
+    }
+
+    /// Every check a reply gets, in one pass, for every pipeline that shows
+    /// or speaks one: live-workout claims against `state.liveWorkout`, then
+    /// training-load, overnight and sleep claims on the live-corrected text.
+    /// `correctedText` is nil when nothing changed. Each discrepancy's range
+    /// indexes the text its own pass read, so callers use the ranges only
+    /// through `correctedText`.
+    @MainActor
+    static func verifyReply(_ text: String, against state: AppState) -> AppStateVerifyResult {
+        let live = verify(text, againstLive: state.liveWorkout)
+        let liveCorrected = correctedText(from: text, applying: live) ?? text
+        let appState = verifyAppStateClaims(liveCorrected, against: state)
+        return AppStateVerifyResult(
+            discrepancies: live + appState.discrepancies,
+            correctedText: appState.correctedText ?? (live.isEmpty ? nil : liveCorrected)
+        )
     }
 
     /// Verify training-load, overnight HRV and last night's sleep claims

@@ -425,4 +425,41 @@ final class UserCorrectionDetectorTests: XCTestCase {
             XCTAssertEqual(UserCorrectionDetector.detect(userMessages: [row.text]).explicitOverrideRequested, row.override, row.text)
         }
     }
+
+    /// A statement before the question in the same sentence is still stated;
+    /// the question itself is not.
+    func testAStatementBeforeAQuestionIsKept() {
+        XCTAssertEqual(UserCorrectionDetector.detect(userMessages: ["my hrv is 38, why does the app say 45?"]).assertedValues["rmssd"], 38)
+        for question in ["what was my hr at 5 am?", "is my hrv 38?", "why is my tsb -8, and is that bad?"] {
+            XCTAssertTrue(UserCorrectionDetector.detect(userMessages: [question]).assertedValues.isEmpty, question)
+        }
+    }
+
+    /// A number with a time unit after it is a duration, not the value.
+    func testADurationIsNotAValue() {
+        XCTAssertNil(UserCorrectionDetector.detect(userMessages: ["my recovery was 3 days"]).assertedValues["recovery"])
+        XCTAssertNil(UserCorrectionDetector.detect(userMessages: ["my rmssd was 40 minutes after waking"]).assertedValues["rmssd"])
+        XCTAssertEqual(UserCorrectionDetector.detect(userMessages: ["my hr is 150 for 20 minutes now"]).assertedValues["hr"], 150)
+        XCTAssertEqual(UserCorrectionDetector.detect(userMessages: ["my sleep was 7.5 hours"]).assertedValues["sleep"], 7.5)
+    }
+}
+
+/// A slash pair with no year is linked as a date only where it reads as one.
+final class CitationFractionTests: XCTestCase {
+    private func isFraction(_ text: String, _ match: String) throws -> Bool {
+        let range = try XCTUnwrap(text.range(of: match))
+        return AssistantCitationResolver.isBareFraction(text, range: range)
+    }
+
+    func testAFractionOrScoreIsNotADate() throws {
+        XCTAssertTrue(try isFraction("You hit your sleep goal 4/5 nights.", "4/5"))
+        XCTAssertTrue(try isFraction("I'd rate that session 4/5.", "4/5"))
+    }
+
+    func testADateIsStillADate() throws {
+        XCTAssertFalse(try isFraction("On 11/24 your recovery was 55.", "11/24"))
+        XCTAssertFalse(try isFraction("11/24: recovery 55", "11/24"))
+        XCTAssertFalse(try isFraction("Since 4/5 your HRV has risen.", "4/5"))
+        XCTAssertFalse(try isFraction("On 11/24/2026 you slept well.", "11/24/2026"))
+    }
 }

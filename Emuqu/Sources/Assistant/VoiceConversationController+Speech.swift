@@ -49,9 +49,16 @@ extension VoiceConversationController {
     /// `.triggerSpeaking`) claims the cue audio session first (`coachCue`).
     /// Returns the utterance queued on the synthesizer, or nil when the line
     /// went to the coach cue or failed to queue.
+    ///
+    /// `numbersVerified` is true for text read from the chat turn, whose
+    /// numbers the chat pipeline checked before it showed them
+    /// (`StreamTextBuffer`): checking them again a moment later against a
+    /// live value that has moved would make the spoken number differ from
+    /// the saved one.
     @discardableResult
-    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) -> AVSpeechUtterance? {
-        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
+    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false, numbersVerified: Bool = false) -> AVSpeechUtterance? {
+        let scrubbed = perimeterScrubbed(text, continuing: &textChunker.safetyCopy)
+        let guarded = numbersVerified ? scrubbed : applyHallucinationGuard(to: scrubbed)
         return queueGuarded(guarded, voice: voice, scripted: scripted)
     }
 
@@ -203,35 +210,15 @@ extension VoiceConversationController {
         return (providerID, name)
     }
 
-    /// Hallucination-guard pre-flight. Verifies each numeric
-    /// claim in `text` against the live workout snapshot, then against the
-    /// app's own values (`MetricsVerifier.verifyAppStateClaims`: training
-    /// load, overnight RMSSD and recovery score), so the user hears the
-    /// verified value rather than a fabricated one. Replaces each
-    /// contradicting span with the verified value and records the
-    /// correction, so the next turn's system prompt tells the model it was
-    /// corrected.
+    /// Hallucination-guard pre-flight: the one reply check the chat
+    /// pipeline also runs (`MetricsVerifier.verifyReply`), against the same
+    /// values (`VoiceServices.verifiedAppState`: the live workout broker,
+    /// training load, the overnight and last night's sleep), so the user
+    /// hears the verified value. Replaces each contradicting span and
+    /// records the correction, so the next turn's system prompt tells the
+    /// model it was corrected.
     func applyHallucinationGuard(to text: String) -> String {
-        appStateCorrected(liveWorkoutCorrected(text))
-    }
-
-    /// Live-workout claims (HR, power, α1, drift), spliced by the same rule
-    /// the chat pipeline uses (`MetricsVerifier.correctedText`): back to
-    /// front, skipping a span that overlaps one already replaced.
-    private func liveWorkoutCorrected(_ text: String) -> String {
-        guard let snapshot = liveWorkoutSnapshotProvider?() else { return text }
-        let discrepancies = MetricsVerifier.verify(text, against: snapshot)
-        guard !discrepancies.isEmpty else { return text }
-        debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
-        MetricsVerifier.recordCorrections(discrepancies)
-        return MetricsVerifier.correctedText(from: text, applying: discrepancies) ?? text
-    }
-
-    /// App-state claims (TSB / ATL / CTL / ACWR, RMSSD, recovery score).
-    /// The verifier returns the original text with only the claimed spans
-    /// replaced.
-    private func appStateCorrected(_ text: String) -> String {
-        let result = MetricsVerifier.verifyAppStateClaims(text, against: services.verifiedAppState)
+        let result = MetricsVerifier.verifyReply(text, against: services.verifiedAppState)
         guard !result.discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
         MetricsVerifier.recordCorrections(result.discrepancies)

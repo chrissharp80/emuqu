@@ -184,15 +184,6 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// tight loops.
     let recognitionRestartCooldownSec: Double = 1.5
 
-    /// Structured live-workout snapshot for the
-    /// hallucination guard. Consumed by `speak(_:)` to
-    /// cross-check numeric claims against the authoritative current
-    /// snapshot before the synthesizer starts. Set by the recorder
-    /// alongside `contextSnapshotProvider`. Optional — when nil the
-    /// guard no-ops (e.g. assistant is talking outside an active
-    /// workout) and the original text speaks unchanged.
-    var liveWorkoutSnapshotProvider: (() -> WorkoutAIContext?)?
-
     // MARK: Internal
 
     /// Lazy to defer `AVSpeechSynthesizer` cold init until the first
