@@ -337,15 +337,15 @@ extension DeepDiveReportRenderer {
     }
 
     func interpretCTL(_ ctl: Double) -> String {
-        // Thresholds are scaled × 0.64 to match the Banister-TRIMP
-        // scaling factor in HealthWorkoutSummary.calculateTrimp. The tier
-        // labels refer to the same physiological fitness bands;
-        // only the unit scale differs.
+        // CTL in TSS per day, the scale every load is on. The bands are the
+        // TrainingPeaks / Coggan Performance Manager ranges: about 20-40
+        // building, 40-70 consistent recreational training, 70-100 well
+        // trained amateur, over 100 serious endurance athlete.
         let bundle = LanguageManager.appBundle
-        if ctl > 64 { return String(localized: "Very high fitness — serious endurance athlete level", bundle: bundle) }
-        if ctl > 45 { return String(localized: "High training load — consistently well-trained volume", bundle: bundle) }
-        if ctl > 26 { return String(localized: "Moderate fitness — consistent training", bundle: bundle) }
-        if ctl > 13 { return String(localized: "Building fitness — keep consistent", bundle: bundle) }
+        if ctl > 100 { return String(localized: "Very high fitness — serious endurance athlete level", bundle: bundle) }
+        if ctl > 70 { return String(localized: "High training load — consistently well-trained volume", bundle: bundle) }
+        if ctl > 40 { return String(localized: "Moderate fitness — consistent training", bundle: bundle) }
+        if ctl > 20 { return String(localized: "Building fitness — keep consistent", bundle: bundle) }
         return String(localized: "Low fitness base — building from scratch or extended break", bundle: bundle)
     }
 

@@ -1129,6 +1129,17 @@ check "scoring_governance/scheme_change_hides_operator_change" \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
 
+# A base the current scheme cannot hash must fail, not skip the comparison:
+# with the base recorded under `decl-flow`, a scheme root that only the tree
+# declares (a constant appended to a hashed file) left the base's sources
+# unhashable, the comparison was skipped and the gate passed. A throwaway
+# clone commits the `decl-flow` base, then declares the root in a file no
+# scheme reads otherwise, and writes the baseline the tree hashes to.
+check "scoring_governance/unhashable_base_is_an_error" \
+    'd="$BACKUP_DIR/unhashable_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-flow base" --allow-empty && printf "\nenum PlantedScoringRoot {\n    static let value = 1.0\n}\n" >> Emuqu/Sources/Utilities/Extensions.swift && printf "%s %s stored-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    "scripts/lib/scoring_hash.py" \
+    "import pathlib;p=pathlib.Path('scripts/lib/scoring_hash.py');s=p.read_text();o='    \"Emuqu/Sources/Models/RecoveryVitals.swift\": [\"RecoveryVitals\"],';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    \"Emuqu/Sources/Utilities/Extensions.swift\": [\"PlantedScoringRoot\"],'))"
+
 # The mutation harness credits a mutation only to a recorded assertion
 # failure. With that requirement taken out, a run that stopped after a test
 # started reads as a catch again, and the probe must go red.

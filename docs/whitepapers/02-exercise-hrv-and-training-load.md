@@ -335,7 +335,7 @@ Inputs:
 On rest days ATL already carries yesterday's load, and the freshness bonus handles dissipation.
 
 1. **Acute fatigue.** With recent loads, `raw = Σ load_i · e^(−h_i/24)` and `acute = 0.30 · raw`. Without them, `raw = todayTrimp` and `acute = 0.35 · todayTrimp`.
-2. **Base.** If CTL ≥ 3.2, map `(ATL + acute)/CTL` piecewise-linearly through (0 → 100), (0.8 → 85), (1.0 → 70), (1.3 → 50), (1.5 → 30) and (2.0 → 10). The base is held at 10 above 2.0, and a ratio ≤ 0 gives 100. Below CTL 3.2, the base is `max(10, 100 − 0.5·(ATL + raw))`.
+2. **Base.** If CTL ≥ 2.1, map `(ATL + acute)/CTL` piecewise-linearly through (0 → 100), (0.8 → 85), (1.0 → 70), (1.3 → 50), (1.5 → 30) and (2.0 → 10). The base is held at 10 above 2.0, and a ratio ≤ 0 gives 100. Below CTL 3.2, the base is `max(10, 100 − 0.5·(ATL + raw))`.
 3. **ACWR damper.** This step applies only if ACWR > 1.3.
    - `p = min(0.05 + 0.5·(ACWR − 1.3), 0.40) · min(max(CTL, 0)/50, 1)`.
    - If R_rec ≥ 70, `p ← min(p, 0.10)`.
@@ -571,7 +571,7 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 **N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL branch, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
 - **Acute fatigue.** A 72 h exponentially decaying term (τ = 24 h, weight 0.30, over workouts since the start of the morning reading's day) is added to ATL inside a piecewise capacity-ratio map.
-- **Low-CTL branch.** Below a CTL of 3.2, the score switches to a strain branch.
+- **Low-CTL branch.** Below a CTL of 2.1 TSS/day (3.2 on the Banister TRIMP scale the boundary was set on, ÷ 1.52, the TRIMP of an hour at threshold at the default anchors per 100 TSS), the score switches to a strain branch.
 - **ACWR penalty.** Any penalty above an ACWR of 1.3 is scaled by min(CTL/50, 1) and capped at 10% when the morning recovery score is at least 70.
 - **Freshness.** A capped bonus is added for ATL dissipated since the morning.
 - **Blend.** The result is blended asymmetrically with the recovery score: excess trust is min(CTL/40, 1) × 0.55, and deficit uplift is 0.30.
@@ -831,8 +831,9 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | acuteFatigueTauHours | 24 | h | Acute decay |
 | acuteFatigueCoefficient | 0.30 | — | With recent loads |
 | acuteFatigueFallbackCoefficient | 0.35 | — | todayTrimp fallback |
-| ctlThreshold | 3.2 | load | Low-CTL branch |
+| ctlThreshold | 2.1 | TSS/day | Low-CTL branch |
 | novelLoadStrainCoefficient | 0.5 | — | Low-CTL branch |
+| strainThreshold | 1600 | TSS-scale strain | Monotony warning (Foster's 2500 session-RPE band is near 600 at 4.2 AU per TSS, but monotony is capped at 10 here, so the TSS-scale level the strap has used is kept) |
 | capacity map | 0→100, 0.8→85, 1.0→70, 1.3→50, 1.5→30, 2.0→10 | — | Base readiness |
 | readinessFloor | 10 | points | Floor |
 | acwrOverreachingThreshold | 1.3 | — | Penalty starts |
@@ -999,7 +1000,7 @@ autoFTP(): best over running-family workouts of the last 90 days of
 readiness(Rrec, todayTrimp, CTL, ATL, anchorATL, ACWR, loads):
   if loads: raw = sum(L.load*exp(-L.h/24)); acute = 0.30*raw
   else: raw = todayTrimp; acute = 0.35*todayTrimp
-  if CTL >= 3.2: x = piecewise((ATL+acute)/CTL)
+  if CTL >= 2.1: x = piecewise((ATL+acute)/CTL)
   else: x = max(10, 100 - 0.5*(ATL+raw))
   if ACWR != nil and ACWR > 1.3:
     p = min(0.05 + 0.5*(ACWR-1.3), 0.40) * min(max(CTL,0)/50, 1)

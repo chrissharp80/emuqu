@@ -103,6 +103,23 @@ time/MET estimates, the order the ladder tries them in. Power TSS and hrTSS
 are also anchored to different thresholds (FTP, LTHR), so the conversion puts
 them on one scale but does not make an HR estimate as accurate as a power one.
 
+**Thresholds on the TSS scale.** A threshold set against load is in TSS
+units too. Where its source was Banister TRIMP, it is converted at the factor
+an hour at threshold gives at the default anchors (resting 60, max 180, LTHR
+0.88 × max): 100 TSS ≈ 152 TRIMP.
+
+| Threshold | Value | Source and conversion |
+|---|---|---|
+| `Readiness.ctlThreshold` | 2.1 TSS/day | the "meaningful fitness base" boundary, 3.2 on the TRIMP scale ÷ 1.52 |
+| `Training.strainThreshold` | 1600 (unchanged) | Foster's moderate band is 2500 session-RPE units (RPE × min; Foster 1998) for monotony of about 1.5–2.5; at 420 AU per 100 TSS (an hour at threshold, RPE 7) that is near 600, but this app caps monotony at 10, so 600 would warn on a week of seven 20-TSS walks (strain 1400). 1600 is what the strap's TSS loads have been held to |
+| `interpretCTL` bands (Deep Dive PDF) | 20 / 40 / 70 / 100 | TrainingPeaks / Coggan PMC ranges for CTL in TSS/day |
+| `acwrFullConfidenceCTL` 50, `modelTrustDivisor` 40, `novelLoadStrainCoefficient` 0.5, `freshnessGainMultiplier` 1.5 | unchanged | no TRIMP-scale derivation; applied to the strap's hrTSS since hrTSS shipped, so they already act on TSS |
+
+Ratios (ACWR bands, capacity-ratio breakpoints, Foster monotony) do not depend
+on the scale. TSB, ramp-rate and daily-load bands (TSB ±5/10/25, ramp 8
+TSS/day/week, daily load 50/150/300) were written as TSS conventions and now
+apply to every workout.
+
 HealthKit-sourced workouts
 (from other apps) carry no `precomputedLoad` and fall to Layer 0b, whose
 TRIMP is then put on the TSS scale as above.
@@ -249,8 +266,8 @@ calendar days' load (rest days 0, capped at 10), strain = the week's load ×
 monotony. The warning ("unusually similar day-to-day") is
 `FosterMonotonyWarning.isRaised`, one rule for both Load & Trajectory and the
 Training Load screen: monotony > `monotonyThreshold` (2.0) **and** strain >
-`strainThreshold` (1600: Foster's moderate band, 2500, ×0.64 for the TRIMP
-scale), both in `RecoveryScoreConstants.swift` `RecoveryScoreConstants.Training`.
+`strainThreshold` (1600, TSS-scale strain; see the thresholds table above for
+why Foster's 2500 session-RPE band does not convert directly), both in `RecoveryScoreConstants.swift` `RecoveryScoreConstants.Training`.
 
 ---
 

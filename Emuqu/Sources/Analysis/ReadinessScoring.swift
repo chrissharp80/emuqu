@@ -52,7 +52,7 @@ enum ReadinessScoring {
     ///
     /// ### 2. Capacity Ratio (primary signal)
     ///
-    /// When CTL ≥ 3.2 (`ctlThreshold`, established training history):
+    /// When CTL ≥ 2.1 (`ctlThreshold`, established training history):
     ///   effectiveLoad = ATL + acuteFatigue
     ///   capacityRatio = effectiveLoad / CTL
     ///
@@ -64,7 +64,7 @@ enum ReadinessScoring {
     ///   ratio 1.5  → 30  (sharp recent increase over the chronic base)
     ///   ratio 2.0+ → 10  (extreme overload)
     ///
-    /// When CTL < 3.2 (no training history):
+    /// When CTL < 2.1 (no training history):
     ///   Pure strain-based: any load is novel, readiness drops fast.
     ///   readiness = max(10, 100 - totalLoad × 0.5)
     ///
