@@ -20,7 +20,7 @@ extension SessionRecoveryCoordinator {
     /// backup as well would save it twice. A recording that died with the
     /// app is not live, and still shows.
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await recoveryService.checkForLostSessions(excluding: liveRecordingIds())
+        await recoveryService.checkForLostSessions(excludingLive: { liveRecordingIds() })
     }
 
     /// The sessions recording right now, being ended, or finished and waiting
@@ -686,8 +686,7 @@ extension SessionRecoveryCoordinator {
     /// overnight session, and clearing the marker unconditionally then wiped an
     /// interrupted night's record along with it.
     private func clearPersistedRecordingState(ifItIs sessionId: UUID) {
-        guard recordingStore.load()?.sessionId == sessionId else { return }
-        recordingStore.clear()
+        recordingStore.clear(ifItIs: sessionId)
     }
 
     /// Called once at app launch. If a WORKOUT was recording when the app
@@ -779,7 +778,7 @@ extension SessionRecoveryCoordinator {
         // Resume arms the strap by the night's own capture choice, not the default.
         if let usesDeviceBackup = recordingStore.captureMode() { overnightRun.usesDeviceBackup = usesDeviceBackup }
         recordingStore.persistPaused(sessionId: session.id)
-        recordingStore.clear()
+        recordingStore.clear(ifItIs: sessionId)
         return true
     }
 

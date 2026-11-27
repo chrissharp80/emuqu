@@ -166,15 +166,22 @@ extension WorkoutRecorder {
     ) async -> (session: HRVSession, saveOutcome: WorkoutSaveOutcome) {
         debugLog("[Recorder.stop] step=finalizeSession (rrPoints=\(rrPoints.count), elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         let finished = await finalizer.finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
-        if finished.saveOutcome == .saved {
-            // The strap recording downloaded for this workout is in the archive.
-            core.strapRecorder.device.noteDownloadsSaved(recordedSince: lifecycle.sessionStartDate ?? stopDate)
-        }
+        noteOwnStrapDownloadSaved(finished.saveOutcome, stopDate: stopDate)
         // Used once, by this finalize.
         capture.wristHROffsets = []
         lifecycle.liveSnapshotAtStop = nil
         debugLog("[Recorder.stop] step=finalizeSession done (elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         return finished
+    }
+
+    /// The strap recording downloaded for a saved strap workout is in the
+    /// archive. A Watch or no-HR workout armed none: a recording downloaded
+    /// since its start is another session's (a strap-only nap beside it),
+    /// still to be saved, and marking it saved let the next arming clear the
+    /// strap's only copy.
+    func noteOwnStrapDownloadSaved(_ outcome: WorkoutSaveOutcome, stopDate: Date) {
+        guard outcome == .saved, lifecycle.activeHRSource == .strap else { return }
+        core.strapRecorder.device.noteDownloadsSaved(recordedSince: lifecycle.sessionStartDate ?? stopDate)
     }
 
     /// stop() — teardown fan-out: ticker, GPS, pedometer, Zwift advertisement, Watch session, live broker, AI cache, cue audio session, diagnostics sampler.
@@ -212,7 +219,7 @@ extension WorkoutRecorder {
     /// doesn't keep sampling memory in the foreground app indefinitely.
     private func releaseWorkoutCueAudioAndDiagnostics() {
         services.backgroundAudioManager.stopBackgroundAudio()
-        services.systemDiagnosticsManager.stopSamplingAfterRecording()
+        services.systemDiagnosticsManager.stopSamplingAfterRecording(for: .workout)
     }
 
     /// stop() — RR snapshot: streaming buffer + Watch-routed merge (sorted by t_ms).
@@ -333,18 +340,24 @@ extension WorkoutRecorder {
     /// the summary even when the strap was clearly still producing
     /// beats). `.userInitiated` tells the scheduler this work
     /// directly maps to a user-visible number they're waiting for.
+    ///
+    /// The strap's tier reads only this workout's own stream (the start it
+    /// recorded, `ownedStrapStreamStart`): a Watch workout has none, and a
+    /// stream started since (the next workout, a quick reading) is another
+    /// session's heart rate, not this one's recovery.
     func launchHRRCaptureAndRearchive(stopDate: Date, endHR: Int, finished: HRVSession) {
+        let ownStreamStart = lifecycle.activeHRSource == .strap ? lifecycle.ownedStrapStreamStart : nil
         let captureService = HRRCaptureService(
             strapLink: core.strapLink, strapStream: core.strapStream,
+            ownStreamStart: ownStreamStart,
             access: core.healthAccess,
             heartRate: core.heartRate,
             captureWindowSec: 120
         )
         let sessionId = finished.id
         let archive = core.archive
-        let stream = core.strapStream
         let strap = lifecycle.activeHRSource == .strap
-            ? (stream: stream, discovery: core.strapDiscovery, streamStart: stream.streamingStartTime) : nil
+            ? StrapAfterHRR(stream: core.strapStream, recording: core.strapRecording, discovery: core.strapDiscovery, streamStart: ownStreamStart) : nil
         Task.detached(priority: .userInitiated) {
             await self.captureHRRAndRearchive(
                 captureService: captureService, stopDate: stopDate, endHR: endHR,
@@ -369,13 +382,15 @@ extension WorkoutRecorder {
         captureService: HRRCaptureService,
         stopDate: Date,
         endHR: Int,
-        strap: (stream: StrapStreamSession, discovery: StrapDiscoveryCoordinator, streamStart: Date?)?,
+        strap: StrapAfterHRR?,
         archive: SessionArchive,
         sessionId: UUID
     ) async {
-        let samples = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
+        let captured = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
+        let nextStart = await MainActor.run { self.startOfWorkout(after: sessionId) }
+        let samples = Self.hrrSamples(captured, stopDate: stopDate, before: nextStart)
         if let strap {
-            await releaseStrapAfterHRR(strap.stream, discovery: strap.discovery, workoutStreamStart: strap.streamStart)
+            await releaseStrapAfterHRR(strap)
         }
         guard let finalSession = Self.rearchiveLoggingFailure(samples, archive: archive, sessionId: sessionId) else {
             await MainActor.run { self.showUnsavedHRR(samples, sessionId: sessionId) }
@@ -385,6 +400,32 @@ extension WorkoutRecorder {
             self.announceHRRAndStageReport(samples: samples, finalSession: finalSession)
         }
         debugLog("[WorkoutRecorder] HRR capture complete: \(samples.count) samples")
+    }
+
+    /// The start of a workout begun after `sessionId` stopped, recording or
+    /// already finished; nil when none has.
+    @MainActor
+    func startOfWorkout(after sessionId: UUID) -> Date? {
+        let later = [lifecycle.currentSession, lifecycle.finishedSession].compactMap { $0 }
+        return later.first { $0.id != sessionId }?.startDate
+    }
+
+    /// The samples taken before the next workout began. The Watch's heart
+    /// rate in the minutes after a Stop is the next workout's exertion once
+    /// that workout has started, not this one's recovery.
+    nonisolated static func hrrSamples(_ samples: [HRRSample], stopDate: Date, before nextStart: Date?) -> [HRRSample] {
+        guard let nextStart else { return samples }
+        return samples.filter { stopDate.addingTimeInterval(TimeInterval($0.offsetSec)) < nextStart }
+    }
+
+    /// What the HRR capture lets go of once its window closes: the strap
+    /// workout's own stream (by the start it recorded), and the link when
+    /// nothing else uses it.
+    struct StrapAfterHRR: Sendable {
+        let stream: StrapStreamSession
+        let recording: StrapRecordingState
+        let discovery: StrapDiscoveryCoordinator
+        let streamStart: Date?
     }
 
     /// `rearchiveWithHRR` with each way it can come back empty logged: nil
@@ -457,18 +498,23 @@ extension WorkoutRecorder {
     /// second workout that started and already finished inside the window is
     /// in its own HRR capture, and an RRCollector overnight or quick reading
     /// started meanwhile is buffering on the same manager.
+    ///
+    /// The link is released only when nothing else uses the strap
+    /// (`StrapStreamSession.mayReleaseLink`): a strap-only recording or a
+    /// download started after the summary was dismissed needs it, and a
+    /// recording whose stop was never confirmed still has to be stopped.
     @MainActor
-    private func releaseStrapAfterHRR(_ stream: StrapStreamSession, discovery: StrapDiscoveryCoordinator, workoutStreamStart: Date?) {
+    func releaseStrapAfterHRR(_ strap: StrapAfterHRR) {
         guard lifecycle.phase != .recording, lifecycle.phase != .finalizing else {
             debugLog("[WorkoutRecorder] HRR window closed during a new workout — leaving the strap session running")
             return
         }
-        guard !stream.isStreaming || stream.streamingStartTime == workoutStreamStart else {
-            debugLog("[WorkoutRecorder] HRR window closed while another session buffers on the strap — leaving it running")
+        if strap.stream.isBuffering(startedAt: strap.streamStart) { _ = strap.stream.stopStreaming() }
+        guard strap.stream.mayReleaseLink(after: strap.streamStart, recording: strap.recording) else {
+            debugLog("[WorkoutRecorder] HRR window closed while another session uses the strap, leaving it linked")
             return
         }
-        _ = stream.stopStreaming()
-        discovery.disconnect()
+        strap.discovery.disconnect()
     }
 
     /// Auto-interject the HRR summary when the capture window

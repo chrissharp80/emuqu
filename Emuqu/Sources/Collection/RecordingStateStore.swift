@@ -32,10 +32,29 @@ struct RecordingStateStore {
         debugLog("[RRCollector] Persisted recording state: session=\(sessionId.uuidString.prefix(8)), start=\(startTime), phase=\(sessionState.recordingPhase)")
     }
 
-    /// Forgets the recording: it completed, was cancelled, or was recovered.
+    /// Forgets the Record screen's recording: it completed, was cancelled, or
+    /// was recovered. The marker is one key shared with workouts, which write
+    /// theirs only when it holds no Record screen recording and clear only
+    /// their own. A workout's marker found here was written after this
+    /// recording's (a workout started once a night was saved, while its card
+    /// waits for Accept) and is that live or interrupted workout's, so it is
+    /// kept: clearing it lost the workout's crash recovery.
     func clear() {
+        guard PersistedRecordingState.load()?.sessionType != .workout else {
+            debugLog("[RRCollector] Persisted recording state is a workout's, leaving it")
+            return
+        }
         PersistedRecordingState.clear()
         debugLog("[RRCollector] Cleared persisted recording state")
+    }
+
+    /// Forgets the marker only when it is `sessionId`'s: a recovery that
+    /// awaited the strap or the disk finishes after another recording may
+    /// have started and written its own.
+    func clear(ifItIs sessionId: UUID) {
+        guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
+        PersistedRecordingState.clear()
+        debugLog("[RRCollector] Cleared persisted recording state of \(sessionId.uuidString.prefix(8))")
     }
 
     /// The recording a crash or disconnect left, if any.
