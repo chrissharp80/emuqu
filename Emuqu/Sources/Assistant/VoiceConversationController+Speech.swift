@@ -51,9 +51,37 @@ extension VoiceConversationController {
     /// went to the coach cue or failed to queue.
     @discardableResult
     func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) -> AVSpeechUtterance? {
+        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
+        return queueGuarded(guarded, voice: voice, scripted: scripted)
+    }
+
+    /// The app's own line that a "yes" is bound to (a confirmation question
+    /// quoting what the user would agree to), spoken word for word or not at
+    /// all. It runs the same output perimeter as every other line; when the
+    /// scrub, the hallucination guard or authored pronunciation markup would
+    /// make the user hear other words than the question says, nothing is
+    /// spoken and nil comes back, so the question stays undelivered and no
+    /// yes can confirm it.
+    func speakVerbatim(_ text: String, voice: AVSpeechSynthesisVoice?) -> AVSpeechUtterance? {
+        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
+        guard Self.isSpokenWordForWord(text, guarded: guarded) else {
+            debugLog("[VoiceConv] confirmation question of \(text.count) characters would not be spoken word for word; left unasked", level: .warning)
+            return nil
+        }
+        return queueGuarded(text, voice: voice, scripted: true)
+    }
+
+    /// Whether speaking `text` says exactly its words: the output perimeter
+    /// left it as it was (`guarded`), and it carries no `[[word|IPA]]`
+    /// markup, which shows one word and voices another.
+    static func isSpokenWordForWord(_ text: String, guarded: String) -> Bool {
+        guarded == text && PhoneticOverrides.stripForDisplay(text) == text
+    }
+
+    /// Normalise an already guarded line and queue it (`speak`).
+    private func queueGuarded(_ guarded: String, voice: AVSpeechSynthesisVoice?, scripted: Bool) -> AVSpeechUtterance? {
         let chosenVoice = voice ?? bestVoice
         let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
-        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
         // Scripted lines (coach triggers, the recovery line) are not Flo's
         // reply, so they don't get the "Flo here. <Model>." preamble.
         let isScripted = scripted || state == .triggerSpeaking

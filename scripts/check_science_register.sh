@@ -137,12 +137,17 @@ if retracted:
             scan(str(path), path.read_text(encoding="utf-8", errors="ignore"))
 
 # --- Discovery: score-adjusting functions must be claimed or waived. --------
+# A function, or a computed property (`var name: Double {`), which computes
+# the same thing without parentheses. Stored constants are governed by the
+# scoring-constants hash instead. The scoring context that feeds the analysis
+# layer lives in Collection, so both are scanned.
 SYMBOL_RE = re.compile(
-    r"func\s+([a-zA-Z][a-zA-Z0-9]*(?:Adjustment|Penalty|Bonus|Modifier|Damper|Fraction))\b"
+    r"(?:func\s+|var\s+(?=\w+\s*:\s*[\w.?]+\s*\{))([a-zA-Z][a-zA-Z0-9]*(?:Adjustment|Penalty|Bonus|Modifier|Damper|Fraction))\b"
 )
 SKIP = ("CauseDetection/",)  # ordering keys, not score inputs
 discovered = set()
-for path in sorted(pathlib.Path("Emuqu/Sources/Analysis").rglob("*.swift")):
+SCANNED = (pathlib.Path("Emuqu/Sources/Analysis"), pathlib.Path("Emuqu/Sources/Collection"))
+for path in sorted(p for root in SCANNED for p in root.rglob("*.swift")):
     rel = str(path)
     if any(part in rel for part in SKIP):
         continue
@@ -163,7 +168,7 @@ for name in unclassified:
 
 stale = sorted((claimed | waived) - discovered)
 for name in stale:
-    problems.append(f"{name}: claimed or waived but no longer exists in the analysis layer")
+    problems.append(f"{name}: claimed or waived but no longer exists in the analysis or collection layer")
 
 budget = int(pathlib.Path(budget_path).read_text(encoding="utf-8").strip())
 count = len(entries)

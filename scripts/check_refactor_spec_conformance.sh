@@ -168,7 +168,7 @@ CODE_PATTERNS = [
 ]
 # A block that shows callers HOW to use the thing is documentation, not a
 # corpse. Skip the whole contiguous comment block when it announces itself.
-EXAMPLE_MARKER = re.compile(r'(Usage|Example|For example|e\.g\.)\s*:?', re.IGNORECASE)
+EXAMPLE_MARKER = re.compile(r'(?<![\w.])(Usage|Example|For example|e\.g\.)(?!\w)\s*:?', re.IGNORECASE)
 COMMENT_LINE = re.compile(r'^\s*//')
 # NOT `catch\s*\{\s*\}` ON RAW TEXT.
 #
@@ -230,6 +230,9 @@ def swallowed_catches(source):
         # gate whose findings are overwhelmingly correct code teaches people
         # to ignore it.
         code = re.sub(r'/\*.*?\*/', '', re.sub(r'//[^\n]*', '', body), flags=re.DOTALL)
+        # Discarding the error (`_ = error`) is a statement that handles
+        # nothing, so it does not make the catch non-empty.
+        code = re.sub(r'\b_\s*=\s*error\b\s*;?', '', code)
         if not code.strip():
             swallowed += 1
     return swallowed, malformed

@@ -849,12 +849,16 @@ extension MedicalTermLexicon {
     ///
     /// This is the subset with no such overlap: naming a cardiac or
     /// neurovascular condition, claiming a cure, a prescription, a treatment,
-    /// a regulatory clearance, or a speculative diagnosis is never something
-    /// this app's copy does, in any language, so any match fails the check.
+    /// a regulatory clearance, a diagnosis, a speculative diagnosis, an
+    /// injury prediction or overtraining is never something this app's copy
+    /// does, in any language, so any match fails the check. The software
+    /// sense of "diagnostic" ("Diagnostic Tools") is allowlisted by catalogue
+    /// key in `prohibited_terms.json`, which clears its translations too.
     static let neverInStaticCopy: [Concept] = [
         atrialFibrillation, arrhythmia, namedCardiacCondition, acuteCardiacEvent,
         neurovascularEvent, regulatoryClearance, cure, prescription,
-        treatmentClaim, speculativeDiagnosis, pathology, clinicalPhysiologyLabels
+        treatmentClaim, speculativeDiagnosis, pathology, clinicalPhysiologyLabels,
+        diagnosis, injuryRisk, overtraining
     ]
 
     /// Categorical claims about an autonomic or recovery *state*.

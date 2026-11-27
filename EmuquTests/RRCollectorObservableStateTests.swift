@@ -202,28 +202,32 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertTrue(injected.archiveSignal === customSignal)
     }
 
-    // MARK: - DeviceStatus back-compat forwarding
+    // MARK: - DeviceStatus binding
 
-    func testDeviceStatusProxiesMatchCollectorGetters() {
-        XCTAssertEqual(collector.deviceStatus.isDeviceConnected, collector.deviceStatus.isDeviceConnected)
-        XCTAssertEqual(collector.deviceStatus.isStreaming, collector.deviceStatus.isStreaming)
-        XCTAssertEqual(collector.deviceStatus.hasStoredExercise, collector.deviceStatus.hasStoredExercise)
-        XCTAssertEqual(collector.deviceStatus.batteryLevel, collector.deviceStatus.batteryLevel)
-        XCTAssertEqual(collector.deviceStatus.isRecordingOnDevice, collector.deviceStatus.isRecordingOnDevice)
-        XCTAssertEqual(collector.deviceStatus.connectedDeviceType, collector.deviceStatus.connectedDeviceType)
-        XCTAssertEqual(collector.deviceStatus.recordingState, collector.deviceStatus.recordingState)
-        XCTAssertEqual(collector.deviceStatus.connectionState, collector.deviceStatus.connectionState)
-        // fetchProgress is a struct — just check both resolve to the same optional state.
-        XCTAssertEqual(collector.deviceStatus.fetchProgress == nil, collector.deviceStatus.fetchProgress == nil)
+    /// The strap link's state reaches `deviceStatus`, the object the record
+    /// screens read connection and battery from
+    /// (`CollectorBindings.bindConnectionState`, `bindBatteryAndReconnect`).
+    func testDeviceStatusFollowsTheStrapLink() async {
+        let link = collector.polarManager.linkState
+        link.connectionState = .connected
+        link.batteryLevel = 64
+        await waitForDeviceStatus { $0.connectionState == .connected && $0.batteryLevel == 64 }
+        XCTAssertTrue(collector.deviceStatus.isDeviceConnected)
+        XCTAssertEqual(collector.deviceStatus.batteryLevel, 64)
+
+        link.connectionState = .disconnected
+        await waitForDeviceStatus { $0.connectionState == .disconnected }
+        XCTAssertFalse(collector.deviceStatus.isDeviceConnected)
     }
 
-    func testDeviceStatusWriteReflectsInCollectorGetter() {
-        collector.deviceStatus.isDeviceConnected = true
-        collector.deviceStatus.batteryLevel = 75
-        collector.deviceStatus.connectionState = .connected
-        XCTAssertTrue(collector.deviceStatus.isDeviceConnected)
-        XCTAssertEqual(collector.deviceStatus.batteryLevel, 75)
-        XCTAssertEqual(collector.deviceStatus.connectionState, .connected)
+    /// Waits for the collector's bindings to deliver a link change; they
+    /// deliver on the main actor after the mutation.
+    private func waitForDeviceStatus(timeout: TimeInterval = 10, _ condition: (DeviceStatus) -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition(collector.deviceStatus), Date() < deadline {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertTrue(condition(collector.deviceStatus), "deviceStatus never followed the strap link")
     }
 
     func testDeviceStatusIsInjectable() {

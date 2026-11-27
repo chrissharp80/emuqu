@@ -81,6 +81,7 @@ QUEUE_DELIVERED_APIS = (
 # to them and report clean while measuring nothing.
 SELF_QUEUED_APIS = (
     "startUpdates",
+    "startEventUpdates",
     "queryPedometerData",
     # HealthKit: no queue parameter either; HealthKit picks the thread.
     "beginCollection",
@@ -92,7 +93,9 @@ SELF_QUEUED_APIS = (
 
 HANDLER_APIS = QUEUE_DELIVERED_APIS + SELF_QUEUED_APIS
 HANDLER_LABEL = re.compile(r"\b(?:withHandler|handler|completion|withCompletion)\s*:")
-CALL = re.compile(r"\.(" + "|".join(HANDLER_APIS) + r")\s*\(")
+# The call opens its argument list, or, with the handler as its only
+# argument, goes straight to a trailing closure (`startEventUpdates { ... }`).
+CALL = re.compile(r"\.(" + "|".join(HANDLER_APIS) + r")\s*([({])")
 
 def strip_comments(text):
     """Blank out // comments so a mention in prose is not a call site.
@@ -129,6 +132,11 @@ for root in sys.argv[1:]:
         text = strip_comments(path.read_text(encoding="utf-8", errors="ignore"))
         scanned += 1
         for match in CALL.finditer(text):
+            line = text[: match.start()].count("\n") + 1
+            if match.group(2) == "{":
+                if not text[match.end():].lstrip().startswith("@Sendable"):
+                    violations.append(f"{path}:{line}: {match.group(1)} handler is neither @Sendable nor queue-delivered")
+                continue
             # The argument list runs to the parenthesis that closes the call.
             # The handler is a closure inside it, or a trailing closure right
             # after it; a call with neither (the `async` HealthKit forms) has

@@ -147,7 +147,7 @@ for path in markdown_files():
 # matches nothing and its wrong directory goes unnoticed for as long as the line
 # number is attached — the suffix hides the claim, it does not make it.
 CODE_PATH = re.compile(
-    r"`([A-Za-z0-9_./+-]+\.(?:swift|md|sh|yml|yaml|plist|xcprivacy|entitlements))(?::\d{1,5})?(?:[-–]\d{1,5})?`"
+    r"`((?:EmuquWatch Watch App/)?[A-Za-z0-9_./+-]+\.(?:swift|md|sh|py|yml|yaml|plist|xcprivacy|entitlements))(?::\d{1,5})?(?:[-–]\d{1,5})?`"
 )
 
 # Illustrative placeholders and third-party filenames, not claims about this tree.
@@ -206,7 +206,8 @@ for path in budget_files:
 # A paragraph that names a budget file AND contains a bare integer is quoting a
 # ratcheting value. Allow the value only when it is inside a code span naming
 # the read (`cat .ci/foo.txt`), which cannot go stale.
-NUMBER = re.compile(r"(?<![\w.])(\d{2,6})(?![\w.%])")
+# A leading zero is an identifier (ADR 006), never a budget value.
+NUMBER = re.compile(r"(?<![\w.])([1-9]\d{1,5})(?![\w.])")
 
 quoted = []
 for path in markdown_files():
@@ -216,9 +217,10 @@ for path in markdown_files():
         for name in budget_values:
             if name not in line:
                 continue
-            # The surrounding sentence: this line plus the next, since the
+            # The surrounding sentence: the lines either side too, since the
             # filename and its value are often split across a wrap.
-            window = line + " " + (lines[lineno] if lineno < len(lines) else "")
+            before = lines[lineno - 2] if lineno >= 2 else ""
+            window = before + " " + line + " " + (lines[lineno] if lineno < len(lines) else "")
             # Ignore lines that are shell reads or code fences.
             if re.search(r"`[^`]*(cat|head|read_budget)[^`]*`", window):
                 continue

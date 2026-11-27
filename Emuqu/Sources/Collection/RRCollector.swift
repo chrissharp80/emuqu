@@ -65,10 +65,8 @@ final class RRCollector {
     // morning-processing property the collector also publishes.
     //
     // Writers: `CollectorBindings.setupBindings()` pushes PolarManager
-    // updates into `deviceStatus`. The computed getters below forward
-    // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
-    // through to it. SwiftUI views read
-    // `deviceStatus` directly from the environment.
+    // updates into `deviceStatus`. SwiftUI views read `deviceStatus`
+    // directly from the environment.
 
     // MARK: - Internal State (accessed by extension files)
 

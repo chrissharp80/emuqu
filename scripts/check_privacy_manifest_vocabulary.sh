@@ -85,7 +85,10 @@ for manifest in "${manifests[@]}"; do
         fi
     done < <(python3 -c "
 import plistlib, sys
-d = plistlib.load(open(sys.argv[1], 'rb'))
+try:
+    d = plistlib.load(open(sys.argv[1], 'rb'))
+except Exception:
+    sys.exit(0)  # the full check below reports the parse error
 for entry in d.get('NSPrivacyCollectedDataTypes', []):
     print(entry.get('NSPrivacyCollectedDataType', ''))
 " "$manifest")
@@ -103,7 +106,10 @@ for entry in d.get('NSPrivacyCollectedDataTypes', []):
         fi
     done < <(python3 -c "
 import plistlib, sys
-d = plistlib.load(open(sys.argv[1], 'rb'))
+try:
+    d = plistlib.load(open(sys.argv[1], 'rb'))
+except Exception:
+    sys.exit(0)  # the full check below reports the parse error
 for entry in d.get('NSPrivacyCollectedDataTypes', []):
     for p in entry.get('NSPrivacyCollectedDataTypePurposes', []):
         print(p)

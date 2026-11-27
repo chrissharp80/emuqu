@@ -67,7 +67,7 @@ COMMAND = re.compile(
     r"""\s*["']?(?:/\S*/)?xcodebuild["']?(?=\s|$|\))"""
 )
 # xcodebuild bound to a name, or spawned from Python, escapes COMMAND.
-ALIAS = re.compile(r"""=["'(]?(?:/\S*/)?xcodebuild\b(?![-.])|\bxcrun\s+(?:-\S+\s+)*-f\s+xcodebuild\b""")
+ALIAS = re.compile(r"""=\s*["'(]?(?:/\S*/)?xcodebuild\b(?![-.])|\bxcrun\s+(?:-\S+\s+)*-f\s+xcodebuild\b""")
 PY_SPAWN = re.compile(r"""["'](?:/\S*/)?xcodebuild["']""")
 # A separator ends the invocation; what follows is another command.
 SEPARATOR = re.compile(r"&&|\|\||;|\s\|\s|\|$|\)\s*$")
@@ -113,7 +113,11 @@ def defines_variable(path, kind, text):
     return False
 
 
-for path in sorted(pathlib.Path(".").glob("scripts/**/*.py")) + sorted(pathlib.Path(".").glob("Tools/**/*.py")):
+# A Python heredoc inside a shell script spawns it the same way, so the shell
+# scripts are read for a quoted `"xcodebuild"` argument too.
+python_hosts = sorted(pathlib.Path(".").glob("scripts/**/*.py")) + sorted(pathlib.Path(".").glob("Tools/**/*.py"))
+python_hosts += [p for p in scripts + hooks if p.name != "check_xcodebuild_pinned.sh"]
+for path in python_hosts:
     for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").split("\n"), 1):
         if PY_SPAWN.search(line) and not line.lstrip().startswith("#"):
             print(f"check_xcodebuild_pinned: {path}:{lineno} spawns xcodebuild from Python; "
