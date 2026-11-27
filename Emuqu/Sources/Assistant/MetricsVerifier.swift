@@ -743,7 +743,20 @@ enum MetricsVerifier {
         let clause = NSRange(location: sentence.location, length: clauseEnd(after: range, in: sentence, ns: structure.text) - sentence.location)
         let markers = overnight ? [earlierTimeMarkers, targetMarkers] : [earlierTimeMarkers, lastNightMarker, targetMarkers]
         let referents = [overnight ? notTheOvernightMarkers : notTheWorkoutMarkers, reportedElsewhereMarkers]
-        return !anyMatches(markers + referents, in: structure.text, scopes: [clause] + structure.scopes)
+        return !anyMatches(markers + referents, in: structure.text, scopes: clauseWithoutScale(clause, claim: range, in: structure.text) + structure.scopes)
+    }
+
+    /// The clause with the score's own scale right after the claim left out:
+    /// in "Recovery 5/10" the "5/10" is a score on its scale
+    /// (`isRangeOrDelta`, `statedScale`), not a date, so it is not read as
+    /// another day. The rest of the clause is still read on both sides.
+    private static func clauseWithoutScale(_ clause: NSRange, claim: NSRange, in ns: NSString) -> [NSRange] {
+        let end = NSMaxRange(claim)
+        guard let scale = DebugLogger.compiledPattern(#"\s*/\s*(?:10|100)\b"#, options: [])?
+            .firstMatch(in: ns as String, options: [.anchored], range: NSRange(location: end, length: ns.length - end)),
+            end >= clause.location, NSMaxRange(scale.range) <= NSMaxRange(clause) else { return [clause] }
+        let after = NSMaxRange(scale.range)
+        return [NSRange(location: clause.location, length: end - clause.location), NSRange(location: after, length: NSMaxRange(clause) - after)]
     }
 
     /// Whether any of `patterns` matches inside any of `scopes` of `ns`.
