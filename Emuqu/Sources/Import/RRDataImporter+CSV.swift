@@ -232,9 +232,31 @@ extension RRDataImporter {
         return Int(ms)
     }
 
-    /// Parse various date formats
-    func parseDate(_ string: String) -> Date? {
-        for formatter in Self.dateFormatters {
+    /// The order a file writes its slash dates in ("05/04/2024").
+    enum SlashDateOrder {
+        case monthFirst
+        case dayFirst
+    }
+
+    /// Decided once per file, never per row: a file is day/month as soon as
+    /// one of its slash dates has a first field over 12 (no month is 13), so
+    /// "05/04" in the same file is the 5th of April, not the 4th of May.
+    /// When every slash date is ambiguous the file is read month/day, the US
+    /// order: Elite HRV, the app whose summary exports carry these dates, is
+    /// a US app, and month/day is how the importer has always read them.
+    static func slashDateOrder(of dates: some Sequence<String>) -> SlashDateOrder {
+        for date in dates {
+            let first = date.trimmingCharacters(in: .whitespaces).split(separator: "/", maxSplits: 1).first
+            if let first, date.contains("/"), let field = Int(first), field > 12 { return .dayFirst }
+        }
+        return .monthFirst
+    }
+
+    /// Parse various date formats. A slash date is read in `slashOrder`,
+    /// the order its file uses (`slashDateOrder(of:)`).
+    func parseDate(_ string: String, slashOrder: SlashDateOrder = .monthFirst) -> Date? {
+        let slashFormatters = slashOrder == .dayFirst ? Self.dayFirstFormatters : Self.monthFirstFormatters
+        for formatter in Self.dateFormatters + slashFormatters {
             if let date = formatter.date(from: string) {
                 return date
             }
@@ -245,24 +267,26 @@ extension RRDataImporter {
         return iso.date(from: string)
     }
 
-    /// The fixed formats exporters write, tried in order. POSIX locale so a
-    /// device set to a non-Gregorian calendar still parses them.
-    private static let dateFormatters: [DateFormatter] = {
-        let formats = [
-            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-            "yyyy-MM-dd'T'HH:mm:ssZ",
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd",
-            "MM/dd/yyyy HH:mm:ss",
-            "MM/dd/yyyy"
-        ]
-        return formats.map { format in
+    /// The fixed unambiguous formats exporters write, tried in order.
+    private static let dateFormatters = formatters([
+        "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+        "yyyy-MM-dd'T'HH:mm:ssZ",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd"
+    ])
+    private static let monthFirstFormatters = formatters(["MM/dd/yyyy HH:mm:ss", "MM/dd/yyyy"])
+    private static let dayFirstFormatters = formatters(["dd/MM/yyyy HH:mm:ss", "dd/MM/yyyy"])
+
+    /// POSIX locale so a device set to a non-Gregorian calendar still parses
+    /// them.
+    private static func formatters(_ formats: [String]) -> [DateFormatter] {
+        formats.map { format in
             let formatter = DateFormatter()
             formatter.dateFormat = format
             formatter.locale = Locale(identifier: "en_US_POSIX")
             return formatter
         }
-    }()
+    }
 }
 
 // MARK: - Records

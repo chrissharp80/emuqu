@@ -894,3 +894,45 @@ extension RRDataImporterTests {
     2024-01-15 06:30:00,45.2,48.1,3.2,300,600,1200,session1.csv
     """
 }
+
+// MARK: - Slash date order
+
+extension RRDataImporterTests {
+    /// The day and month of a row's date, in UTC (the class pins it).
+    private func dayAndMonth(_ date: Date) -> [Int] {
+        let parts = Calendar.current.dateComponents(in: TestTimeZone.utc, from: date)
+        return [parts.day ?? 0, parts.month ?? 0]
+    }
+
+    /// One date in the file with a first field over 12 makes the whole file
+    /// day/month: the 13th of May imports, and 05/04 in the same file is the
+    /// 5th of April, not the 4th of May.
+    func testParseEliteHRV_aDayOver12MakesTheWholeFileDayMonth() throws {
+        let csv = """
+        Date Time Start,HR,Rmssd
+        05/04/2024 06:30:00,60,40.0
+        13/05/2024 06:30:00,61,41.0
+        """
+        let sessions = try importer.parseEliteHRVSummary(csv, fileName: "e.csv").sessions
+        XCTAssertEqual(sessions.map(\.rmssd), [40.0, 41.0], "the 13/05 row must import")
+        XCTAssertEqual(sessions.map { dayAndMonth($0.date) }, [[5, 4], [13, 5]])
+    }
+
+    /// A file whose slash dates are all ambiguous keeps the month/day order
+    /// of Elite HRV, a US app.
+    func testParseEliteHRV_anAllAmbiguousFileKeepsMonthDay() throws {
+        let csv = """
+        Date Time Start,HR,Rmssd
+        05/04/2024 06:30:00,60,40.0
+        12/11/2024 06:30:00,61,41.0
+        """
+        let sessions = try importer.parseEliteHRVSummary(csv, fileName: "e.csv").sessions
+        XCTAssertEqual(sessions.map { dayAndMonth($0.date) }, [[4, 5], [11, 12]])
+    }
+
+    /// A JSON file's one date decides its own order.
+    func testParseDate_aDayOver12IsReadDayMonth() throws {
+        let date = try XCTUnwrap(importer.parseDate("13/05/2024", slashOrder: RRDataImporter.slashDateOrder(of: ["13/05/2024"])))
+        XCTAssertEqual(dayAndMonth(date), [13, 5])
+    }
+}

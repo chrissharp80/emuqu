@@ -1230,7 +1230,9 @@ Cards shown (each appears only if its underlying data is present):
   gain, HR avg/peak, cadence, power, METs, calories, TRIMP, HRSS.
 - **Heart Rate Recovery** — 1-min and 2-min drops from your heart rate at Stop, with
   colour-coded thresholds. "No signal" appears when the capture window
-  ran but the strap was off.
+  ran but the strap was off, and when no heart rate was coming in at Stop
+  (nothing from the strap or Watch in the last 10 seconds): recovery is
+  then not measured at all, rather than measured from an old reading.
 - **Charts** — HR / Pace / Cadence / Power over time, Elevation profile.
 - **DFA α1 Timeline** — your α1 curve with reference lines at AT1 (0.75,
   aerobic threshold) and AT2 (0.50, anaerobic threshold), plus a
@@ -1637,6 +1639,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
   - **TXT** — Plain text, one interval per line
   - **Kubios** — Export files from Kubios HRV software
   - **EliteHRV** — Summary CSV exports with pre-computed metrics (batch import of multiple sessions). RMSSD, and SDNN and pNN50 when the export has those columns, are Elite HRV's own values, and so are mean HR and the reading's length when the export states them. Metrics the export doesn't carry (mean RR, mean HR and the length, when it has no mean HR, are worked out from its RR extremes) are shown marked "estimate" and are left out of baselines, trends, the assistant and Apple Health; no stress index, score or beat count is made up (earlier imports lose the ones they were given)
+  - An imported overnight or nap gets its recovery score when it is saved, scored as a recorded one is, against your nights before it (in a batch, the batch's earlier nights included, oldest first); quick readings and workouts are saved unscored, as when recorded. Slash dates are read day/month when any date in the file has a day over 12, and month/day (the US order) when every date could be either. If a batch import fails partway, the sessions it saved still join your baseline and iCloud
   - Minimum 60 RR intervals required; at least three-quarters of them must be in the 300–2000 ms physiological range. A file is rejected as damaged when its intervals add up to more than a week, or (Emuqu exports) when a session's timestamps cannot belong to one recording
 - **Export Data**: Opens export options view with three formats:
   - **Export RR Intervals (CSV)** — Raw RR data with timestamps. Each row carries its recording's start as an exact time, to the second, with its UTC offset, so importing the file on a phone in another time zone keeps every start, and two recordings that began at the same clock time on the night the clocks go back stay two. Files from older versions, which wrote the start to the minute with no offset, still import; recordings they wrote under one start time are imported as separate recordings
