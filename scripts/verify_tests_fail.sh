@@ -86,7 +86,9 @@ restore_all() {
 gate_acquire_tree_lock "verify_tests_fail.sh"
 trap 'restore_all; rm -rf "$BACKUP_DIR"; gate_release_tree_lock' EXIT INT TERM HUP
 
-# Returns 0 = tests passed, 1 = tests failed, 2 = the BUILD failed.
+# Returns 0 = tests passed, 1 = a test failed an assertion, 2 = the BUILD
+# failed, 4 = the run stopped without a test failing an assertion (a simulator
+# that disconnected, a runner that crashed mid-suite).
 #
 # Collapsing all three into a single non-zero reports a transient build
 # failure as "the suite was already red" and silently skips the mutation —
@@ -105,7 +107,15 @@ run_suite() {
        || ! grep -q "Test Suite\|Test Case" "$log"; then
         return 2
     fi
-    return 1
+    # Only a recorded assertion failure is evidence about the code under test:
+    # XCTest writes one `<file>:<line>: error: -[Suite test] : <message>` line
+    # per failed assertion. A non-zero exit after tests started, with none of
+    # those, is an interrupted run, and counting it would credit a mutation to
+    # a suite that never asserted anything about it.
+    if grep -qE ": error: -\[[^]]+\] : " "$log"; then
+        return 1
+    fi
+    return 4
 }
 
 # The suite must be green before the mutation, or a red afterwards proves
@@ -117,11 +127,13 @@ baseline_green() {
     # unmutated source this run is green on it still.
     [[ "$GREEN_SUITES" == *$'\n'"$suite"$'\n'* ]] && return 0
     run_suite "$suite"; baseline=$?
-    # One retry: these are usually transient, and a build failure must not be
-    # recorded as evidence about the tests either way.
-    if (( baseline == 2 )); then run_suite "$suite"; baseline=$?; fi
+    # One retry: these are usually transient, and a build failure or an
+    # interrupted run must not be recorded as evidence about the tests either way.
+    if (( baseline == 2 || baseline == 4 )); then run_suite "$suite"; baseline=$?; fi
     if (( baseline == 0 )); then GREEN_SUITES+="$suite"$'\n'; return 0; fi
-    if (( baseline == 2 )); then
+    if (( baseline == 4 )); then
+        printf "  \033[33mSKIP\033[0m  %-30s the run was interrupted twice (not a test result)\n" "$name"
+    elif (( baseline == 2 )); then
         printf "  \033[33mSKIP\033[0m  %-30s BUILD failed (not a test result)\n" "$name"
     else
         printf "  \033[33mSKIP\033[0m  %-30s %s was already red\n" "$name" "$suite"
@@ -135,8 +147,9 @@ mutation_broke_build() {
 }
 
 # Runs the suite against the applied mutation and prints how it was judged:
-# 1 = tests failed, 0 = tests passed, 3 = the mutated file does not compile,
-# 2 = the build failed for some other reason on two attempts.
+# 1 = a test failed an assertion, 0 = tests passed, 3 = the mutated file does
+# not compile, 2 = the build failed for some other reason on two attempts,
+# 4 = the run was interrupted on two attempts.
 #
 # Only 1 is a catch. A mutation that does not compile is reported red by
 # xcodebuild without a single test asserting anything; counting that as
@@ -144,7 +157,7 @@ mutation_broke_build() {
 mutated_result() {
     local suite="$1" file="$2" code
     run_suite "$suite"; code=$?
-    if (( code == 2 )) && ! mutation_broke_build "$file"; then
+    if (( code == 4 )) || { (( code == 2 )) && ! mutation_broke_build "$file"; }; then
         run_suite "$suite"; code=$?
     fi
     if (( code == 2 )) && mutation_broke_build "$file"; then code=3; fi
@@ -160,6 +173,8 @@ report_mutation() {
            FAIL=$((FAIL + 1)) ;;
         3) printf "  \033[31mFAIL\033[0m  %-30s the mutation does not compile — fix the mutation\n" "$name"
            INVALID=$((INVALID + 1)) ;;
+        4) printf "  \033[33mSKIP\033[0m  %-30s the run was interrupted twice (not a test result)\n" "$name"
+           SKIP=$((SKIP + 1)) ;;
         *) printf "  \033[33mSKIP\033[0m  %-30s BUILD failed after the mutation (not a test result)\n" "$name"
            SKIP=$((SKIP + 1)) ;;
     esac

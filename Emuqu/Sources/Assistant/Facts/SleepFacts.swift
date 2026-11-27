@@ -346,7 +346,7 @@ struct HRVNamespace: FactNamespaceResolver {
     private static func estimatedFactKeys(_ analysis: HRVAnalysisResult) -> [String] {
         let keys: [EstimatedMetric: [String]] = [
             .sdnn: ["sdnn_ms"], .pnn50: ["pnn50_percent"], .sdsd: ["sdsd_ms"], .sdHR: ["sd_hr_bpm"],
-            .hrRange: ["window_min_hr_bpm", "window_max_hr_bpm"],
+            .hrRange: ["window_min_hr_bpm", "window_max_hr_bpm"], .meanHR: ["window_mean_hr_bpm"],
             .sd1: ["sd1_ms"], .sd2: ["sd2_ms"], .sd1Sd2Ratio: ["sd1_sd2_ratio"]
         ]
         return keys.filter { analysis.isEstimated($0.key) }.flatMap { $0.value }

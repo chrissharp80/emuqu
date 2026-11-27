@@ -6,8 +6,12 @@ extension RRDataImporter {
     // MARK: - Emuqu Multi-Session Parsing
 
     /// Parse Emuqu multi-session RR export
-    /// Format: session_date,timestamp_ms,rr_ms[,session_type]
-    /// Each session_date value represents a different recording session.
+    /// Format: session_date,timestamp_ms,rr_ms[,session_type[,session_id]]
+    /// Each session_date value (an exact instant with its UTC offset) is one
+    /// recording, split further where its timestamps restart
+    /// (`legacyRecordingSegments`): a legacy minute-only date can name more
+    /// than one. A session_id column, which no exporter writes, groups rows
+    /// by id when present.
     /// Workouts are skipped: their exercise RR is not a resting reading and
     /// the export carries none of their workout details.
     func parseFlowHRVMultiSession(_ content: String, fileName: String) throws -> FlowHRVMultiSessionResult {
@@ -33,20 +37,40 @@ extension RRDataImporter {
         logSessionGroups(sessionGroups)
         let dateFormatter = Self.flowHRVSessionDateFormatter()
         return sessionGroups
-            .filter { Self.isImportableType(sessionTypes[$0.key], sessionDateStr: $0.key) }
-            .compactMap { group in
-                flowHRVSession(
-                    sessionDateStr: group.key, points: group.value,
-                    sessionType: sessionTypes[group.key], formatter: dateFormatter
-                )
+            .filter { Self.isImportableType(sessionTypes[$0.key], sessionDateStr: $0.key.sessionDate) }
+            .flatMap { group in
+                flowHRVRecordings(key: group.key, points: group.value, sessionType: sessionTypes[group.key], formatter: dateFormatter)
             }
             .sorted { $0.date < $1.date }
     }
 
-    private func logSessionGroups(_ sessionGroups: [String: [(timestamp: Int64, rr: Int)]]) {
-        debugLog("[RRDataImporter] Found \(sessionGroups.count) unique session_date values:")
-        for (sessionDateStr, points) in sessionGroups {
-            debugLog("[RRDataImporter]   '\(sessionDateStr)' -> \(points.count) RR intervals")
+    /// The recordings one group of rows holds. A group keyed by `session_id`
+    /// is one recording. A group keyed by `session_date` alone can hold
+    /// several recordings when the date is a legacy local minute (the two
+    /// 01:30s of a night the clocks go back, or a reading restarted within a
+    /// minute): each one is kept apart, never merged.
+    private func flowHRVRecordings(
+        key: FlowHRVRecordingKey,
+        points: [(timestamp: Int64, rr: Int)],
+        sessionType: SessionType?,
+        formatter: DateFormatter
+    ) -> [FlowHRVMultiSessionResult.SessionRRData] {
+        let segments = key.sessionID == nil ? Self.legacyRecordingSegments(points) : [points]
+        guard segments.count > 1 else {
+            return [flowHRVSession(sessionDateStr: key.sessionDate, points: points, sessionType: sessionType, formatter: formatter)]
+                .compactMap { $0 }
+        }
+        debugLog("[RRDataImporter] '\(key.sessionDate)' holds \(segments.count) recordings; importing each on its own")
+        let starts = Self.legacySegmentStarts(key.sessionDate, segments: segments, formatter: formatter)
+        return zip(segments, starts).compactMap { segment, start in
+            flowHRVSession(sessionDateStr: key.sessionDate, points: segment, sessionType: sessionType, start: start)
+        }
+    }
+
+    private func logSessionGroups(_ sessionGroups: [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]]) {
+        debugLog("[RRDataImporter] Found \(sessionGroups.count) unique sessions:")
+        for (key, points) in sessionGroups {
+            debugLog("[RRDataImporter]   '\(key.sessionDate)' -> \(points.count) RR intervals")
         }
     }
 
@@ -58,13 +82,32 @@ extension RRDataImporter {
     /// analysis pipeline to produce anything meaningful.
     private static let minimumBeatsPerSession = 60
 
-    /// Column layout of an Emuqu multi-session export. `timestamp` and
-    /// `sessionType` are optional because older exports omit them.
+    /// Column layout of an Emuqu multi-session export. `timestamp`,
+    /// `sessionType` and `sessionID` are optional because older exports omit
+    /// them.
     struct FlowHRVColumns {
         let session: Int
         let timestamp: Int?
         let rr: Int
         var sessionType: Int?
+        var sessionID: Int?
+    }
+
+    /// Which recording a row belongs to: its `session_date`, or its
+    /// `session_id` when a file carries that column.
+    struct FlowHRVRecordingKey: Hashable {
+        let sessionDate: String
+        let sessionID: String?
+
+        init(sessionDate: String, sessionID: String? = nil) {
+            self.sessionDate = sessionDate
+            self.sessionID = sessionID
+        }
+
+        init(fields: [String], columns: FlowHRVColumns) {
+            let id = columns.sessionID.flatMap { $0 < fields.count ? fields[$0] : nil }
+            self.init(sessionDate: fields[columns.session], sessionID: id?.isEmpty == false ? id : nil)
+        }
     }
 
     static func flowHRVColumns(fromHeaderLine line: String) throws -> FlowHRVColumns {
@@ -75,23 +118,24 @@ extension RRDataImporter {
             throw ImportError.invalidFormat(String(localized: "Emuqu format requires session_date and rr_ms columns", bundle: LanguageManager.appBundle))
         }
         return FlowHRVColumns(
-            session: session, timestamp: column("timestamp_ms"), rr: rr, sessionType: column("session_type")
+            session: session, timestamp: column("timestamp_ms"), rr: rr,
+            sessionType: column("session_type"), sessionID: column("session_id")
         )
     }
 
     /// The `session_type` each session was exported with, keyed by its
-    /// `session_date`. Empty for older exports without the column.
+    /// recording. Empty for older exports without the column.
     static func sessionTypesBySession(
         dataLines: some Sequence<String>,
         columns: FlowHRVColumns
-    ) -> [String: SessionType] {
+    ) -> [FlowHRVRecordingKey: SessionType] {
         guard let typeIndex = columns.sessionType else { return [:] }
-        var types: [String: SessionType] = [:]
+        var types: [FlowHRVRecordingKey: SessionType] = [:]
         for line in dataLines {
             let fields = Self.fields(of: line, separator: ",")
             guard fields.count > max(columns.session, typeIndex),
                   let type = SessionType(rawValue: fields[typeIndex]) else { continue }
-            types[fields[columns.session]] = type
+            types[FlowHRVRecordingKey(fields: fields, columns: columns)] = type
         }
         return types
     }
@@ -110,7 +154,7 @@ extension RRDataImporter {
     /// 14.9 million.
     static let maxExportBeats = maxFileBytes / 18
 
-    /// Groups beats by their `session_date` value. Throws
+    /// Groups beats by recording (`FlowHRVRecordingKey`), in file order. Throws
     /// `invalidTimestamps` for the first beat whose timestamp cannot belong
     /// to one recording: the file is damaged or hand-made, and nothing in it
     /// can be trusted to be what was recorded. Throws `.tooLarge`, without
@@ -122,14 +166,14 @@ extension RRDataImporter {
         dataLines: some Sequence<String>,
         columns: FlowHRVColumns,
         maxBeatsPerSession: Int = maxBeatsPerRecording
-    ) throws -> [String: [(timestamp: Int64, rr: Int)]] {
-        var groups: [String: [(timestamp: Int64, rr: Int)]] = [:]
+    ) throws -> [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]] {
+        var groups: [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]] = [:]
         var total = 0
         for line in dataLines {
             let fields = Self.fields(of: line, separator: ",")
             guard fields.count > max(columns.session, columns.rr) else { continue }
 
-            let sessionKey = fields[columns.session]
+            let sessionKey = FlowHRVRecordingKey(fields: fields, columns: columns)
             guard let rrValue = Int(fields[columns.rr]).flatMap(storableRR) else { continue }
             total += 1
             guard total <= maxExportBeats, groups[sessionKey, default: []].count < maxBeatsPerSession else {
@@ -153,15 +197,15 @@ extension RRDataImporter {
     /// decades the frequency-domain resample would try to fill. Sessions are
     /// sorted by timestamp afterwards, so each series is in time order.
     private static func beatTimestamp(
-        sessionKey: String,
+        sessionKey: FlowHRVRecordingKey,
         fields: [String],
         columns: FlowHRVColumns,
-        groups: [String: [(timestamp: Int64, rr: Int)]]
+        groups: [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]]
     ) throws -> Int64 {
-        let timestamp = try statedTimestamp(sessionKey: sessionKey, fields: fields, columns: columns)
+        let timestamp = try statedTimestamp(sessionKey: sessionKey.sessionDate, fields: fields, columns: columns)
             ?? synthesisedTimestamp(after: groups[sessionKey]?.last)
         guard recordingTimestampRange.contains(timestamp) else {
-            throw ImportError.invalidTimestamps(session: String(sessionKey.prefix(40)))
+            throw ImportError.invalidTimestamps(session: String(sessionKey.sessionDate.prefix(40)))
         }
         return timestamp
     }
@@ -185,7 +229,24 @@ extension RRDataImporter {
         return lastPoint.timestamp + Int64(lastPoint.rr)
     }
 
-    /// Session-date format used by the exporter, e.g. `2026-01-25_0443`.
+    /// The header row of an Emuqu RR export. `session_date` is the
+    /// recording's start as an ISO 8601 instant with the exporting phone's UTC
+    /// offset, which names the recording: two recordings at the same clock
+    /// time on a night the clocks go back carry different offsets.
+    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type"
+
+    /// A recording's start as the exporter writes it in `session_date`:
+    /// ISO 8601 to the second with the UTC offset of `timeZone`, e.g.
+    /// `2026-11-01T01:30:15-04:00`, one instant wherever it is read.
+    static func emuquRRExportSessionDate(_ start: Date, timeZone: TimeZone = .current) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.string(from: start)
+    }
+
+    /// Legacy session-date format, written by older exporters, e.g.
+    /// `2026-01-25_0443`: local time to the minute, with no offset.
     static func flowHRVSessionDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HHmm"
@@ -193,12 +254,63 @@ extension RRDataImporter {
         return formatter
     }
 
-    /// When a session started, from its `session_date`: the exporter's
-    /// `yyyy-MM-dd_HHmm` (to the minute, in the device's time zone), or an
-    /// ISO 8601 timestamp, which keeps the seconds and the offset it was
-    /// recorded at.
+    /// When a session started, from its `session_date`: an ISO 8601 instant
+    /// with its UTC offset (`2026-11-01T01:30:15-04:00`, what the exporter
+    /// writes), read exactly whatever time zone the importing phone is in;
+    /// or the legacy `yyyy-MM-dd_HHmm` (to the minute, no offset), read in
+    /// the importing phone's time zone.
     static func flowHRVSessionStart(_ text: String, formatter: DateFormatter) -> Date? {
         formatter.date(from: text) ?? ISO8601DateFormatter().date(from: text)
+    }
+
+    /// A legacy group's rows split into recordings, in file order. Each
+    /// recording's `timestamp_ms` counts up from its own start, so a row
+    /// whose timestamp does not move past the row before it begins another
+    /// recording: sorting the two together would interleave their beats.
+    static func legacyRecordingSegments(
+        _ points: [(timestamp: Int64, rr: Int)]
+    ) -> [[(timestamp: Int64, rr: Int)]] {
+        var segments: [[(timestamp: Int64, rr: Int)]] = []
+        for point in points {
+            if let last = segments.last?.last, point.timestamp > last.timestamp {
+                segments[segments.count - 1].append(point)
+            } else {
+                segments.append([point])
+            }
+        }
+        return segments
+    }
+
+    /// Where each recording of a legacy group starts. The group's local
+    /// minute can name more than one instant (the two 01:30s of a night the
+    /// clocks go back), so each recording takes the earliest such instant
+    /// that is not before the recording ahead of it ends, or that end when
+    /// none is left. Empty when the session date does not parse.
+    static func legacySegmentStarts(
+        _ text: String,
+        segments: [[(timestamp: Int64, rr: Int)]],
+        formatter: DateFormatter
+    ) -> [Date] {
+        guard let parsed = flowHRVSessionStart(text, formatter: formatter) else { return [] }
+        let candidates = localMinuteInstants(text, near: parsed, formatter: formatter)
+        var earliest = candidates[0]
+        var starts: [Date] = []
+        for segment in segments {
+            let start = candidates.first { $0 >= earliest } ?? earliest
+            starts.append(start)
+            let spanMs = (segment.last.map { $0.timestamp + Int64($0.rr) } ?? 0) - (segment.first?.timestamp ?? 0)
+            earliest = start.addingTimeInterval(Double(spanMs) / 1000.0)
+        }
+        return starts
+    }
+
+    /// Every instant, oldest first, that `formatter` writes as `text`: the
+    /// parsed one, and the one a daylight-saving shift away when the clocks
+    /// went back through that minute.
+    private static func localMinuteInstants(_ text: String, near parsed: Date, formatter: DateFormatter) -> [Date] {
+        let shifts: [TimeInterval] = [-3_600, -1_800, 0, 1_800, 3_600]
+        return shifts.map { parsed.addingTimeInterval($0) }
+            .filter { $0 == parsed || formatter.string(from: $0) == text }
     }
 
     /// Builds one session, or nil when it is too short to be worth importing
@@ -211,20 +323,30 @@ extension RRDataImporter {
         sessionType: SessionType?,
         formatter: DateFormatter
     ) -> FlowHRVMultiSessionResult.SessionRRData? {
-        guard points.count >= Self.minimumBeatsPerSession else {
-            debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - only \(points.count) beats (need \(Self.minimumBeatsPerSession))")
-            return nil
-        }
         guard let parsedDate = Self.flowHRVSessionStart(sessionDateStr, formatter: formatter) else {
             debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - session date does not parse")
             return nil
         }
         debugLog("[RRDataImporter] Parsed '\(sessionDateStr)' -> \(parsedDate)")
-        // Sort by timestamp to ensure correct order
+        return flowHRVSession(sessionDateStr: sessionDateStr, points: points, sessionType: sessionType, start: parsedDate)
+    }
+
+    /// One recording starting at `start`, its beats in time order, or nil
+    /// when it is too short to be worth importing.
+    private func flowHRVSession(
+        sessionDateStr: String,
+        points: [(timestamp: Int64, rr: Int)],
+        sessionType: SessionType?,
+        start: Date
+    ) -> FlowHRVMultiSessionResult.SessionRRData? {
+        guard points.count >= Self.minimumBeatsPerSession else {
+            debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - only \(points.count) beats (need \(Self.minimumBeatsPerSession))")
+            return nil
+        }
         let sortedPoints = points.sorted { $0.timestamp < $1.timestamp }
         return FlowHRVMultiSessionResult.SessionRRData(
             sessionDate: sessionDateStr,
-            date: parsedDate,
+            date: start,
             rrIntervals: sortedPoints.map(\.rr),
             timestamps: sortedPoints.map(\.timestamp),
             sessionType: sessionType

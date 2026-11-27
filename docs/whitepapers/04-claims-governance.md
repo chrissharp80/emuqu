@@ -115,7 +115,7 @@ constant edited ──► hash moves ──► [gate] version must change
 - Two designated scoring-constant source files: the recovery-score constants file (91 numeric declarations) and the HRV thresholds file (63 numeric declarations).
 - Two enums of the general constants file, the score bounds (4) and the composite weights (30). That file also holds non-scoring constants (unit conversions, settings keys), so only these two enums are read from it. 188 constants in all at this revision.
 - The scoring-version source file, which declares `current` and `unversioned`.
-- A one-line baseline file in the CI directory containing `<recorded_version> <recorded_hash>`. At this revision it reads `v3.3.nov2026 f07c58c40ce20acc`.
+- A one-line baseline file in the CI directory containing `<recorded_version> <recorded_hash>`. At this revision it reads `v3.4.nov2026 f07c58c40ce20acc`.
 
 **Steps.**
 
@@ -131,6 +131,8 @@ constant edited ──► hash moves ──► [gate] version must change
 8. If the baseline file is missing, or does not split on whitespace into exactly two fields, exit 2. Otherwise read them as `recorded_version` and `recorded_hash`.
 9. Print the number of constants hashed, the hash and the version, whatever the result.
 10. **Violation rules:** if `current_hash != recorded_hash` **and** `version == recorded_version`, report "scoring constants changed while the version stayed the same" and exit 1. Otherwise, if `(version, current_hash)` differs from the recorded pair, report that the baseline must be rewritten to the code's pair in the same change as the version bump, and exit 1.
+
+11. **Base comparison:** the baseline file is edited in the same change as the constants, so it is also read as the base the change is measured from records it, at the merge base with that base. If the current hash differs from the base's hash while the version still equals the base's version, exit 1, however the baseline was edited. The base is, in order: `SCORING_BASE_REF` when set; on a pull request, the target branch; on a push, the tip before the push (`PUSH_BEFORE`, or `before` in the event payload), measured from `origin/main` for a branch's first push; otherwise `origin/main`. After a push `origin/main` is the pushed tip itself, so it would compare the change with itself. On a push, a base that cannot be resolved, or a merge base that is the pushed commit, exits 2. Outside CI a missing base is reported and the comparison skipped. A planted case commits a constant change with the baseline rewritten to match, moves `origin/main` to that commit as a push does, and requires the gate to go red.
 
 The second rule closes a gap the first leaves on its own: accepting any version other than the recorded one would let one bump that left the baseline alone switch the lock off for every later constant change. With both rules, a change to a hashed constant forces a version change, and the version change forces the new (version, hash) pair to be recorded beside it.
 
@@ -325,15 +327,16 @@ For each mutation:
 
 1. Run the named suite alone (`-only-testing`, parallel testing off, package versions pinned to the resolved file) and classify the result:
    - **0**: passed;
-   - **1**: tests failed;
-   - **2**: build or runner failure, recognized by a build-failure banner in the log or by the absence of any "Test Suite" or "Test Case" line.
-2. If the baseline result is 2, retry once. If the baseline is still not 0, print SKIP with the reason.
+   - **1**: a test failed an assertion, recognized by XCTest's `<file>:<line>: error: -[Suite test] : <message>` line;
+   - **2**: build or runner failure, recognized by a build-failure banner in the log or by the absence of any "Test Suite" or "Test Case" line;
+   - **4**: interrupted: tests started and the run exited non-zero with no assertion failed (a disconnected simulator, a runner that crashed mid-suite).
+2. If the baseline result is 2 or 4, retry once. If the baseline is still not 0, print SKIP with the reason.
 3. Back up the file and apply the mutation. Each mutation asserts that its original text occurs exactly once, so a mutation cannot silently land in a doc comment or the wrong place. If it cannot be applied, print SKIP.
-4. Run the suite and restore. A mutated run classified 2 is split by the compiler errors in its log: an error in the mutated file means the mutation does not compile; any other build failure is retried once and, if it persists, is not a test result.
-5. A result of 1 is PASS ("caught"). A result of 0 is FAIL ("SURVIVED — <suite> asserts nothing about this"). A mutation that does not compile is FAIL as an invalid mutation ("rewrite it to change behaviour, not syntax"), because no test was asked about it. A build failure not caused by the mutation is SKIP.
+4. Run the suite and restore. A mutated run classified 2 is split by the compiler errors in its log: an error in the mutated file means the mutation does not compile; any other build failure, and an interrupted run, is retried once and, if it persists, is not a test result.
+5. A result of 1 is PASS ("caught"). A result of 0 is FAIL ("SURVIVED — <suite> asserts nothing about this"). A mutation that does not compile is FAIL as an invalid mutation ("rewrite it to change behaviour, not syntax"), because no test was asked about it. A build failure not caused by the mutation, or a run interrupted twice, is SKIP: only a recorded assertion failure counts as a catch. `scripts/lib/mutation_result_probe.sh` runs this classification against a stand-in `xcodebuild`, and a planted case in `verify_gates_fail.sh` proves the probe goes red if an interrupted run is counted as a catch again.
 6. At the end, **any FAIL, any invalid mutation or any SKIP exits 1**. "A skip is not a pass."
 
-This harness needs a simulator and a build per mutation. It is not part of `make ci`, and no CI workflow runs it; it is run by hand when analysis or storage code changes.
+This harness needs a simulator and a build per mutation. It is not part of `make ci`. `.github/workflows/mutations.yml` runs it on demand and as a required job of the TestFlight deploy (`testflight.yml`), which ships only when every mutation is caught.
 
 **Why it works.** For a physiology score, the important question is not what fraction of random mutants die but whether a specific wrong formula would be caught. Each curated mutation is a plausible scientific error (the wrong threshold, the wrong statistic, the missing detrend), and naming its suite turns a survivor into a precise finding: this suite does not assert this behavior. Running the suite alone keeps attribution exact. Classifying build failures separately stops a broken build from being read as a red suite, before or after the mutation, and stops a mutation that only breaks the syntax from counting as caught; treating every skip as a failure stops an unapplied mutation from passing silently.
 
@@ -813,22 +816,19 @@ for (name, gate, file, mutation) in PLANTS:
     code = run(gate); restore_all()
     if code != 0: PASS else: FAIL
 unplanted = [g for g in glob(check_*.sh, enforce_*.sh)
-             if g != "check_gate_preflight.sh" and g not in NEEDS_BUILD   # NEEDS_BUILD = [check_coverage.sh]
+             if g not in NEEDS_BUILD   # NEEDS_BUILD = [check_coverage.sh]
              and no plant-command line of this_script runs ./scripts/<g>]
 if unplanted: exit 1
 exit 1 if FAIL > 0 or SKIP > 0 else 0
 ```
 
-### B.4 Preflight and wiring
+### B.4 Wiring
+
+The fail-closed helpers (`gate_mktemp`, the tree lock) live in
+`scripts/lib/preflight.sh` and the gates call them; no gate checks that a
+script uses them.
 
 ```
-preflight:
-  for s in shell_scripts except self:
-    for line in non_comment_lines(s):
-      if matches("(?<!gate_)\bmktemp\b") and "gate_mktemp" not in line: fail
-      if "gate_mktemp" in line and "|| exit" not in line: fail
-      if line sources "$(dirname "$0")/X" and not exists(scripts/X): fail
-
 wiring:
   for f in [CI_WORKFLOW, PUSH_WORKFLOW, MAKEFILE]: exists(f) or exit 2
   ran(wf) = run: text of enabled steps of wf, comments dropped,
@@ -921,7 +921,7 @@ count_for_budget(src):
 | Science register and gate | `Tools/science_register/register.json`, `scripts/check_science_register.sh`, register floor file in `.ci/` |
 | Regulated-claim perimeter (Paper 3) | `Tools/copy_linter/lint.py`, `Tools/copy_linter/prohibited_terms.json`, `scripts/check_perimeter_sync.sh` |
 | Planted violations | `scripts/verify_gates_fail.sh`; Thread Sanitizer gate and canary `scripts/check_thread_sanitizer.sh`, `EmuquTests/ThreadSanitizerCanaryTests.swift` |
-| Fail-closed helpers and tree lock | `scripts/lib/preflight.sh`, `scripts/check_gate_preflight.sh`, `scripts/simulate_ci.sh` (lock reader) |
+| Fail-closed helpers and tree lock | `scripts/lib/preflight.sh`, `scripts/simulate_ci.sh` (lock reader) |
 | Wiring | `scripts/check_gates_wired.sh`, `.github/workflows/ci.yml`, `.github/workflows/gates.yml`, `Makefile` |
 | Targeted test mutations and leak backstop | `scripts/verify_tests_fail.sh`, `scripts/check_no_leaked_mutations.sh` |
 | Ratchets | `docs/adr/004-ratcheted-budgets.md`, `scripts/check_budget_monotonicity.sh`, `scripts/enforce_tech_debt_budgets.sh`, `scripts/enforce_swiftlint_budget.sh`, budget files in `.ci/` |

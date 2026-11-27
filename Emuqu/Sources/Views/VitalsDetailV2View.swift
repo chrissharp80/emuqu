@@ -54,11 +54,13 @@ struct VitalsDetailV2View: View {
     }
 
     /// The strap's nocturnal mean HR from a session's analysis window, nil
-    /// when there is none: an analysis that found no heart rate stores 0,
+    /// when there is none or it is an estimate (an Elite HRV summary with no
+    /// mean HR): an analysis that found no heart rate stores 0,
     /// which must not win the merge or plot as 0 bpm. The rule every detail
     /// screen applies (`RecoveryScoreDetailView.strapSleepHR`).
     nonisolated static func strapMeanHR(of session: HRVSession?) -> Double? {
-        guard let meanHR = session?.analysisResult?.timeDomain.meanHR, meanHR > 0 else { return nil }
+        guard let result = session?.analysisResult,
+              let meanHR = result.measured(result.timeDomain.meanHR, as: .meanHR), meanHR > 0 else { return nil }
         return meanHR
     }
 

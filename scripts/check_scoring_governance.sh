@@ -27,11 +27,15 @@
 #
 #    The baseline must match both the current version and the current hash, so
 #    a version bump is refreshed into it in the same change. Because that file
-#    is edited in the same change, it is also read as the base branch has it
-#    (SCORING_BASE_REF, default origin/main, at the merge base): a hash that
-#    differs from the base's under the base's version fails however the
-#    baseline was edited. CI checks out full history; elsewhere a missing base
-#    is reported and that comparison skipped. Accepting any
+#    is edited in the same change, it is also read as the base the change is
+#    measured from (`scoring_base_ref`, at the merge base): a hash that differs
+#    from the base's under the base's version fails however the baseline was
+#    edited. The base is SCORING_BASE_REF when given; on a pull request the
+#    target branch; on a push the tip before the push (PUSH_BEFORE, or `before`
+#    in the event payload), since after a push origin/main IS the pushed tip
+#    and would compare the change with itself; otherwise origin/main. A push CI
+#    cannot resolve a base for, or one whose base is the commit being checked,
+#    fails. Elsewhere a missing base is reported and that comparison skipped. Accepting any
 #    version other than the recorded one let one bump that left the baseline
 #    alone switch the check off for good: every later constant change passed,
 #    bump or not. Each hashed file and enum must also yield at least one
@@ -48,9 +52,32 @@ cd "$(dirname "$0")/.."
 TRACKED_BASELINE=".ci/scoring_constants_hash.txt"
 BASELINE="${SCORING_BASELINE:-$TRACKED_BASELINE}"
 
-BASE_REF="${SCORING_BASE_REF:-origin/main}"
+# The commit the change is measured from; nothing printed when a push's tip
+# before the push cannot be resolved.
+scoring_base_ref() {
+    if [[ -n "${SCORING_BASE_REF:-}" ]]; then echo "$SCORING_BASE_REF"; return; fi
+    if [[ -n "${GITHUB_BASE_REF:-}" ]]; then echo "origin/${GITHUB_BASE_REF}"; return; fi
+    if [[ "${GITHUB_EVENT_NAME:-}" != "push" ]]; then echo "origin/main"; return; fi
+    local before="${PUSH_BEFORE:-}"
+    if [[ -z "$before" && -n "${GITHUB_EVENT_PATH:-}" ]]; then
+        before="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("before") or "")' "$GITHUB_EVENT_PATH" 2>/dev/null)"
+    fi
+    # A branch's first push has no tip before it: measure from main.
+    if [[ "$before" =~ ^0{40}$ ]]; then echo "origin/main"; return; fi
+    if [[ -n "$before" ]] && git rev-parse --verify --quiet "${before}^{commit}" >/dev/null; then echo "$before"; fi
+}
+
+BASE_REF="$(scoring_base_ref)"
+if [[ -z "$BASE_REF" ]]; then
+    echo "check_scoring_governance: this push's tip before the push is not in the checkout, so there is no base to measure the change from" >&2
+    exit 2
+fi
 BASE_BASELINE=""
 if MERGE_BASE="$(git merge-base HEAD "$BASE_REF" 2>/dev/null)"; then
+    if [[ "${GITHUB_EVENT_NAME:-}" == "push" && "$MERGE_BASE" == "$(git rev-parse HEAD)" ]]; then
+        echo "check_scoring_governance: the base ($BASE_REF) is the pushed commit itself, so the change would be compared with itself" >&2
+        exit 2
+    fi
     if ! BASE_BASELINE="$(git show "$MERGE_BASE:$TRACKED_BASELINE" 2>/dev/null)"; then
         echo "check_scoring_governance: $BASE_REF has no $TRACKED_BASELINE at $MERGE_BASE" >&2
         exit 2

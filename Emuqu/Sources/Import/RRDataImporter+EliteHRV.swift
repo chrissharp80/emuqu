@@ -116,13 +116,11 @@ extension RRDataImporter {
         indices: EliteHRVColumnIndices,
         rmssdIdx: Int
     ) -> EliteHRVSummaryResult.SessionSummary? {
-        guard columns.count > rmssdIdx else { return nil }
         // RMSSD is the one required field — a row without it carries nothing.
-        guard let rmssd = Self.eliteNumber(columns[rmssdIdx], in: 0.1 ... 1_000) else { return nil }
-        // A row with no readable date is skipped rather than dated now, which
-        // would put it on today and into today's baseline.
-        guard let date = eliteDate(columns: columns, indices: indices) else { return nil }
-        guard let bounds = eliteRRBounds(columns: columns, indices: indices) else { return nil }
+        guard columns.count > rmssdIdx, let rmssd = Self.eliteNumber(columns[rmssdIdx], in: 0.1 ... 1_000) else { return nil }
+        // An undated row is skipped: dated now, it would land in today's baseline.
+        guard let date = eliteDate(columns: columns, indices: indices),
+              let bounds = eliteRRBounds(columns: columns, indices: indices) else { return nil }
         return EliteHRVSummaryResult.SessionSummary(
             date: date,
             rmssd: rmssd,
@@ -134,7 +132,9 @@ extension RRDataImporter {
             fileName: eliteFileName(columns: columns, indices: indices),
             sdnn: Self.eliteStated(columns, at: indices.sdnn, in: 0.1 ... 1_000),
             pnn50: Self.eliteStated(columns, at: indices.pnn50, in: 0 ... 100),
-            rrRangeStated: bounds.stated
+            rrRangeStated: bounds.stated,
+            meanHR: Self.eliteStated(columns, at: indices.hr, in: 20 ... 250),
+            durationSeconds: Self.eliteStated(columns, at: indices.duration, in: 1 ... 86_400)
         )
     }
 
@@ -260,7 +260,7 @@ extension RRDataImporter {
     /// and a stress index or readiness made from RMSSD alone would be a
     /// reading nobody took.
     func createAnalyzedSession(from summary: EliteHRVSummaryResult.SessionSummary, originalFileName: String) -> HRVSession {
-        let meanRR = (summary.rrMin + summary.rrMax) / 2.0
+        let meanRR = Self.eliteMeanRR(summary)
         let analysisResult = HRVAnalysisResult(
             windowStart: 0,
             windowEnd: summary.beatCount ?? 0,
@@ -284,15 +284,32 @@ extension RRDataImporter {
     /// The metrics a session from this row holds as estimates: SDSD, SD HR
     /// and the Poincaré set always (the file never states them), SDNN and
     /// pNN50 when it has no column for them, the HR range unless it
-    /// states both RR extremes, and the beat count (stored as 0) when it is
-    /// unknown.
+    /// states both RR extremes, the beat count (stored as 0) when it is
+    /// unknown, mean RR and mean HR when it states no mean HR, and the
+    /// length unless it states one or both a mean HR and a beat count.
     static func eliteEstimatedMetrics(for summary: EliteHRVSummaryResult.SessionSummary) -> [EstimatedMetric] {
         var metrics: [EstimatedMetric] = [.sdsd, .sdHR, .sd1, .sd2, .sd1Sd2Ratio]
         if summary.sdnn == nil { metrics.append(.sdnn) }
         if summary.pnn50 == nil { metrics.append(.pnn50) }
         if !summary.rrRangeStated { metrics.append(.hrRange) }
         if summary.beatCount == nil { metrics.append(.beatCount) }
+        if summary.meanHR == nil { metrics += [.meanRR, .meanHR] }
+        if eliteStatedDurationMs(summary) == nil { metrics.append(.duration) }
         return metrics
+    }
+
+    /// The mean RR (ms) from the file's mean HR, or, without one, the
+    /// midpoint of its RR extremes: an estimate, marked as one.
+    static func eliteMeanRR(_ summary: EliteHRVSummaryResult.SessionSummary) -> Double {
+        summary.meanHR.map { 60000.0 / $0 } ?? (summary.rrMin + summary.rrMax) / 2.0
+    }
+
+    /// The reading's length (ms) the file gives: its duration, or its beat
+    /// count at its mean HR. Nil when it gives neither.
+    static func eliteStatedDurationMs(_ summary: EliteHRVSummaryResult.SessionSummary) -> Double? {
+        if let seconds = summary.durationSeconds { return seconds * 1000.0 }
+        guard let beats = summary.beatCount, let meanHR = summary.meanHR else { return nil }
+        return Double(beats) * 60000.0 / meanHR
     }
 
     /// The file's SDNN, or the RMSSD-based estimate when it has none.
@@ -353,15 +370,17 @@ extension RRDataImporter {
     /// some would be worse than storing none. Elite HRV readings are short
     /// morning spot checks, so they come in as quick readings — not
     /// overnights feeding the overnight baseline — and with no recovery
-    /// score, which the app only gives a reading it scored itself. A row with
-    /// no beat count has no length either: the session ends where it starts.
+    /// score, which the app only gives a reading it scored itself. Its length
+    /// is the file's (`eliteStatedDurationMs`), or else the beat count at the
+    /// estimated mean RR; a row with neither has no length: the session ends
+    /// where it starts.
     private func importedSession(
         from summary: EliteHRVSummaryResult.SessionSummary,
         originalFileName: String,
         meanRR: Double,
         analysisResult: HRVAnalysisResult
     ) -> HRVSession {
-        let durationMs = Int64(Double(summary.beatCount ?? 0) * meanRR)
+        let durationMs = Int64(Self.eliteStatedDurationMs(summary) ?? Double(summary.beatCount ?? 0) * meanRR)
         let id = UUID()
         let series = RRSeries(points: [RRPoint(t_ms: 0, rr_ms: Int(meanRR))], sessionId: id, startDate: summary.date)
         return HRVSession(

@@ -581,6 +581,26 @@ check "scoring_governance/baseline_relabelled_without_version_bump" \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
+# The same change pushed straight to main: committed, baseline rewritten to
+# match, version unchanged, and origin/main already the pushed tip, as it is
+# when CI runs after a push. Only the tip before the push still records the
+# old hash under this version. A throwaway clone takes the working copy's
+# constants and gate, commits them and moves origin/main to the commit, then
+# runs the gate as the push workflow does, clearing what a pull-request run
+# would otherwise pass down.
+check "scoring_governance/direct_push_without_version_bump" \
+    'd="$BACKUP_DIR/push_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && cp scripts/check_scoring_governance.sh "$d/scripts/" && (cd "$d" && h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; [[ -z "$h" ]] || printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$h" > .ci/scoring_constants_hash.txt; git -c user.name=gate -c user.email=gate@localhost commit -qam "planted push" --allow-empty && git update-ref refs/remotes/origin/main HEAD && env -u GITHUB_BASE_REF -u SCORING_BASE_REF -u GITHUB_EVENT_PATH GITHUB_ACTIONS=true GITHUB_EVENT_NAME=push PUSH_BEFORE="$(git rev-parse HEAD~1)" ./scripts/check_scoring_governance.sh)' \
+    "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
+
+# The mutation harness credits a mutation only to a recorded assertion
+# failure. With that requirement taken out, a run that stopped after a test
+# started reads as a catch again, and the probe must go red.
+check "mutation_harness/interrupted_run_counted_as_catch" \
+    "./scripts/lib/mutation_result_probe.sh" \
+    "scripts/verify_tests_fail.sh" \
+    "import pathlib;p=pathlib.Path('scripts/verify_tests_fail.sh');s=p.read_text();o='        return 1\n    fi\n    return 4\n}';assert s.count(o)==1;p.write_text(s.replace(o,'        return 1\n    fi\n    return 1\n}'))"
+
 # Constants the pattern no longer matches hash nothing and would never move.
 check "scoring_governance/no_constants_matched" \
     "./scripts/check_scoring_governance.sh" \
