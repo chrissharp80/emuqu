@@ -215,17 +215,14 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
     }
 
     /// A trimmed workout's distance must match its shorter duration — GPS
-    /// fixes recorded after the RR series ends are not part of it.
-    func testTrackIsClippedToTheLastBeat() {
+    /// fixes recorded after its end are not part of it.
+    func testTrackIsClippedToTheEnd() {
         let track = fixes(count: 100, everySec: 10)          // 0…990 s
-        let rr = beats(count: 200, rrMs: 1_000)              // ends at 200 s
+        let cutoff = start.addingTimeInterval(200)
 
-        let clipped = WorkoutRecoveryService.clipTrack(
-            track, isOverride: false, rrPoints: rr, startDate: start
-        )
+        let clipped = WorkoutRecoveryService.clipTrack(track, isOverride: false, endDate: cutoff)
 
         XCTAssertLessThan(clipped.count, track.count)
-        let cutoff = start.addingTimeInterval(200)
         XCTAssertTrue(clipped.allSatisfy { $0.timestamp <= cutoff })
     }
 
@@ -233,44 +230,101 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
     /// the phone GPS the crash truncated, so it is never clipped.
     func testOverrideTrackIsReturnedWhole() {
         let track = fixes(count: 100, everySec: 10)
-        let rr = beats(count: 10, rrMs: 1_000)
 
-        let clipped = WorkoutRecoveryService.clipTrack(
-            track, isOverride: true, rrPoints: rr, startDate: start
-        )
+        let clipped = WorkoutRecoveryService.clipTrack(track, isOverride: true, endDate: start.addingTimeInterval(10))
 
-        XCTAssertEqual(clipped.count, track.count)
-    }
-
-    /// With no RR series there is no endpoint to clip against; an indoor or
-    /// strapless workout keeps its whole track.
-    func testTrackSurvivesWhenThereAreNoBeats() {
-        let track = fixes(count: 40, everySec: 15)
-        let clipped = WorkoutRecoveryService.clipTrack(
-            track, isOverride: false, rrPoints: [], startDate: start
-        )
         XCTAssertEqual(clipped.count, track.count)
     }
 
     func testEmptyTrackStaysEmpty() {
-        XCTAssertTrue(WorkoutRecoveryService.clipTrack(
-            [], isOverride: false, rrPoints: beats(count: 50, rrMs: 600), startDate: start
-        ).isEmpty)
+        XCTAssertTrue(WorkoutRecoveryService.clipTrack([], isOverride: false, endDate: start.addingTimeInterval(30)).isEmpty)
     }
 
     // MARK: - resolveEndDate
 
-    /// The last beat is the most reliable "we still had a signal" anchor, so
-    /// it wins over a GPS fix that outlived it.
-    func testLastBeatWinsOverEveryOtherSource() {
-        let rr = beats(count: 120, rrMs: 1_000)            // ends at 120 s
+    /// A beat series whose end is final (a trim, or a trailing rest cut off)
+    /// says where the workout stopped: a GPS fix that outlived it (the phone
+    /// left recording) does not move it.
+    func testAFinalBeatEndWinsOverEveryOtherSource() {
+        let rr = beats(count: 120, rrMs: 1_000)            // ends at 119 s
         let track = fixes(count: 100, everySec: 10)        // runs to 990 s
 
         let end = WorkoutRecoveryService.resolveEndDate(
-            startDate: start, rrPoints: rr, track: track, liveSamples: [], baroSamples: []
+            startDate: start, rrPoints: rr, track: track, liveSamples: [], baroSamples: [], rrEndIsFinal: true
         )
 
-        XCTAssertEqual(end.timeIntervalSince(start), 120, accuracy: 1)
+        XCTAssertEqual(end.timeIntervalSince(start), 119, accuracy: 1)
+    }
+
+    /// A strap that died mid-run: the beats stop at 20 minutes, the phone
+    /// kept recording the route and the samples to 60. The workout ends at
+    /// 60, the last thing recorded, not at the last beat.
+    func testAStrapThatDiedDoesNotCutTheRouteAndTime() {
+        let rr = beats(count: 1_200, rrMs: 1_000)          // ends at 1 199 s
+        let track = fixes(count: 361, everySec: 10)        // runs to 3 600 s
+        let samples = (1...3_590).map { WorkoutSample(offsetSec: $0) }
+
+        let end = WorkoutRecoveryService.resolveEndDate(
+            startDate: start, rrPoints: rr, track: track, liveSamples: samples, baroSamples: []
+        )
+
+        XCTAssertEqual(end.timeIntervalSince(start), 3_600, accuracy: 1)
+    }
+
+    /// A 10-minute strap dropout: the beats' own clock sums received
+    /// intervals and stands still through it, so it ends 10 minutes early.
+    /// Placed on the wall clock (`wallClockMs`), the beats end where the
+    /// workout did, though nothing else was recorded.
+    func testTheBeatEndIsOnTheWallClockAcrossADropout() {
+        let before = (0 ..< 600).map { RRPoint(t_ms: Int64($0) * 1_000, rr_ms: 1_000, wallClockMs: Int64($0) * 1_000, hr: 60) }
+        let after = (0 ..< 600).map { RRPoint(t_ms: Int64(600 + $0) * 1_000, rr_ms: 1_000, wallClockMs: Int64(1_200 + $0) * 1_000, hr: 60) }
+
+        let end = WorkoutRecoveryService.resolveEndDate(
+            startDate: start, rrPoints: before + after, track: [], liveSamples: [], baroSamples: []
+        )
+
+        XCTAssertEqual(end.timeIntervalSince(start), 1_799, accuracy: 1)
+    }
+
+    /// A per-second sample's offset leaves the pauses out; on the wall clock
+    /// it is that far past them.
+    func testASampleEndIsPlacedPastThePausesBeforeIt() {
+        var pauses = PauseTimeline()
+        pauses.pause(atElapsed: 600, now: start.addingTimeInterval(600))
+        pauses.resume(now: start.addingTimeInterval(1_200))
+
+        let end = WorkoutRecoveryService.resolveEndDate(
+            startDate: start, rrPoints: [], track: [], liveSamples: [WorkoutSample(offsetSec: 900)], baroSamples: [], pauses: pauses
+        )
+
+        XCTAssertEqual(end.timeIntervalSince(start), 1_500, accuracy: 1)
+    }
+
+    /// Track steps laid down while paused add neither distance nor time;
+    /// the step across the resume adds distance only, as live.
+    func testTrackStepsInsideAPauseDoNotCount() {
+        let track = fixes(count: 10, everySec: 60)          // 0…540 s
+        let window = start.addingTimeInterval(150) ... start.addingTimeInterval(330)
+
+        let pauses = WorkoutRecoveryService.trackPauses(of: track, windows: [window])
+
+        XCTAssertEqual(pauses.paused, [3, 4, 5])
+        XCTAssertEqual(pauses.gaps, [6])
+    }
+
+    /// A trim of an already-saved workout has no crash backup: its pauses
+    /// come from the archived copy's spans, placed on the wall clock.
+    func testPausesFallBackToTheArchivedSpans() {
+        var archived = HRVSession(startDate: start, sessionType: .workout)
+        var metadata = WorkoutMetadata(sport: .run)
+        metadata.pauseSpans = [WorkoutPauseSpan(atElapsed: 600, seconds: 300), WorkoutPauseSpan(atElapsed: 900, seconds: 60)]
+        archived.workoutMetadata = metadata
+        let prepared = WorkoutRecoveryService.Prepared(workoutRecord: nil, rrEntry: nil, existingSession: archived)
+
+        let events = WorkoutRecoveryService.pauseEvents(prepared, startDate: start)
+
+        XCTAssertEqual(events.map(\.pausedAt), [start.addingTimeInterval(600), start.addingTimeInterval(1_200)])
+        XCTAssertEqual(events.map(\.resumedAt), [start.addingTimeInterval(900), start.addingTimeInterval(1_260)])
     }
 
     /// A GPS-only workout — strap never connected — still gets a real duration.

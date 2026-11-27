@@ -322,6 +322,7 @@ extension WorkoutSessionLifecycle {
         signals.livePace.reset()
         sensors.footPodOdometer = FootPodOdometer()
         capture.power = WorkoutPowerTally()
+        capture.distanceAtEarlyStop = nil
         motion.powerWatts = nil
         motion.footPodActive = false
         signals.lastStrapHRAt = nil

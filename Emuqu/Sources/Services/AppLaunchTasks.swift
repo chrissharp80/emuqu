@@ -82,9 +82,10 @@ extension EmuquApp {
     @MainActor
     func appLevelWatchStopListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutStop)
-        for await _ in stream {
+        for await note in stream {
             guard let recorder = launchServices.recorderBox().recorder, Self.isRecording(recorder) else { continue }
-            Task { await recorder.stop() }
+            let tappedAt = note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date
+            Task { await recorder.stop(requestedStop: tappedAt) }
         }
     }
 

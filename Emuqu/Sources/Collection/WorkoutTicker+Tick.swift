@@ -213,6 +213,7 @@ extension WorkoutTicker {
 
         runIncrementalBackup(buffer: buffer)
         ingestStrapBeatsAndDeriveHR(buffer: buffer)
+        adoptStrapHeartRateReading()
         consumeWatchRoutedStrapFallback()
         arbitrateHRSource()
         mirrorMotionAndPowerSensors()
@@ -297,6 +298,20 @@ extension WorkoutTicker {
         persistWorkoutTrackIfChanged(session: session, sessionId: sessionId)
     }
 
+    /// Tick stage: the pause and resume events into the crash backup, when
+    /// one was added since the last tick. Apart from the track watermark,
+    /// which skips while paused: a pause is written as it begins, so a
+    /// workout lost while paused still knows it was paused.
+    private func persistPauseEventsIfChanged(sessionId: UUID) {
+        let events = lifecycle.pauseTimeline.events
+        guard capture.pauseEventsBackedUp[sessionId] != events.count else { return }
+        capture.pauseEventsBackedUp = [sessionId: events.count]
+        let trackBackup = services.workoutTrackBackup
+        Task.detached(priority: .utility) {
+            trackBackup.appendPauses(sessionId: sessionId, events: events)
+        }
+    }
+
     /// Tick stage — GPS/baro/samples track persistence with the no-new-work skip.
     ///
     /// Workout-side persistence: GPS fixes, per-tick samples, and
@@ -321,6 +336,7 @@ extension WorkoutTicker {
     /// past 12 h `capWorkoutSampleMemory` drops a row for each one added, so
     /// the count stops changing while new rows still need backing up.
     private func persistWorkoutTrackIfChanged(session: HRVSession, sessionId: UUID) {
+        persistPauseEventsIfChanged(sessionId: sessionId)
         guard capture.trackBackupWatermark.advanceIfChanged(
             trackCount: sensors.startedLocation?.track.count ?? 0,
             baroCount: sensors.startedLocation?.barometricSamples.count ?? 0,
@@ -375,6 +391,37 @@ extension WorkoutTicker {
             signals.lastStrapHRAt = Date()  // strap is alive
         }
         capture.lastIngestedPointCount = buffer.count
+    }
+
+    /// Tick stage: the strap's own heart rate, when it sent one no buffered
+    /// beat accounts for.
+    ///
+    /// A Verity Sense keeps sending its heart rate while `StrapPPIFilter`
+    /// rejects every PPI interval (motion-flagged, high error estimate:
+    /// common while running). No beat reaches the buffer then, so the strap
+    /// would read as silent after `HRArbitration.wristFallbackSilenceSec`
+    /// and the live HR and the samples would lose a heart rate the strap is
+    /// still sending. Its reading keeps the strap live from the time it
+    /// arrived and is the heart rate on display; only accepted intervals
+    /// feed RR and HRV. A strap workout only: on any other, the linked
+    /// strap's reading is not the workout's heart rate.
+    private func adoptStrapHeartRateReading() {
+        guard lifecycle.activeHRSource == .strap,
+              let reading = Self.newStrapReading(
+                  hr: core.strapLink.currentHeartRate, at: core.strapLink.currentHeartRateAt, lastStrapHRAt: signals.lastStrapHRAt
+              )
+        else { return }
+        signals.lastStrapHRAt = reading.at
+        workoutHR.currentHR = reading.hr
+        signals.hrFromWrist = false
+        if reading.hr > workoutHR.peakHR { workoutHR.peakHR = reading.hr }
+    }
+
+    /// The strap's reading when it is newer than the last strap heart rate
+    /// the workout took (from a beat or an earlier reading); nil otherwise.
+    static func newStrapReading(hr: Int?, at readingAt: Date?, lastStrapHRAt: Date?) -> (hr: Int, at: Date)? {
+        guard let hr, hr > 0, let readingAt, readingAt > (lastStrapHRAt ?? .distantPast) else { return nil }
+        return (hr, readingAt)
     }
 
     /// Smoothed HR: median of the last ~8 beats. Raw rr_ms swings

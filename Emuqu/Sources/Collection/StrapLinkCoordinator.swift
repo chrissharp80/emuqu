@@ -240,7 +240,7 @@ final class StrapLinkCoordinator {
         }
         state.batteryLevel = nil
         state.isBatteryReadingStale = false
-        state.currentHeartRate = nil
+        state.clearHeartRate()
         state.firmwareVersion = nil
         state.hasReceivedSoftwareRevision = false
     }

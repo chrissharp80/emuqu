@@ -38,6 +38,23 @@ final class StrapLinkState {
     /// The strap's own heart-rate reading, live whenever a strap is linked —
     /// with or without a recording session.
     var currentHeartRate: Int?
+    /// When the strap last sent a heart rate, even one whose intervals were
+    /// all rejected (`StrapPPIFilter` drops a Verity Sense's PPI intervals
+    /// while it is moving). A workout reads the strap as live from this, not
+    /// only from beats it buffered. Nil while `currentHeartRate` is.
+    var currentHeartRateAt: Date?
+
+    /// The strap sent `hr` at `date`.
+    func noteHeartRate(_ hr: Int, at date: Date) {
+        currentHeartRate = hr
+        currentHeartRateAt = date
+    }
+
+    /// The strap's reading is gone with its link.
+    func clearHeartRate() {
+        currentHeartRate = nil
+        currentHeartRateAt = nil
+    }
 
     /// User-visible revision (prefers DIS software revision, falls back to firmware revision).
     var firmwareVersion: String?

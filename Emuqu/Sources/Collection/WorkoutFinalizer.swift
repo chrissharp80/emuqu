@@ -29,6 +29,9 @@ struct WorkoutFinalizer {
         let pedometerDistanceMeters: Double
         let footPodDistanceMeters: Double
         let motionDistanceMeters: Double
+        /// The cap on the pedometer, foot-pod and erg distances for a stop
+        /// dated earlier than it arrived (`WorkoutCapture.distanceAtEarlyStop`).
+        let distanceCapMeters: Double?
         let power: WorkoutPowerTally
         /// The saved route this workout followed, if any.
         let routeName: String?

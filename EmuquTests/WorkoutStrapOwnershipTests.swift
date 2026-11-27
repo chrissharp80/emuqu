@@ -92,4 +92,39 @@ final class WorkoutStrapOwnershipTests: XCTestCase {
         XCTAssertTrue(WorkoutRRMerge.liveStrapBuffer(source: .watch, streaming: beats(3)).isEmpty)
         XCTAssertTrue(WorkoutRRMerge.liveStrapBuffer(source: .none, streaming: beats(3)).isEmpty)
     }
+
+    /// A Verity Sense keeps sending its heart rate while every PPI interval
+    /// is rejected (motion-flagged, high error estimate: common running).
+    /// The strap stays live from that reading, the live heart rate and the
+    /// per-second sample carry it, and the rejected interval feeds no beat.
+    func testAStrapStillSendingHeartRateStaysLiveWhileItsIntervalsAreRejected() {
+        let recorder = makeRecorder()
+        var session = HRVSession(sessionType: .workout)
+        session.workoutMetadata = WorkoutMetadata(sport: .run)
+        recorder.lifecycle.currentSession = session
+        recorder.lifecycle.activeHRSource = .strap
+        recorder.lifecycle.phase = .recording
+        recorder.lifecycle.elapsedSeconds = 120
+        recorder.signals.lastStrapHRAt = Date().addingTimeInterval(-30)
+        recorder.workoutHR.currentHR = 140
+        let stream = streamBuffering(since: Date().addingTimeInterval(-120))
+
+        stream.ingestPpi([StrapPPIReading(ppInMs: 400, ppErrorEstimate: 60, blockerBit: 1, hr: 152)])
+        recorder.ticker.incrementalBackupTick()
+
+        XCTAssertTrue(stream.streamedRRPoints.isEmpty, "a rejected interval is no beat")
+        XCTAssertEqual(recorder.workoutHR.currentHR, 152)
+        XCTAssertNil(recorder.lifecycle.strapNotice)
+        XCTAssertEqual(recorder.capture.workoutSamples.last?.heartRate, 152)
+    }
+
+    /// The reading counts once, from when it arrived, and only when newer
+    /// than the strap heart rate the workout already took.
+    func testOnlyANewerStrapReadingIsTaken() {
+        let now = Date()
+        XCTAssertEqual(WorkoutTicker.newStrapReading(hr: 150, at: now, lastStrapHRAt: now.addingTimeInterval(-1))?.hr, 150)
+        XCTAssertNil(WorkoutTicker.newStrapReading(hr: 150, at: now, lastStrapHRAt: now))
+        XCTAssertNil(WorkoutTicker.newStrapReading(hr: 0, at: now, lastStrapHRAt: nil))
+        XCTAssertNil(WorkoutTicker.newStrapReading(hr: 150, at: nil, lastStrapHRAt: nil))
+    }
 }

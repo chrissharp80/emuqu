@@ -21,6 +21,7 @@ extension WorkoutRecorder {
             elapsedSeconds: lifecycle.elapsedSeconds, activeHRSource: lifecycle.activeHRSource,
             location: startedLocation, pedometerDistanceMeters: pedometer.distanceMeters,
             footPodDistanceMeters: sensors.footPodDistanceMeters(), motionDistanceMeters: motion.distanceMeters,
+            distanceCapMeters: capture.distanceAtEarlyStop,
             power: capture.power, routeName: route.planned?.name
         )
     }

@@ -49,7 +49,13 @@ extension WorkoutRecorder {
     /// Stopped while paused (by hand or by auto-pause), the pause ends at the
     /// stop, so it is saved with the others and Apple Health counts the
     /// paused tail as paused, not as moving.
-    func stop() async {
+    ///
+    /// `requestedStop` is when the user ended the workout, for an End that
+    /// can reach the phone after it (a Watch End queued out of range); nil
+    /// ends it now. The workout ends at that time, held between its start
+    /// and now (`stopDate(requested:startedAt:now:)`), and what was recorded
+    /// after it is left out (`settleStopTime`).
+    func stop(requestedStop: Date? = nil) async {
         guard case .recording = lifecycle.phase else { return }
         let finalizeStartedAt = Date()
         debugLog("[Recorder.stop] entry — phase flipping to .finalizing")
@@ -57,10 +63,10 @@ extension WorkoutRecorder {
         defer { bgTask.end() }
         lifecycle.phase = .finalizing
         tearDownLiveWorkoutServices()
-        let stopDate = Date()
-        lifecycle.pauseTimeline.resume(now: stopDate)
-        let endHR = heartRateAtStop(stopDate: stopDate)
-        capture.collectedPoints = await gatherFinalRRPoints(stopDate: stopDate)
+        let stopDate = Self.stopDate(requested: requestedStop, startedAt: lifecycle.sessionStartDate, now: finalizeStartedAt)
+        let cut = settleStopTime(stopDate, now: finalizeStartedAt)
+        let endHR = heartRateAtStop(stopDate: stopDate, now: finalizeStartedAt)
+        capture.collectedPoints = await gatherFinalRRPoints(stopDate: stopDate, cut: cut)
         cancelStrapSubscriptionsAfterStop()
         let finished = await runFinalize(
             rrPoints: capture.collectedPoints, stopDate: stopDate, startedAt: finalizeStartedAt
@@ -76,13 +82,14 @@ extension WorkoutRecorder {
     /// maximal test, which is where that test ends; after intervals and a
     /// cool-down the session maximum was minutes earlier, and recovery from
     /// it read as an 80 bpm drop when the last minute fell 15.
-    private func heartRateAtStop(stopDate: Date) -> Int {
+    private func heartRateAtStop(stopDate: Date, now: Date) -> Int {
         let readingTimes = [signals.lastStrapHRAt, capture.watchRouted.lastAt, watchBridge.latestWatchHRAt]
         return Self.heartRateAtStop(
             live: workoutHR.currentHR,
             lastSampled: capture.workoutSamples.last(where: { $0.heartRate != nil })?.heartRate,
             lastReadingAt: readingTimes.compactMap { $0 }.max(),
-            stopDate: stopDate
+            stopDate: stopDate,
+            now: now
         )
     }
 
@@ -100,7 +107,14 @@ extension WorkoutRecorder {
     /// strap, the Watch's wrist HR) sent a reading within `stopHRMaxAgeSec`
     /// of Stop. Otherwise 0, which skips the capture: a recovery measured
     /// from a rate the strap stopped sending minutes earlier is not one.
-    nonisolated static func heartRateAtStop(live: Int?, lastSampled: Int?, lastReadingAt: Date?, stopDate: Date) -> Int {
+    /// Also 0 for a stop dated more than `stopHRMaxAgeSec` before `now` (a
+    /// Watch End that arrived late): the rate on display is the one at
+    /// arrival, and the recovery window after the stop has already passed.
+    nonisolated static func heartRateAtStop(live: Int?, lastSampled: Int?, lastReadingAt: Date?, stopDate: Date, now: Date) -> Int {
+        guard now.timeIntervalSince(stopDate) <= stopHRMaxAgeSec else {
+            debugLog("[Recorder.stop] stop dated \(Int(now.timeIntervalSince(stopDate))) s ago: heart-rate recovery is not measured")
+            return 0
+        }
         guard let lastReadingAt, stopDate.timeIntervalSince(lastReadingAt) <= stopHRMaxAgeSec else {
             debugLog("[Recorder.stop] no heart rate within \(Int(stopHRMaxAgeSec)) s of Stop: heart-rate recovery is not measured")
             return 0
@@ -131,11 +145,16 @@ extension WorkoutRecorder {
     /// recording that started after the workout did is taken, and its beats
     /// are moved onto the workout's clock by the recording's own start; the
     /// window bound inside the merge drops anything past the workout's end.
-    private func gatherFinalRRPoints(stopDate: Date) async -> [RRPoint] {
-        await mergeWorkoutRRWithDeviceFetch(
+    ///
+    /// For a stop dated earlier than it arrived (`cut`), the streamed beats
+    /// after the stop are left out (`WorkoutAnalyzer.rrPoints(_:endingAt:sessionStart:)`).
+    private func gatherFinalRRPoints(stopDate: Date, cut: Bool) async -> [RRPoint] {
+        let startDate = lifecycle.sessionStartDate ?? stopDate
+        let streamed = snapshotAndMergeRRBuffers()
+        return await mergeWorkoutRRWithDeviceFetch(
             session: lifecycle.currentSession,
-            streamingPoints: snapshotAndMergeRRBuffers(),
-            startDate: lifecycle.sessionStartDate ?? stopDate,
+            streamingPoints: cut ? WorkoutAnalyzer.rrPoints(streamed, endingAt: stopDate, sessionStart: startDate) : streamed,
+            startDate: startDate,
             stopDate: stopDate
         )
     }

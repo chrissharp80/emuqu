@@ -300,6 +300,25 @@ final class WorkoutLocationManager: NSObject {
         resetState()
     }
 
+    /// Ends the track at `stopDate`, for a workout ended earlier than the
+    /// stop reached the phone (a Watch End queued while out of range): the
+    /// fixes and barometer samples taken after it are dropped, and the
+    /// distance and GPS-altitude climb are counted again over the fixes kept,
+    /// by the same rule `creditMovement` applied to them.
+    func endTrack(at stopDate: Date) {
+        track = track.filter { $0.timestamp <= stopDate }
+        barometricSamples = barometricSamples.filter { $0.timestamp <= stopDate }
+        trackPauses.paused = trackPauses.paused.filter { $0 < track.count }
+        trackPauses.gaps = trackPauses.gaps.filter { $0 < track.count }
+        distanceMeters = 0
+        elevationGainMeters = barometerAvailable ? elevationGainMeters : 0
+        elevationLossMeters = barometerAvailable ? elevationLossMeters : 0
+        for index in track.indices.dropFirst() where !trackPauses.paused.contains(index) {
+            distanceMeters += track[index].distance(from: track[index - 1])
+            accumulateGPSElevationFallback(from: track[index - 1], to: track[index])
+        }
+    }
+
     // MARK: - Internal
 
     private func resetState() {

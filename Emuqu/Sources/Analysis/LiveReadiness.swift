@@ -183,11 +183,13 @@ struct LiveReadiness {
     /// stepped EWMA values via dayFraction, so readiness matches the accepted
     /// score at acceptance time and gradually relaxes as real hours pass.
     ///
-    /// When the morning context is missing
-    /// (unusual — the session is processed but its training snapshot didn't
-    /// persist) this defaults to 0 rather than today's live value.
-    /// Interpolation then ramps ATL from "unknown morning" to today's value
-    /// across the day.
+    /// When the morning context is missing (no session, or a session whose
+    /// training snapshot did not persist), the live values are the anchor:
+    /// there is no frozen morning load to blend from. A zero anchor instead
+    /// read a trained athlete as carrying no load at all, so the morning
+    /// readiness, the freshness bonus and the blended ATL/CTL all started
+    /// from an untrained athlete and ramped toward the real load across the
+    /// day.
     private static func interpolatedLoad(
         morningSession: HRVSession?,
         live: TrainingMetrics,
@@ -195,8 +197,8 @@ struct LiveReadiness {
     ) -> InterpolatedLoad {
         let morningContext = morningSession?.trainingSnapshot
             ?? morningSession?.analysisResult?.trainingContext
-        let morningATL = morningContext?.atl ?? 0
-        let morningCTL = morningContext?.ctl ?? 0
+        let morningATL = morningContext?.atl ?? live.atl
+        let morningCTL = morningContext?.ctl ?? live.ctl
         let dayFraction = min(max(hoursSinceMorning / 24.0, 0), 1.0)
         let effectiveATL = morningATL + (live.atl - morningATL) * dayFraction
         let effectiveCTL = morningCTL + (live.ctl - morningCTL) * dayFraction

@@ -121,16 +121,75 @@ struct PauseTimeline: Equatable, Sendable {
         let startedAt: Date
     }
 
+    /// One pause as the crash backup holds it: written when the pause
+    /// begins (`resumedAt` nil) and again when it ends, so a workout lost
+    /// while paused still knows the pause it was in.
+    struct Event: Codable, Equatable, Sendable {
+        let atElapsed: Int
+        let pausedAt: Date
+        let resumedAt: Date?
+    }
+
     private(set) var spans: [Span] = []
     private var openPause: OpenPause?
+    /// Every pause and resume, in order, for the crash backup
+    /// (`WorkoutTrackBackup.appendPauses`).
+    private(set) var events: [Event] = []
 
     mutating func pause(atElapsed elapsed: Int, now: Date) {
         openPause = OpenPause(atElapsed: elapsed, startedAt: now)
+        events.append(Event(atElapsed: elapsed, pausedAt: now, resumedAt: nil))
     }
 
     mutating func resume(now: Date) {
         guard let open = openPause else { return }
         spans.append(Span(atElapsed: open.atElapsed, seconds: max(0, now.timeIntervalSince(open.startedAt))))
+        openPause = nil
+        events.append(Event(atElapsed: open.atElapsed, pausedAt: open.startedAt, resumedAt: now))
+    }
+
+    /// The timeline a crash backup's `events` describe, ended at `end` (the
+    /// recovered end of the workout): each pause once, its last row winning,
+    /// and one still open at the crash closed at `end`, as a stop while
+    /// paused closes it. A pause that began at or after `end` is left out.
+    static func restored(from events: [Event], endingAt end: Date) -> PauseTimeline {
+        var latest: [Date: Event] = [:]
+        for event in events where latest[event.pausedAt]?.resumedAt == nil { latest[event.pausedAt] = event }
+        var timeline = PauseTimeline()
+        for event in latest.values.sorted(by: { $0.pausedAt < $1.pausedAt }) where event.pausedAt < end {
+            timeline.pause(atElapsed: event.atElapsed, now: event.pausedAt)
+            timeline.resume(now: min(event.resumedAt ?? end, end))
+        }
+        return timeline
+    }
+
+    /// The wall-clock stretch of each pause, open or closed; one still open
+    /// runs to `now`.
+    func pauseWindows(now: Date) -> [ClosedRange<Date>] {
+        var windows: [Date: ClosedRange<Date>] = [:]
+        for event in events {
+            let end = max(event.pausedAt, event.resumedAt ?? now)
+            windows[event.pausedAt] = event.pausedAt ... end
+        }
+        return windows.values.sorted { $0.lowerBound < $1.lowerBound }
+    }
+
+    /// Ends the timeline at `stopDate`. A pause still open closes there, or
+    /// is dropped when it began after it; a closed pause that began after it
+    /// is dropped and one running across it is shortened to it. A stop dated
+    /// now changes only the open pause, as `resume(now:)` does; a stop dated
+    /// earlier (a Watch End that arrived late) leaves no pause past the end.
+    mutating func end(at stopDate: Date, sessionStart: Date) {
+        var pausedBefore: TimeInterval = 0
+        var kept: [Span] = []
+        for span in spans {
+            let began = sessionStart.addingTimeInterval(TimeInterval(span.atElapsed) + pausedBefore)
+            guard began < stopDate else { break }
+            kept.append(Span(atElapsed: span.atElapsed, seconds: min(span.seconds, stopDate.timeIntervalSince(began))))
+            pausedBefore += span.seconds
+        }
+        spans = kept
+        if let open = openPause, open.startedAt < stopDate { resume(now: stopDate) }
         openPause = nil
     }
 
