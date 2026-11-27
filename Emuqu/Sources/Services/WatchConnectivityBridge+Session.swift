@@ -337,22 +337,25 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     ]
 
     /// The four plain stop/pause/resume/acknowledge controls, which differ only
-    /// in which callback they invoke; a stop is handed the time the End was
-    /// tapped (`tapDate`). Nil for everything else, and for a control whose
-    /// callback is not wired yet.
+    /// in which callback they invoke; a stop and a pause are handed the time
+    /// they were tapped (`tapDate`). A resume is applied when it arrives (see
+    /// `WorkoutRecorder.pauseFromWatch`). Nil for everything else, and for a
+    /// control whose callback is not wired yet.
     private func controlHandler(for type: MessageType, message: [String: Any]) -> (() -> WatchControlRefusal?)? {
         switch type {
-        case .stopWorkoutFromWatch: return stopHandler(tappedAt: Self.tapDate(message))
-        case .pauseWorkoutFromWatch: return onPauseWorkoutFromWatch
+        case .stopWorkoutFromWatch: return tappedHandler(onStopWorkoutFromWatch, tappedAt: Self.tapDate(message))
+        case .pauseWorkoutFromWatch: return tappedHandler(onPauseWorkoutFromWatch, tappedAt: Self.tapDate(message))
         case .resumeWorkoutFromWatch: return onResumeWorkoutFromWatch
         case .acknowledgeFinishedFromWatch: return onAcknowledgeFinishedFromWatch
         default: return nil
         }
     }
 
-    /// The stop callback bound to the tap's time; nil while it is not wired.
-    private func stopHandler(tappedAt: Date?) -> (() -> WatchControlRefusal?)? {
-        guard let handler = onStopWorkoutFromWatch else { return nil }
+    /// A stop or pause callback bound to the tap's time; nil while it is not wired.
+    private func tappedHandler(
+        _ handler: ((Date?) -> WatchControlRefusal?)?, tappedAt: Date?
+    ) -> (() -> WatchControlRefusal?)? {
+        guard let handler else { return nil }
         return { handler(tappedAt) }
     }
 

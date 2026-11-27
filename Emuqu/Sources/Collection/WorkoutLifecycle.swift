@@ -147,6 +147,15 @@ struct PauseTimeline: Equatable, Sendable {
         events.append(Event(atElapsed: elapsed, pausedAt: now, resumedAt: nil))
     }
 
+    /// Moves the open pause's start back to `date`, active second
+    /// `atElapsed`: a pause applied after it was asked for (a Watch Pause
+    /// that arrived late) began at the tap. Its backup row moves with it.
+    mutating func movePauseStart(to date: Date, atElapsed elapsed: Int) {
+        guard openPause != nil, events.last?.resumedAt == nil else { return }
+        events.removeLast()
+        pause(atElapsed: elapsed, now: date)
+    }
+
     mutating func resume(now: Date) {
         guard let open = openPause else { return }
         spans.append(Span(atElapsed: open.atElapsed, seconds: max(0, now.timeIntervalSince(open.startedAt))))

@@ -592,9 +592,12 @@ final class SessionRecoveryService {
         }
     }
 
-    /// Where the backup's own beats run out, relative to its capture date.
+    /// Where the backup's own beats run out, relative to its capture date,
+    /// on the real clock (`[RRPoint].lastBeatEnd(after:)`): a streamed
+    /// backup's `t_ms` stops at every dropout, and the span a deleted
+    /// session's Apple Health export is searched in ended that early.
     static func backupEndDate(_ backup: RawRRBackup.BackupEntry) -> Date? {
-        backup.points.last.map { backup.captureDate.addingTimeInterval(Double($0.t_ms) / 1000.0) }
+        backup.points.lastBeatEnd(after: backup.captureDate)
     }
 
     /// Run windowed analysis on a session, updating its analysisResult in place.

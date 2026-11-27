@@ -35,7 +35,7 @@ extension MorningSessionPipeline {
         // Fetch training load before delegating (updates cachedTrainingLoad on self)
         await fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
-        let freshContext = await scoring.createTrainingContextEnsuringFresh()
+        let freshContext = await scoring.createTrainingContextEnsuringFresh(relativeTo: Self.trainingAsOf(baseSession, now: Date()))
         let result = await morningProcessingService.processOvernightData(
             MorningProcessingService.OvernightRequest(
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
@@ -97,6 +97,15 @@ extension MorningSessionPipeline {
         )
     }
 
+    /// The moment a night's training load is read as of: its own end, as the
+    /// strap-recovery path reads it (`DeviceRecordingSession`), never later
+    /// than `now`. A night stopped this morning reads today's load;
+    /// one rebuilt on a later day (the linked-night repair) is scored against
+    /// the load of its own morning, not the processing day's.
+    nonisolated static func trainingAsOf(_ session: HRVSession, now: Date) -> Date {
+        min(session.endDate ?? now, now)
+    }
+
     /// Freeze the training snapshot once — never overwrite an existing one.
     /// Background refinement rebuilds the session from scratch (via
     /// `buildFinalSession`), so `trainingSnapshot` is always nil on the new
@@ -114,7 +123,7 @@ extension MorningSessionPipeline {
             finalSession.trainingSnapshot = existing.trainingSnapshot
         }
         if finalSession.trainingSnapshot == nil {
-            finalSession.trainingSnapshot = freshContext ?? scoring.createTrainingContext()
+            finalSession.trainingSnapshot = freshContext ?? scoring.createTrainingContext(relativeTo: Self.trainingAsOf(finalSession, now: Date()))
         }
         if let frozen = finalSession.trainingSnapshot {
             finalSession.analysisResult?.trainingContext = frozen

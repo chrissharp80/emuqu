@@ -208,13 +208,44 @@ struct RRSeries: Codable {
         return closestIndex(to: targetMs) { $0.wallClockMs ?? $0.t_ms }
     }
 
-    /// Get the actual end time of the series using wall-clock time if available
-    /// More accurate than durationMs for streaming mode with data gaps
+    /// When the series' last beat ended on the real clock
+    /// (`[RRPoint].lastBeatEnd(after:)`); the start when it has no beats.
     var actualEndDate: Date {
-        if let lastWall = points.last?.wallClockMs {
-            return startDate.addingTimeInterval(TimeInterval(lastWall) / 1000.0)
-        }
-        return startDate.addingTimeInterval(TimeInterval(durationMs) / 1000.0)
+        points.lastBeatEnd(after: startDate) ?? startDate
+    }
+
+    /// The real clock time of a `t_ms` position: `wallClockTime(forTMs:)`
+    /// inside the recording; before its first beat or after its last, the
+    /// time at that end plus the distance past it. Every screen and report
+    /// that shows an analysis position (a window, the nadir, a chart point)
+    /// as a time of night reads it here, so a streamed night with a dropout
+    /// shows when the beats were received, not the running sum of their
+    /// intervals, which falls behind at every dropout.
+    func clockTime(forTMs tMs: Int64) -> Date {
+        guard let first = points.first, let last = points.last else { return absoluteTime(fromRelativeMs: tMs) }
+        let edgeMs = min(max(tMs, first.t_ms), last.t_ms)
+        return wallClockTime(forTMs: edgeMs).addingTimeInterval(Double(tMs - edgeMs) / 1000.0)
+    }
+
+    /// First beat to last on the real clock (`clockTime(forTMs:)`), in ms:
+    /// how long the recording ran, a dropout included. `durationMs` sums the
+    /// beats received and leaves every dropout out. Zero without beats.
+    var clockSpanMs: Int64 {
+        guard let first = points.first, let last = points.last else { return 0 }
+        let seconds = clockTime(forTMs: last.t_ms).timeIntervalSince(clockTime(forTMs: first.t_ms))
+        return max(0, Int64((seconds * 1000).rounded()))
+    }
+}
+
+extension [RRPoint] {
+    /// When the last beat ended, counted from `start`: its place on the real
+    /// clock (`RRPoint.exportTimeMs`) plus its interval. `t_ms` alone stops
+    /// at every streaming dropout, so by it a streamed night ended that many
+    /// minutes early; an internal recording's beats carry no wall clock and
+    /// their `t_ms` is the real clock already. Nil without beats.
+    func lastBeatEnd(after start: Date) -> Date? {
+        guard let last else { return nil }
+        return start.addingTimeInterval(TimeInterval(last.exportTimeMs + Int64(last.rr_ms)) / 1000.0)
     }
 }
 

@@ -629,21 +629,15 @@ extension LiveDFAAnalyzer {
     /// beats the Watch relays (on the same stream clock) join it too. Beats
     /// without an arrival time fall back to the interval sum.
     struct BeatClock {
-        /// The first arrival-stamped beat's `wallClockMs` and `t_ms`.
-        private var originWallMs: Int64?
-        private var originBeatMs: Int64 = 0
         /// Where the next beat starts if nothing was lost.
         private var nextStartMs: Int64?
 
-        /// The beat with `t_ms` re-stamped on this clock.
+        /// The beat with `t_ms` re-stamped on this clock: never before its
+        /// arrival (`wallClockMs`, ms since the stream started).
         mutating func stamp(_ point: RRPoint) -> RRPoint {
             var startMs = nextStartMs ?? point.t_ms
             if let wall = point.wallClockMs {
-                if originWallMs == nil {
-                    originWallMs = wall
-                    originBeatMs = startMs
-                }
-                startMs = max(startMs, wall - (originWallMs ?? wall) + originBeatMs)
+                startMs = max(startMs, wall)
             }
             nextStartMs = startMs + Int64(point.rr_ms)
             return RRPoint(t_ms: startMs, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)

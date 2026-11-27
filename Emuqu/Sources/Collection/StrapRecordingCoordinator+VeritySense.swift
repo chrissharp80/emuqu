@@ -115,23 +115,43 @@ extension StrapRecordingCoordinator {
                     failed += 1
                     continue
                 }
-                start = start ?? entry.date
-                allPoints.append(contentsOf: continuing(points, after: allPoints))
+                let firstStart = start ?? entry.date
+                start = firstStart
+                allPoints.append(contentsOf: continuing(points, startedAt: entry.date, after: allPoints, firstStart: firstStart))
             }
             return OfflinePpiRead(count: entries.count, points: allPoints, failed: failed, start: start)
         }
 
-        /// Each recording's beats start at `t_ms` 0. Joined as they come, a
-        /// second recording would send the timeline back to 0 mid-series and
-        /// windowed analysis would read overlapping windows; instead each one
-        /// is placed after the previous one ends (the gap between recordings
-        /// is not known, so none is inserted).
-        nonisolated private static func continuing(_ points: [RRPoint], after earlier: [RRPoint]) -> [RRPoint] {
-            guard let end = earlier.last?.endMs, let first = points.first else { return points }
-            let offset = end - first.t_ms
+        /// Each recording's beats start at `t_ms` 0, its wall clock at its own
+        /// start. Joined as they come, a second recording would send the
+        /// timeline back to 0 mid-series and windowed analysis would read
+        /// overlapping windows; joined end to end, it would sit the gap
+        /// between the two recordings too early in the night. So each is
+        /// placed on the first recording's clock by the real time between
+        /// their starts (`continuedOffsetMs`).
+        nonisolated private static func continuing(
+            _ points: [RRPoint], startedAt entryStart: Date, after earlier: [RRPoint], firstStart: Date
+        ) -> [RRPoint] {
+            let offset = continuedOffsetMs(points, startedAt: entryStart, after: earlier, firstStart: firstStart)
             return offset == 0 ? points : points.map { $0.shifted(by: offset) }
         }
+    #endif
 
+    /// How far a later offline recording's beats move to sit on the first
+    /// recording's clock: the time between the two starts, and never less
+    /// than it takes to start after the earlier beats end on either clock
+    /// (`t_ms` and `wallClockMs`), so neither runs back when the strap's
+    /// stamp reads a start too early. Zero for the first recording.
+    nonisolated static func continuedOffsetMs(
+        _ points: [RRPoint], startedAt entryStart: Date, after earlier: [RRPoint], firstStart: Date
+    ) -> Int64 {
+        guard let last = earlier.last, let first = points.first else { return 0 }
+        let sinceFirst = MillisecondOffset.between(entryStart, and: firstStart, fallback: 0)
+        let afterEarlier = max(last.endMs - first.t_ms, last.exportTimeMs + Int64(last.rr_ms) - first.exportTimeMs)
+        return max(sinceFirst, afterEarlier)
+    }
+
+    #if canImport(PolarBleSdk)
         nonisolated private static func readOfflinePpiEntry(
             api: any StrapRadio,
             deviceId: String,

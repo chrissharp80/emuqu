@@ -781,17 +781,21 @@ enum WorkoutAnalyzer {
     /// Each beat's offset from session start (ms) on the wall-clock timeline.
     /// `t_ms` counts only received beats, so it stops advancing during a
     /// Bluetooth dropout while GPS time keeps going. Where beats carry
-    /// `wallClockMs`, the time lost to each dropout is added back: the
+    /// `wallClockMs` (ms since the stream started, which the workout starts
+    /// with itself), the time lost to each dropout is added back: the
     /// correction is the running maximum of how far wall-clock time has
     /// pulled ahead of `t_ms`, so it grows at each gap and ignores the small
-    /// jitter of beats delivered in batches. Recordings without
-    /// `wallClockMs` (H10 internal) have no gaps and keep `t_ms` as is.
+    /// jitter of beats delivered in batches. It is measured from the stream's
+    /// start, not from the first beat: `t_ms` starts at zero with the first
+    /// beat received, which comes only once the strap links, so measured
+    /// from it every beat would sit that link wait too early against the
+    /// GPS, the samples and the stop. Recordings without `wallClockMs` (H10 internal)
+    /// have no gaps and keep `t_ms` as is.
     static func gapCorrectedOffsetsMs(_ rrPoints: [RRPoint]) -> [Int64] {
-        let origin = rrPoints.first { $0.wallClockMs != nil }
         var correctionMs: Int64 = 0
         return rrPoints.map { point in
-            if let wall = point.wallClockMs, let origin, let originWall = origin.wallClockMs {
-                correctionMs = max(correctionMs, (wall - originWall) - (point.t_ms - origin.t_ms))
+            if let wall = point.wallClockMs {
+                correctionMs = max(correctionMs, wall - point.t_ms)
             }
             return point.t_ms + correctionMs
         }

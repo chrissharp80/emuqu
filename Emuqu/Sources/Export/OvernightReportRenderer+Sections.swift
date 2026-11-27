@@ -56,14 +56,14 @@ extension OvernightReportRenderer {
         healthKitHR: HeartRateStats?
     ) -> OvernightStatValues? {
         let points = series.points
-        guard points.count > 100, let first = points.first, let last = points.last else { return nil }
+        guard points.count > 100 else { return nil }
         let peak = peakRMSSD(series: series, flags: flags, session: session, sleepData: sleepData)
         // HealthKit sleep when available, otherwise the recording-length estimate
-        let sleepStats = computeOvernightSleepStats(sleepData: sleepData, durationMinutes: Int((last.t_ms - first.t_ms) / 60000))
+        let sleepStats = computeOvernightSleepStats(sleepData: sleepData, durationMinutes: Int(series.clockSpanMs / 60000))
         return OvernightStatValues(
             hrRange: overnightHRRange(points: points, series: series, result: result, healthKitHR: healthKitHR),
             peakRMSSD: peak?.rmssd, peakHRVTime: peak.map { series.wallClockTime(forTMs: $0.timeMs) },
-            durationFormatted: formatRecordingDuration(series: series, first: first, last: last), sleepStats: sleepStats
+            durationFormatted: reportHoursMinutes(Int(series.clockSpanMs / 60000)), sleepStats: sleepStats
         )
     }
 
@@ -519,13 +519,6 @@ extension OvernightReportRenderer {
 //
 // Each touches no instance state — including the computed properties —
 // and calls nothing on the type, so none needs to be a method.
-
-/// "7h 42m" / "42m" for the recording span, first to last beat on the
-/// series' wall clock, so a strap disconnect gap counts as recorded time.
-private func formatRecordingDuration(series: RRSeries, first: RRPoint, last: RRPoint) -> String {
-    let seconds = series.wallClockTime(forTMs: last.t_ms).timeIntervalSince(series.wallClockTime(forTMs: first.t_ms))
-    return reportHoursMinutes(Int(max(0, seconds) / 60))
-}
 
 /// About 500 beats spread evenly over the night (every count/500-th beat,
 /// at least every beat), artifacts dropped, converted to bpm.

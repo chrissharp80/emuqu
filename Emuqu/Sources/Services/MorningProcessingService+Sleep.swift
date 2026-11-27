@@ -45,9 +45,7 @@ extension MorningProcessingService {
         prefetchedSleepData: SleepData? = nil,
         statusCallback: StatusCallback?
     ) async -> SleepPollResult {
-        let recordingEnd = series.points.last.map {
-            effectiveStartDate.addingTimeInterval(TimeInterval($0.endMs) / 1000.0)
-        } ?? now()
+        let recordingEnd = series.points.lastBeatEnd(after: effectiveStartDate) ?? now()
         if let ready = readySleepData(
             prefetched: prefetchedSleepData, effectiveStartDate: effectiveStartDate, recordingEnd: recordingEnd, isBackgroundRefinement: isBackgroundRefinement
         ) { return ready }

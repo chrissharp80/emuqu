@@ -336,7 +336,7 @@ final class MorningProcessingService {
 
     /// Wall-clock time of the merged series' last beat.
     private static func seriesEnd(of merged: MergeResult) -> Date? {
-        merged.series.points.last.map { merged.effectiveStartDate.addingTimeInterval(Double($0.endMs) / 1000) }
+        merged.series.points.lastBeatEnd(after: merged.effectiveStartDate)
     }
 
     /// Steps 8–12: build the final session, finish it, and report.

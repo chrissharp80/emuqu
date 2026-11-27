@@ -438,7 +438,7 @@ struct RecoveryScoreDetailView: View {
         guard let series = effectiveRRSeries else { return }
         let flags = session.artifactFlags ?? []
         let sleepStartMs = session.sleepStartMs ?? 0
-        let sleepEndMs = session.sleepEndMs ?? series.points.last?.t_ms ?? 0
+        let sleepEndMs = session.sleepEndMs ?? MillisecondOffset.between(series.actualEndDate, and: session.startDate, fallback: 0)
         let (sessionId, cache) = (session.id, dependencies.app.organizedZonesCache)
         let zones = await Task.detached(priority: .userInitiated) {
             OvernightStatsComputer.computeOrganizedZonesOnDemand(
@@ -461,12 +461,11 @@ struct RecoveryScoreDetailView: View {
     func rebuildChartSeries() async {
         let series = effectiveRRSeries
         let flags = session.artifactFlags
-        let startDate = session.startDate
         let fallback = fallbackHRSamples
         let (rmssd, hr) = await Task.detached(priority: .userInitiated) {
             (
-                Self.buildRMSSDSeries(series: series, flags: flags, sessionStartDate: startDate),
-                Self.buildHRSeries(series: series, flags: flags, sessionStartDate: startDate, fallbackHRSamples: fallback)
+                Self.buildRMSSDSeries(series: series, flags: flags),
+                Self.buildHRSeries(series: series, flags: flags, fallbackHRSamples: fallback)
             )
         }.value
         rmssdChartSeries = rmssd
