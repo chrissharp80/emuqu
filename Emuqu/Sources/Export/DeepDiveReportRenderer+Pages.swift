@@ -437,13 +437,14 @@ private func bandedAscending(_ value: Double, _ cases: [(Double, String)], else 
 // Each touches no instance state — including the computed properties —
 // and calls nothing on the type, so none needs to be a method.
 
-/// SDNN, pNN50 and SDSD are marked, and not read, when they are estimates.
+/// SDNN, pNN50, SDSD and mean RR / mean HR are marked, and not read, when
+/// they are estimates.
 private func timeDomainRows(result: HRVAnalysisResult, session: HRVSession, bundle: Bundle) -> [DeepDiveReportRenderer.DeepDiveMetric] {
     let td = result.timeDomain
     return [
         rmssdRow(td: td, session: session, bundle: bundle),
         estimable(sdnnRow(td: td, session: session, bundle: bundle), as: .sdnn, in: result),
-        meanRRRow(td: td, session: session, bundle: bundle),
+        estimable(meanRRRow(td: td, session: session, bundle: bundle), as: .meanRR, in: result),
         estimable(pnn50Row(td: td, session: session, bundle: bundle), as: .pnn50, in: result),
         estimable(sdsdRow(td: td, session: session, bundle: bundle), as: .sdsd, in: result),
         triangularIndexRow(td: td, session: session, bundle: bundle)

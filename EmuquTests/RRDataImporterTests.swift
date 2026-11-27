@@ -659,8 +659,8 @@ final class RRDataImporterTests: XCTestCase {
         let columns = try RRDataImporter.flowHRVColumns(fromHeaderLine: "session_date,timestamp_ms,rr_ms,session_type")
         let rows: ArraySlice<String> = ["d1,,812,overnight", "d1,,830,overnight"]
         let groups = try RRDataImporter.groupBeatsBySession(dataLines: rows, columns: columns)
-        XCTAssertEqual(groups["d1"]?.map(\.rr), [812, 830])
-        XCTAssertEqual(RRDataImporter.sessionTypesBySession(dataLines: rows, columns: columns)["d1"], .overnight)
+        XCTAssertEqual(groups[.init(sessionDate: "d1")]?.map(\.rr), [812, 830])
+        XCTAssertEqual(RRDataImporter.sessionTypesBySession(dataLines: rows, columns: columns)[.init(sessionDate: "d1")], .overnight)
     }
 
     /// A file past the import limit is refused from its size, before any of
@@ -762,4 +762,135 @@ extension RRDataImporterTests {
         XCTAssertEqual(records, ["a,\"x\ny\"", "", "b"])
         XCTAssertEqual(Array(RRDataImporter.ImportRecords(content: "a\nb\n", quoteAware: false)), ["a", "b", ""])
     }
+}
+
+// MARK: - Emuqu RR export identity
+
+extension RRDataImporterTests {
+    /// A recording of `count` beats of 800 ms starting at `start`, as the
+    /// archive holds it.
+    private func recordedSession(start: Date, count: Int = 70, type: SessionType = .overnight) -> (HRVSession, RRSeries) {
+        var session = HRVSession(startDate: start, sessionType: type)
+        let points = (0 ..< count).map { RRPoint(t_ms: Int64($0 * 800), rr_ms: 800) }
+        let series = RRSeries(points: points, sessionId: session.id, startDate: start)
+        session.rrSeries = series
+        return (session, series)
+    }
+
+    /// The export file the RR CSV export writes for `sessions`, as the
+    /// exporting phone in `timeZone` writes it.
+    private func exportedRRCSV(_ sessions: [(HRVSession, RRSeries)], in timeZone: TimeZone) -> String {
+        RRDataImporter.emuquRRExportHeader + "\n"
+            + sessions.map { ExportDataView.rrCSVRows(for: $0.0, series: $0.1, timeZone: timeZone) }.joined()
+    }
+
+    /// Parses `csv` as a phone in `timeZone` would.
+    private func importRRCSV(_ csv: String, in timeZone: TimeZone) throws -> RRDataImporter.FlowHRVMultiSessionResult {
+        let saved = NSTimeZone.default
+        NSTimeZone.default = timeZone
+        defer { NSTimeZone.default = saved }
+        return try importer.parseFlowHRVMultiSession(csv, fileName: "export.csv")
+    }
+
+    private static let losAngeles = TimeZone(identifier: "America/Los_Angeles") ?? .gmt
+
+    /// A recording exported in New York and imported in Los Angeles keeps its
+    /// start to the second, rather than moving by the zones' difference.
+    func testAnRRExportImportedInAnotherTimeZoneKeepsTheExactStart() throws {
+        let start = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-25T04:31:15Z"))
+        let csv = exportedRRCSV([recordedSession(start: start)], in: TestTimeZone.newYork)
+        let result = try importRRCSV(csv, in: Self.losAngeles)
+        XCTAssertEqual(result.sessions.count, 1)
+        XCTAssertEqual(result.sessions.first?.date, start)
+        XCTAssertEqual(result.sessions.first?.rrIntervals.count, 70)
+    }
+
+    /// The two 01:30s of the night New York's clocks go back are two
+    /// recordings, each at its own instant, not one with both sets of beats.
+    func testTwoRecordingsAtTheSameLocalTimeOnAFallBackNightImportAsTwo() throws {
+        let first = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T01:30:00-04:00"))
+        let second = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-01T01:30:00-05:00"))
+        let csv = exportedRRCSV([recordedSession(start: first), recordedSession(start: second)], in: TestTimeZone.newYork)
+        let result = try importRRCSV(csv, in: TestTimeZone.newYork)
+        XCTAssertEqual(result.sessions.map(\.date), [first, second])
+        XCTAssertEqual(Set(result.sessions.map(\.sessionDate)).count, 2, "Each row names its own recording's instant")
+        XCTAssertEqual(result.sessions.map(\.rrIntervals.count), [70, 70])
+        XCTAssertEqual(result.sessions.map { $0.timestamps.first }, [0, 0])
+    }
+
+    /// A row costs the 10 characters the offset instant adds to the legacy
+    /// minute, and nothing more.
+    func testAnRRExportRowGrowsOnlyByTheOffsetInstant() throws {
+        let (session, series) = recordedSession(start: Date(timeIntervalSince1970: 1_793_511_000), count: 1)
+        let row = ExportDataView.rrCSVRows(for: session, series: series, timeZone: TestTimeZone.newYork)
+        XCTAssertEqual(row, "2026-11-01T01:30:00-04:00,0,800,overnight\n")
+        XCTAssertEqual(row.utf8.count - "2026-11-01_0130,0,800,overnight\n".utf8.count, 10)
+    }
+
+    /// A file from an older export (local minute, no offset) still
+    /// imports, read in the importing phone's time zone.
+    func testALegacyRRExportStillImports() throws {
+        let rows = (0 ..< 70).map { "2026-01-25_0443,\($0 * 800),800,nap" }
+        let csv = (["session_date,timestamp_ms,rr_ms,session_type"] + rows).joined(separator: "\n")
+        let result = try importRRCSV(csv, in: TestTimeZone.newYork)
+        let session = try XCTUnwrap(result.sessions.first)
+        XCTAssertEqual(result.sessions.count, 1)
+        XCTAssertEqual(session.date, ISO8601DateFormatter().date(from: "2026-01-25T04:43:00-05:00"))
+        XCTAssertEqual(session.sessionType, .nap)
+        XCTAssertEqual(session.timestamps.prefix(3), [0, 800, 1_600])
+    }
+
+    /// Two recordings an older export wrote under one `session_date` (the
+    /// fall-back night's two 01:30s) are split where the timestamps restart,
+    /// each starting at its own 01:30, not sorted together into one.
+    func testALegacyRRExportWithTwoRecordingsUnderOneKeyIsSplit() throws {
+        let first = (0 ..< 70).map { "2026-11-01_0130,\($0 * 800),800,overnight" }
+        let second = (0 ..< 80).map { "2026-11-01_0130,\($0 * 750),750,overnight" }
+        let csv = (["session_date,timestamp_ms,rr_ms,session_type"] + first + second).joined(separator: "\n")
+        let result = try importRRCSV(csv, in: TestTimeZone.newYork)
+        XCTAssertEqual(result.sessions.map(\.rrIntervals.count), [70, 80])
+        XCTAssertEqual(result.sessions.map { Set($0.rrIntervals) }, [[800], [750]])
+        let starts = ["2026-11-01T01:30:00-04:00", "2026-11-01T01:30:00-05:00"].compactMap { ISO8601DateFormatter().date(from: $0) }
+        XCTAssertEqual(result.sessions.map(\.date), starts)
+    }
+}
+
+// MARK: - Elite HRV mean RR, mean HR and length
+
+extension RRDataImporterTests {
+    /// The older format states no mean HR: mean RR is the midpoint of the RR
+    /// extremes, and it, the mean HR and the length made from it are marked.
+    func testEliteMeanRRMeanHRAndLengthFromTheRRExtremesAreMarkedEstimated() throws {
+        let summary = try XCTUnwrap(importer.parseEliteHRVSummary(Self.eliteOldFormatForMeans, fileName: "e.csv").sessions.first)
+        let session = importer.createAnalyzedSession(from: summary, originalFileName: "e.csv")
+        let result = try XCTUnwrap(session.analysisResult)
+        XCTAssertTrue(result.isEstimated(.meanRR))
+        XCTAssertTrue(result.isEstimated(.meanHR))
+        XCTAssertTrue(result.isEstimated(.duration))
+        XCTAssertTrue(result.markingEstimate("900 ms", for: .meanRR).hasPrefix("900 ms ("))
+        XCTAssertTrue(result.markingEstimate("67 bpm", for: .meanHR).hasPrefix("67 bpm ("))
+        XCTAssertNil(result.measured(result.timeDomain.meanHR, as: .meanHR))
+        XCTAssertNil(VitalsDetailV2View.strapMeanHR(of: session), "An estimated mean HR is no point on the HR chart")
+    }
+
+    /// A row that states mean HR and duration is read as stated: its mean HR,
+    /// not one from the midpoint of its RR extremes, and its own length.
+    func testEliteRowWithAMeanHRAndDurationUsesThem() throws {
+        let csv = """
+        Date Time Start,Duration,HR,Rmssd,rr_min_ms,rr_max_ms,n_rr
+        2024-01-15 06:30:00,300,60,42.5,600,1200,100
+        """
+        let summary = try XCTUnwrap(importer.parseEliteHRVSummary(csv, fileName: "e.csv").sessions.first)
+        let session = importer.createAnalyzedSession(from: summary, originalFileName: "e.csv")
+        let result = try XCTUnwrap(session.analysisResult)
+        XCTAssertEqual(result.timeDomain.meanHR, 60, accuracy: 1e-9)
+        XCTAssertEqual(result.timeDomain.meanRR, 1_000, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(session.endDate).timeIntervalSince(session.startDate), 300, accuracy: 1e-6)
+        XCTAssertNil(result.estimatedMetrics?.first { ["meanRR", "meanHR", "duration"].contains($0) })
+    }
+
+    private static let eliteOldFormatForMeans = """
+    datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr,rr_min_ms,rr_max_ms,file
+    2024-01-15 06:30:00,45.2,48.1,3.2,300,600,1200,session1.csv
+    """
 }

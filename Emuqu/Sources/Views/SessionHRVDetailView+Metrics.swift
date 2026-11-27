@@ -34,13 +34,13 @@ extension SessionHRVDetailView {
 
     private var timeDomainGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            metricCell(label: String(localized: "Mean RR", bundle: LanguageManager.appBundle), value: Self.measured("%.0f", result.timeDomain.meanRR, unit: Self.msUnit))
+            metricCell(label: String(localized: "Mean RR", bundle: LanguageManager.appBundle), value: result.markingEstimate(Self.measured("%.0f", result.timeDomain.meanRR, unit: Self.msUnit), for: .meanRR))
             metricCell(label: "SDNN", value: result.markingEstimate(Self.measured("%.1f", result.timeDomain.sdnn, unit: Self.msUnit), for: .sdnn))
             metricCell(label: "RMSSD", value: Self.measured("%.1f", result.timeDomain.rmssd, unit: Self.msUnit))
             metricCell(label: "pNN50", value: result.markingEstimate(String(format: "%.1f%%", locale: LanguageManager.appLocale, result.timeDomain.pnn50), for: .pnn50))
             metricCell(label: "SDSD", value: result.markingEstimate(Self.measured("%.1f", result.timeDomain.sdsd, unit: Self.msUnit), for: .sdsd))
             metricCell(label: String(localized: "HR Range", bundle: LanguageManager.appBundle), value: result.markingEstimate(String(format: "%.0f-%.0f", locale: LanguageManager.appLocale, result.timeDomain.minHR, result.timeDomain.maxHR), for: .hrRange))
-            metricCell(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: Self.measured("%.0f", result.timeDomain.meanHR, unit: Self.bpmUnit))
+            metricCell(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: result.markingEstimate(Self.measured("%.0f", result.timeDomain.meanHR, unit: Self.bpmUnit), for: .meanHR))
             metricCell(label: String(localized: "SD HR", bundle: LanguageManager.appBundle), value: result.markingEstimate(Self.measured("%.1f", result.timeDomain.sdHR, unit: Self.bpmUnit), for: .sdHR))
             if let tri = result.timeDomain.triangularIndex {
                 metricCell(label: "HRV TI", value: String(format: "%.1f", locale: LanguageManager.appLocale, tri))

@@ -88,6 +88,10 @@ final class RRDataImporter: Sendable {
             /// Whether `rrMin` and `rrMax` are both stated by the file rather
             /// than derived from mean HR or defaulted.
             let rrRangeStated: Bool
+            /// The file's own mean HR (bpm) and reading length (seconds), nil
+            /// when it has no such column or the cell is unreadable.
+            var meanHR: Double?
+            var durationSeconds: Double?
         }
 
         let sessions: [SessionSummary]
@@ -97,7 +101,7 @@ final class RRDataImporter: Sendable {
     /// Result for Emuqu multi-session RR export (raw RR data per session)
     struct FlowHRVMultiSessionResult {
         struct SessionRRData {
-            let sessionDate: String // Original session_date string (e.g. "2026-01-25_0443")
+            let sessionDate: String // Original session_date string (e.g. "2026-11-01T01:30:15-04:00", or legacy "2026-01-25_0443")
             let date: Date
             let rrIntervals: [Int] // Raw RR intervals in milliseconds
             let timestamps: [Int64] // Original timestamps

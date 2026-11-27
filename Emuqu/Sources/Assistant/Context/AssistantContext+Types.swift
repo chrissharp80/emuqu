@@ -212,8 +212,8 @@ extension AssistantContext {
         let rmssd: Double
         let sdnn: Double?
         let pnn50: Double?
-        let meanRR: Double
-        let meanHR: Double
+        let meanRR: Double?
+        let meanHR: Double?
     }
 
     struct FrequencyDomainSnapshot: Codable {
