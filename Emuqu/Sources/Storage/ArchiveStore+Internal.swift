@@ -966,18 +966,6 @@ extension ArchiveStore {
             if unsaved[id] == change { unsaved.removeValue(forKey: id) }
         }
     }
-
-    /// Check if a session with a similar start time already exists
-    /// Uses a 1-hour window to detect duplicates during import
-    /// This allows multiple sessions per day while preventing true duplicates
-    func sessionExists(for date: Date) -> Bool {
-        state.archiveLock.lock()
-        defer { state.archiveLock.unlock() }
-        let oneHour = SessionArchive.Tuning.importDuplicateWindow
-        return state.index.contains { entry in
-            abs(entry.date.timeIntervalSince(date)) < oneHour
-        }
-    }
 }
 
 // MARK: - File-scope helpers
