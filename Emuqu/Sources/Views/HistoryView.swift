@@ -561,10 +561,13 @@ struct HistoryView: View {
     }
 
     /// One tag save: the rewrite on a detached task, then the archive signal,
-    /// or the failure shown to the user.
+    /// or the failure shown to the user. Written to the session that holds
+    /// the reading now (`SessionArchive.archivedId(of:)`): a copy the
+    /// duplicate cleanup retired while it was open gave its content to the
+    /// copy kept, which takes the edit too.
     private func writeTags(_ id: UUID, tags: [ReadingTag], notes: String?, to archive: SessionArchive) async {
         do {
-            try await Task.detached(priority: .userInitiated) { try archive.updateTags(id, tags: tags, notes: notes) }.value
+            try await Task.detached(priority: .userInitiated) { try archive.updateTags(archive.archivedId(of: id), tags: tags, notes: notes) }.value
             collector.archiveSignal.notifyChanged()
         } catch {
             debugLog("[HistoryView] Failed to update tags: \(error)")

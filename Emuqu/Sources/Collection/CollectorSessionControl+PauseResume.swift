@@ -162,9 +162,14 @@ extension CollectorSessionControl {
     /// Archive a paused session; a failure is logged and shown to the user.
     /// Asked to go to iCloud again: a segment paused again after a resume is
     /// an id iCloud already holds, which sync would otherwise never re-send.
+    ///
+    /// Never folded into another same-night entry, as a night recovered to
+    /// its pause is not (`SessionRecoveryService.recoverToPausedState`): the
+    /// fold keeps the other entry's id, and the paused marker, Resume's link,
+    /// Done and Discard all name this one.
     private func archivePausedSession(_ session: HRVSession, label: String) async -> Bool {
         do {
-            try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+            try archive.archive(session, skipSameNightMerge: true, requestingReupload: true)
             debugLog("[RRCollector] ✅ \(label) session archived: \(session.id.uuidString.prefix(8))")
             return true
         } catch {
@@ -306,7 +311,7 @@ extension CollectorSessionControl {
         }
         debugLog("[RRCollector] Finalizing paused session \(session.id.uuidString.prefix(8))")
         guard let finalSession = rearchiveFinalized(session) else { return }
-        baselineTracker.update(with: finalSession, sleepSchedule: settingsManager.settings.sleepSchedule)
+        baselineTracker.update(with: archive.night(holding: finalSession), sleepSchedule: settingsManager.settings.sleepSchedule)
         sessionState.currentSession = finalSession
         sessionState.needsAcceptance = finalSession.analysisResult != nil
         sessionState.reviewArchivedSessionId = sessionState.needsAcceptance ? finalSession.id : nil
@@ -319,15 +324,18 @@ extension CollectorSessionControl {
 
     /// Marks the archive's copy of the paused night complete, in place, and
     /// returns it as written. A night the archive no longer holds is saved
-    /// from the held copy. Either write asks iCloud for the night again, as
-    /// the finished night replaces the paused one there. Nil when the write
-    /// failed; the error is shown.
+    /// from the held copy; when that folds it into a night already archived,
+    /// the review says so (`reviewFoldedIntoSessionId`), as the morning's
+    /// does, and its edits go to that night. Either write asks iCloud for the
+    /// night again, as the finished night replaces the paused one there. Nil
+    /// when the write failed; the error is shown.
     private func rearchiveFinalized(_ paused: HRVSession) -> HRVSession? {
         var finalSession = paused
         finalSession.state = .complete
         do {
             guard archive.store.exists(paused.id) else {
-                try archive.archive(finalSession, skipSameNightMerge: false, requestingReupload: true)
+                let entry = try archive.archive(finalSession, skipSameNightMerge: false, requestingReupload: true)
+                sessionState.reviewFoldedIntoSessionId = entry.sessionId == finalSession.id ? nil : entry.sessionId
                 return finalSession
             }
             try archive.update(paused.id, requestingReupload: true) { $0.state = .complete }

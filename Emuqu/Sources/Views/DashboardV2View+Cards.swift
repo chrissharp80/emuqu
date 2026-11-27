@@ -507,10 +507,13 @@ extension DashboardV2View {
         }
     }
 
-    /// Returns false when the write failed.
+    /// Returns false when the write failed. Written to the session that
+    /// holds the night now (`SessionArchive.archivedId(of:)`): a recording
+    /// folded into a night already archived, or a duplicate retired while the
+    /// card was shown, takes the answer on the night that kept it.
     nonisolated private static func storeMorningFeeling(_ value: Int, tags: [MorningFeelingTag]?, id: UUID, archive: SessionArchive) -> Bool {
         do {
-            try archive.update(id) { stored in
+            try archive.update(archive.archivedId(of: id)) { stored in
                 stored.morningFeeling = value
                 stored.morningFeelingTags = tags
             }

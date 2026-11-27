@@ -58,6 +58,18 @@ extension SessionArchive {
     func sessionExists(for date: Date) -> Bool { store.sessionExists(for: date) }
     func linkedSegments(for session: HRVSession) -> [LinkedSegmentInfo]? { store.linkedSegments(for: session) }
 
+    /// Archive `session` and return the night that now holds it: `session`
+    /// itself, or the night already archived that the archive folded it into
+    /// (a second recording of the same night), read whole. That night is what
+    /// the baseline, Apple Health and iCloud then take; the recording under
+    /// its own id would put a second copy of the night there. `session` when
+    /// that night cannot be read (logged).
+    func archiveReturningNight(_ session: HRVSession) throws -> HRVSession {
+        let entry = try archive(session)
+        guard entry.sessionId != session.id else { return session }
+        return retrieveOrLog(entry.sessionId, caller: "SessionArchive.archiveReturningNight") ?? session
+    }
+
     /// Replace a session's tags and notes. `notes` is the whole new value:
     /// every caller passes nil for an empty field, so nil clears the note.
     func updateTags(_ id: UUID, tags: [ReadingTag], notes: String? = nil) throws {

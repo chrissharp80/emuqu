@@ -688,3 +688,43 @@ final class ReanalysisServiceTests: XCTestCase {
         RecoveryScoreCalculator.toTenScale(try breakdown(of: night, against: baseline).compositeScore)
     }
 }
+
+// MARK: - Edits on a recording folded into another night
+
+extension ReanalysisServiceTests {
+    /// A window picked on the report of a recording the archive folded into
+    /// another night is applied to that night, which holds the recording's
+    /// beats. Archiving the report's copy instead merged it in again, which
+    /// kept the night's own window and dropped the pick; with merging off it
+    /// became a second night.
+    func testAManualWindowOnAFoldedRecordingLandsOnTheNightItWentInto() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        try archive.archive(night)
+        var recording = overnight()
+        recording.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: recording.id, startDate: nightStart)
+        archive.archiveLock.withLock { archive.state.recordFold(of: recording.id, into: night.id) }
+
+        let written = await makeService().applyManualAnalysis(recording, result: Self.analysis(at: nightStart))
+
+        XCTAssertEqual(written?.id, night.id)
+        XCTAssertEqual(try archive.retrieve(night.id)?.windowUserAdjusted, true, "the pick missed the night that holds the recording")
+        XCTAssertFalse(archive.store.exists(recording.id), "the report's copy was saved as a night of its own")
+    }
+
+    /// A sleep edit made on the report of a folded recording is saved on the
+    /// night it went into, instead of failing as not archived.
+    func testASleepEditOnAFoldedRecordingLandsOnTheNightItWentInto() async throws {
+        let night = overnight()
+        try archive.archive(night)
+        let recordingId = UUID()
+        archive.archiveLock.withLock { archive.state.recordFold(of: recordingId, into: night.id) }
+
+        let saved = await makeService().updateSessionSleepBoundaries(
+            sessionId: recordingId, sleepData: watchNight(minutes: 420), isUserAdjustment: true
+        ).value
+
+        XCTAssertTrue(saved, "the edit was reported as not saved")
+        XCTAssertEqual(try archive.retrieve(night.id)?.sleepSnapshot?.nightSleepMinutes, 420)
+    }
+}

@@ -168,6 +168,7 @@ final class SessionArchive: Sendable {
         state.createArchiveDirectoryIfNeeded()
         state.loadIndex()
         state.loadDeletedIndex()
+        state.loadFoldedIndex()
         // Only log if count is unusual (helps debug archive corruption)
         if state.index.count == 0 || state.index.count > 1000 {
             debugLog("[Archive] Loaded \(state.index.count) sessions from archive")
@@ -396,9 +397,13 @@ final class SessionArchive: Sendable {
     /// entry then has the other id) changed that session, whatever
     /// `requestingReupload` says: the merge stamped it, and it is queued to
     /// upload again, since its id was uploaded before the merge and the push
-    /// takes each id once. The fold is remembered for this launch
-    /// (`archivedId(of:)`), so the direct upload that follows finds the
-    /// session the recording went into.
+    /// takes each id once. The fold is remembered, across launches
+    /// (`archivedId(of:)`), so the direct upload that follows, and an edit
+    /// made on a screen holding the recording, finds the session the
+    /// recording went into. The change is announced under that session's id,
+    /// whose beats changed, and under the recording's, which the archive does
+    /// not hold, so per-session caches and the baseline drop what they kept
+    /// for either.
     @discardableResult
     func archive(_ session: HRVSession, skipSameNightMerge: Bool, requestingReupload: Bool = false) throws -> SessionArchiveEntry {
         var session = session
@@ -413,19 +418,47 @@ final class SessionArchive: Sendable {
             throw error
         }
         let folded = entry.sessionId != session.id
-        if folded { state.foldedInto[session.id] = entry.sessionId }
+        if folded { state.recordFold(of: session.id, into: entry.sessionId) }
         archiveLock.unlock()
-        NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id)
+        NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: entry.sessionId)
+        if folded { NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id) }
         if folded || (requestingReupload && wasArchived) {
             postReuploadRequest(for: entry.sessionId)
         }
         return entry
     }
 
-    /// The id a recording was archived under: its own, or that of the
-    /// same-night session it was folded into during this launch.
+    /// The id a recording is archived under: its own while the index lists
+    /// it, otherwise that of the session it was folded into (a same-night
+    /// merge, an import merge) or retired into (duplicate cleanup).
     func archivedId(of id: UUID) -> UUID {
-        archiveLock.withLock { state.foldedInto[id] } ?? id
+        archiveLock.withLock { state.resolvedId(id) }
+    }
+
+    /// Whether the archive holds the night `id` names: under `id`, or under
+    /// the session it was folded into (`archivedId(of:)`).
+    func holdsNight(_ id: UUID) -> Bool {
+        archiveLock.withLock { store.entryById(state.resolvedId(id)) != nil }
+    }
+
+    /// Recordings kept under another session's id (`archivedId(of:)`): their
+    /// backups are not lost sessions, and their iCloud live backups are done.
+    var foldedRecordingIds: Set<UUID> {
+        archiveLock.withLock { Set(state.foldedInto.keys) }
+    }
+
+    /// `session`, or the archived night it is kept under (`archivedId(of:)`),
+    /// read without its beats; `session` when that night cannot be read.
+    func night(holding session: HRVSession) -> HRVSession {
+        let id = archivedId(of: session.id)
+        guard id != session.id else { return session }
+        return retrieveLightweightOrLog(id, caller: "SessionArchive.night(holding:)") ?? session
+    }
+
+    /// The ids kept under `id` (`archivedId(of:)`): the recordings folded
+    /// into it and the copies retired into it, whose beats it holds.
+    func idsKept(under id: UUID) -> [UUID] {
+        archiveLock.withLock { state.foldedInto.keys.filter { $0 != id && state.resolvedId($0) == id } }
     }
 
     /// Change fields of the archived copy in place: read, change and write
@@ -437,6 +470,13 @@ final class SessionArchive: Sendable {
     /// `requestingReupload: false` is for a change iCloud payloads leave out
     /// (the HealthKit snapshots), or a routine stamp. `true` also stamps
     /// `modifiedAt`, as `archive(_:skipSameNightMerge:requestingReupload:)` does.
+    ///
+    /// `id` is written exactly: a caller holding an id from before the
+    /// archive folded or retired that session (a report, the review card, a
+    /// History detail) passes `archivedId(of:)` of it, so the user's edit
+    /// lands on the night that holds it. Writers of one copy's own content
+    /// (an iCloud copy, a rescore, a stamp) keep their id, so a session
+    /// retired while they ran is never written over its keeper.
     func update(_ id: UUID, requestingReupload: Bool = true, _ change: (inout HRVSession) -> Void) throws {
         try updateIfChanged(id, requestingReupload: requestingReupload) { change(&$0); return true }
     }

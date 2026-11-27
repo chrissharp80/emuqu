@@ -296,23 +296,29 @@ final class SessionAcceptanceService {
     /// beats than the card's: a strap download merged into an archived night
     /// is meant to replace it on Accept (`assembleDownloadedSession`), and is
     /// written whole as before.
+    ///
+    /// A recording the archive folded into a night it already held
+    /// (`SessionArchive.archivedId(of:)`) is accepted as that night, whose
+    /// beats include the card's: archiving the card's copy again would merge
+    /// the recording a second time and freeze a score nothing keeps.
     private func acceptArchived(_ session: HRVSession, inputs: AcceptanceInputs) async throws -> HRVSession? {
         let (archive, rawBackup) = (archive, rawBackup)
-        guard archive.store.exists(session.id), let stored = try archive.retrieve(session.id),
-              Self.sameBeats(stored, session) else { return nil }
+        let id = archive.archivedId(of: session.id)
+        guard archive.store.exists(id), let stored = try archive.retrieve(id),
+              id != session.id || Self.sameBeats(stored, session) else { return nil }
         for _ in 0 ..< RescoreWrite.runs {
-            guard var frozen = try archive.retrieve(session.id) else { return nil }
+            guard var frozen = try archive.retrieve(id) else { return nil }
             let read = frozen
             if let result = frozen.analysisResult { await freezeScore(on: &frozen, result: result, inputs: inputs) }
             let toWrite = frozen
             if let written = try await Task.detached(priority: .userInitiated, operation: { try Self.writeAccepted(toWrite, readFrom: read, to: archive) }).value {
-                rawBackup.markAsArchived(written.id)
+                rawBackup.markAsArchived(session.id)
                 return written
             }
         }
         debugLog("[SessionAcceptanceService] The night kept changing while it was accepted; it keeps its stored score", level: .warning)
         rawBackup.markAsArchived(session.id)
-        return try archive.retrieve(session.id)
+        return try archive.retrieve(id)
     }
 
     /// Puts what acceptance computed on the archived copy, if its inputs are
@@ -358,15 +364,9 @@ final class SessionAcceptanceService {
     nonisolated private static func archiveReturningNight(
         _ session: HRVSession, archive: SessionArchive, rawBackup: RawRRBackup
     ) throws -> HRVSession {
-        let entry = try archive.archive(session)
+        let night = try archive.archiveReturningNight(session)
         rawBackup.markAsArchived(session.id)
-        guard entry.sessionId != session.id else { return session }
-        do {
-            return try archive.retrieve(entry.sessionId) ?? session
-        } catch {
-            debugLog("[SessionAcceptanceService] Could not read the night \(entry.sessionId.uuidString.prefix(8)) the recording was folded into: \(error)", level: .warning)
-            return session
-        }
+        return night
     }
 
     /// Recompute the composite recovery score at acceptance time and snapshot

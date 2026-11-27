@@ -355,13 +355,15 @@ extension ArchiveMigrations {
         let quarantined = quarantineFiles(quarantineWork.map { ($0.id, $0.url) })
         guard !quarantined.isEmpty else { return }
         let moves = quarantineWork.compactMap { work in
-            quarantined[work.id].map { (QuarantineMove(id: work.id, quarantined: $0, original: work.url), work.hash) }
+            quarantined[work.id].map { (QuarantineMove(id: work.id, keeper: work.keeper, quarantined: $0, original: work.url), work.hash) }
         }
         retireUnlessWritten(moves)
     }
 
     /// Phase 3: update archive.index + tombstones under lock, for the copies
-    /// not written since phase 1 checked them.
+    /// not written since phase 1 checked them. Each retired id is then kept
+    /// under its keeper (`recordFold`), which holds its user content: a screen
+    /// or queue that still names the retired copy writes to the keeper.
     private func retireUnlessWritten(_ checkedMoves: [(QuarantineMove, String)]) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
@@ -369,6 +371,7 @@ extension ArchiveMigrations {
         guard !moves.isEmpty else { return }
         do {
             try retireQuarantined(Set(moves.map(\.id)))
+            moves.forEach { archive.state.recordFold(of: $0.id, into: $0.keeper) }
         } catch {
             debugLog("[Archive] ⚠️ Failed to save the indexes after quarantining duplicates — moving the files back: \(error)", level: .warning)
             restoreFromQuarantine(moves)
@@ -397,6 +400,7 @@ extension ArchiveMigrations {
     /// One retired file: where quarantine put it and where the index expects it.
     private struct QuarantineMove {
         let id: UUID
+        let keeper: UUID
         let quarantined: URL
         let original: URL
     }
@@ -459,7 +463,7 @@ extension ArchiveMigrations {
     /// the lock-held section gathers the snapshot, carries each retired
     /// copy's user content into its keeper (`carryUserContent(to:)`), and maps
     /// the ids that may go back to file URLs, with the file hash checked.
-    private func duplicateQuarantineWork() -> (work: [(id: UUID, url: URL, hash: String)], changedKeepers: Set<UUID>) {
+    private func duplicateQuarantineWork() -> (work: [DuplicateWork], changedKeepers: Set<UUID>) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         let overnightEntries = archive.state.index.filter { $0.sessionType == .overnight }
@@ -470,15 +474,30 @@ extension ArchiveMigrations {
             now: Date(),
             mergeMode: archive.state.mergeSettings.mode()
         )
-        let entriesById = Dictionary(
-            overnightEntries.map { ($0.sessionId, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
         let carried = carryUserContent(to: retirements)
-        let work = carried.retirable.compactMap { id in
-            entriesById[id].map { (id: id, url: archive.state.resolveFileURL(for: $0), hash: $0.fileHash) }
+        return (duplicateWork(carried.retirable, of: retirements, entries: overnightEntries), carried.changedKeepers)
+    }
+
+    /// One retired copy: its file, the hash it had when checked, and the
+    /// keeper that took its user content.
+    private struct DuplicateWork {
+        let id: UUID
+        let url: URL
+        let hash: String
+        let keeper: UUID
+    }
+
+    /// The work for each retirable copy whose entry and keeper are known.
+    /// Caller holds `archiveLock`.
+    private func duplicateWork(
+        _ retirable: [UUID], of retirements: [DuplicateRetirement], entries: [SessionArchiveEntry]
+    ) -> [DuplicateWork] {
+        let entriesById = Dictionary(entries.map { ($0.sessionId, $0) }, uniquingKeysWith: { first, _ in first })
+        let keeperOf = Dictionary(retirements.map { ($0.loser, $0.keeper) }, uniquingKeysWith: { first, _ in first })
+        return retirable.compactMap { id in
+            guard let entry = entriesById[id], let keeper = keeperOf[id] else { return nil }
+            return DuplicateWork(id: id, url: archive.state.resolveFileURL(for: entry), hash: entry.fileHash, keeper: keeper)
         }
-        return (work, carried.changedKeepers)
     }
 
     /// Carry each retired copy's user content into its keeper, keeper by

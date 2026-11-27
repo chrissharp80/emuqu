@@ -66,8 +66,9 @@ extension EmuquApp {
     /// for users who change their mind.
     private func presentInterruptedSessionAlertIfNeeded() {
         guard let state = collector.recordingStore.load() else { return }
-        // Only alert if the session isn't already archived (e.g. auto-archived on background)
-        guard !collector.archive.store.exists(state.sessionId) else {
+        // Only alert if the session isn't already archived (e.g. auto-archived
+        // on background), under its own id or folded into a night already held.
+        guard !collector.archive.holdsNight(state.sessionId) else {
             collector.recordingStore.clear(ifItIs: state.sessionId)
             return
         }

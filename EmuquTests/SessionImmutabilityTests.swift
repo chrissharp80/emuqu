@@ -293,6 +293,62 @@ final class SessionImmutabilityTests: XCTestCase {
         XCTAssertEqual(cloud.liveBackupsCleared, [second.id])
     }
 
+    /// A recording the archive folded into a night before it was reviewed is
+    /// accepted as that night: the night takes the frozen score, and the
+    /// recording is not archived, and merged in, a second time.
+    func testAcceptingARecordingFoldedBeforeReviewAcceptsTheNightItWentInto() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AcceptanceFoldedBefore-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let lastNight = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-3600)
+        let archive = SessionArchive(directory: directory)
+        func recording(from start: Date, hours: Double) -> HRVSession {
+            var session = HRVSession(startDate: start, sessionType: .overnight)
+            session.endDate = start.addingTimeInterval(hours * 3600)
+            let beats = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 990 : 1010) }
+            session.rrSeries = RRSeries(points: beats, sessionId: session.id, startDate: start)
+            session.analysisResult = depressedResult()
+            return session
+        }
+        let earlier = recording(from: lastNight, hours: 7)
+        try archive.archive(earlier, skipSameNightMerge: true)
+        let second = recording(from: lastNight.addingTimeInterval(3600), hours: 5)
+        XCTAssertEqual(try archive.archive(second).sessionId, earlier.id, "the fixture expects the second recording folded")
+        let refolds = FoldNotices(recordingId: second.id)
+        let token = NotificationCenter.default.addObserver(forName: .flowRecoveryArchiveChanged, object: nil, queue: nil) { note in
+            refolds.note(note.object as? UUID)
+        }
+        defer { NotificationCenter.default.removeObserver(token) }
+        let cloud = CloudCalls(done: expectation(description: "live backup cleared"))
+
+        let accepted = try await acceptanceService(in: directory, archive: archive, cloud: cloud).processAcceptance(
+            session: second, inputs: acceptanceInputs, enableHealthKitExport: false, clearPersistedRecordingState: {}
+        )
+        await fulfillment(of: [cloud.done], timeout: 2)
+
+        XCTAssertEqual(accepted.id, earlier.id)
+        XCTAssertEqual(refolds.count, 0, "the card's copy was archived again and folded into the night a second time")
+        XCTAssertNotNil(try archive.retrieve(earlier.id)?.recoveryScore, "the score was frozen on the card's copy, which nothing keeps")
+        XCTAssertEqual(cloud.liveBackupsCleared, [second.id])
+    }
+
+    /// Counts the change notices posted under a folded recording's id, which
+    /// only a fold of it posts.
+    private final class FoldNotices: @unchecked Sendable {
+        private let lock = NSLock()
+        private let recordingId: UUID
+        private var seen = 0
+
+        init(recordingId: UUID) { self.recordingId = recordingId }
+
+        var count: Int { lock.withLock { seen } }
+
+        func note(_ id: UUID?) {
+            guard id == recordingId else { return }
+            lock.withLock { seen += 1 }
+        }
+    }
+
     // MARK: - An unusable recording's heart rate is not a sleep HR
 
     private func vitals(restingHeartRate: Double?) -> RecoveryVitals {

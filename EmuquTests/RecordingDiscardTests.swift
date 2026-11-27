@@ -266,6 +266,31 @@ final class RecordingDiscardTests: XCTestCase {
         XCTAssertEqual(collector.sessionState.recordingPhase, .paused(sessionId: paused.id))
     }
 
+    /// A night paused beside another recording of the same night the archive
+    /// already holds is saved under its own id, as a night recovered to its
+    /// pause is: the paused marker, Resume's link, Done and Discard all name
+    /// it, and a fold into the other night left them nothing to act on.
+    func testAPausedNightIsSavedUnderItsOwnIdBesideAnotherOfTheSameNight() async throws {
+        let collector = makeCollector()
+        isolateFromHostPausedNight(collector)
+        let lastNight = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-3600)
+        let otherId = UUID()
+        let other = HRVSession(
+            id: otherId, startDate: lastNight, endDate: lastNight.addingTimeInterval(7 * 3600), state: .complete,
+            sessionType: .overnight, rrSeries: RRSeries(points: beats(200), sessionId: otherId, startDate: lastNight),
+            analysisResult: nil, artifactFlags: nil
+        )
+        _ = try archive.archive(other, skipSameNightMerge: true)
+        let session = HRVSession(startDate: lastNight.addingTimeInterval(3600), sessionType: .overnight)
+        try startRecording(session, on: collector)
+
+        let paused = await collector.control.pauseOvernightStreaming()
+
+        XCTAssertEqual(paused?.id, session.id)
+        XCTAssertTrue(archive.store.exists(session.id), "the paused night was folded into the other night")
+        XCTAssertEqual(collector.recordingStore.pausedSessionId(), session.id)
+    }
+
     /// Stop, Pause and Discard each claim the night's ending before they
     /// first suspend. A night another of them is already ending is left as it
     /// was by all three, and by the strap-only Stop and Discard the Record
