@@ -206,6 +206,12 @@ extension SessionRecoveryCoordinator {
         return await archiveRepaired(repaired, originalId: session.id, beatCount: mergedPoints.count)
     }
 
+    /// Whether carrying the user's edits onto the rebuilt night changed what
+    /// its score is computed from (`RescoreWrite.inputsMatch`).
+    nonisolated static func carriedEditsChangeScoringInputs(rebuilt: HRVSession, carried: HRVSession) -> Bool {
+        !RescoreWrite.inputsMatch(carried, rebuilt, kind: .scoreOnly(healedTraining: false))
+    }
+
     /// Upload immediately instead of accumulating — keeps peak memory low.
     nonisolated private func archiveRepaired(_ repairedSession: HRVSession, originalId: UUID, beatCount: Int) async -> Bool {
         do {
@@ -232,11 +238,25 @@ extension SessionRecoveryCoordinator {
     /// the archive, not in the copy read before it. Vitals carry over only
     /// when the rebuild produced none. A night no longer in the archive
     /// (deleted, or Delete All My Data) is not written back; nil then.
+    ///
+    /// The rebuild scored the night against its own sleep, with no readiness
+    /// rating and its own vitals. When the kept edits changed any of those
+    /// inputs (a sleep set by hand, a rating, the stored vitals), the score,
+    /// quality and window describe other inputs than the night now holds, so
+    /// the night is analysed again from what it holds
+    /// (`.flowRecoveryRescoreNeeded`).
     private func writeRepaired(_ rebuilt: HRVSession) throws -> HRVSession? {
         var toArchive = rebuilt
         if toArchive.vitalsSnapshot == nil {
             toArchive.vitalsSnapshot = archive.retrieveOrLog(rebuilt.id)?.vitalsSnapshot
         }
-        return try archive.rewriteKeepingUserEdits(toArchive)
+        guard let written = try archive.rewriteKeepingUserEdits(toArchive) else { return nil }
+        if Self.carriedEditsChangeScoringInputs(rebuilt: rebuilt, carried: written) {
+            NotificationCenter.default.post(
+                name: .flowRecoveryRescoreNeeded, object: written.id,
+                userInfo: ["reason": "sleep", "detail": "a repaired night kept the user's sleep, rating or vitals"]
+            )
+        }
+        return written
     }
 }

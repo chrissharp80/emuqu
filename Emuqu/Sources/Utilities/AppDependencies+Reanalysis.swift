@@ -47,6 +47,8 @@ struct SessionReanalysisParts {
     let trainingMetricsCache: @MainActor () -> TrainingMetricsCache
     /// Drops a rewritten session's cached chart zones.
     let invalidateZones: @MainActor (UUID) -> Void
+    /// Whether a session is the night on the review card, not yet accepted.
+    var isAwaitingReview: @MainActor (UUID) -> Bool = { _ in false }
 
     /// The container's archive, HealthKit, scoring context, archive signal,
     /// iCloud sync, a resolver for its training-metrics cache, and its chart
@@ -60,7 +62,11 @@ struct SessionReanalysisParts {
             archiveSignal: dependencies.collection.archiveSignal,
             cloudSync: dependencies.storage.cloudKitSyncManager,
             trainingMetricsCache: { dependencies.analysis.trainingMetricsCache },
-            invalidateZones: { dependencies.app.organizedZonesCache.invalidate($0) }
+            invalidateZones: { dependencies.app.organizedZonesCache.invalidate($0) },
+            isAwaitingReview: { id in
+                guard let state = dependencies.app.collectorBox.collector?.sessionState else { return false }
+                return state.needsAcceptance && state.reviewArchivedSessionId == id
+            }
         )
     }
 }
@@ -107,7 +113,8 @@ extension AppDependencies {
             onSessionUploaded: { [cloudSync = parts.cloudSync] session in
                 Task { await cloudSync.reuploadRewrite(session) }
             },
-            onZonesStale: parts.invalidateZones
+            onZonesStale: parts.invalidateZones,
+            isAwaitingReview: parts.isAwaitingReview
         )
     }
 

@@ -475,7 +475,7 @@ extension SessionRecoveryCoordinator {
               let updated = persistMergedOvernight(
                 session: session, mergedPoints: mergedPoints, selection: selection, existingCount: existing.count, strap: strap
               ) else { return .failed }
-        return await rescoreAugmentedOvernight(updated, strapCount: strapRR.count, streamedCount: existing.count, with: reanalysis)
+        return await rescoreAugmentedOvernight(updated, merging: session, strapCount: strapRR.count, streamedCount: existing.count, with: reanalysis)
     }
 
     /// The selector's points, or the strap's when it chose nothing and the
@@ -488,12 +488,17 @@ extension SessionRecoveryCoordinator {
         return strapRR.count > existing.count ? strapRR : nil
     }
 
+    ///
+    /// Apple Health gets the night with the strap's beats, compared with the
+    /// night as it was before the merge (`before`): the reanalysis compares
+    /// with the merged copy it read, which already holds them.
     private func rescoreAugmentedOvernight(
-        _ updated: HRVSession, strapCount: Int, streamedCount: Int, with reanalysis: SessionReanalysisCoordinator
+        _ updated: HRVSession, merging before: HRVSession, strapCount: Int, streamedCount: Int, with reanalysis: SessionReanalysisCoordinator
     ) async -> OvernightAugmentResult {
         let rescored = await reanalysis.reanalyzeSession(updated)
         await MainActor.run { archiveSignal.notifyChanged() }
         let finalSession = rescored ?? updated
+        reanalysis.service.reexportIfReadingsChanged(from: before, to: finalSession)
         let mergedBeatCount = finalSession.rrSeries?.points.count ?? 0
         debugLog("[RRCollector] augmentOvernight: merged \(strapCount) strap + \(streamedCount) streamed → \(mergedBeatCount) beats, source=\(finalSession.dataSourceSummary?.selectedSource ?? "?"), rescored=\(rescored != nil)")
         // A failed rescore reports no score: the archived one predates the merge.

@@ -116,11 +116,21 @@ final class ReanalysisService {
     /// Drops a rewritten session's cached chart zones (`OrganizedZonesCache`).
     let onZonesStale: (UUID) -> Void
 
+    /// Whether the session is the night on the review card, not yet
+    /// accepted: acceptance exports it to Apple Health, and a discarded one
+    /// must leave nothing there, so a rewrite does not export it first.
+    let isAwaitingReview: @MainActor (UUID) -> Bool
+
     // MARK: - State
 
     /// The last sleep-boundary edit started, which the next one waits for
     /// (`updateSessionSleepBoundaries`). Set only there.
     var pendingSleepEdit: Task<Bool, Never>?
+
+    /// The last Apple Health export started (`reexportIfReadingsChanged`),
+    /// which the next one waits for, so exports land in the order the
+    /// rewrites were made and a batch reanalysis writes one at a time.
+    var pendingHealthExport: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -139,7 +149,8 @@ final class ReanalysisService {
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
         onArchiveChanged: @escaping () -> Void,
         onSessionUploaded: @escaping (HRVSession) -> Void,
-        onZonesStale: @escaping (UUID) -> Void
+        onZonesStale: @escaping (UUID) -> Void,
+        isAwaitingReview: @escaping @MainActor (UUID) -> Bool = { _ in false }
     ) {
         self.archive = archive
         self.healthKit = healthKit
@@ -156,6 +167,7 @@ final class ReanalysisService {
         self.onArchiveChanged = onArchiveChanged
         self.onSessionUploaded = onSessionUploaded
         self.onZonesStale = onZonesStale
+        self.isAwaitingReview = isAwaitingReview
     }
 
     // MARK: - Re-Analysis
@@ -312,7 +324,7 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] Analysis failed during re-analysis")
             return nil
         }
-        applyAnalysis(analysisResult, to: &updatedSession)
+        applyAnalysis(analysisResult, to: &updatedSession, replacing: session)
         let healed = await rescore(&updatedSession, analysisResult: analysisResult, original: session, sessionEndDate: sessionEndDate)
         return (updatedSession, healed)
     }
@@ -355,11 +367,15 @@ final class ReanalysisService {
     /// The new window's result is classified again, so the dashboard shows
     /// SubjectiveReadinessCard instead of a misleading score when the data is
     /// insufficient, and a mark that no longer applies clears.
-    private func applyAnalysis(_ analysisResult: HRVAnalysisResult, to session: inout HRVSession) {
+    ///
+    /// The vitals snapshot's sleep HR then follows the new window and quality,
+    /// moved from `previous`'s (`HRVSession.refreshSleepHeartRate`).
+    private func applyAnalysis(_ analysisResult: HRVAnalysisResult, to session: inout HRVSession, replacing previous: HRVSession) {
         session.analysisResult = analysisResult
         session.analysisResult?.isReanalysis = true
         session.windowUserAdjusted = nil
         reclassifyHRVQuality(of: &session, result: analysisResult)
+        session.refreshSleepHeartRate(replacing: previous)
     }
 
     /// Runs the acceptance classifier (`SessionAcceptanceService
@@ -461,19 +477,20 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] Failed to save re-analyzed session: \(error)")
             return nil
         }
-        if case .written(let written) = outcome { finishReanalysisWrite(written) }
+        if case .written(let written) = outcome { finishReanalysisWrite(written, readFrom: read) }
         return outcome
     }
 
     /// After a reanalysis was written: cached on-demand zones computed by the
     /// chart view are stale (the window has changed), so they are dropped and
     /// the next chart render recomputes against the new window; the baseline,
-    /// the archive signal and iCloud see the session as written.
-    private func finishReanalysisWrite(_ written: HRVSession) {
+    /// the archive signal, iCloud and Apple Health see the session as written.
+    private func finishReanalysisWrite(_ written: HRVSession, readFrom read: HRVSession) {
         onZonesStale(written.id)
         baselineTracker.update(with: written, sleepSchedule: settingsProvider().sleepSchedule)
         onArchiveChanged()
         Task { onSessionUploaded(written) }
+        reexportIfReadingsChanged(from: read, to: written)
         debugLog("[ReanalysisService] Re-analysis complete")
     }
 
@@ -607,9 +624,22 @@ final class ReanalysisService {
         await prepareScoringBaseline(for: session)
         guard !Self.keepsStoredScore(session, baseline: scoringBaseline(for: session)) else { return nil }
         let healedTraining = await healedTrainingContext(for: session, result: result)
-        guard let updated = rescored(session, result: result, training: healedTraining) else { return nil }
+        let classified = classifiedAgainstCurrentSleep(session, result: result)
+        guard let updated = rescored(classified, result: result, training: healedTraining) else { return nil }
         let healed = healedTraining.map { RescoreWrite.heals($0, over: session.trainingSnapshot ?? result.trainingContext) } ?? false
         return persistRescore(updated, readFrom: session, kind: .scoreOnly(healedTraining: healed), previous: Self.scoreFingerprint(of: session))
+    }
+
+    /// `session` classified again against the sleep it holds now, with its
+    /// snapshot's sleep HR following the quality. A score-only pass is what
+    /// a sleep change on a night whose window the user picked falls back to,
+    /// and the quality decided on the earlier sleep (`.preSleep` from no
+    /// overlap) would otherwise still drive the score.
+    func classifiedAgainstCurrentSleep(_ session: HRVSession, result: HRVAnalysisResult) -> HRVSession {
+        var classified = session
+        reclassifyHRVQuality(of: &classified, result: result)
+        classified.refreshSleepHeartRate(replacing: session)
+        return classified
     }
 
     /// `session` with the healed training context stamped on and the score,

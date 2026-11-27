@@ -79,14 +79,18 @@ extension SessionDataMigrations {
         }
     }
 
-    /// Marks `stored` `.insufficient` and rescores it against the baseline,
+    /// Marks `stored` `.insufficient`, moves its snapshot's sleep HR off the
+    /// strap (`HRVSession.refreshSleepHeartRate`: an unusable recording's
+    /// heart rate is not a sleep HR), and rescores it against the baseline,
     /// when its inputs are still those of `decided`, the copy the gate read
     /// (`RescoreWrite.inputsMatch`). False, with `stored` unchanged, when they
     /// are not: a window picked or a sleep edited since is the user's, and
     /// the gate's verdict was about the copy before it.
     static func flagInsufficient(_ stored: inout HRVSession, decidedOn decided: HRVSession, context: RescoreContext) -> Bool {
         guard RescoreWrite.inputsMatch(stored, decided, kind: .scoreOnly(healedTraining: false)) else { return false }
+        let classifiedBefore = stored
         stored.hrvDataQuality = .insufficient
+        stored.refreshSleepHeartRate(replacing: classifiedBefore)
         applyBaselineRescore(&stored, context: context)
         return true
     }

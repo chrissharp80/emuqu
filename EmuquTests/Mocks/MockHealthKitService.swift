@@ -77,5 +77,10 @@ final class MockHealthKitService: HealthKitServiceProtocol {
         nil
     }
 
-    func exportSessionMetrics(from _: HRVSession) async throws {}
+    /// The ids of the sessions `exportSessionMetrics` was asked to write, in order.
+    private(set) var exportedSessionIds: [UUID] = []
+
+    func exportSessionMetrics(from session: HRVSession) async throws {
+        exportedSessionIds.append(session.id)
+    }
 }

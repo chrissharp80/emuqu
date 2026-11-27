@@ -98,8 +98,14 @@ enum CloudSessionPayload {
     /// Put back into `merged`, a newer iCloud copy, the HealthKit readings this
     /// device holds and the upload left out. A field the iCloud copy does carry
     /// (a record written before these were stripped) is kept as it came.
+    ///
+    /// The vitals snapshot's sleep HR follows the iCloud copy's analysis and
+    /// quality (`HRVSession.refreshSleepHeartRate`): a reanalysis made on the
+    /// other device moves the window, and the local snapshot holds the strap
+    /// heart rate of the window it replaced.
     static func restoringLocalOnlyFields(into merged: inout HRVSession, from local: HRVSession) {
         merged.vitalsSnapshot = merged.vitalsSnapshot ?? local.vitalsSnapshot
+        merged.refreshSleepHeartRate(replacing: local)
         merged.trainingSnapshot = restoring(merged.trainingSnapshot, from: local.trainingSnapshot)
         merged.analysisResult = merged.analysisResult.map { restoring($0, from: local.analysisResult) }
         merged.scoreBreakdown = restoring(merged.scoreBreakdown, from: local.scoreBreakdown)

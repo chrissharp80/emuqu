@@ -262,6 +262,7 @@ final class SessionAcceptanceService {
             accepted = try await acceptUnarchived(session, inputs: inputs)
         }
         baselineTracker.update(with: accepted, sleepSchedule: inputs.sleepSchedule)
+        Self.requestRewindowIfSleepMoved(from: session, to: accepted)
         let session = accepted
         // Clear persisted recording state - session is now safely archived.
         // NOTE: We intentionally do NOT clear the H10 memory here — data stays
@@ -343,9 +344,10 @@ final class SessionAcceptanceService {
         return left.count == right.count && left.first?.t_ms == right.first?.t_ms && left.last?.t_ms == right.last?.t_ms
     }
 
-    /// The fields acceptance computes: the frozen sleep, vitals and score.
+    /// The fields acceptance computes: the frozen sleep with its window, the
+    /// vitals and the score.
     nonisolated static func applyAccepted(from frozen: HRVSession, to stored: inout HRVSession) {
-        stored.sleepSnapshot = frozen.sleepSnapshot
+        applyFrozenSleep(from: frozen, to: &stored)
         stored.vitalsSnapshot = frozen.vitalsSnapshot
         stored.hrvDataQuality = frozen.hrvDataQuality
         stored.recoveryScore = frozen.recoveryScore
@@ -429,12 +431,47 @@ final class SessionAcceptanceService {
             sessionStart: session.startDate,
             sessionEnd: sessionEnd
         )
-        // A night whose sleep the user set by hand keeps it: Health's reading
-        // is what they corrected.
-        if session.sleepUserAdjusted != true {
-            session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
-        }
+        Self.freezeFetchedSleep(sleepData, on: &session)
         if let vitals { session.vitalsSnapshot = vitals }
+    }
+
+    /// Freezes the fetched sleep on the session (`sleepToFreeze`), with the
+    /// boundaries and segments the analysis window is chosen in moved to it
+    /// (`ReanalysisService.applySleepBoundaries`), as the automatic sleep
+    /// refresh moves them: a snapshot replaced under unchanged boundaries
+    /// shows one sleep while the score is computed in another, and the
+    /// later refresh, comparing against the replaced snapshot, never sees
+    /// the end move. A night whose sleep the user set by hand keeps it:
+    /// Health's reading is what they corrected.
+    nonisolated static func freezeFetchedSleep(_ fetched: SleepData?, on session: inout HRVSession) {
+        guard session.sleepUserAdjusted != true, let fetched, freezes(fetched, over: session.sleepSnapshot) else { return }
+        // A sleep with no start or end has no window to move to.
+        guard fetched.sleepStart != nil, fetched.sleepEnd != nil else {
+            session.sleepSnapshot = fetched
+            return
+        }
+        ReanalysisService.applySleepBoundaries(fetched, to: &session, sessionStart: session.startDate)
+    }
+
+    /// The sleep snapshot and the window derived from it, moved together.
+    nonisolated static func applyFrozenSleep(from frozen: HRVSession, to stored: inout HRVSession) {
+        stored.sleepSnapshot = frozen.sleepSnapshot
+        stored.sleepStartMs = frozen.sleepStartMs
+        stored.sleepEndMs = frozen.sleepEndMs
+        stored.sleepSegments = frozen.sleepSegments
+    }
+
+    /// Acceptance scored the night in the analysis window chosen inside the
+    /// morning's sleep window. When it froze a sleep that moved that window,
+    /// the night is analysed again inside the new one, as the automatic
+    /// sleep refresh does (`.flowRecoveryRescoreNeeded`, which keeps a window
+    /// the user picked and scores it instead).
+    static func requestRewindowIfSleepMoved(from before: HRVSession, to after: HRVSession) {
+        guard before.id == after.id, ReanalysisService.sleepWindowMoved(from: before, to: after) else { return }
+        NotificationCenter.default.post(
+            name: .flowRecoveryRescoreNeeded, object: after.id,
+            userInfo: ["reason": "sleep", "detail": "the sleep frozen with the score moved the sleep window"]
+        )
     }
 
     /// The night acceptance freezes. A fetch that timed out, failed or found
@@ -443,8 +480,13 @@ final class SessionAcceptanceService {
     /// same recording. Replacing it with nothing made the dashboard fall back
     /// to an older night's sleep and vitals.
     nonisolated static func sleepToFreeze(fetched: SleepData?, morning: SleepData?) -> SleepData? {
-        guard let fetched, fetched.nightSleepMinutes > 0 || morning == nil else { return morning }
+        guard let fetched, freezes(fetched, over: morning) else { return morning }
         return fetched
+    }
+
+    /// Whether `fetched` replaces the morning pass's snapshot.
+    nonisolated static func freezes(_ fetched: SleepData, over morning: SleepData?) -> Bool {
+        fetched.nightSleepMinutes > 0 || morning == nil
     }
 
     /// The composite breakdown for this session. `training` is passed along
@@ -559,37 +601,60 @@ final class SessionAcceptanceService {
         enableHealthKitExport: Bool = false
     ) async -> Bool {
         guard let result = session.analysisResult else { return false }
-        var updated = session
         let inputs = AcceptanceInputs(
             scoringConfig: scoringConfig, trainingContext: trainingContext,
             baselineStats: baselineStats, typicalSleepHours: typicalSleepHours,
             sleepSchedule: sleepSchedule
         )
-        await refreshHealthSnapshots(on: &updated, result: result, sleepSchedule: sleepSchedule)
-        let useBaselineHRV = Self.refreshedUseBaselineHRV(on: &updated, result: result, baselineStats: baselineStats)
-        updated.applySleepHeartRateToVitals()
-        let breakdown = scoreBreakdown(
-            result: result, session: updated, inputs: inputs,
-            training: trainingContext, useBaselineHRV: useBaselineHRV
-        )
-        debugLog("[SessionAcceptanceService] Updating archived recovery score for \(session.id.uuidString.prefix(8))")
-        applyFrozenScore(breakdown, to: &updated, training: trainingContext)
+        let updated = await rescoredWithRefreshedHealth(session, result: result, inputs: inputs)
         guard let stored = reArchive(updated, scoredFrom: session) else { return false }
+        Self.requestRewindowIfSleepMoved(from: session, to: stored)
         exportToHealthIfEnabled(stored, enabled: exportMetrics && enableHealthKitExport)
         return true
     }
 
+    /// `session` with its sleep and vitals fetched again, classified against
+    /// the refreshed sleep when it moved, and scored from them.
+    private func rescoredWithRefreshedHealth(
+        _ session: HRVSession, result: HRVAnalysisResult, inputs: AcceptanceInputs
+    ) async -> HRVSession {
+        var updated = session
+        await refreshHealthSnapshots(on: &updated, result: result, sleepSchedule: inputs.sleepSchedule)
+        let useBaselineHRV = Self.refreshedUseBaselineHRV(
+            on: &updated, result: result, baselineStats: inputs.baselineStats, sleepBefore: session.sleepSnapshot
+        )
+        updated.applySleepHeartRateToVitals()
+        let breakdown = scoreBreakdown(
+            result: result, session: updated, inputs: inputs,
+            training: inputs.trainingContext, useBaselineHRV: useBaselineHRV
+        )
+        debugLog("[SessionAcceptanceService] Updating archived recovery score for \(session.id.uuidString.prefix(8))")
+        applyFrozenScore(breakdown, to: &updated, training: inputs.trainingContext)
+        return updated
+    }
+
     /// An untrustworthy reading (`.insufficient` / `.preSleep`) scores from
     /// the baseline, on every path. A session never classified (nil reads as
-    /// reliable) is classified now against the refreshed sleep, as at
-    /// acceptance; a quality already decided stands.
-    private static func refreshedUseBaselineHRV(
+    /// reliable), or one whose sleep the refresh moved, is classified now
+    /// against the refreshed sleep, as at acceptance: whether the recording
+    /// overlaps sleep is decided from the sleep's start and end, so a quality
+    /// decided on the earlier sleep no longer describes this one. A quality
+    /// decided on the same sleep stands.
+    static func refreshedUseBaselineHRV(
         on session: inout HRVSession,
         result: HRVAnalysisResult,
-        baselineStats: BaselineTracker.RecoveryBaselineStats?
+        baselineStats: BaselineTracker.RecoveryBaselineStats?,
+        sleepBefore: SleepData?
     ) -> Bool {
-        guard session.hrvDataQuality == nil else { return !session.isReliableForHRVAggregates }
+        let sleepMoved = !sameSleepSpan(session.sleepSnapshot, sleepBefore)
+        guard session.hrvDataQuality == nil || sleepMoved else { return !session.isReliableForHRVAggregates }
         return applyHRVQuality(to: &session, result: result, baselineStats: baselineStats)
+    }
+
+    /// Whether two sleeps start and end at the same times: the part of a
+    /// sleep the quality classifier reads.
+    nonisolated static func sameSleepSpan(_ lhs: SleepData?, _ rhs: SleepData?) -> Bool {
+        lhs?.sleepStart == rhs?.sleepStart && lhs?.sleepEnd == rhs?.sleepEnd
     }
 
     /// Write the update onto the archived copy, in place (`SessionArchive.update`),
@@ -645,7 +710,7 @@ final class SessionAcceptanceService {
         archived.analysisResult?.trainingContext = updated.analysisResult?.trainingContext
         if archived.trainingSnapshot == nil { archived.trainingSnapshot = updated.trainingSnapshot }
         archived.hrvDataQuality = updated.hrvDataQuality
-        archived.sleepSnapshot = updated.sleepSnapshot
+        applyFrozenSleep(from: updated, to: &archived)
         archived.vitalsSnapshot = updated.vitalsSnapshot
     }
 
@@ -666,11 +731,7 @@ final class SessionAcceptanceService {
             rrPoints: session.rrSeries?.points, fetchStart: fetchStart, fetchEnd: fetchEnd,
             sessionStart: session.startDate, sessionEnd: sessionEnd
         )
-        // A night whose sleep the user set by hand keeps it: Health's reading
-        // is what they corrected.
-        if session.sleepUserAdjusted != true {
-            session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
-        }
+        Self.freezeFetchedSleep(sleepData, on: &session)
         if let vitals { session.vitalsSnapshot = vitals }
     }
 

@@ -14,12 +14,14 @@ enum RescoreWrite {
     /// Which rescore is writing, and so what it may set.
     enum Kind: Sendable {
         /// `reanalyze`: the window's analysis, its artifact flags, the
-        /// cleared manual-window mark, the quality class and the score; the
-        /// training snapshot only when the pass healed it.
+        /// cleared manual-window mark, the quality class, the sleep HR in the
+        /// vitals snapshot and the score; the training snapshot only when the
+        /// pass healed it.
         case reanalysis(healedTraining: Bool)
-        /// `recomputeScoreOnly`: the score, breakdown and frozen readiness;
-        /// the training snapshot and the analysis's training context only
-        /// when healed.
+        /// `recomputeScoreOnly`: the quality class against the current
+        /// sleep, the sleep HR in the vitals snapshot, the score, breakdown
+        /// and frozen readiness; the training snapshot and the analysis's
+        /// training context only when healed.
         case scoreOnly(healedTraining: Bool)
     }
 
@@ -72,16 +74,23 @@ enum RescoreWrite {
     }
 
     /// Set on `session` what this kind of rescore computes, from `rescored`.
+    ///
+    /// The quality class and the vitals snapshot are the ones the pass scored
+    /// with: the quality is classified against the sleep the score read, and
+    /// the snapshot's sleep HR follows the analysis and quality
+    /// (`HRVSession.refreshSleepHeartRate`). Both were derived from the copy
+    /// the pass read, which `write` has checked is still the stored one.
     static func applyComputedFields(from rescored: HRVSession, to session: inout HRVSession, kind: Kind) {
         session.recoveryScore = rescored.recoveryScore
         session.scoreBreakdown = rescored.scoreBreakdown
         session.frozenReadiness = rescored.frozenReadiness
+        session.hrvDataQuality = rescored.hrvDataQuality
+        session.vitalsSnapshot = rescored.vitalsSnapshot
         switch kind {
         case let .reanalysis(healedTraining):
             session.analysisResult = rescored.analysisResult
             session.artifactFlags = rescored.artifactFlags
             session.windowUserAdjusted = rescored.windowUserAdjusted
-            session.hrvDataQuality = rescored.hrvDataQuality
             if healedTraining { session.trainingSnapshot = rescored.trainingSnapshot }
         case let .scoreOnly(healedTraining):
             guard healedTraining else { return }
@@ -184,17 +193,17 @@ enum RescoreWrite {
     /// some rescore (`applyComputedFields`, each kind its own part).
     static let computedFields: Set<String> = [
         "analysisResult", "artifactFlags", "windowUserAdjusted", "hrvDataQuality",
-        "recoveryScore", "scoreBreakdown", "frozenReadiness", "trainingSnapshot"
+        "recoveryScore", "scoreBreakdown", "frozenReadiness", "trainingSnapshot", "vitalsSnapshot"
     ]
 
     /// Never written by a rescore: the recording and its identity, the beats
-    /// (the archive's own), the user's entries and adjustments, the sleep and
-    /// vitals snapshots, and the export, sync and AI bookkeeping.
+    /// (the archive's own), the user's entries and adjustments, the sleep
+    /// snapshot, and the export, sync and AI bookkeeping.
     static let storedFields: Set<String> = [
         "sourceSchemaVersion", "id", "startDate", "endDate", "state", "sessionType", "rrSeries",
         "tags", "notes", "importedMetrics", "deviceProvenance", "sleepStartMs", "sleepEndMs",
         "sleepSegments", "linkedSessionIds", "pausedDate", "dataSourceSummary", "sleepSnapshot",
-        "sleepUserAdjusted", "napRepaired", "autoWindowResult", "autoWindowScore", "vitalsSnapshot",
+        "sleepUserAdjusted", "napRepaired", "autoWindowResult", "autoWindowScore",
         "healthKitExportedAt", "healthKitExportFailureCount", "modifiedAt", "aiContext",
         "perceivedReadiness", "morningFeeling", "morningFeelingTags", "workoutMetadata"
     ]

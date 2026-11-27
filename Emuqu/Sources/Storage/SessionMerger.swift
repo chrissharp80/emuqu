@@ -335,8 +335,9 @@ enum SessionMerger {
         if outcome.adoptAnalysisResult {
             let offsetMs = MillisecondOffset.between(imported.startDate, and: existing.startDate, fallback: 0)
             let existingPoints = existing.rrSeries?.points ?? []
+            let previous = existing
             existing.analysisResult = imported.analysisResult.map { repointed(shifted($0, by: offsetMs), onto: existingPoints) }
-            adoptAnalysisDerivedState(from: imported, to: &existing)
+            adoptAnalysisDerivedState(from: imported, to: &existing, replacing: previous)
         }
         if outcome.adoptRecoveryScore {
             adoptFrozenScore(from: imported, to: &existing)
@@ -409,9 +410,10 @@ enum SessionMerger {
         _ shouldAdopt: Bool, from imported: HRVSession, to existing: inout HRVSession
     ) {
         guard shouldAdopt else { return }
+        let previous = existing
         existing.analysisResult = imported.analysisResult
         adoptFrozenScore(from: imported, to: &existing)
-        adoptAnalysisDerivedState(from: imported, to: &existing)
+        adoptAnalysisDerivedState(from: imported, to: &existing, replacing: previous)
     }
 
     /// What was decided about the analysis being adopted goes with it: its
@@ -420,12 +422,17 @@ enum SessionMerger {
     /// Left behind, a full night folded into a short fragment would keep the
     /// fragment's `.insufficient` (which re-scoring never revisits once set)
     /// and its snapshots. A snapshot the adopted side never took keeps the
-    /// one there is.
-    private static func adoptAnalysisDerivedState(from imported: HRVSession, to existing: inout HRVSession) {
+    /// one there is, with its sleep HR moved from `previous`'s analysis to
+    /// the adopted one (`HRVSession.refreshSleepHeartRate`), so the kept
+    /// snapshot never holds the replaced analysis's heart rate.
+    private static func adoptAnalysisDerivedState(
+        from imported: HRVSession, to existing: inout HRVSession, replacing previous: HRVSession
+    ) {
         existing.hrvDataQuality = imported.hrvDataQuality
         existing.windowUserAdjusted = imported.windowUserAdjusted
         existing.sleepSnapshot = imported.sleepSnapshot ?? existing.sleepSnapshot
         existing.vitalsSnapshot = imported.vitalsSnapshot ?? existing.vitalsSnapshot
+        existing.refreshSleepHeartRate(replacing: previous)
     }
 
     /// Adopt the imported session's frozen SCORE TRIPLE as a unit.
