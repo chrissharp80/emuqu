@@ -57,12 +57,24 @@ extension ReanalysisService {
 
     /// Whether a re-score of `session` keeps its stored score, breakdown and
     /// frozen readiness: no baseline can be built for its night (`baseline`
-    /// is nil) and it already has a score. A no-baseline score would replace
-    /// the baseline-relative one it may have been given.
+    /// is nil) and its stored score was scored against one. A no-baseline
+    /// score would replace that baseline-relative score. A night first scored
+    /// with no baseline (one of the user's first nights) is re-scored: the new
+    /// score is the same kind, and it reads the night as it now stands, the
+    /// user's sleep edit included.
     nonisolated static func keepsStoredScore(_ session: HRVSession, baseline: BaselineTracker.RecoveryBaselineStats?) -> Bool {
-        guard baseline == nil, session.recoveryScore != nil, session.scoreBreakdown != nil else { return false }
+        guard baseline == nil, session.recoveryScore != nil, let stored = session.scoreBreakdown,
+              !scoredWithoutBaseline(stored) else { return false }
         debugLog("[ReanalysisService] No baseline for the nights before \(session.id.uuidString.prefix(8)); keeping its stored score")
         return true
+    }
+
+    /// Whether `breakdown`'s HRV factor says it had no baseline. A breakdown
+    /// stored before factors carried their facts says nothing, and reads as
+    /// scored against one.
+    nonisolated static func scoredWithoutBaseline(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> Bool {
+        let noBaseline: Set = [ScoreFactorFacts.Note.hrvNoBaseline.rawValue, ScoreFactorFacts.Note.hrvNoBaselineUsingReadiness.rawValue]
+        return breakdown.factors.contains { $0.facts?.note.map(noBaseline.contains) ?? false }
     }
 
     /// The archived overnight sessions that may hold a baseline night before

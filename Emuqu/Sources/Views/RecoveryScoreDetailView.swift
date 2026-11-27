@@ -219,7 +219,7 @@ struct RecoveryScoreDetailView: View {
     /// bpm higher than nocturnal mean), so we override at display time
     /// regardless of whether the refresh has loaded.
     var effectiveVitals: RecoveryVitals? {
-        let stored = session.vitalsSnapshot
+        let stored = session.vitalsWithSleepHeartRate
         let fresh = refreshedVitals
         // Strap analysis-window mean wins for Sleep HR. Falls back to
         // stored / fresh only when the analysis didn't run.
@@ -231,9 +231,10 @@ struct RecoveryScoreDetailView: View {
     }
 
     /// The strap's analysis-window mean HR; nil when the analysis did not
-    /// run (a 0 there is no heart rate).
+    /// run (a 0 there is no heart rate) or the recording is unusable for HRV
+    /// (`HRVSession.strapSleepHeartRate`).
     var strapSleepHR: Double? {
-        result.timeDomain.meanHR > 0 ? result.timeDomain.meanHR : nil
+        session.strapSleepHeartRate(in: result)
     }
 
     var deltaText: String? {

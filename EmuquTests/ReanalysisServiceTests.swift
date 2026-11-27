@@ -603,10 +603,14 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertNotEqual(written.recoveryScore, try score(of: target, against: nil), "scored with no baseline")
     }
 
-    /// A night with no nights before it has no baseline to be scored
-    /// against: its stored score and breakdown stay.
-    func testRescoringANightWithNoNightsBeforeItKeepsItsStoredScore() async throws {
-        let target = try storedScoredNight(daysAfterStart: 0, rmssd: 40)
+    /// A night with no nights before it whose stored score was scored against
+    /// a baseline (one that can no longer be rebuilt) keeps its stored score
+    /// and breakdown: a no-baseline score would replace it.
+    func testRescoringANightWithNoNightsBeforeItKeepsAStoredBaselineScore() async throws {
+        let stats = BaselineTracker.RecoveryBaselineStats(
+            lnRmssdMean: log(50.0), lnRmssdSD: 0.2, lnRmssdCV7Day: nil, meanHRBaseline: 58, meanHRSD: 3, daysInWindow: 20
+        )
+        let target = try storedScoredNight(daysAfterStart: 0, rmssd: 40, scoredAgainst: stats)
         let service = makeService()
 
         let written = await service.recomputeScoreOnly(sessionId: target.id)
@@ -615,6 +619,19 @@ final class ReanalysisServiceTests: XCTestCase {
         let stored = try XCTUnwrap(try archive.retrieve(target.id))
         XCTAssertEqual(stored.recoveryScore, 5.0)
         XCTAssertEqual(stored.scoreBreakdown?.compositeScore, target.scoreBreakdown?.compositeScore)
+    }
+
+    /// A night with no nights before it that was itself scored with no
+    /// baseline (a user's first night) is re-scored: the new score is the
+    /// same kind, read from the night as it now stands.
+    func testRescoringANightFirstScoredWithNoBaselineWritesTheNewScore() async throws {
+        let target = try storedScoredNight(daysAfterStart: 0, rmssd: 40)
+        let service = makeService()
+
+        let rescored = await service.recomputeScoreOnly(sessionId: target.id)
+        let written = try XCTUnwrap(rescored)
+
+        XCTAssertEqual(written.recoveryScore, try score(of: target, against: nil))
     }
 
     /// A scored, reliable night `days` days after `nightStart`, analysed over
@@ -645,11 +662,14 @@ final class ReanalysisServiceTests: XCTestCase {
         return night
     }
 
-    /// `scoredNight` archived with a stored score of 5.0 and a breakdown.
-    private func storedScoredNight(daysAfterStart days: Int, rmssd: Double) throws -> HRVSession {
+    /// `scoredNight` archived with a stored score of 5.0 and a breakdown
+    /// scored against `baseline`.
+    private func storedScoredNight(
+        daysAfterStart days: Int, rmssd: Double, scoredAgainst baseline: BaselineTracker.RecoveryBaselineStats? = nil
+    ) throws -> HRVSession {
         var night = scoredNight(daysAfterStart: days, rmssd: rmssd)
         night.recoveryScore = 5.0
-        night.scoreBreakdown = try breakdown(of: night, against: nil)
+        night.scoreBreakdown = try breakdown(of: night, against: baseline)
         try archive.archive(night)
         return night
     }

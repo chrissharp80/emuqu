@@ -656,8 +656,10 @@ final class ReanalysisService {
     /// the same night scored differently on each device. Applying the swap
     /// here makes every re-score read the same physiology whichever path
     /// wrote the snapshot; on a snapshot that already has it, it is a no-op.
+    /// A recording unusable for HRV keeps HealthKit's value
+    /// (`HRVSession.withSleepHeartRate`).
     nonisolated static func scoringVitals(of session: HRVSession, result: HRVAnalysisResult) -> RecoveryVitals? {
-        session.vitalsSnapshot?.withStrapNocturnalRHR(result.timeDomain.meanHR)
+        session.vitalsSnapshot.map { session.withSleepHeartRate($0, from: result) }
     }
 
     /// The one re-score every reanalysis path runs: `result`'s metrics, the

@@ -382,6 +382,7 @@ final class SessionAcceptanceService {
         )
         await snapshotHealthData(on: &session, sessionEnd: sessionEnd, sleepSchedule: inputs.sleepSchedule)
         let useBaselineHRV = Self.applyHRVQuality(to: &session, result: result, baselineStats: inputs.baselineStats)
+        session.applySleepHeartRateToVitals()
         let breakdown = scoreBreakdown(
             result: result, session: session, inputs: inputs,
             training: resolvedTrainingContext, useBaselineHRV: useBaselineHRV
@@ -413,11 +414,10 @@ final class SessionAcceptanceService {
     /// HealthKit queries use withCheckedContinuation which can hang if
     /// callbacks never fire, so we race against a 10-second timeout.
     ///
-    /// Strap-RHR override: swap Apple's daytime-rest RHR
-    /// for the strap's nocturnal analysis-window mean HR when available — same
-    /// physiology `BaselineTracker.meanHRBaseline` is built from. Keeps the
-    /// score's RHR comparison apples-to-apples. See
-    /// `RecoveryVitals.withStrapNocturnalRHR` documentation.
+    /// The vitals are stored as HealthKit gives them; the strap's nocturnal
+    /// HR replaces Apple's daytime-rest RHR once the recording's quality is
+    /// known (`HRVSession.applySleepHeartRateToVitals`, in `freezeScore`), so
+    /// an unusable recording's awake heart rate never stands as sleep HR.
     private func snapshotHealthData(
         on session: inout HRVSession, sessionEnd: Date, sleepSchedule: SleepSchedule
     ) async {
@@ -434,9 +434,7 @@ final class SessionAcceptanceService {
         if session.sleepUserAdjusted != true {
             session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
         }
-        if let vitals {
-            session.vitalsSnapshot = vitals.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
-        }
+        if let vitals { session.vitalsSnapshot = vitals }
     }
 
     /// The night acceptance freezes. A fetch that timed out, failed or found
@@ -566,6 +564,7 @@ final class SessionAcceptanceService {
         )
         await refreshHealthSnapshots(on: &updated, result: result, sleepSchedule: sleepSchedule)
         let useBaselineHRV = Self.refreshedUseBaselineHRV(on: &updated, result: result, baselineStats: baselineStats)
+        updated.applySleepHeartRateToVitals()
         let breakdown = scoreBreakdown(
             result: result, session: updated, inputs: inputs,
             training: trainingContext, useBaselineHRV: useBaselineHRV
@@ -652,7 +651,8 @@ final class SessionAcceptanceService {
     /// snapshot frozen before — HealthKit refuses reads while the phone is
     /// locked — instead of re-scoring the night without its sleep.
     ///
-    /// Strap-RHR override: see `snapshotHealthData`.
+    /// Sleep HR: see `snapshotHealthData`; `updateCompositeRecoveryScore`
+    /// applies it once the quality is known.
     private func refreshHealthSnapshots(
         on session: inout HRVSession, result: HRVAnalysisResult, sleepSchedule: SleepSchedule
     ) async {
@@ -667,7 +667,7 @@ final class SessionAcceptanceService {
         if session.sleepUserAdjusted != true {
             session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
         }
-        if let vitals { session.vitalsSnapshot = vitals.withStrapNocturnalRHR(result.timeDomain.meanHR) }
+        if let vitals { session.vitalsSnapshot = vitals }
     }
 
     // MARK: - Reject Session

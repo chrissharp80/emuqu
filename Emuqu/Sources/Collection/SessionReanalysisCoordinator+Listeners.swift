@@ -384,8 +384,7 @@ extension SessionReanalysisCoordinator {
     /// Strap nocturnal HR in place of Apple's daytime resting HR, as the
     /// acceptance path stores it.
     private func pulledSessionVitals(session: HRVSession, sessionEnd: Date) async -> RecoveryVitals {
-        await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
-            .withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
+        session.withSleepHeartRate(await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd))
     }
 
     /// HK queries run on HealthKit's own background queues; each
