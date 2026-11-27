@@ -490,6 +490,13 @@ final class MedicalQueryGuardTests: XCTestCase {
     /// alternatives that reduce to plain text are used; a concept whose every
     /// alternative carries regex syntax is reported rather than silently
     /// skipped.
+    /// An entry with its lookarounds removed: what is left is the text the
+    /// entry matches, which only an excluded neighbour ("(?<!窦性)心律不齐")
+    /// would stop.
+    static func withoutLookarounds(_ pattern: String) -> String {
+        pattern.replacingOccurrences(of: #"\(\?<?[=!][^()]*\)"#, with: "", options: .regularExpression)
+    }
+
     func testEveryDeclaredRefusalConceptIsActuallyRefused() {
         for concept in MedicalTermLexicon.refuseBeforeSending {
             var probed = 0
@@ -504,7 +511,7 @@ final class MedicalQueryGuardTests: XCTestCase {
                     "declares refusable, but MedicalQueryGuard lets it through."
                 )
             }
-            for alternative in concept.unbounded where !alternative.isEmpty {
+            for alternative in concept.unbounded.map(Self.withoutLookarounds) where !alternative.isEmpty {
                 guard alternative.rangeOfCharacter(from: CharacterSet(charactersIn: "\\[](){}?*+|^$.")) == nil
                 else { continue }
                 probed += 1
