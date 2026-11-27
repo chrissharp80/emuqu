@@ -378,3 +378,106 @@ final class MorningResultsLiveSleepTests: XCTestCase {
         XCTAssertTrue(stored.isEmpty)
     }
 }
+
+/// The perceived-readiness card on the morning results: the rating is saved
+/// to the stored night, an unreliable night is re-scored with it, and what
+/// the screen shows is what the archive holds.
+@MainActor
+final class MorningResultsReadinessTests: XCTestCase {
+    private var directory: URL!
+    private var archive: SessionArchive!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        directory = FileManager.default.temporaryDirectory.appendingPathComponent("MorningReadiness-\(UUID().uuidString)")
+        archive = SessionArchive(directory: directory)
+    }
+
+    override func tearDown() async throws {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            // swallow-ok: a test that archived nothing leaves no directory to remove.
+        }
+        try await super.tearDown()
+    }
+
+    private let baseline = BaselineTracker.RecoveryBaselineStats(
+        lnRmssdMean: log(40.0), lnRmssdSD: 0.3, lnRmssdCV7Day: 6.0,
+        meanHRBaseline: 58.0, meanHRSD: 3.0, daysInWindow: 30
+    )
+
+    private func night(quality: HRVDataQuality, score: Double? = nil) -> HRVSession {
+        let end = Date(timeIntervalSince1970: 1_780_000_000)
+        var session = HRVSession(startDate: end.addingTimeInterval(-8 * 3600), sessionType: .overnight)
+        session.endDate = end
+        session.state = .complete
+        session.hrvDataQuality = quality
+        session.recoveryScore = score
+        session.analysisResult = SnapshotFixtures.analysisResult()
+        return session
+    }
+
+    private func viewModel(for session: HRVSession) -> MorningResultsViewModel {
+        let dependencies = AppDependencies()
+        dependencies.overrides.sessionArchive = archive
+        let vm = MorningResultsViewModel(
+            session: session, result: session.analysisResult ?? SnapshotFixtures.analysisResult(),
+            services: MorningResultsServices(dependencies)
+        )
+        vm.baselineStats = baseline
+        return vm
+    }
+
+    func testARatingIsSavedAndScoresAnUnreliableNight() async throws {
+        let session = night(quality: .preSleep)
+        _ = try archive.archive(session)
+        let vm = viewModel(for: session)
+
+        vm.updatePerceivedReadiness(0.8)
+        await vm.perceivedReadinessSaved()
+
+        let stored = try XCTUnwrap(archive.retrieve(session.id))
+        XCTAssertEqual(stored.perceivedReadiness, 0.8)
+        XCTAssertNotNil(stored.recoveryScore, "the rating scores a night its recording could not")
+        XCTAssertNotNil(stored.scoreBreakdown)
+        XCTAssertEqual(vm.displaySession.perceivedReadiness, 0.8)
+        XCTAssertEqual(vm.displaySession.recoveryScore, stored.recoveryScore, "the screen shows what was stored")
+    }
+
+    func testClearingTheRatingIsSavedToo() async throws {
+        let session = night(quality: .preSleep)
+        _ = try archive.archive(session)
+        let vm = viewModel(for: session)
+
+        vm.updatePerceivedReadiness(0.8)
+        vm.updatePerceivedReadiness(nil)
+        await vm.perceivedReadinessSaved()
+
+        XCTAssertNil(try archive.retrieve(session.id)?.perceivedReadiness, "the last answer given is the one stored")
+        XCTAssertNil(vm.displaySession.perceivedReadiness)
+    }
+
+    func testRatingANightNotYetStoredStoresIt() async throws {
+        let session = night(quality: .preSleep)
+        let vm = viewModel(for: session)
+
+        vm.updatePerceivedReadiness(0.4)
+        await vm.perceivedReadinessSaved()
+
+        XCTAssertEqual(try archive.retrieve(session.id)?.perceivedReadiness, 0.4)
+    }
+
+    func testAReliableNightKeepsItsScore() async throws {
+        let session = night(quality: .good, score: 7.0)
+        _ = try archive.archive(session)
+        let vm = viewModel(for: session)
+
+        vm.updatePerceivedReadiness(0.2)
+        await vm.perceivedReadinessSaved()
+
+        let stored = try XCTUnwrap(archive.retrieve(session.id))
+        XCTAssertEqual(stored.perceivedReadiness, 0.2)
+        XCTAssertEqual(stored.recoveryScore, 7.0, "measured HRV scores the night, not the rating")
+    }
+}

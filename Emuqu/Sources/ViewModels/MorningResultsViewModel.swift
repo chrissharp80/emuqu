@@ -102,6 +102,11 @@ final class MorningResultsViewModel {
         persistPerceivedReadiness(value, scored: updated, revertTo: shown)
     }
 
+    /// Returns once the latest rating write has reached the archive or failed.
+    func perceivedReadinessSaved() async {
+        await perceivedReadinessWrite?.value
+    }
+
     /// Re-score an unreliable night with its perceived-readiness answer, using
     /// the same inputs the deterministic re-score uses (frozen snapshots, the
     /// baseline of the nights before it, the session date). Leaves the session
