@@ -37,7 +37,7 @@ extension MedicalTermLexicon {
             // Not "hurt myself" or "cut myself": in a training app those are
             // mostly injuries and kitchen accidents, not a crisis. Wanting to
             // is a different sentence.
-            "(?:harm|harming|cutting)\\s+myself", "(?:want\\s+to|wanna)\\s+hurt\\s+myself",
+            "(?:harm|harming|cutting)\\s+myself(?!\\s+(?:some\\s+)?slack)", "(?:want\\s+to|wanna)\\s+hurt\\s+myself",
             // iOS types a curly apostrophe by default.
             "(?:don['’]?t|do\\s+not)\\s+want\\s+to\\s+(?:live|be\\s+alive|be\\s+here\\s+anymore)",
             "wish\\s+i\\s+(?:was|were)\\s+dead", "take\\s+my\\s+own\\s+life", "(?:want\\s+to|wanna|going\\s+to|gonna)\\s+end\\s+it\\s+all",
@@ -112,7 +112,7 @@ extension MedicalTermLexicon {
             "хоч(?:у|ется)\\s+умереть", "не\\s+хочу\\s+(?:больше\\s+)?жить", "жить\\s+не\\s+хочу",
             "хоч(?:у|ется)\\s+(?:убить\\s+себя|причинить\\s+себе\\s+(?:вред|боль))",
             "покончить\\s+с\\s+жизнью", "лишить\\s+себя\\s+жизни", "самоповрежд\\w*"
-        ],
+        ] + selfHarmRumination,
         unbounded: [
             "自殺", "自杀", "자살", "انتحار",
             // ja: "死にたい", "消えたい", "生きたくない". "死にそう" and
@@ -133,6 +133,62 @@ extension MedicalTermLexicon {
             "أريد أن أموت", "أريد ان أموت", "اريد ان اموت", "أريد الموت", "اريد الموت", "أتمنى الموت", "اتمنى الموت",
             "أقتل نفسي", "اقتل نفسي", "لا أريد أن أعيش", "لا اريد ان اعيش", "إنهاء حياتي", "انهاء حياتي", "أنهي حياتي", "انهي حياتي",
             "أؤذي نفسي", "اؤذي نفسي", "إيذاء نفسي", "ايذاء نفسي"
-        ]
+        ] + selfHarmRuminationUnbounded
     )
+
+    /// Ongoing and spoken forms: thinking about it ("I keep thinking about
+    /// killing myself", "no dejo de pensar en morirme"), contractions and
+    /// dropped accents ("I dont wanna live", "langre"), and the fixed
+    /// phrases people use for not wanting to live ("better off dead", "keine
+    /// Lust mehr zu leben", "жить не хочется", "活着没意思").
+    ///
+    /// "Killing myself" alone is training talk ("I'm killing myself on these
+    /// intervals"), so it counts only after a thought or a wish ("about",
+    /// "of", "feel like", "considering"). Hurting or cutting oneself needs the
+    /// thought itself ("thinking about", "feel like"): "worried about hurting
+    /// myself on the descent" is a fear of injury, and "cutting myself some
+    /// slack" is rest. "Ending it" alone is a session cut short; only "ending
+    /// it all" counts.
+    static let selfHarmRumination: [String] = [
+        "(?:about|of|considering|contemplating|planning|plan\\s+on|feel\\s+like|felt\\s+like)\\s+killing\\s+myself",
+        "(?:(?:thinking|thought|thoughts|think)\\s+(?:about|of)|feel\\s+like|felt\\s+like)\\s+"
+            + "(?:hurting|harming|cutting)\\s+myself(?!\\s+(?:some\\s+)?slack)",
+        "(?:about|of|considering|contemplating)\\s+(?:ending\\s+(?:my\\s+life|it\\s+all)|taking\\s+my\\s+(?:own\\s+)?life)",
+        "ending\\s+it\\s+all", "(?:be|been|i['’]?d\\s+be)\\s+better\\s+off\\s+dead", "no\\s+reason\\s+to\\s+live",
+        "(?:don['’]?t|do\\s+not)\\s+(?:wanna|want\\s+to)\\s+(?:live|be\\s+alive|exist)",
+        // es
+        "(?:pensar|pienso|pensando|pensado)\\s+en\\s+(?:matarme|morirme|quitarme\\s+la\\s+vida|hacerme\\s+da[ñn]o)",
+        "no\\s+quiero\\s+seguir\\s+viviendo", "(?:quisiera|ojal[áa])\\s+(?:morirme|estar\\s+muert[oa])",
+        // fr: "en finir avec" something is a session; "en finir" alone is not.
+        "pens(?:e|er|ais|ant)\\s+[àa]\\s+(?:me\\s+tuer|mourir|en\\s+finir|me\\s+faire\\s+du\\s+mal|me\\s+suicider)",
+        "(?:veux|voudrais|envie\\s+d['’]?)\\s*en\\s+finir\\b(?!\\s+avec\\b)", "(?:plus|pas)\\s+envie\\s+de\\s+vivre",
+        // de
+        "keine\\s+lust\\s+mehr\\s+(?:zu|auf\\s+das)\\s+leben", "nicht\\s+mehr\\s+am\\s+leben\\s+sein",
+        // it
+        "(?:pens(?:o|are|ando))\\s+(?:di|a)\\s+(?:uccidermi|ammazzarmi|togliermi\\s+la\\s+vita|farla\\s+finita(?!\\s+con\\b))",
+        // pt-BR
+        "(?:pensar|pensei|pensando|penso)\\s+em\\s+(?:morrer|me\\s+matar|tirar\\s+(?:a\\s+)?minha\\s+vida)",
+        // nl
+        "mezelf\\s+van\\s+kant\\s+te\\s+maken", "mezelf\\s+(?:te\\s+)?(?:doden|ombrengen)",
+        // da, nb: the reflexive "mig/meg selv" is not the idiom "slår mig ihjel".
+        "sl[åa]\\s+(?:mig|meg)\\s+selv\\s+ihjel",
+        "(?:vil|lyst\\s+til\\s+at|t[æa]nker\\s+p[åa]\\s+at)\\s+tage\\s+livet\\s+af\\s+mig",
+        "(?:tenker|t[æa]nker|tenkt|t[æa]nkt)\\s+p[åa]\\s+(?:at|[åa])\\s+(?:ta\\s+livet\\s+av\\s+meg|d[øo]|skade\\s+(?:mig|meg)\\s+selv)",
+        // sv
+        "t[äa]nker\\s+p[åa]\\s+att\\s+(?:ta\\s+livet\\s+av\\s+mig|d[öo]|skada\\s+mig\\s+sj[äa]lv)",
+        "vill\\s+inte\\s+leva\\s+l[äa]ngre",
+        // fi, is
+        "tappaa\\s+itseni", "itseni\\s+tappami\\w*",
+        "(?:hugsa|hugsa[ðd]|hugsar)\\s+um\\s+a[ðd]\\s+(?:drepa\\s+mig|deyja|svipta\\s+mig\\s+l[íi]fi)", "svipta\\s+mig\\s+l[íi]fi",
+        // ru
+        "(?:думаю|думать|думала?)\\s+(?:о\\s+том,?\\s+(?:чтобы|как)\\s+)?(?:убить\\s+себя|умереть|покончить)",
+        "жить\\s+не\\s+хочется", "не\\s+хочется\\s+жить", "поконч\\w*\\s+с\\s+собой"
+    ]
+
+    static let selfHarmRuminationUnbounded: [String] = [
+        "死のうと", "死んでしまいたい", "消えてしまいたい", "生きるのがつらい", "生きるのが辛い", "リスカ",   // ja
+        "活着没意思", "活着没有意义", "结束生命", "想要伤害自己",                                       // zh-Hans
+        "죽어버리고 싶", "죽어 버리고 싶", "사라지고 싶", "살기 싫",                                     // ko
+        "قتل نفسي", "لا أريد العيش", "لا اريد العيش", "أنتحر", "انتحر"                                    // ar
+    ]
 }

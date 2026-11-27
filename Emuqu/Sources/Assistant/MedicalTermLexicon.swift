@@ -267,8 +267,8 @@ enum MedicalTermLexicon {
             "syd[äa]mentykytys", "eps[äa]s[äa][äa]nn[öo]llinen\\s+syke", // fi
             "hjartsl[áa]ttar[óo]regla",                        // is
             "учащ[её]нное\\s+сердцебиение", "перебои\\s+в\\s+сердце" // ru
-        ],
-        unbounded: ["動悸", "心悸", "心跳不规律", "심계항진", "두근거림", "خفقان"]
+        ] + spokenIrregularHeartbeat,
+        unbounded: ["動悸", "心悸", "心跳不规律", "심계항진", "두근거림", "خفقان"] + spokenIrregularHeartbeatUnbounded
     )
 
     // MARK: - Diagnosis, treatment, regulatory claims
@@ -531,8 +531,8 @@ extension MedicalTermLexicon {
             "rintakipu",                                        // fi
             "brj[óo]stverk(?:ur|i|s)?",                         // is
             "боль\\s+в\\s+груди"                                // ru
-        ],
-        unbounded: ["胸痛", "胸口疼", "흉통", "가슴 통증", "ألم في الصدر"]
+        ] + spokenChestPain,
+        unbounded: ["胸痛", "胸口疼", "흉통", "가슴 통증", "ألم في الصدر"] + spokenChestPainUnbounded
     )
 
     static let breathlessness = Concept(
@@ -551,8 +551,8 @@ extension MedicalTermLexicon {
             "hengenahdistus",                                        // fi
             "andn[æa][ðd](?:i)?", "m[æa][ðd]i",                      // is
             "одышка"                                                 // ru
-        ],
-        unbounded: ["息切れ", "呼吸困難", "呼吸困难", "气短", "호흡곤란", "숨가쁨", "ضيق التنفس"]
+        ] + spokenBreathlessness,
+        unbounded: ["息切れ", "呼吸困難", "呼吸困难", "气短", "호흡곤란", "숨가쁨", "ضيق التنفس"] + spokenBreathlessnessUnbounded
     )
 
     static let syncope = Concept(
@@ -578,8 +578,8 @@ extension MedicalTermLexicon {
             "py[öo]rtyminen",                          // fi
             "y[fi]irli[ðd]",                           // is
             "обморок"                                  // ru
-        ],
-        unbounded: ["失神", "昏厥", "晕倒", "실신", "إغماء"]
+        ] + spokenSyncope,
+        unbounded: ["失神", "昏厥", "晕倒", "실신", "إغماء"] + spokenSyncopeUnbounded
     )
 
     static let severeSymptom = Concept(
