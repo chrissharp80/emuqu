@@ -528,9 +528,9 @@ final class ReanalysisService {
         guard let windowStartMs = analysisResult.windowStartMs,
               let segments = originalSession.sleepSegments,
               segments.count > 1 else { return }
-
+        let windowClockMs = Self.sessionClockMs(ofTMs: windowStartMs, in: originalSession)
         for (i, seg) in segments.enumerated() {
-            if windowStartMs >= seg.startMs, windowStartMs <= seg.endMs {
+            if windowClockMs >= seg.startMs, windowClockMs <= seg.endMs {
                 let startDate = originalSession.startDate.addingTimeInterval(TimeInterval(seg.startMs) / 1000)
                 let endDate = originalSession.startDate.addingTimeInterval(TimeInterval(seg.endMs) / 1000)
                 let timeStyle = Date.FormatStyle(date: .omitted, time: .shortened).locale(LanguageManager.appLocale)
@@ -540,6 +540,16 @@ final class ReanalysisService {
                 break
             }
         }
+    }
+
+    /// A `t_ms` position (where the analysis window sits on the beats) as ms
+    /// after the session start, the clock the stored sleep segments are on:
+    /// the beats' own clock time (`RRSeries.clockTime(forTMs:)`), so on a
+    /// streamed night with a dropout the window is matched to the segment it
+    /// is in, not to one earlier. Unchanged without beats.
+    nonisolated static func sessionClockMs(ofTMs tMs: Int64, in session: HRVSession) -> Int64 {
+        guard let series = session.rrSeries else { return tMs }
+        return MillisecondOffset.between(series.clockTime(forTMs: tMs), and: session.startDate, fallback: tMs)
     }
 
     /// Score-only rebuild — no HRV reanalysis. Use when the existing

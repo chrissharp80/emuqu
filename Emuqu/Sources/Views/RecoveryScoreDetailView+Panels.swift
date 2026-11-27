@@ -149,9 +149,7 @@ extension RecoveryScoreDetailView {
         guard let startMs = result.windowStartMs,
               let endMs = result.windowEndMs,
               endMs > startMs else { return nil }
-        let start = session.startDate.addingTimeInterval(Double(startMs) / 1000)
-        let end = session.startDate.addingTimeInterval(Double(endMs) / 1000)
-        return (start, end)
+        return (session.clockTime(forTMs: startMs, series: effectiveRRSeries), session.clockTime(forTMs: endMs, series: effectiveRRSeries))
     }
 
     var analysisWindowRangeText: String? {
@@ -296,8 +294,7 @@ extension RecoveryScoreDetailView {
     /// view-builder doesn't have to construct a DateFormatter inline.
     var nadirAtText: String? {
         guard let nadirMs = result.overnightNadirTimeMs else { return nil }
-        let date = session.startDate.addingTimeInterval(Double(nadirMs) / 1000)
-        return LocalizedDateFormat.string(from: date, template: "jmm")
+        return LocalizedDateFormat.string(from: session.clockTime(forTMs: nadirMs, series: effectiveRRSeries), template: "jmm")
     }
 
     func formattedDate(_ d: Date) -> String {

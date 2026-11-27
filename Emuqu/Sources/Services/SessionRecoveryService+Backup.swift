@@ -177,6 +177,15 @@ extension SessionRecoveryService {
         }
     }
 
+    /// When an interrupted recording paused: where its beats ran out, never
+    /// later than `now`; `now` when nothing dates it. The app is relaunched
+    /// after the recording stopped, often hours after; dated by the relaunch,
+    /// the pause would show as moments ago on the Record tab and in the
+    /// resume check.
+    nonisolated static func interruptedPauseDate(lastBeatEnd: Date?, now: Date) -> Date {
+        min(lastBeatEnd ?? now, now)
+    }
+
     /// Recover a session from backup into a paused state (for interrupted recordings),
     /// archived under its own id.
     ///
@@ -204,7 +213,7 @@ extension SessionRecoveryService {
             analyze: analyze, analyzeWithCapacity: analyzeWithCapacity
         )
         session.state = .paused
-        session.pausedDate = Date()
+        session.pausedDate = Self.interruptedPauseDate(lastBeatEnd: data.endDate, now: Date())
         // Never folded into another same-night entry: the merge would keep
         // that entry's id and drop this one, and the Resume the Record tab
         // offers for this id would find nothing to resume. The night is

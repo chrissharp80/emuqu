@@ -244,10 +244,11 @@ extension DeviceRecordingSession {
 
     /// When the recording's last beat ended, never later than now. The beats
     /// are on the session's clock (a recording armed after the session began
-    /// is shifted later by the gap), so the end counts from the session start.
+    /// is shifted later by the gap), so the end counts from the session start,
+    /// on the real clock where the beats carry one: an optical recording's
+    /// rejected intervals take time but leave no beat (`StrapRecording.endedAt`).
     static func lastBeatDate(of series: RRSeries) -> Date {
-        guard let last = series.points.last else { return Date() }
-        let end = series.startDate.addingTimeInterval(Double(last.endMs) / 1000)
+        guard let end = series.points.lastBeatEnd(after: series.startDate) else { return Date() }
         return min(end, Date())
     }
 

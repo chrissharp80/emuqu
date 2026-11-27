@@ -187,7 +187,7 @@ extension SessionRecoveryCoordinator {
     /// anchored to the PARENT's start; only the beat series differs. A child
     /// with no end ends at its last beat, not at the time the repair runs.
     nonisolated private func rebuildAndArchive(session: HRVSession, parent: HRVSession, mergedPoints: [RRPoint]) async -> Bool {
-        let lastBeatEnd = mergedPoints.last.map { parent.startDate.addingTimeInterval(Double($0.endMs) / 1000) }
+        let lastBeatEnd = mergedPoints.lastBeatEnd(after: parent.startDate)
         let baseSession = HRVSession(
             id: session.id, startDate: parent.startDate, endDate: session.endDate ?? lastBeatEnd ?? parent.startDate,
             state: .analyzing, sessionType: .overnight,

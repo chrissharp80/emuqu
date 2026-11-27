@@ -71,7 +71,7 @@ enum OvernightChartDrawing {
     }
 
     /// Five evenly-spaced clock times across the viewport, each the wall
-    /// clock of its `t_ms` position (`axisTime`), as the nadir, peak and
+    /// clock of its `t_ms` position (`RRSeries.clockTime(forTMs:)`), as the nadir, peak and
     /// window labels are converted, so a marker's time and the axis under it
     /// agree on a streamed night whose `t_ms` drifted.
     ///
@@ -86,18 +86,8 @@ enum OvernightChartDrawing {
         return (0 ..< labelCount).map { i in
             let fraction = CGFloat(i) / CGFloat(labelCount - 1)
             let tMs = stats.chartStartMs + Int64(Double(chartDurationMs) * Double(fraction))
-            return (formatter.string(from: axisTime(forTMs: tMs, series: series)), fraction * width)
+            return (formatter.string(from: series.clockTime(forTMs: tMs)), fraction * width)
         }
-    }
-
-    /// Wall-clock time of a `t_ms` position: `RRSeries.wallClockTime` inside
-    /// the recording; beyond it (a viewport widened by HealthKit sleep) the
-    /// time at the nearer end plus the distance past it.
-    private static func axisTime(forTMs tMs: Int64, series: RRSeries) -> Date {
-        let firstMs = series.points.first?.t_ms ?? tMs
-        let lastMs = series.points.last?.t_ms ?? tMs
-        let edgeMs = min(max(tMs, firstMs), lastMs)
-        return series.wallClockTime(forTMs: edgeMs).addingTimeInterval(Double(tMs - edgeMs) / 1000.0)
     }
 
     /// Keeps the tooltip inside the canvas: 50 pt of padding either side.

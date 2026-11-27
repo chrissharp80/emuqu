@@ -203,9 +203,11 @@ extension MorningProcessingService {
         let points: [RRPoint]
         var sessionId: UUID?
 
-        /// The recording's last beat, from its own relative timestamps.
+        /// When the recording's last beat ended, on the real clock
+        /// (`[RRPoint].lastBeatEnd(after:)`), so a streamed segment with a
+        /// dropout is not read as ending early and split from the next one.
         var endDate: Date {
-            startDate.addingTimeInterval(Double(points.last?.t_ms ?? 0) / 1000)
+            points.lastBeatEnd(after: startDate) ?? startDate
         }
     }
 

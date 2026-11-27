@@ -30,17 +30,14 @@ extension WorkoutRecorder {
 
     /// Leaves out of the workout everything recorded after `stopDate`: the
     /// active seconds stop there, the per-second samples, wrist-HR rows and
-    /// power readings past it are dropped, the GPS track ends there, and the
-    /// distance counters that hold no history are capped at the distance
-    /// shown at the last sample kept (`WorkoutCapture.distanceAtEarlyStop`).
-    /// The RR beats are cut in `gatherFinalRRPoints`.
+    /// power readings past it are dropped (`keepRecording(throughElapsed:)`),
+    /// the GPS track ends there, and the distance counters that hold no
+    /// history are capped at the distance shown at the last sample kept
+    /// (`WorkoutCapture.distanceAtEarlyStop`). The RR beats are cut in
+    /// `gatherFinalRRPoints`.
     private func endRecording(at stopDate: Date, sessionStart: Date) {
-        let stopElapsed = lifecycle.pauseTimeline.activeSeconds(sessionStart: sessionStart, now: stopDate)
-        lifecycle.elapsedSeconds = min(lifecycle.elapsedSeconds, stopElapsed)
-        let kept = capture.workoutSamples.filter { $0.offsetSec <= lifecycle.elapsedSeconds }
-        capture.workoutSamples = kept
-        capture.wristHROffsets = capture.wristHROffsets.filter { $0 <= lifecycle.elapsedSeconds }
-        capture.power = Self.powerTally(of: kept)
+        keepRecording(throughElapsed: lifecycle.pauseTimeline.activeSeconds(sessionStart: sessionStart, now: stopDate))
+        let kept = capture.workoutSamples
         capture.distanceAtEarlyStop = kept.last { $0.distanceMeters != nil }?.distanceMeters ?? 0
         startedLocation?.endTrack(at: stopDate)
         debugLog("[Recorder.stop] ended at the requested time, \(Int(Date().timeIntervalSince(stopDate))) s before it arrived: kept \(kept.count) samples, \(lifecycle.elapsedSeconds) s active")

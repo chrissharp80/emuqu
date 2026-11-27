@@ -197,20 +197,15 @@ extension RecoveryScoreCharts {
     var previewWindowDateRange: (start: Date, end: Date, center: Date)? {
         guard let centerMs = previewWindowMs else { return nil }
         let halfMs: Int64 = 150_000  // 2.5 minutes
-        let start = session.startDate.addingTimeInterval(Double(centerMs - halfMs) / 1000)
-        let end = session.startDate.addingTimeInterval(Double(centerMs + halfMs) / 1000)
-        let center = session.startDate.addingTimeInterval(Double(centerMs) / 1000)
-        return (start, end, center)
+        let at = { (ms: Int64) in session.clockTime(forTMs: ms, series: rrSeries) }
+        return (at(centerMs - halfMs), at(centerMs + halfMs), at(centerMs))
     }
 
     /// Convert `result.organizedRecoveryZones` (or the on-demand fallback)
     /// to chart-friendly `(Date, Date)` pairs.
     var organizedZoneDateRanges: [(start: Date, end: Date)] {
         organizedZoneRanges.map { range in
-            (
-                start: session.startDate.addingTimeInterval(Double(range.startMs) / 1000),
-                end: session.startDate.addingTimeInterval(Double(range.endMs) / 1000)
-            )
+            (start: session.clockTime(forTMs: range.startMs, series: rrSeries), end: session.clockTime(forTMs: range.endMs, series: rrSeries))
         }
     }
 
@@ -219,8 +214,7 @@ extension RecoveryScoreCharts {
     /// DateFormatter inline (Swift's view builder forbids non-view
     /// statements like `f.dateStyle = .none` between `let` bindings).
     func pickWindowClockText(forMs ms: Int64) -> String {
-        let date = session.startDate.addingTimeInterval(Double(ms) / 1000)
-        return LocalizedDateFormat.string(from: date, template: "jmm")
+        LocalizedDateFormat.string(from: session.clockTime(forTMs: ms, series: rrSeries), template: "jmm")
     }
 
     /// Inline replacement for the modal Pick Window sheet: a slider
@@ -379,8 +373,7 @@ extension RecoveryScoreCharts {
     /// to series.points).
     nonisolated static func buildRMSSDSeries(
         series: RRSeries?,
-        flags: [ArtifactFlags]?,
-        sessionStartDate: Date
+        flags: [ArtifactFlags]?
     ) -> [RMSSDPoint] {
         guard let series, !series.points.isEmpty,
               let firstT = series.points.first?.t_ms, let lastT = series.points.last?.t_ms
@@ -396,8 +389,7 @@ extension RecoveryScoreCharts {
             if hi < lo { hi = lo }
             while hi < points.count, points[hi].t_ms < startMs + windowMs { hi += 1 }
             if let rmssd = windowRMSSD(points: points, flags: flags, lo: lo, hi: hi) {
-                let time = sessionStartDate.addingTimeInterval(Double(startMs) / 1000)
-                out.append(RMSSDPoint(time: time, rmssd: rmssd))
+                out.append(RMSSDPoint(time: series.clockTime(forTMs: startMs), rmssd: rmssd))
             }
             startMs += 60 * 1000
         }
@@ -540,7 +532,6 @@ extension RecoveryScoreCharts {
     nonisolated static func buildHRSeries(
         series: RRSeries?,
         flags: [ArtifactFlags]?,
-        sessionStartDate: Date,
         fallbackHRSamples: [(date: Date, hr: Double)]
     ) -> [HRPoint] {
         guard let series, !series.points.isEmpty else {
@@ -552,7 +543,7 @@ extension RecoveryScoreCharts {
         var nextEmitMs: Int64 = series.points.first?.t_ms ?? 0
         for (idx, p) in series.points.enumerated() {
             guard let hr = strapHR(p, idx: idx, flags: flags), p.t_ms >= nextEmitMs else { continue }
-            out.append(HRPoint(time: sessionStartDate.addingTimeInterval(Double(p.t_ms) / 1000), hr: hr))
+            out.append(HRPoint(time: series.clockTime(forTMs: p.t_ms), hr: hr))
             nextEmitMs = p.t_ms + stepMs
         }
         return out

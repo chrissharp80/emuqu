@@ -204,9 +204,7 @@ final class RMSSDEstimatorTests: XCTestCase {
     func testOvernightChartSkipsTheDifferenceAcrossARecordingBreak() {
         let points = pointsWithBreak(450)
         let series = RRSeries(points: points, sessionId: UUID(), startDate: Date(timeIntervalSince1970: 0))
-        let chart = RecoveryScoreCharts.buildRMSSDSeries(
-            series: series, flags: nil, sessionStartDate: Date(timeIntervalSince1970: 0)
-        )
+        let chart = RecoveryScoreCharts.buildRMSSDSeries(series: series, flags: nil)
         XCTAssertFalse(chart.isEmpty)
         for point in chart {
             XCTAssertEqual(point.rmssd, 20, accuracy: 1e-9)

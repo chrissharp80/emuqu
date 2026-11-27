@@ -11,6 +11,10 @@ import SwiftUI
 @MainActor
 struct RecoveryScoreCharts {
     let session: HRVSession
+    /// The session's beats (`effectiveRRSeries`), which place every `t_ms`
+    /// position on the chart's clock (`HRVSession.clockTime(forTMs:series:)`);
+    /// nil for a lightweight session whose beats have not loaded.
+    let rrSeries: RRSeries?
     let result: HRVAnalysisResult
     let onReanalyzeAt: ((Int64) async -> Bool)?
 
@@ -42,7 +46,7 @@ struct RecoveryScoreCharts {
 extension RecoveryScoreDetailView {
     var charts: RecoveryScoreCharts {
         RecoveryScoreCharts(
-            session: session,
+            session: session, rrSeries: effectiveRRSeries,
             result: result,
             onReanalyzeAt: onReanalyzeAt,
             hrChartSeries: hrChartSeries,
@@ -65,24 +69,17 @@ extension RecoveryScoreDetailView {
 
     nonisolated static func buildRMSSDSeries(
         series: RRSeries?,
-        flags: [ArtifactFlags]?,
-        sessionStartDate: Date
+        flags: [ArtifactFlags]?
     ) -> [RecoveryScoreCharts.RMSSDPoint] {
-        RecoveryScoreCharts.buildRMSSDSeries(
-            series: series, flags: flags, sessionStartDate: sessionStartDate
-        )
+        RecoveryScoreCharts.buildRMSSDSeries(series: series, flags: flags)
     }
 
     nonisolated static func buildHRSeries(
         series: RRSeries?,
         flags: [ArtifactFlags]?,
-        sessionStartDate: Date,
         fallbackHRSamples: [(date: Date, hr: Double)]
     ) -> [RecoveryScoreCharts.HRPoint] {
-        RecoveryScoreCharts.buildHRSeries(
-            series: series, flags: flags, sessionStartDate: sessionStartDate,
-            fallbackHRSamples: fallbackHRSamples
-        )
+        RecoveryScoreCharts.buildHRSeries(series: series, flags: flags, fallbackHRSamples: fallbackHRSamples)
     }
 
     var hrvOvernightChart: some View { charts.hrvOvernightChart }

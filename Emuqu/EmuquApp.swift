@@ -802,7 +802,9 @@ struct EmuquApp: App {
         watchBridge.onStopWorkoutFromWatch = { tappedAt in
             postWatchTransport(.watchRequestedWorkoutStop, userInfo: tappedAt.map { [WatchConnectivityBridge.stopTappedAtKey: $0] })
         }
-        watchBridge.onPauseWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutPause) }
+        watchBridge.onPauseWorkoutFromWatch = { tappedAt in
+            postWatchTransport(.watchRequestedWorkoutPause, userInfo: tappedAt.map { [WatchConnectivityBridge.stopTappedAtKey: $0] })
+        }
         watchBridge.onResumeWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutResume) }
         watchBridge.onAcknowledgeFinishedFromWatch = { postWatchTransport(.watchAcknowledgedFinished) }
     }
