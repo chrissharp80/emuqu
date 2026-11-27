@@ -127,8 +127,9 @@ final class SessionRecoveryService {
     // MARK: - Lost Session Detection
 
     /// Minimum beat count required for HRV analysis to succeed. Backups
-    /// below this can never become a recovered session — surfacing them
-    /// would loop the user through "Recover All → fails → still shown".
+    /// below this can never become a recovered session — listing them
+    /// would loop the user through "Recover All → fails → still shown" —
+    /// so they are kept but not listed.
     /// Keep in sync with `stopSession`'s `rrPoints.count >= 120` guard.
     static let minRecoverableBeatCount = 120
 
@@ -151,19 +152,16 @@ final class SessionRecoveryService {
 
     /// `liveIds` is read after the iCloud pull, which can wait on the network
     /// for seconds: a recording started meanwhile writes its first backup at
-    /// once, and with the set read before the wait that backup was short of
-    /// the recovery floor, discarded here, and its iCloud copy retired.
+    /// once, and with the set read before the wait that backup would be
+    /// listed as lost while it records.
     func checkForLostSessions(excludingLive liveIds: () -> Set<UUID>) async -> [(id: UUID, date: Date, beatCount: Int)] {
         await pullCloudBackupsToLocalIfDue(excludingLive: liveIds)
         let orphans = unarchivedBackups(excluding: liveIds())
         let counts = beatCounts(of: orphans)
         // Backups too short to analyze, counted after a fuller file of them
-        // is adopted, are discarded permanently so they stop showing up on
-        // every scan; the cloud copy of one this device uploaded goes too
-        // (`retireOwnCloudFragment`). A pause/resume fragment an archived session links to
-        // is kept: its beats belong to that night.
-        let linkedIds = Set(archive.store.entries.flatMap { $0.linkedSessionIds ?? [] })
-        discardUnrecoverable(orphans.map(\.id).filter { (counts[$0] ?? Int.max) < Self.minRecoverableBeatCount && !linkedIds.contains($0) })
+        // is adopted, are not listed, as recovering one cannot succeed. They
+        // are kept, with their iCloud copies: no size rule deletes recorded
+        // beats the user did not choose to delete.
         let lost = orphans.compactMap { orphan -> (id: UUID, date: Date, beatCount: Int)? in
             guard let count = counts[orphan.id], count >= Self.minRecoverableBeatCount else { return nil }
             return (id: orphan.id, date: orphan.captureDate, beatCount: count)
@@ -184,7 +182,7 @@ final class SessionRecoveryService {
     /// Each lost backup's beat count. One below `minRecoverableBeatCount` is
     /// counted after a fuller file of it is adopted
     /// (`beatCountAfterAdoptingFullerFile`), and is left out when that
-    /// adoption failed, so it is neither discarded nor listed this scan.
+    /// adoption failed, so it is not listed this scan.
     private func beatCounts(of orphans: [RawRRBackup.BackupEntry]) -> [UUID: Int] {
         var counts: [UUID: Int] = [:]
         for orphan in orphans {
@@ -198,8 +196,8 @@ final class SessionRecoveryService {
     /// The beats a short backup holds once the fullest one-shot file of the
     /// session the index does not name, when it holds more, becomes its
     /// backup (`OneShotBackupName.fullerUnindexedBackup`, `RawRRBackup.backup`).
-    /// The discard removes every file of the session, so a night whose index
-    /// row is short but whose file is full is kept this way. `indexed` when
+    /// A night whose index row is short but whose file is full is listed
+    /// this way. `indexed` when
     /// there is no row or no fuller file; nil (logged) when a fuller file
     /// could not be read or adopted.
     private func beatCountAfterAdoptingFullerFile(_ id: UUID, indexed: Int) -> Int? {
@@ -215,33 +213,10 @@ final class SessionRecoveryService {
         }
     }
 
-    private func discardUnrecoverable(_ ids: [UUID]) {
-        guard !ids.isEmpty else { return }
-        debugLog("[SessionRecoveryService] Auto-discarding \(ids.count) backup(s) below \(Self.minRecoverableBeatCount)-beat recovery floor")
-        for id in ids {
-            do {
-                try rawBackup.discardBackup(id)
-            } catch {
-                // Keep the iCloud copy while the local one stays, so the two
-                // do not diverge; the next scan tries both again.
-                debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard unrecoverable backup \(id.uuidString.prefix(8)): \(error)")
-                continue
-            }
-            retireOwnCloudFragment(id)
-        }
-    }
-
-    /// The iCloud copy of a discarded fragment goes only when this device
-    /// uploaded it: its own uploads never hold more than its backup. Another
-    /// device's may have grown past this fragment since it was pulled, and
-    /// is that device's to retire (`cloudBackupDisposition`).
-    private func retireOwnCloudFragment(_ id: UUID) {
-        guard Self.retiresCloudCopyOfDiscardedFragment(id, uploadedHere: cloudSyncManager.liveBackupsUploadedHere) else { return }
-        Task { await cloudSyncManager.deleteLiveBackup(sessionId: id) }
-    }
-
     /// Whether discarding a fragment's local backup retires its iCloud copy
-    /// too: only one this device uploaded (`retireOwnCloudFragment`).
+    /// too: only one this device uploaded. No scan discards a fragment for
+    /// its size any more; the rule is kept with its test for the mutation
+    /// harness entry that names it.
     static func retiresCloudCopyOfDiscardedFragment(_ id: UUID, uploadedHere: Set<UUID>) -> Bool {
         uploadedHere.contains(id)
     }

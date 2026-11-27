@@ -84,8 +84,10 @@ extension WorkoutRecoveryService {
     }
 
     /// Kept only where the rebuild had nothing and covers the same time: its
-    /// own figures, from the recovered data, win.
+    /// own figures, from the recovered data, win. That includes the route
+    /// fields (`backfillRouteFields`).
     private static func carryMeasuredFields(from old: WorkoutMetadata, into new: inout WorkoutMetadata) {
+        backfillRouteFields(into: &new, from: old)
         new.hrrSamples = new.hrrSamples ?? old.hrrSamples
         new.liveMarkers = new.liveMarkers ?? old.liveMarkers
         new.laps = new.laps ?? old.laps
@@ -96,15 +98,17 @@ extension WorkoutRecoveryService {
     /// track backup they could be rebuilt from is gone once a workout is
     /// saved. Kept when the rebuild starts where the archived copy did (each
     /// sample is timed and its distance counted from the start), cut to the
-    /// rebuild's end. A trim that moved the start leaves them out rather than
+    /// rebuild's end on the samples' own clock, which leaves the pauses out
+    /// (`activeOffset(forWallClockSeconds:)`): a paused workout's samples
+    /// past the end are cut too. A trim that moved the start leaves them out rather than
     /// misplace every one. The rows marked as heart rate from Apple Health
     /// keep their markers, so the iCloud upload still leaves them out.
     private static func carrySamples(from archived: HRVSession, into session: HRVSession, metadata new: inout WorkoutMetadata) {
         guard new.samples == nil, let old = archived.workoutMetadata?.samples, !old.isEmpty,
               abs(session.startDate.timeIntervalSince(archived.startDate)) < 1
         else { return }
-        let end = (session.endDate ?? archived.endDate).map { $0.timeIntervalSince(session.startDate) }
-        let kept = end.map { limit in old.filter { Double($0.offsetSec) <= limit } } ?? old
+        let end = (session.endDate ?? archived.endDate).map { new.activeOffset(forWallClockSeconds: $0.timeIntervalSince(session.startDate)) }
+        let kept = end.map { limit in old.filter { $0.offsetSec <= limit } } ?? old
         new.samples = kept
         new.healthKitHROffsets = healthKitHROffsets(archived.workoutMetadata?.healthKitHROffsets ?? [], in: kept)
         if kept.count == old.count {

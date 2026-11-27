@@ -162,6 +162,10 @@ extension WorkoutRecorder {
     /// to sample HR at +60 / +120 s, which means a user who closes the
     /// summary and immediately starts another workout would otherwise
     /// hit a `strapBusy` throw because `strapStream.isStreaming == true`.
+    /// An accidental start the user leaves without saving has its backups
+    /// retired here (`WorkoutSessionLifecycle.discardNotArchived`): leaving
+    /// the summary that said it was not saved is the user's choice.
+    ///
     /// Calling `stopStreaming()` here is safe — the HRR task is already
     /// holding any samples it captured before this point, so the data
     /// in the archive is whatever was recoverable in the time window
@@ -174,6 +178,7 @@ extension WorkoutRecorder {
     /// would drop the rest of its beats.
     func acknowledgeFinished() {
         guard lifecycle.phase == .finished else { return }
+        session.discardNotArchived()
         lifecycle.finishedSession = nil
         lifecycle.saveOutcome = nil
         lifecycle.phase = .idle

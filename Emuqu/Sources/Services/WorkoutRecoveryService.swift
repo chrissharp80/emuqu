@@ -282,9 +282,11 @@ enum WorkoutRecoveryService {
             (trackBackup.retrieve(sessionId), Self.loadRRBackup(rawBackup, sessionId: sessionId))
         }.value
         debugLog("[WorkoutRecovery] start sessionId=\(sessionId.uuidString.prefix(8)) reason=\(reason.rawValue) hasTrack=\(workoutRecord != nil) hasRR=\(rrEntry != nil) trackPoints=\(workoutRecord?.track.count ?? 0) rrPoints=\(rrEntry?.points.count ?? 0)")
-        // Both empty AND no strap recording = nothing to recover.
+        // Both empty AND no strap recording = nothing to recover. A rebuild of
+        // an archived copy (`overrides.rrPoints`, even none for a workout with
+        // no heart rate) works from that copy's own streams.
         if workoutRecord == nil, rrEntry == nil,
-           overrides.strapRRPoints?.isEmpty ?? true, overrides.rrPoints?.isEmpty ?? true {
+           overrides.strapRRPoints?.isEmpty ?? true, overrides.rrPoints == nil {
             debugLog("[WorkoutRecovery] aborting — no on-disk backup or strap recording for session", level: .warning)
             return nil
         }
@@ -339,6 +341,7 @@ enum WorkoutRecoveryService {
         Self.carryForward(from: archived, into: &session)
         if Self.wasExportedByEmuqu(archived) { HealthKitBackfill.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }
+        Self.applyKeptSampleFields(to: &metadata, recovered: recovered, archived: archived, settings: deps.settingsManager.settings)
         Self.attachAnalysisSnapshot(
             to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec,
             rrPoints: recovered.rrPoints, settings: deps.settingsManager.settings
@@ -369,8 +372,7 @@ enum WorkoutRecoveryService {
         /// The fixes of `track` that begin a new recorded segment
         /// (`TrackSegments`); empty for the phone's own continuous track.
         let trackSegmentStarts: [Int]
-        let rawTrackWasEmpty: Bool
-        /// Offsets the backup marked as rows whose heart rate came from Apple
+        /// Offsets the source marked as rows whose heart rate came from Apple
         /// Health, including rows past a trimmed end.
         let backupHealthKitHROffsets: [Int]
         let liveSamples: [WorkoutSample]
@@ -381,12 +383,14 @@ enum WorkoutRecoveryService {
     /// it like the beats and the track, so charts and elevation stop there.
     /// The end is placed on the wall clock (`resolveEndDate`), the pauses the
     /// backup holds are closed at it, and the active time leaves them out.
+    /// The streams are the backup's, or the archived copy's own once its
+    /// backups are gone (`sourceStreams`), so every figure is recomputed from
+    /// what the trim keeps.
     private static func resolveRecovered(
         sessionId: UUID, startDate: Date, prepared: Prepared, overrides: Overrides
     ) -> RecoveredWorkout {
-        let record = prepared.workoutRecord
-        let (rawTrack, liveSamples) = (overrides.track?.fixes ?? record?.track ?? [], record?.samples ?? [])
-        let baroSamples = record?.barometricSamples ?? []
+        let streams = Self.sourceStreams(prepared, overrideTrack: overrides.track)
+        let (rawTrack, liveSamples, baroSamples) = (streams.track, streams.samples, streams.baroSamples)
         let rr = Self.resolvedRR(
             diskPoints: prepared.rrEntry?.points ?? [], strapPoints: overrides.strapRRPoints, overridePoints: overrides.rrPoints,
             autoTrimOverride: overrides.autoTrim, sessionId: sessionId, startDate: startDate)
@@ -399,8 +403,8 @@ enum WorkoutRecoveryService {
         return RecoveredWorkout(
             sport: Self.recoveredSport(prepared), startDate: startDate, endDate: endDate,
             durationSec: durationSec, pauses: pauses, rrPoints: rr.points,
-            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate), trackSegmentStarts: overrides.track?.starts ?? [],
-            rawTrackWasEmpty: rawTrack.isEmpty, backupHealthKitHROffsets: record?.healthKitHROffsets ?? [],
+            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate), trackSegmentStarts: streams.trackSegmentStarts,
+            backupHealthKitHROffsets: streams.healthKitHROffsets,
             liveSamples: liveSamples.filter { Double($0.offsetSec) <= durationSec },
             baroSamples: baroSamples.filter { $0.timestamp <= endDate }
         )
@@ -427,6 +431,22 @@ enum WorkoutRecoveryService {
         }.value
     }
 
+    /// The figures recomputed from the kept samples (`applySampleDerivedFields`)
+    /// over the rebuild's active time, at the FTP the workout was scored
+    /// with, else the user's for the sport, and each split's mean α1 as the
+    /// live finalize gives it.
+    private static func applyKeptSampleFields(
+        to metadata: inout WorkoutMetadata, recovered: RecoveredWorkout, archived: HRVSession?, settings: UserSettings
+    ) {
+        let ftp = archived?.workoutMetadata?.ftpAtTimeOfSession ?? WorkoutAIContextBuilder.sportFTP(for: recovered.sport, settings: settings)
+        Self.applySampleDerivedFields(to: &metadata, activeSeconds: recovered.durationSec, ftp: ftp)
+        if let splits = metadata.splits, let samples = metadata.samples {
+            metadata.splits = WorkoutAnalyzer.enrichSplitsWithAlpha1(
+                splits: splits, samples: samples, startDate: recovered.startDate, track: recovered.track
+            )
+        }
+    }
+
     /// The marked offsets that name a kept row, sorted, or nil when none do:
     /// a trim drops the markers of the rows it cuts.
     static func healthKitHROffsets(_ offsets: [Int], in samples: [WorkoutSample]) -> [Int]? {
@@ -439,10 +459,10 @@ enum WorkoutRecoveryService {
     /// The rows the crash backup marked as heart rate from Apple Health keep
     /// their markers, so the iCloud upload leaves that heart rate out.
     ///
-    /// Re-finalizing with the GPS backup already gone (a trim of an
-    /// already-recovered session) keeps the distance/route the original
-    /// recovery computed. The off-body tail we trim away had no GPS, so a trim
-    /// must not zero a real distance.
+    /// Re-finalizing with the GPS backup already gone (a trim of a saved
+    /// workout) works from the archived copy's stored track and samples
+    /// (`sourceStreams`), so distance, route, splits and elevation are those
+    /// of the kept part.
     ///
     /// The analyzer pass walks every beat and GPS fix of the workout, so it
     /// runs off the main actor.
@@ -463,9 +483,7 @@ enum WorkoutRecoveryService {
             Self.applyGPSElevation(to: &metadata, track: recovered.track, starts: recovered.trackSegmentStarts)
         }
         Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
-        if recovered.rawTrackWasEmpty, let existing = prepared.existingSession?.workoutMetadata {
-            Self.backfillRouteFields(into: &metadata, from: existing)
-        }
+        Self.applyKeptSampleFields(to: &metadata, recovered: recovered, archived: prepared.existingSession, settings: settings)
         Self.attachAnalysisSnapshot(to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec, rrPoints: recovered.rrPoints, settings: settings)
         return metadata
     }
@@ -538,8 +556,11 @@ enum WorkoutRecoveryService {
     private static func applyGPSElevation(to metadata: inout WorkoutMetadata, track: [CLLocation], starts: [Int]) {
         guard track.count > 1 else { return }
         // No climb is taken across a join between segments (`TrackSegments`).
+        // A fix with no altitude (a negative vertical accuracy, as a stored
+        // polyline without one decodes) adds no climb.
         let deltas = TrackSegments.split(track, starts: starts).flatMap { segment in
-            zip(segment, segment.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }
+            let withAltitude = segment.filter { $0.verticalAccuracy >= 0 }
+            return zip(withAltitude, withAltitude.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }
         }.filter { abs($0) >= 5.0 }
         metadata.elevationGainMeters = deltas.filter { $0 > 0 }.reduce(0, +)
         metadata.elevationLossMeters = -deltas.filter { $0 < 0 }.reduce(0, +)
@@ -573,14 +594,12 @@ enum WorkoutRecoveryService {
         return metadata
     }
 
-    /// Carry route fields forward from an earlier recovery when re-finalizing
-    /// with the GPS backup already deleted.
-    ///
-    /// This is the trim path: the user trims an already-recovered session, and
-    /// its on-disk track is long gone. The off-body tail being cut had no GPS,
-    /// so a trim must never zero a distance the first recovery legitimately
-    /// computed. Each field is filled only when the new value is absent —
-    /// a real recomputed value always wins.
+    /// Carry route fields forward from the archived copy when the rebuild
+    /// covers the same time and could not recompute them (a distance from
+    /// Apple Health's passive total, with no track): they still describe the
+    /// workout. Never after a trim, where they describe time it no longer has
+    /// (`carryForward`). Each field is filled only when the new value is
+    /// absent — a real recomputed value always wins.
     static func backfillRouteFields(into metadata: inout WorkoutMetadata, from existing: WorkoutMetadata) {
         if (metadata.distanceMeters ?? 0) == 0 { metadata.distanceMeters = existing.distanceMeters }
         if metadata.splits?.isEmpty ?? true { metadata.splits = existing.splits }

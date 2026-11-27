@@ -183,8 +183,11 @@ extension WorkoutSessionLifecycle {
 
     /// start() — parameter capture, after every step that can throw, so a
     /// refused start (busy strap, a Polar throw) leaves the recorder's
-    /// thresholds, route and last summary as they were.
+    /// thresholds, route and last summary as they were. An accidental start
+    /// still on that summary, unsaved, is left as the user leaving it
+    /// (`discardNotArchived`).
     func applyStartParameters(thresholds: [WorkoutThreshold], route: Route?) {
+        discardNotArchived()
         lifecycle.finishedSession = nil
         lifecycle.saveOutcome = nil
         coaching.thresholds = WorkoutThresholdWatch(thresholds: thresholds)

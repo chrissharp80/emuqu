@@ -165,9 +165,11 @@ final class WorkoutSaveRetryTests: XCTestCase {
         XCTAssertEqual(finished?.id, workout.id)
         let summary = FitnessPostSummaryView(
             session: finished ?? workout, onDone: {},
-            saveRetry: FitnessPostSummaryView.SaveRetry(lifecycle: recorder.lifecycle) {
-                recorder.session.retryUnsavedWorkouts()
-            }
+            saveRetry: FitnessPostSummaryView.SaveRetry(
+                lifecycle: recorder.lifecycle,
+                retry: { recorder.session.retryUnsavedWorkouts() },
+                save: { recorder.session.saveNotArchived() }
+            )
         )
         XCTAssertTrue(summary.isNotSavedYet)
         XCTAssertEqual(counter.runs, [])

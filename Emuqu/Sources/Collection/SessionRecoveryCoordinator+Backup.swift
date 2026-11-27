@@ -289,25 +289,25 @@ extension SessionRecoveryCoordinator {
 
     static let armingSlackSeconds: TimeInterval = 15 * 60
 
-    /// Re-finalize a recovered workout at a user-chosen end (seconds from
-    /// start) by clipping its archived RR series — the review/trim card's
-    /// Save. Reuses WorkoutRecoveryService so TRIMP/metrics stay consistent;
-    /// no strap re-pull needed (the merged data is in the archived session).
+    /// Re-finalize a workout at a user-chosen end (seconds from start on the
+    /// wall clock) — the review/trim card's Save. Its archived beats are
+    /// clipped there, and WorkoutRecoveryService cuts its track, samples and
+    /// pauses there too and recomputes every figure from what is kept, so a
+    /// workout with no heart rate is trimmed like any other; no strap re-pull
+    /// is needed (the merged data is in the archived session).
     ///
-    /// Refuses to trim into nothing — fewer than 30 beats isn't a workout. In
-    /// that case (a session no longer in the archive counts as none) the
-    /// recovered workout is kept as it was, untrimmed, and marked reviewed
-    /// like a save, so the card doesn't come back for the same session.
-    /// An archived session that cannot be read, or a rebuild that fails or
+    /// A session no longer in the archive has nothing to trim: the card
+    /// closes and it is marked reviewed, so it does not come back. An archived
+    /// session that cannot be read, or a rebuild that fails, keeps nothing or
     /// is not archived, leaves the card up and the session unreviewed, so the
     /// trim can be saved again instead of being dropped.
     ///
-    /// True when the card closed (trimmed, or kept untrimmed); false when it
-    /// stays up because nothing was saved, so the card can say so.
+    /// True when the card closed; false when it stays up because nothing was
+    /// saved, so the card can say so.
     @discardableResult
     func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async -> Bool {
         guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return false }
-        guard clipped.count >= 30 else {
+        guard archive.store.exists(sessionId) else {
             closeRecoveredWorkoutReview(sessionId)
             return true
         }
