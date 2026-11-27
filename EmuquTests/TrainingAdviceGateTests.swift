@@ -234,7 +234,7 @@ final class TrainingAdviceGateTests: XCTestCase {
     /// still reads Ready, so the label is held at Moderate beside the
     /// "lighter session" message.
     func testReadinessLabelIsHeldBesideALighterSessionMessage() {
-        let load = TrainingAdviceGate.Load(acwr: 7, ctl: 3, tsb: -18)
+        let load = TrainingAdviceGate.Load(acwr: 7, ctl: 2, tsb: -18)
         XCTAssertEqual(ReadinessScoring.readinessLabel(for: 8.0, load: load), "Moderate")
         XCTAssertTrue(ReadinessScoring.readinessMessage(for: 8.0, load: load).contains("lighter session"))
     }

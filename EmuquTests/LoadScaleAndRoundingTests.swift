@@ -91,6 +91,27 @@ final class LoadScaleAndRoundingTests: XCTestCase {
         XCTAssertNotEqual(old, current)
     }
 
+    // MARK: - Thresholds on the TSS scale
+
+    /// The "has a fitness base" boundary was 3.2 on the TRIMP scale; an hour
+    /// at threshold is 100 TSS and about 152 TRIMP at the default anchors.
+    func testTheFitnessBaseBoundaryIsOnTheTSSScale() {
+        XCTAssertEqual(RecoveryScoreConstants.Readiness.ctlThreshold, 3.2 / 1.52, accuracy: 0.01)
+        XCTAssertEqual(
+            TrainingLoadSeries.HeartRateAnchors(restingHR: 60, maxHR: 180).tss(fromTRIMP: 152), 100, accuracy: 0.5,
+            "the factor the thresholds are converted at"
+        )
+    }
+
+    /// The Deep Dive CTL bands are the TrainingPeaks ranges in TSS per day.
+    func testTheCTLBandsAreTheTrainingPeaksRanges() {
+        let renderer = DeepDiveReportRenderer(generator: PDFReportGenerator(settingsProvider: { UserSettings() }))
+        let words = [15.0, 30, 55, 85, 110].map(renderer.interpretCTL)
+        XCTAssertEqual(Set(words).count, 5, "one band each side of 20, 40, 70 and 100")
+        XCTAssertEqual(renderer.interpretCTL(65), renderer.interpretCTL(45), "65 TSS/day is consistent training, not high")
+        XCTAssertEqual(renderer.interpretCTL(99), renderer.interpretCTL(71))
+    }
+
     // MARK: - One energy figure
 
     /// Ten minutes at 8 METs for 70 kg is 7 METs above rest: 7 x 3.5 x 70 x 10 / 200.

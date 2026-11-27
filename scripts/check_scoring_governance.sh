@@ -43,6 +43,10 @@
 #    algorithms under one version string, the failure the version stamp
 #    exists to prevent.
 #
+#    The base's own sources must hash under the current scheme. A scheme whose
+#    roots the base lacks cannot hash it, and that fails (exit 2) rather than
+#    skipping the comparison, unless SCORING_ALLOW_UNHASHABLE_BASE=1 is set.
+#
 #    The baseline line is `<version> <hash> <scheme>`. A change to how the
 #    hash is computed rehashes with no scoring change, so the scheme is
 #    recorded and a base is always compared under its own scheme: the tree
@@ -222,8 +226,12 @@ if len(base_fields) in (2, 3):
 # The base's sources hashed under the current scheme too, so a change of
 # scheme that measures more (an operator, a constant outside the scoring
 # files) cannot carry an edit only the new scheme sees: the base and the tree
-# are compared under one scheme. A base the current scheme cannot read
-# (a root it lacks) leaves the comparison above to stand alone.
+# are compared under one scheme. A base the current scheme cannot read (a
+# root it lacks) is a configuration error, not a pass: skipping the
+# comparison let a scheme that names a declaration only the tree has carry
+# any scoring change past the gate. SCORING_ALLOW_UNHASHABLE_BASE=1 skips it
+# on purpose, for a scheme change that has to name a new declaration; the
+# run says so.
 base_tree = os.environ.get("BASE_TREE", "")
 if base_tree and len(base_fields) in (2, 3) and version == base_fields[0]:
     import subprocess
@@ -232,6 +240,17 @@ if base_tree and len(base_fields) in (2, 3) and version == base_fields[0]:
         cwd=base_tree, capture_output=True, text=True,
     )
     base_now = run.stdout.split()[0] if run.returncode == 0 and run.stdout.split() else ""
+    if not base_now:
+        reason = (run.stderr or run.stdout).strip() or f"exit {run.returncode}"
+        if os.environ.get("SCORING_ALLOW_UNHASHABLE_BASE") != "1":
+            sys.stderr.write(
+                f"check_scoring_governance: the base's sources cannot be hashed under {scheme!r} ({reason}), "
+                "so the change cannot be compared with the base. Make every root of the scheme one the base "
+                "has, or set SCORING_ALLOW_UNHASHABLE_BASE=1 to skip this comparison on purpose.\n"
+            )
+            raise SystemExit(2)
+        print(f"check_scoring_governance: note: base comparison under {scheme!r} skipped "
+              f"(SCORING_ALLOW_UNHASHABLE_BASE=1): {reason}", file=sys.stderr)
     if base_now and base_now != current_hash:
         problems.append(
             f"scoring code differs from the base branch under the current {scheme!r} scheme "
