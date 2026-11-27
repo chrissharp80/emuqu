@@ -102,10 +102,9 @@ final class CloudKitLiveBackupManager {
         do {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
-            Self.setPlainFields(of: record)
-            let compressedData = try Self.compressedPoints(points)
-            try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
-            debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
+            let assetURL = try Self.attachUpload(of: points, sessionId: sessionId, to: record)
+            try await saveWithAsset(record, at: assetURL)
+            debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud")
             await noteUploaded(sessionId)
         } catch let error as CKError where CloudKitSyncManager.isZoneGone(error) {
             debugLog("[CloudKit] Live backup: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
@@ -182,16 +181,27 @@ final class CloudKitLiveBackupManager {
         }
     }
 
-    /// Unique filename avoids collisions; cleanup happens AFTER save completes
-    /// because CloudKit reads the file asynchronously during `privateDB.save()`.
-    private func saveWithAsset(
-        _ record: CKRecord, compressedData: Data, sessionId: UUID
-    ) async throws {
+    /// Everything an upload writes on `record`: its plain fields, and the
+    /// sealed points as the `rrData` asset. The asset's file is returned for
+    /// the caller to remove once the save has read it. The one place the
+    /// uploaded record's contents are decided, so a test can read exactly what
+    /// goes to iCloud.
+    static func attachUpload(of points: [RRPoint], sessionId: UUID, to record: CKRecord) throws -> URL {
+        setPlainFields(of: record)
+        let sealed = try compressedPoints(points)
+        // A unique filename avoids collisions between overlapping uploads.
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("live_\(sessionId.uuidString)_\(UUID().uuidString.prefix(8))")
             .appendingPathExtension("gz")
-        try compressedData.write(to: tempURL)
+        try sealed.write(to: tempURL)
         record["rrData"] = CKAsset(fileURL: tempURL)
+        return tempURL
+    }
+
+    /// Save `record`, then remove its asset file. Cleanup happens after the
+    /// save completes because CloudKit reads the file asynchronously during
+    /// `privateDB.save()`.
+    private func saveWithAsset(_ record: CKRecord, at tempURL: URL) async throws {
         defer { _ = attempt("CloudKitLiveBackupManager.remove") { try FileManager.default.removeItem(at: tempURL) } }
         guard uploadsStillAllowed else { throw CloudUploadStopped() }
         _ = try await privateDB.save(record)

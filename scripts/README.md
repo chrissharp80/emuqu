@@ -119,7 +119,9 @@ flags correctly-scaling call sites.
 ### `check_strict_concurrency_enabled.sh`
 
 Proves every build configuration is in Swift 6 language mode with
-`SWIFT_STRICT_CONCURRENCY = complete` and that warnings are errors. The
+`SWIFT_STRICT_CONCURRENCY = complete`, and that warnings are errors in every
+shipping configuration (Debug and Release of the app and the watch app, the
+target's setting or else the project's). The
 compiler is the gate for isolation hazards; this only makes sure nobody
 switches it off. No build, seconds on Ubuntu (ADR 006).
 
