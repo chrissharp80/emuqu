@@ -47,7 +47,7 @@ extension ReportSectionRenderer {
         return (windowStart ..< (windowEnd - 1)).compactMap { i in
             // No pair across a recording break: those beats were never adjacent.
             guard Self.isCleanPair(at: i, flags: flags),
-                  !TimeDomainAnalyzer.isRecordingBreak(between: series.points[i], and: series.points[i + 1]) else { return nil }
+                  TimeDomainAnalyzer.isAdjacentBeat(series.points[i], series.points[i + 1]) else { return nil }
             return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
         }
     }

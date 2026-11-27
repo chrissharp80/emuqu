@@ -42,8 +42,9 @@ extension WindowSelector {
     /// RMSSD over successive differences between beats that are ADJACENT in
     /// the original series (`index`), both kept by the ectopic gate
     /// (`TimeDomainAnalyzer.ectopicKeepMask`), and not
-    /// separated by a recording break (`breaks`: indices whose beat follows
-    /// one, `TimeDomainAnalyzer.isRecordingBreak`). The
+    /// separated by a recording break or a removed interval (`breaks`: indices
+    /// whose beat is not adjacent to the one before,
+    /// `TimeDomainAnalyzer.isAdjacentBeat`). The
     /// Task Force definition is the difference between adjacent NN intervals;
     /// differencing the collapsed array instead adds one spurious large
     /// difference per removed beat. Same estimator as the reported RMSSD

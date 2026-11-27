@@ -110,8 +110,16 @@ final class RRDataImporter: Sendable {
             /// a beat with none, empty for an export without the column.
             var wallClocks: [Int64?] = []
 
+            /// Each beat's `follows_removed_beat` mark, parallel to
+            /// `timestamps`; empty for an export without the column.
+            var removedBeats: [Bool] = []
+
             func wallClock(at index: Int) -> Int64? {
                 index < wallClocks.count ? wallClocks[index] : nil
+            }
+
+            func followsRemovedBeat(at index: Int) -> Bool {
+                index < removedBeats.count && removedBeats[index]
             }
 
             var beatCount: Int {

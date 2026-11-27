@@ -302,7 +302,7 @@ enum DataSourceSelector {
     /// A streaming gap-fill point with its t_ms rebased to wallClockMs for
     /// timeline consistency.
     private static func rebased(_ sp: RRPoint) -> RRPoint {
-        RRPoint(t_ms: sp.wallClockMs ?? sp.t_ms, rr_ms: sp.rr_ms, wallClockMs: sp.wallClockMs, hr: sp.hr)
+        sp.retimed(t_ms: sp.wallClockMs ?? sp.t_ms, wallClockMs: sp.wallClockMs)
     }
 
     /// Skip every streaming point that falls within the duplicate-detection

@@ -77,7 +77,7 @@ enum WorkoutRRMerge {
         var clock = points.first?.t_ms ?? 0
         return points.map { point in
             defer { clock += Int64(point.rr_ms) }
-            return RRPoint(t_ms: clock, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+            return point.retimed(t_ms: clock, wallClockMs: point.wallClockMs)
         }
     }
 }

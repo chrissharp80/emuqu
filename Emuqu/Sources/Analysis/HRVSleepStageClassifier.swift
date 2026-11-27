@@ -195,7 +195,7 @@ enum HRVSleepStageClassifier {
     /// (beats of one BLE packet share a wall-clock stamp); a merged series
     /// that is not is sorted, so the sweep never skips beats.
     static func wallClockTimed(_ rrPoints: [RRPoint]) -> [RRPoint] {
-        let timed = rrPoints.map { RRPoint(t_ms: $0.exportTimeMs, rr_ms: $0.rr_ms, wallClockMs: $0.wallClockMs, hr: $0.hr) }
+        let timed = rrPoints.map { $0.retimed(t_ms: $0.exportTimeMs, wallClockMs: $0.wallClockMs) }
         let ordered = zip(timed, timed.dropFirst()).allSatisfy { $0.t_ms <= $1.t_ms }
         return ordered ? timed : timed.sorted { $0.t_ms < $1.t_ms }
     }
@@ -557,7 +557,7 @@ enum HRVSleepStageClassifier {
 ///
 /// A file-scope type rather than more members on `HRVSleepStageClassifier`,
 /// whose body is already large.
-private struct SleepWindowBeats {
+struct SleepWindowBeats {
     let points: [RRPoint]
     let isValid: [Bool]
     /// Indices into `points` whose beat follows a recording break.
@@ -580,12 +580,13 @@ private struct SleepWindowBeats {
     }
 
     /// Per valid beat, whether it came straight after the previous valid beat:
-    /// no invalid beat was dropped between them and no recording break
+    /// no invalid beat was dropped between them, the sensor removed none
+    /// before it (`RRPoint.followsRemovedBeat`) and no recording break
     /// separates them. The first valid beat has no predecessor and reads false.
     var validFollowsPrevious: [Bool] {
         let indices = validIndices
         return indices.indices.map { k in
-            k > 0 && indices[k] == indices[k - 1] + 1 && !breaks.contains(indices[k])
+            k > 0 && indices[k] == indices[k - 1] + 1 && !breaks.contains(indices[k]) && !points[indices[k]].isAfterRemovedBeat
         }
     }
 

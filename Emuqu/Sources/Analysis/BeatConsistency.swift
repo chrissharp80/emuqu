@@ -419,7 +419,8 @@ enum BeatConsistency {
     /// pass the clean mask. Returns the intervals, whether each one directly
     /// follows the one before it in the series (false after a removed beat,
     /// after a recording break (`TimeDomainAnalyzer.isRecordingBreak`: a
-    /// Bluetooth dropout, two merged recordings), and for the first), and the span (last minus first `t_ms`) for the
+    /// Bluetooth dropout, two merged recordings), after an interval the
+    /// sensor removed (`RRPoint.followsRemovedBeat`), and for the first), and the span (last minus first `t_ms`) for the
     /// validity check. `rr` is in time order, so the scan starts at the first
     /// beat at or after `startMs` (binary search) instead of rescanning the
     /// night from the first beat.
@@ -439,7 +440,7 @@ enum BeatConsistency {
             guard point.t_ms < endMs else { break }
             guard i < cleanMask.count, cleanMask[i] else { continue }
             intervals.append(point.rr_ms)
-            followsPrevious.append(lastKept.map { $0 == i - 1 && !TimeDomainAnalyzer.isRecordingBreak(between: rr[$0], and: point) } ?? false)
+            followsPrevious.append(lastKept.map { $0 == i - 1 && !TimeDomainAnalyzer.isRecordingBreak(between: rr[$0], and: point) && !point.isAfterRemovedBeat } ?? false)
             lastKept = i
             if firstT == nil { firstT = point.t_ms }
             lastT = point.t_ms

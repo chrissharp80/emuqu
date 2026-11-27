@@ -5,9 +5,15 @@ import Foundation
 extension RRDataImporter {
     // MARK: - Emuqu Multi-Session Parsing
 
-    /// One exported beat: its `timestamp_ms`, its `rr_ms`, and its
-    /// `wall_clock_ms` when the row states one.
-    typealias ExportedBeat = (timestamp: Int64, rr: Int, wallClockMs: Int64?)
+    /// One exported beat: its `timestamp_ms`, its `rr_ms`, its
+    /// `wall_clock_ms` when the row states one, and its
+    /// `follows_removed_beat` mark.
+    struct ExportedBeat {
+        let timestamp: Int64
+        let rr: Int
+        let wallClockMs: Int64?
+        let followsRemovedBeat: Bool
+    }
 
     /// Parse Emuqu multi-session RR export
     /// Format: session_date,timestamp_ms,rr_ms[,session_type[,wall_clock_ms]][,session_id]
@@ -96,6 +102,7 @@ extension RRDataImporter {
         var sessionType: Int?
         var sessionID: Int?
         var wallClock: Int?
+        var removedBeat: Int?
     }
 
     /// Which recording a row belongs to: its `session_date`, or its
@@ -124,7 +131,8 @@ extension RRDataImporter {
         }
         return FlowHRVColumns(
             session: session, timestamp: column("timestamp_ms"), rr: rr,
-            sessionType: column("session_type"), sessionID: column("session_id"), wallClock: column("wall_clock_ms")
+            sessionType: column("session_type"), sessionID: column("session_id"), wallClock: column("wall_clock_ms"),
+            removedBeat: column("follows_removed_beat")
         )
     }
 
@@ -186,8 +194,8 @@ extension RRDataImporter {
             let timestamp = try beatTimestamp(
                 sessionKey: sessionKey, fields: fields, columns: columns, groups: groups
             )
-            let wallClock = try statedWallClock(sessionKey: sessionKey.sessionDate, fields: fields, columns: columns)
-            groups[sessionKey, default: []].append((timestamp: timestamp, rr: rrValue, wallClockMs: wallClock))
+            let beat = try exportedBeat(fields, columns: columns, session: sessionKey.sessionDate, timestamp: timestamp, rr: rrValue)
+            groups[sessionKey, default: []].append(beat)
         }
         return groups
     }
@@ -226,6 +234,16 @@ extension RRDataImporter {
         return timestamp
     }
 
+    /// One row's beat: its timestamp and RR, its `wall_clock_ms`
+    /// (`statedWallClock`) and its `follows_removed_beat` mark.
+    private static func exportedBeat(
+        _ fields: [String], columns: FlowHRVColumns, session: String, timestamp: Int64, rr: Int
+    ) throws -> ExportedBeat {
+        let wallClock = try statedWallClock(sessionKey: session, fields: fields, columns: columns)
+        let removed = statesRemovedBeat(fields, column: columns.removedBeat)
+        return ExportedBeat(timestamp: timestamp, rr: rr, wallClockMs: wallClock, followsRemovedBeat: removed)
+    }
+
     /// The row's `wall_clock_ms`, or nil when the export has no such column
     /// or the cell is blank (a beat the sensor recorded itself). Like the
     /// timestamp, a value that is not whole milliseconds in
@@ -252,9 +270,10 @@ extension RRDataImporter {
     /// time on a night the clocks go back carry different offsets.
     /// `timestamp_ms` is the beat's start on the recording's beat timeline and
     /// `wall_clock_ms` when a streamed beat reached the phone, blank for one
-    /// the sensor recorded itself: the columns of the one-recording export
-    /// (`recordingCSVHeader`), and read back the same way.
-    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type,wall_clock_ms"
+    /// the sensor recorded itself, and `follows_removed_beat` 1 for a beat
+    /// the sensor removed an interval before: the columns of the
+    /// one-recording export (`recordingCSVHeader`), and read back the same way.
+    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type,wall_clock_ms,follows_removed_beat"
 
     /// A recording's start as the exporter writes it in `session_date`:
     /// ISO 8601 to the second with the UTC offset of `timeZone`, e.g.
@@ -371,7 +390,8 @@ extension RRDataImporter {
             rrIntervals: sortedPoints.map(\.rr),
             timestamps: sortedPoints.map(\.timestamp),
             sessionType: sessionType,
-            wallClocks: sortedPoints.map(\.wallClockMs)
+            wallClocks: sortedPoints.map(\.wallClockMs),
+            removedBeats: sortedPoints.map(\.followsRemovedBeat)
         )
     }
 
@@ -382,7 +402,10 @@ extension RRDataImporter {
         // `rrIntervals`, `timestamps` and `wallClocks` are built from the same
         // sorted beats, so they pair up one to one.
         let points = sessionData.timestamps.indices.map { i in
-            RRPoint(t_ms: sessionData.timestamps[i], rr_ms: sessionData.rrIntervals[i], wallClockMs: sessionData.wallClock(at: i))
+            RRPoint(
+                t_ms: sessionData.timestamps[i], rr_ms: sessionData.rrIntervals[i],
+                wallClockMs: sessionData.wallClock(at: i), followsRemovedBeat: sessionData.followsRemovedBeat(at: i)
+            )
         }
         var session = HRVSession(startDate: sessionData.date, sessionType: sessionData.sessionType ?? .overnight)
         session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: sessionData.date)

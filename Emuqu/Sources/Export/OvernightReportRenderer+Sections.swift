@@ -199,7 +199,7 @@ extension OvernightReportRenderer {
 
         drawOvernightHRGrid(in: graphRect, minHR: minHR, maxHR: maxHR, range: range)
         drawOvernightAnalysisWindow(result: result, pointCount: points.count, in: graphRect)
-        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: points.indices)
+        let breaks = TimeDomainAnalyzer.beatsNotAdjacentToPrevious(in: points, range: points.indices)
         drawOvernightHRCurve(hrData, pointCount: points.count, breaks: breaks, in: graphRect, minHR: minHR, range: range)
         // Border
         UIColor.lightGray.setStroke()

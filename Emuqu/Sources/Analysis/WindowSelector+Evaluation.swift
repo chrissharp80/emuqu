@@ -75,8 +75,7 @@ extension WindowSelector {
             debugLog("[WindowSelector] evaluateWindow REJECTED: only \(rrValues.count) valid RR values (need ≥50)")
             return nil
         }
-        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: startIdx ..< endIdx)
-        guard let clean = cleanBeats(rrValues: rrValues, windowPoints: slice.points, breaks: breaks) else { return nil }
+        guard let clean = cleanBeats(rrValues: rrValues, windowPoints: slice.points, series: series, range: startIdx ..< endIdx) else { return nil }
         return scoredBlock(
             slice: slice, rrValues: rrValues, artifactRate: artifactRate,
             clean: clean, sessionStartMs: sessionStartMs, sessionEndMs: sessionEndMs
@@ -130,8 +129,12 @@ extension WindowSelector {
     /// so the window is chosen on the beats it then reports. The floor adapts
     /// downward for short windows so a 200-beat window isn't held to the same
     /// absolute count as a 600-beat one.
+    ///
+    /// No difference is taken across a recording break or a beat the sensor
+    /// removed an interval before (`TimeDomainAnalyzer.isAdjacentBeat`); DFA
+    /// splits only at the breaks (`CleanBeatWindow`).
     private func cleanBeats(
-        rrValues: [(index: Int, rr: Double)], windowPoints: [RRPoint], breaks: Set<Int>
+        rrValues: [(index: Int, rr: Double)], windowPoints: [RRPoint], series: RRSeries, range: Range<Int>
     ) -> CleanBeats? {
         let kept = TimeDomainAnalyzer.ectopicKeepMask(rrValues.map(\.rr))
         let keptValues = zip(rrValues, kept).filter { $0.1 }.map { $0.0 }
@@ -141,9 +144,11 @@ extension WindowSelector {
             debugLog("[WindowSelector] evaluateWindow REJECTED: only \(cleanRRs.count) clean beats (need ≥\(adaptiveMinCleanBeats)), \(rrValues.count - cleanRRs.count) ectopic removed")
             return nil
         }
+        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: range)
+        let removed = TimeDomainAnalyzer.beatsAfterRemovedBeat(in: series.points, range: range)
         return CleanBeats(
-            beats: CleanBeatWindow(rr: cleanRRs, indices: keptValues.map(\.index), breaks: breaks),
-            rmssd: maskedRMSSD(rrValues, kept: kept, breaks: breaks)
+            beats: CleanBeatWindow(rr: cleanRRs, indices: keptValues.map(\.index), breaks: breaks, afterRemovedBeat: removed),
+            rmssd: maskedRMSSD(rrValues, kept: kept, breaks: breaks.union(removed))
         )
     }
 

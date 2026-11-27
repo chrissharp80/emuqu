@@ -135,9 +135,113 @@ final class RecordingBreakLeftoversTests: XCTestCase {
         var session = HRVSession(startDate: series.startDate, sessionType: .nap)
         session.rrSeries = series
         let rows = ExportDataView.rrCSVRows(for: session, series: series, timeZone: .gmt)
-        XCTAssertTrue(rows.hasPrefix("2023-11-14T22:13:20Z,0,800,nap,\n"))
+        XCTAssertTrue(rows.hasPrefix("2023-11-14T22:13:20Z,0,800,nap,,\n"))
         let parsed = try RRDataImporter().parseFlowHRVMultiSession(RRDataImporter.emuquRRExportHeader + "\n" + rows, fileName: "e.csv")
         XCTAssertEqual(parsed.sessions.first?.wallClocks.compactMap { $0 }, [])
+    }
+
+    // MARK: - Removed beats
+
+    /// 100 beats alternating 800 and 900 ms, the sensor having removed an
+    /// interval before beat 50.
+    private func gatedNight() -> [RRPoint] {
+        (0 ..< 100).map { (i: Int) -> RRPoint in
+            let rr: Int = i.isMultiple(of: 2) ? 800 : 900
+            return beat(i, spacing: 850, rr: rr, wall: Int64(i * 850), marked: i == 50)
+        }
+    }
+
+    private func beat(_ i: Int, spacing: Int, rr: Int, wall: Int64?, marked: Bool) -> RRPoint {
+        let t = Int64(i * spacing)
+        return RRPoint(t_ms: t, rr_ms: rr, wallClockMs: wall, followsRemovedBeat: marked)
+    }
+
+    /// A beat without the mark is stored and synced byte for byte as
+    /// before; a marked one carries the key and reads back marked.
+    func testTheMarkIsEncodedOnlyWhenSet() throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let plain = try XCTUnwrap(String(data: encoder.encode(RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 5, hr: 70)), encoding: .utf8))
+        XCTAssertEqual(plain, #"{"hr":70,"rr_ms":800,"t_ms":0,"wallClockMs":5}"#)
+        let marked = RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 5, hr: 70, followsRemovedBeat: true)
+        let decoded = try JSONDecoder().decode(RRPoint.self, from: encoder.encode(marked))
+        XCTAssertTrue(decoded.isAfterRemovedBeat)
+        XCTAssertFalse(try JSONDecoder().decode(RRPoint.self, from: Data(plain.utf8)).isAfterRemovedBeat)
+    }
+
+    /// The Verity Sense memory pull marks the beat after every rejected run,
+    /// but not a first beat with nothing kept before it.
+    func testTheMemoryPullMarksTheBeatAfterARejectedRun() {
+        let good = StrapPPISample(ppInMs: 800, ppErrorEstimate: 5, blockerBit: 0)
+        let rejected = StrapPPISample(ppInMs: 800, ppErrorEstimate: 5, blockerBit: 1)
+        let points = StrapPPIFilter.rrPoints(from: [rejected, good, good, rejected, rejected, good, good])
+        XCTAssertEqual(points.map(\.isAfterRemovedBeat), [false, false, true, false])
+    }
+
+    /// No successive difference is taken across a removed beat: the masked
+    /// RMSSD, the clean window, Poincaré pairs and chart runs all skip the
+    /// pair; the spectrum's unbroken stretch is not cut by it.
+    func testNoPairIsTakenAcrossARemovedBeat() throws {
+        let points = gatedNight()
+        XCTAssertFalse(TimeDomainAnalyzer.isAdjacentBeat(points[49], points[50]))
+        XCTAssertFalse(TimeDomainAnalyzer.isRecordingBreak(between: points[49], and: points[50]))
+        XCTAssertEqual(TimeDomainAnalyzer.beatsNotAdjacentToPrevious(in: points, range: 0 ..< 100), [50])
+        XCTAssertEqual(TimeDomainAnalyzer.longestUnbrokenRange(in: points, range: 0 ..< 100), 0 ..< 100)
+        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
+        let flags = Array(repeating: ArtifactFlags(isArtifact: false, type: nil, confidence: 0), count: 100)
+        let window = try XCTUnwrap(TimeDomainAnalyzer.cleanWindow(series, flags: flags, windowStart: 0, windowEnd: 100))
+        XCTAssertFalse(window.isAdjacentToPrevious(50))
+        XCTAssertEqual(poincareBeatPairs(series: series, flags: nil, window: 0 ..< 100).count, 98)
+        XCTAssertEqual(TimeDomainAnalyzer.recordingRuns(of: Array(40 ..< 60), in: points).firstIndex(of: 1), 10)
+        let marked = (0 ..< 100).map { (i: Int) -> RRPoint in
+            let rr: Int = i < 50 ? 800 : 900
+            return beat(i, spacing: 850, rr: rr, wall: nil, marked: i == 50)
+        }
+        XCTAssertEqual(TimeDomainAnalyzer.rmssd(points: marked, range: 0 ..< 100, isValid: { _ in true }) ?? -1, 0, accuracy: 0.001)
+    }
+
+    /// Beat consistency, the window selector's RMSSD and the sleep
+    /// classifier's variability take no pair across a removed beat either.
+    func testEveryAdjacencyRuleSkipsARemovedBeat() throws {
+        let points = gatedNight()
+        let window = BeatConsistency.inWindow(rr: points, cleanMask: Array(repeating: true, count: 100), startMs: 0, endMs: 1_000_000)
+        XCTAssertEqual([window.followsPrevious[49], window.followsPrevious[50], window.followsPrevious[51]], [true, false, true])
+        XCTAssertEqual(SleepWindowBeats(points).validFollowsPrevious.filter { !$0 }.count, 2, "the first beat and the one after the removed interval")
+        let step = (0 ..< 300).map { (i: Int) -> RRPoint in
+            let rr: Int = i < 150 ? 800 : 840
+            return RRPoint(t_ms: i < 150 ? Int64(i * 800) : Int64(120_000 + (i - 150) * 840), rr_ms: rr, wallClockMs: nil, followsRemovedBeat: i == 150)
+        }
+        let series = RRSeries(points: step, sessionId: UUID(), startDate: Date())
+        let flags = Array(repeating: ArtifactFlags(isArtifact: false, type: nil, confidence: 0), count: 300)
+        let block = try XCTUnwrap(WindowSelector().evaluateWindow(
+            series: series, flags: flags, startIdx: 0, endIdx: 300, sessionStartMs: 0, sessionEndMs: step[299].endMs
+        ))
+        XCTAssertEqual(block.rmssd, 0, accuracy: 0.001)
+    }
+
+    /// Every copy that moves a beat keeps its mark: a merge re-base, the
+    /// Watch interleave and the sleep classifier's wall-clock timeline.
+    func testEveryCopyKeepsTheMark() {
+        let marked = RRPoint(t_ms: 100, rr_ms: 800, wallClockMs: 100, hr: 60, followsRemovedBeat: true)
+        XCTAssertTrue(marked.shifted(by: 1_000).isAfterRemovedBeat)
+        XCTAssertTrue(marked.retimed(t_ms: 5, wallClockMs: nil).isAfterRemovedBeat)
+        let watch = [RRPoint(t_ms: 0, rr_ms: 800, wallClockMs: 0)]
+        XCTAssertEqual(WorkoutRRMerge.merged(source: .strap, streaming: [marked], watchRouted: watch).map(\.isAfterRemovedBeat), [false, true])
+        XCTAssertEqual(HRVSleepStageClassifier.wallClockTimed([marked]).map(\.isAfterRemovedBeat), [true])
+    }
+
+    /// Both RR exports write the mark and both imports read it back.
+    func testTheMarkSurvivesExportAndImport() throws {
+        let points = (0 ..< 70).map { (i: Int) -> RRPoint in beat(i, spacing: 800, rr: 800, wall: Int64(i * 800), marked: i == 30) }
+        let importer = RRDataImporter()
+        let result = try importer.importContent(RRDataImporter.recordingCSV(points: points), fileName: "rr.csv")
+        XCTAssertEqual(importer.createSession(from: result, startingAt: Date()).rrSeries?.points, points)
+        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date(timeIntervalSince1970: 1_700_000_000))
+        var session = HRVSession(startDate: series.startDate, sessionType: .overnight)
+        session.rrSeries = series
+        let csv = RRDataImporter.emuquRRExportHeader + "\n" + ExportDataView.rrCSVRows(for: session, series: series, timeZone: .gmt)
+        let data = try XCTUnwrap(importer.parseFlowHRVMultiSession(csv, fileName: "e.csv").sessions.first)
+        XCTAssertEqual(importer.createSessionFromFlowHRVData(data, originalFileName: "e.csv").rrSeries?.points, points)
     }
 
     // MARK: - Watch-routed beats

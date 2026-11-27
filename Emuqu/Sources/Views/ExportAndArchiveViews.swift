@@ -329,16 +329,16 @@ struct ExportDataView: View {
     /// which names the recording wherever the file is read, and its type,
     /// which the importer reads back so a nap or quick reading is not
     /// re-imported as an overnight. A streamed beat's `wall_clock_ms` comes
-    /// last (blank for one the sensor recorded itself), so a Bluetooth
-    /// dropout the timestamps do not show is still a break once imported
-    /// (`RRDataImporter.emuquRRExportHeader`).
+    /// next (blank for one the sensor recorded itself), so a Bluetooth
+    /// dropout the timestamps do not show is still a break once imported,
+    /// and `follows_removed_beat` last (`RRDataImporter.emuquRRExportHeader`).
     nonisolated static func rrCSVRows(for session: HRVSession, series rrSeries: RRSeries, timeZone: TimeZone = .current) -> String {
         let prefix = RRDataImporter.emuquRRExportSessionDate(session.startDate, timeZone: timeZone)
         let type = session.sessionType.rawValue
         var chunk = ""
         chunk.reserveCapacity(rrSeries.points.count * 56)
         for point in rrSeries.points {
-            chunk += "\(prefix),\(point.t_ms),\(point.rr_ms),\(type),\(point.wallClockMs.map(String.init) ?? "")\n"
+            chunk += "\(prefix),\(point.t_ms),\(point.rr_ms),\(type),\(point.wallClockMs.map(String.init) ?? ""),\(RRDataImporter.removedBeatCell(point))\n"
         }
         return chunk
     }
