@@ -56,12 +56,21 @@ extension MedicalTermLexicon {
         "(?:hurt|injured)\\s+myself", "cut\\s+myself(?!\\s+(?:some\\s+)?slack)",
         "(?:hurt|injured|broke|broken|twisted|sprained|rolled|fractured|dislocated)\\s+my\\s+"
             + "(?:ankle|knee|leg|foot|hip|wrist|arm|back|neck|head|shoulder|hand|ribs?|collarbone|elbow|toe|finger)s?",
+        // A muscle or tendon torn or pulled, and a blow to the head.
+        "(?:pulled|tore|torn|ruptured|strained)\\s+(?:my|a)\\s+(?:hamstring|calf|groin|quad|achilles|acl|mcl|meniscus|muscle|tendon)s?",
+        "i\\s+(?:just\\s+)?(?:hit|banged|smacked)\\s+my\\s+head",
+        // Falls told by their cause, and being hit on the road.
+        "(?:tripped|slipped|stumbled)(?:\\s+(?:on|over)\\s+(?:\\w+\\s+){0,2}\\w+)?\\s+and\\s+(?:fell|went\\s+down)",
+        "i\\s+(?:just\\s+)?(?:tripped|slipped)\\s+(?:on|over)\\s+(?:the\\s+|some\\s+)?(?:ice|black\\s+ice|stairs)",
+        "(?:was|got|been)\\s+(?:hit|struck|knocked\\s+(?:down|over|off))\\s+by\\s+(?:a\\s+)?(?:car|truck|van|bus|vehicle|cyclist|bike|motorbike)",
+        "an?\\s+(?:car|truck|van|bus|cyclist)\\s+(?:hit|struck|knocked\\s+(?:me|down))", "(?:got\\s+)?knocked\\s+off\\s+my\\s+(?:bike|bicycle)",
         "(?:ankle|knee|leg|foot|wrist|arm|hip|bone)\\s+(?:is|might\\s+be|may\\s+be|could\\s+be|feels)\\s+"
             + "(?:broken|sprained|twisted|fractured|dislocated)",
         "i\\s+(?:just\\s+)?(?:fell|took\\s+a\\s+(?:bad\\s+)?fall|had\\s+a\\s+(?:bad\\s+)?fall)" + notAFall,
         "i(?:['’]ve|\\s+have)\\s+(?:just\\s+)?fallen" + notAFall,
         // "Came off the bike" is also a triathlon transition.
-        "(?:crashed|fell\\s+off)\\s+(?:my|the)\\s+(?:bike|bicycle)(?!\\s+(?:computer|app|gps|light|lock)\\b)",
+        // Not an app that crashed "my bike workout".
+        "(?:crashed|fell\\s+off)\\s+(?:my|the)\\s+(?:bike|bicycle)(?!\\s+(?:computer|app|gps|light|lock|workout|ride|session|trainer|route)\\b)",
         "came\\s+off\\s+my\\s+(?:bike|bicycle)",
         // The nouns only in a report shape, so "how long does a sprain take to
         // heal?" and "what is concussion protocol?" reach the model.
@@ -70,14 +79,19 @@ extension MedicalTermLexicon {
             + "(?:a\\s+)?(?:sprain|concussion)",
         "(?:is|are|it['’]?s|keeps?|won['’]?t\\s+stop|started)\\s+bleeding", "bleeding\\s+(?:badly|heavily|a\\s+lot)",
         "(?:call|need|get|send)\\s+(?:me\\s+)?(?:an?\\s+)?ambulance",
-        "(?:can['’]?t|cannot|can\\s+not|unable\\s+to)\\s+(?:walk|put\\s+(?:any\\s+)?weight(?!\\s+on\\s+the\\s+bar)|move\\s+my)"
+        // "Walk" and "move my" name the body, not a plan: "can't walk the dog",
+        // "can't move my run to Friday".
+        "(?:can['’]?t|cannot|can\\s+not|unable\\s+to)\\s+(?:walk(?!\\s+(?:the\\s+dog|to|with|home|there|far|fast|as\\s+much|it\\s+off)\\b)"
+            + "|put\\s+(?:any\\s+)?weight(?!\\s+on\\s+the\\s+bar)"
+            + "|move\\s+my\\s+(?:arms?|legs?|neck|head|hands?|feet|foot|fingers?|toes?|ankle|knee|back|shoulder|hip|body))"
     ]
 
     /// The idioms "fell asleep / behind / apart / short / in love / for it /
     /// off pace / off the plan / out of shape / into a rut / down the
     /// rankings", and "a fall in fitness", are not injuries.
     private static let notAFall =
-        "(?!\\s+(?:asleep|behind|apart|short|in\\s+love|for|off\\s+(?:the\\s+)?(?:pace|plan|wagon|schedule|routine)|out\\s+of"
+        "(?!\\s+(?:asleep|(?:way\\s+|well\\s+|a\\s+(?:bit|little)\\s+)?behind|apart|short|in\\s+love|for"
+        + "|off\\s+(?:the\\s+|my\\s+)?(?:pace|plan|wagon|bandwagon|schedule|routine|diet|program(?:me)?|training|radar)|out\\s+of"
         + "|into|down\\s+the\\s+(?:rankings|standings|leaderboard)|back|ill|sick|victim|from\\s+the\\s+top|in\\s+(?:fitness|form|pace)))"
 
     /// Body parts after "je me suis cassé / tordu / foulé la …", so the

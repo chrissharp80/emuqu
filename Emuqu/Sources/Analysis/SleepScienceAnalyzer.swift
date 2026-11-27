@@ -637,8 +637,8 @@ enum SleepScienceAnalyzer {
         let inBedMinutes = totalSleepMinutes + total.awake
         return SleepData(
             date: original.date, inBedStart: original.inBedStart,
-            sleepStart: state.segments.map(\.start).min() ?? original.sleepStart,
-            sleepEnd: state.segments.map(\.end).max() ?? original.sleepEnd,
+            sleepStart: editedSleepBounds(adjustedSegments)?.start ?? original.sleepStart,
+            sleepEnd: editedSleepBounds(adjustedSegments)?.end ?? original.sleepEnd,
             totalSleepMinutes: totalSleepMinutes, inBedMinutes: inBedMinutes,
             deepSleepMinutes: original.deepSleepMinutes != nil ? total.deep : nil,
             remSleepMinutes: original.remSleepMinutes != nil ? total.rem : nil,
@@ -653,8 +653,20 @@ enum SleepScienceAnalyzer {
         )
     }
 
+    /// The edited night's sleep onset and final wake: the span of the
+    /// segments that hold sleep, each bounded by its own sleep stages
+    /// (`SleepData.sleepBounds`), the resolver's definition. A segment's
+    /// leading or trailing awake time, which the editor keeps inside the
+    /// segment, therefore stays latency or lying awake after an edit.
+    private static func editedSleepBounds(_ segments: [HealthKitManager.SleepSegment]) -> DateInterval? {
+        let asleep = segments.filter { $0.totalSleepMinutes > 0 }
+        guard let start = asleep.map(\.sleepStart).min(), let end = asleep.map(\.sleepEnd).max() else { return nil }
+        return DateInterval(start: start, end: end)
+    }
+
     /// One edited segment, clipped to its own bounds, with its intervals
-    /// appended to the running timeline.
+    /// appended to the running timeline. Its bounds are those of its sleep
+    /// stages; a segment with no stages (an envelope) spans its own bounds.
     ///
     /// Counts ALL unspecified-stage minutes toward the total, not
     /// just user-declared ones. A provenance filter
@@ -686,9 +698,10 @@ enum SleepScienceAnalyzer {
             segSleepMin = max(0, Int(seg.end.timeIntervalSince(seg.start) / 60))
             envelopeUnspecifiedTotal += segSleepMin
         }
+        let bounds = SleepData.sleepBounds(of: clipped) ?? DateInterval(start: seg.start, end: max(seg.start, seg.end))
         return HealthKitManager.SleepSegment(
-            sleepStart: seg.start,
-            sleepEnd: seg.end,
+            sleepStart: bounds.start,
+            sleepEnd: bounds.end,
             totalSleepMinutes: segSleepMin,
             deepSleepMinutes: original.deepSleepMinutes != nil ? stages.deep : nil,
             remSleepMinutes: original.remSleepMinutes != nil ? stages.rem : nil,

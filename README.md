@@ -80,7 +80,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   the Swift sources and string catalogues, not these docs.
 - **Running all night on a phone.** Background Bluetooth capture with
   incremental backup, recovery from the strap's own memory after a crash, and
-  CloudKit sync that never touches the main thread.
+  CloudKit sync between devices.
 
 ## How it is built
 
@@ -226,7 +226,7 @@ routine step.
 
 ### CI
 
-Emuqu is developed by one person, pushing to `main`. Five workflows live in
+Emuqu is developed by one person, pushing to `main`. Six workflows live in
 `.github/workflows/`:
 
 - **`gates.yml`** runs on every pull request and push to `main`, on a Linux runner, in about a minute:
@@ -240,12 +240,16 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
   ratcheted floors read from `.ci/` at run time: overall, logic and views, and one per
   critical area (each source folder but `Protocols/`, the archive, the assistant's confirmation
   step and the log scrubber).
+- **`mutations.yml`** runs the mutation harness on demand and before every
+  TestFlight upload: each mutation changes one high-stakes behaviour (the
+  score arithmetic, encryption, the medical-claim guard, the data purge) and
+  the test suite must fail on it.
 - **`performance.yml`** runs the analysis performance tests on demand.
 - **`security.yml`** runs on every pull request, every push to `main` and
   weekly. It submits the SBOM to GitHub's dependency graph, so the Swift
   packages get Dependabot alerts, then runs CodeQL for Swift and, on a pull
   request, a dependency review of what it changes.
-- **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
+- **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml` and `mutations.yml`.
 
 The macOS build, the unit suite with its coverage floors and Thread Sanitizer
 run on every pull request on GitHub's standard macOS runner, which costs a

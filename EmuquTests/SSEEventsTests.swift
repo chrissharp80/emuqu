@@ -44,4 +44,36 @@ final class SSEEventsTests: XCTestCase {
         let read = try await events(["data: {\"a\":", "data: 1,"])
         XCTAssertEqual(read.map(\.data), ["{\"a\":\n1,"])
     }
+
+    private func wireBytes(_ wire: String) -> AsyncStream<UInt8> {
+        AsyncStream<UInt8> { continuation in
+            for byte in Array(wire.utf8) { continuation.yield(byte) }
+            continuation.finish()
+        }
+    }
+
+    private func lines(_ wire: String) async throws -> [String] {
+        var read: [String] = []
+        for try await line in SSELines(wireBytes(wire)) { read.append(line) }
+        return read
+    }
+
+    /// U+2028, U+2029 and U+0085 may sit unescaped in a JSON string; SSE
+    /// ends a line only at CR LF, LF or CR, so the event stays whole.
+    func testUnicodeLineSeparatorsInsideAValueDoNotSplitTheLine() async throws {
+        let value = "{\"text\":\"a\u{2028}b\u{2029}c\u{85}d\"}"
+        let wire = "data: \(value)\r\n\r\ndata: [DONE]\n"
+        let read = try await lines(wire)
+        XCTAssertEqual(read, ["data: \(value)", "", "data: [DONE]"])
+        var events: [SSEEvent] = []
+        for try await event in SSEEvents(SSELines(wireBytes(wire))) { events.append(event) }
+        XCTAssertEqual(events.map(\.data), [value, "[DONE]"])
+    }
+
+    /// CR alone and LF alone each end a line, and a last line without one
+    /// is still read.
+    func testEveryLineEndingTheFormatDefinesEndsALine() async throws {
+        let read = try await lines("a\rb\nc\r\nd")
+        XCTAssertEqual(read, ["a", "b", "c", "d"])
+    }
 }

@@ -187,3 +187,28 @@ final class ScoreFactorFactsTests: XCTestCase {
         XCTAssertEqual(Set(kept.map(\.sessionId)), [continuation.sessionId, nextNight.sessionId])
     }
 }
+
+/// "Last night" for the baseline deviation facts is the night whose wake day
+/// is today. After a skipped night the newest reading is yesterday morning's,
+/// and presenting its deviation as today's would be a false "today".
+final class BaselineLastNightTests: XCTestCase {
+    private let calendar = Calendar(identifier: .gregorian)
+
+    private func sample(startHoursAgo: Double, wokeHoursAgo: Double, now: Date) -> BaselineNamespace.Sample {
+        BaselineNamespace.Sample(
+            date: now.addingTimeInterval(-startHoursAgo * 3600), day: now.addingTimeInterval(-wokeHoursAgo * 3600), rmssd: 50, hr: 55
+        )
+    }
+
+    func testANightThatWokeYesterdayIsNotLastNight() throws {
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 27, hour: 8)))
+        let yesterdays = sample(startHoursAgo: 33, wokeHoursAgo: 25, now: now)
+        XCTAssertNil(BaselineNamespace.lastNight(in: [yesterdays], now: now, calendar: calendar))
+    }
+
+    func testANightThatWokeThisMorningIsLastNight() throws {
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 27, hour: 8)))
+        let tonights = sample(startHoursAgo: 9, wokeHoursAgo: 1.5, now: now)
+        XCTAssertNotNil(BaselineNamespace.lastNight(in: [tonights], now: now, calendar: calendar))
+    }
+}

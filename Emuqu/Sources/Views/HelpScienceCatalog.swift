@@ -864,7 +864,7 @@ extension HelpScienceCatalog {
                 .keyValue([
                     (label: "Readiness (1-10)", value: ansReadinessExplanation),
                     (label: "Recovery Score (0-100)", value: """
-                        Compares you with your own baseline from the third night. Full z-score normalization using up to 60 days of historical data, \
+                        Compares you with your own baseline from the fourth night. Full z-score normalization using up to 60 days of historical data, \
                         integrating sleep quality and vitals (respiratory rate, wrist temperature, resting heart rate). The complete picture.
                         """)
                 ]),
