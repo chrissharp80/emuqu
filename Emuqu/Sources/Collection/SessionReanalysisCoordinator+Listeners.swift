@@ -286,7 +286,9 @@ extension SessionReanalysisCoordinator {
     /// the UI on every morning foreground). The refresh is applied to the
     /// archived copy as it is now, not to the one read before the HealthKit
     /// fetch, so an edit saved meanwhile (a feeling, tags, a reanalysis) is
-    /// kept. Returns the session as written; nil when the write failed.
+    /// kept, and a sleep the user edited meanwhile is not refreshed at all
+    /// (`applyAutoRefreshIfAllowed`). Returns the session as written; nil
+    /// when nothing was written or the write failed.
     private func persistRefreshedSleep(_ fresh: SleepData, sessionId: UUID) async -> HRVSession? {
         let archiveRef = archive
         return await Task.detached { Self.applyRefreshedSleep(fresh, sessionId: sessionId, in: archiveRef) }.value
@@ -296,7 +298,10 @@ extension SessionReanalysisCoordinator {
         _ fresh: SleepData, sessionId: UUID, in archive: SessionArchive
     ) -> HRVSession? {
         do {
-            try archive.update(sessionId, requestingReupload: false) { SleepRefreshPolicy.applyAutoRefresh(fresh, to: &$0) }
+            let written = try archive.updateIfChanged(sessionId, requestingReupload: false) {
+                SleepRefreshPolicy.applyAutoRefreshIfAllowed(fresh, to: &$0)
+            }
+            guard written else { return nil }
             return archive.retrieveOrLog(sessionId, caller: "AutoRescore.sleep")
         } catch {
             debugLog("[AutoRescore.sleep] archive write failed: \(error.localizedDescription)", level: .warning)

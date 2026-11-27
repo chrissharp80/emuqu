@@ -153,7 +153,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("already saved — an existing fact has the same text")])
         case .nothingToSave:
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("nothing to save — the text is empty")])
-        case .notSaved:
+        case .notSaved, .noRoom:
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("not saved — the memory could not be written; tell the user and do not say it was remembered")])
         case let .added(evicted):
             return addedRecord(text, evicted: evicted)
@@ -173,7 +173,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     marathon in October', user_quote='remember I'm training for a marathon in October'. Required param: text (the thing to remember, plain English, ≤160 chars; longer text is refused). With auto-memory off, a call without a \
     user_quote found in the user's latest message is refused. The first call saves nothing and returns status=confirmation_required with an ask_user \
     question: ask it and end your reply; call again with the same text only if their next message is a plain yes. De-duplicates against existing facts case-insensitively: added=false means it was already saved. At 25 facts \
-    the oldest is dropped and named in evicted_oldest — tell the user.
+    the oldest is dropped (one auto-memory saved before one the user saved) and named in evicted_oldest — tell the user.
     """
 
     /// Whether `quote` is the user's own words from their most recent chat

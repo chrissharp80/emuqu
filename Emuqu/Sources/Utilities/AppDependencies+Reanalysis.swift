@@ -87,7 +87,8 @@ extension AppDependencies {
     /// default artifact detector and window selector, which hold only their
     /// default configuration), settings, configuration and training context
     /// from the scoring context, archive changes to the archive signal, and
-    /// each rewritten session re-uploaded to iCloud.
+    /// each rewritten session re-uploaded to iCloud with the edit stamp the
+    /// archive gave it (`CloudKitSyncManager.reuploadRewrite`).
     @MainActor
     private static func makeReanalysisService(_ parts: SessionReanalysisParts) -> ReanalysisService {
         let scoring = parts.scoring
@@ -104,7 +105,7 @@ extension AppDependencies {
             analyzeFullSession: { await scoring.analyze($0, peakCapacity: $1, pipeline: pipeline) },
             onArchiveChanged: { [archiveSignal = parts.archiveSignal] in archiveSignal.notifyChanged() },
             onSessionUploaded: { [cloudSync = parts.cloudSync] session in
-                Task { await cloudSync.forceReuploadSession(session) }
+                Task { await cloudSync.reuploadRewrite(session) }
             },
             onZonesStale: parts.invalidateZones
         )

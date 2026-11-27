@@ -624,7 +624,8 @@ final class SessionAcceptanceService {
     ///
     /// The tags and notes the caller carried (the auto-accept's pre-night
     /// choice) are always kept: tags it added join the stored ones, and its
-    /// notes, when it has any, replace them. The score, its breakdown, the
+    /// notes join the stored notes (`SessionMerger.mergedNotes`), so notes
+    /// already on the night (one it was folded into) are not replaced. The score, its breakdown, the
     /// frozen readiness, the training context, the quality class and the
     /// sleep and vitals snapshots are set only while the inputs they were
     /// computed from are still the archive's (`RescoreWrite.inputsMatch`). An
@@ -633,7 +634,7 @@ final class SessionAcceptanceService {
     nonisolated static func applyUpdate(_ updated: HRVSession, scoredFrom read: HRVSession, to archived: inout HRVSession) {
         let added = updated.tags.filter { !archived.tags.contains($0) }
         archived.tags += added
-        if let notes = updated.notes, !notes.isEmpty { archived.notes = notes }
+        archived.notes = SessionMerger.mergedNotes(archived.notes, updated.notes)
         guard RescoreWrite.inputsMatch(archived, read, kind: .scoreOnly(healedTraining: false)) else {
             debugLog("[SessionAcceptanceService] The night changed while its score was computed — keeping the stored score")
             return

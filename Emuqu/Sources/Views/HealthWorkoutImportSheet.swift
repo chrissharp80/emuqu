@@ -336,13 +336,15 @@ struct HealthWorkoutImportSheet: View {
 
     /// A rebuild reuses the interrupted stub's id, which iCloud already holds,
     /// so the write asks for a re-upload; the archive only sends one when the
-    /// id was already archived, and a new import syncs as usual. The write
-    /// (encode, encrypt, hash) runs on a detached task.
+    /// id was already archived, and a new import syncs as usual. A rebuilt
+    /// stub keeps the tags, notes and answers the user gave it
+    /// (`SessionArchive.archiveRebuilt`). The write (encode, encrypt, hash)
+    /// runs on a detached task.
     private func store(_ session: HRVSession, markingDone id: UUID) async {
         let archive = archive
         let failure = await Task.detached(priority: .userInitiated) { () -> String? in
             do {
-                _ = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+                _ = try archive.archiveRebuilt(session, requestingReupload: true)
                 return nil
             } catch {
                 return error.localizedDescription

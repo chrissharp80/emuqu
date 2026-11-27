@@ -64,6 +64,18 @@ final class CloudKitSyncManagerTests: XCTestCase {
         )
     }
 
+    /// A rewrite no one asked for (a rescore, a repair) goes up with the edit
+    /// stamp it has: stamped now, a copy that had not yet pulled another
+    /// device's edit would count as newer and replace that edit everywhere.
+    func testARewriteIsReuploadedWithoutANewEditStamp() async throws {
+        let night = completeNight()
+        try archive.archive(night, skipSameNightMerge: true)
+
+        await manager.reuploadRewrite(night)
+
+        XCTAssertNil(try archive.retrieve(night.id)?.modifiedAt, "a rescore was stamped as an edit")
+    }
+
     /// Nothing about `id` was queued or marked uploaded, and the sync state
     /// is what it was.
     private func assertUntouched(_ id: UUID, stateBefore: CloudKitSyncManager.SyncState, file: StaticString = #filePath, line: UInt = #line) {

@@ -68,6 +68,23 @@ final class UserFactsStoreTests: XCTestCase {
         XCTAssertEqual(store.facts.last?.text, "fact \(total - 1)")
     }
 
+    /// Auto-memory never pushes out a fact the user saved: at the cap it
+    /// drops its own oldest first, and with only the user's facts left it
+    /// saves nothing. The user's own add drops auto-memory's oldest first.
+    func testTheCapDropsAutoMemoryBeforeTheUsersOwnFacts() {
+        let store = UserFactsStore(fileURL: fileURL)
+        store.add("mine 0", origin: .user)
+        store.add("inferred 0", origin: .inferred)
+        for index in 2 ..< UserFactsStore.maxFacts { store.add("mine \(index)", origin: .user) }
+        let inferred = store.facts[1]
+
+        XCTAssertEqual(store.add("mine new", origin: .user), .added(evicted: [inferred]))
+        XCTAssertTrue(store.facts.contains { $0.text == "mine 0" }, "the user's oldest went before auto-memory's")
+        XCTAssertEqual(store.add("inferred 1", origin: .inferred), .noRoom)
+        XCTAssertEqual(store.facts.count, UserFactsStore.maxFacts)
+        XCTAssertTrue(store.facts.allSatisfy(\.isFromUser), "auto-memory pushed out a fact the user saved")
+    }
+
     func testAddIgnoresWhitespaceOnlyEntries() {
         let store = UserFactsStore(fileURL: fileURL)
 

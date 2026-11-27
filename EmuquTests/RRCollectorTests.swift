@@ -202,9 +202,9 @@ final class RRCollectorSaveResultTests: XCTestCase {
         ))
     }
 
-    private func night() -> HRVSession {
+    private func night(id: UUID = UUID()) -> HRVSession {
         HRVSession(
-            id: UUID(), startDate: nightStart, endDate: nightStart.addingTimeInterval(8 * 3600),
+            id: id, startDate: nightStart, endDate: nightStart.addingTimeInterval(8 * 3600),
             state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
         )
     }
@@ -257,6 +257,45 @@ final class RRCollectorSaveResultTests: XCTestCase {
         XCTAssertEqual(stored.analysisResult?.windowStart, 0)
         XCTAssertEqual(stored.analysisResult?.windowEnd, 400)
         XCTAssertNotEqual(stored.analysisResult?.isReanalysis, true, "the rescore replaced the picked analysis")
+    }
+
+    /// A bulk or launch reanalysis handed a copy read before the user picked
+    /// a window (the pass read its list first) keeps the pick on the copy
+    /// the archive holds.
+    func testAnAutomaticReanalysisKeepsAWindowPickedAfterItsListWasRead() async throws {
+        var session = night()
+        let points = (0 ..< 900).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: 1000 + [20, -5, -20, 5][$0 % 4]) }
+        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: nightStart)
+        session.analysisResult = analysis()
+        session.trainingSnapshot = TrainingContext(
+            atl: 10, ctl: 10, tsb: 0, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
+        let listed = session
+        session.windowUserAdjusted = true
+        try archive.archive(session)
+
+        _ = await makeReanalysis().reanalyzeKeepingPickedWindow(listed)
+
+        let stored = try XCTUnwrap(try archive.retrieve(session.id))
+        XCTAssertEqual(stored.windowUserAdjusted, true, "the pass cleared a window picked after it read its list")
+        XCTAssertNotEqual(stored.analysisResult?.isReanalysis, true)
+    }
+
+    /// A night processed again under an id the archive already holds keeps
+    /// the tags, notes and feeling the user gave the stored copy.
+    func testANightProcessedAgainKeepsTheStoredCopysUserEdits() throws {
+        var stored = night()
+        stored.tags = [ReadingTag.alcohol]
+        stored.notes = "late dinner"
+        stored.morningFeeling = 4
+        try archive.archive(stored)
+
+        collector.morning.archiveForReview(night(id: stored.id))
+
+        let kept = try XCTUnwrap(try archive.retrieve(stored.id))
+        XCTAssertEqual(kept.tags, [ReadingTag.alcohol])
+        XCTAssertEqual(kept.notes, "late dinner")
+        XCTAssertEqual(kept.morningFeeling, 4, "processing the night again dropped the user's answer")
     }
 
     func testScoreUpdateReportsTheStoredReArchiveWithItsTags() async throws {

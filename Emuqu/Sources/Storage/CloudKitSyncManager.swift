@@ -559,17 +559,31 @@ final class CloudKitSyncManager {
     /// Force re-upload a session that was previously uploaded (e.g., after a repair).
     /// Stamps the edit, so devices holding the session take this copy, and unmarks it.
     ///
+    /// `stampingEdit: false` is for a rewrite no one asked for (a rescore, a
+    /// repair): the copy goes up with the stamp it has. Stamped, a device's
+    /// automatic rewrite of a copy it had not yet pulled another device's
+    /// edit into would count as newer than that edit and replace it
+    /// everywhere. Unstamped it still reaches the devices holding the same
+    /// edit, by the record's new version (`CloudKitSessionFreshness.onTie`),
+    /// and yields to a newer edit, which the pull then brings here.
+    ///
     /// The unmark waits in `syncSerializer`, as `markSessionsForReupload`
     /// does: a push or upload of the same session already in flight, with a
     /// record built before the change, finishes first, and its `markUploaded`
     /// cannot land after the unmark and turn the upload below away.
-    func forceReuploadSession(_ session: HRVSession) async {
-        await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive)
+    func forceReuploadSession(_ session: HRVSession, stampingEdit: Bool = true) async {
+        if stampingEdit { await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive) }
         await syncSerializer.run { [self] in
             state.markRemoved(session.id)
             await state.saveSyncStateAsync()
         }
         await uploadSession(session)
+    }
+
+    /// `forceReuploadSession` for a rewrite no one asked for (a rescore, a
+    /// repair): the copy goes up with the edit stamp it has.
+    func reuploadRewrite(_ session: HRVSession) async {
+        await forceReuploadSession(session, stampingEdit: false)
     }
 
     static func resolveSyncStateURL() -> URL {

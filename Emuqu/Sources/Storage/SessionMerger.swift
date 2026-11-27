@@ -284,7 +284,11 @@ enum SessionMerger {
 
     /// Apply a computed outcome to the existing session. The only place in
     /// the merge path that mutates.
+    ///
+    /// A sleep the user adjusted on either side is kept as they set it
+    /// (`userAdjustedSleep`).
     static func apply(_ outcome: MergeOutcome, from imported: HRVSession, to existing: inout HRVSession) {
+        let userSleep = userAdjustedSleep(imported: imported, existing: existing, outcome: outcome)
         if let clockStart = outcome.clockStart {
             existing = onClock(existing, startingAt: clockStart)
             let importedOnClock = onClock(imported, startingAt: clockStart)
@@ -297,6 +301,7 @@ enum SessionMerger {
         if outcome.adoptImportedMetrics {
             existing.importedMetrics = imported.importedMetrics
         }
+        if let userSleep { keepUserSleep(of: userSleep, in: &existing) }
     }
 
     private static func applyRRChange(

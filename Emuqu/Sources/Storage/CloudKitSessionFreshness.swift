@@ -5,7 +5,7 @@ import os
 /// Last-writer-wins for a session that more than one device holds.
 ///
 /// An edit uploaded from one device (a feeling, tags or notes, a trim, a
-/// reanalysis) has to reach a device that already holds that session. A sleep
+/// picked window) has to reach a device that already holds that session. A sleep
 /// edit does not travel: sleep comes from HealthKit and stays on each device
 /// (`CloudSessionPayload`).
 /// Each edit stamps `HRVSession.modifiedAt`; the stamp travels inside the
@@ -124,8 +124,9 @@ enum CloudKitSessionFreshness {
     }
 
     /// Stamp an edit that reaches the archive without `requestingReupload`
-    /// (a reanalysis, a repair, a restore) but is then force-uploaded, so a
-    /// device holding the older copy takes it. Off the main actor: the write
+    /// (a restore from the Trash) but is then force-uploaded, so a device
+    /// holding the older copy takes it. A rescore or a repair is not stamped
+    /// (`CloudKitSyncManager.forceReuploadSession`). Off the main actor: the write
     /// re-encodes the whole session.
     static func stampEdit(of sessionId: UUID, in archive: SessionArchive) async {
         await Task.detached(priority: .utility) {
@@ -217,13 +218,14 @@ enum CloudKitSessionFreshness {
     /// snapshot — when the iCloud copy carries no sleep window. A record
     /// written before sleep was stripped does carry one: its window wins, and
     /// the local snapshot is kept only while the window is the one it was
-    /// derived for; otherwise the pulled-session backfill re-derives it. A
-    /// HealthKit export recorded here is kept, so the workout is not written
-    /// to Health twice.
+    /// derived for; otherwise the pulled-session backfill re-derives it. Not
+    /// over a sleep the user adjusted here, unless the user adjusted it there
+    /// too (`takesRemoteSleep`). A HealthKit export recorded here is kept, so
+    /// the workout is not written to Health twice.
     static func replacing(_ local: HRVSession, with remote: HRVSession) -> HRVSession {
         var merged = remote
         CloudSessionPayload.restoringLocalOnlyFields(into: &merged, from: local)
-        if remote.sleepStartMs == nil, remote.sleepEndMs == nil, remote.sleepSegments == nil {
+        if !takesRemoteSleep(local: local, remote: remote) {
             keepSleep(of: local, in: &merged)
         } else if sameSleepWindow(local, remote) {
             merged.sleepSnapshot = remote.sleepSnapshot ?? local.sleepSnapshot
@@ -302,12 +304,21 @@ enum CloudKitSessionFreshness {
         merged.importedMetrics = edited.importedMetrics
     }
 
+    /// Whether the iCloud copy's sleep replaces this device's: only a copy
+    /// that carries a sleep window, and never one the user did not adjust
+    /// over a sleep the user adjusted here.
+    static func takesRemoteSleep(local: HRVSession, remote: HRVSession) -> Bool {
+        guard remote.sleepStartMs != nil || remote.sleepEndMs != nil || remote.sleepSegments != nil else { return false }
+        return local.sleepUserAdjusted != true || remote.sleepUserAdjusted == true
+    }
+
     private static func keepSleep(of local: HRVSession, in merged: inout HRVSession) {
         merged.sleepStartMs = local.sleepStartMs
         merged.sleepEndMs = local.sleepEndMs
         merged.sleepSegments = local.sleepSegments
         merged.sleepUserAdjusted = local.sleepUserAdjusted
-        merged.sleepSnapshot = merged.sleepSnapshot ?? local.sleepSnapshot
+        let adjustedHere = local.sleepUserAdjusted == true ? local.sleepSnapshot : nil
+        merged.sleepSnapshot = adjustedHere ?? merged.sleepSnapshot ?? local.sleepSnapshot
     }
 
     private static func sameSleepWindow(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {
