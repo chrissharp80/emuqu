@@ -800,7 +800,7 @@ extension AssistantToolRunner {
         voiceMode: Bool
     ) async throws -> Bool {
         let supportsTools = !tools.isEmpty && factRegistry != nil
-        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
+        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode, turnID: turnID)
         debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
         let dispatcher = provider.id == .apple && supportsTools ? owner.services.appleToolDispatcher : nil
         dispatcher?.setRegistry(factRegistry)
@@ -884,9 +884,11 @@ extension AssistantToolRunner {
 
     /// The history before the reserved turn, truncated to `provider`'s own
     /// token budget. Falls back to the primary's outbound when the reserved
-    /// turn is gone (cleared / regenerated mid-turn).
+    /// turn is gone (cleared / regenerated mid-turn), less the turns
+    /// `provider` may not see: the primary's was cut for the primary, and an
+    /// Apple primary's history can hold replies only Apple may see.
     private func fallbackOutbound(for provider: AIProvider, turnID: UUID, primaryOutbound: [ChatTurn]) -> [ChatTurn] {
-        guard let index = owner.liveTurnIndex(for: turnID) else { return primaryOutbound }
+        guard let index = owner.liveTurnIndex(for: turnID) else { return primaryOutbound.filter { $0.maySend(to: provider.id) } }
         return AssistantViewModel.truncateForSend(Array(owner.turns[..<index]), provider: provider.id).kept
     }
 
@@ -904,9 +906,10 @@ extension AssistantToolRunner {
     private func fallbackSystemPrompt(
         provider: AIProvider,
         supportsTools: Bool,
-        voiceMode: Bool
+        voiceMode: Bool,
+        turnID: UUID
     ) async -> String {
-        let contextRendered = await fallbackContextRender(provider: provider, supportsTools: supportsTools)
+        let contextRendered = await fallbackContextRender(provider: provider, supportsTools: supportsTools, turnID: turnID)
         return await owner.router.composeSystemPromptForTurn(
             rendered: contextRendered, voiceMode: voiceMode, toolMode: supportsTools
         )
@@ -925,11 +928,15 @@ extension AssistantToolRunner {
     /// A no-tools fallback can be a CLOUD provider; ambient
     /// street-level location goes to the cloud only during an active workout
     /// (disclosure-matched gate, same rule as `renderLiveStateForCloud`).
-    /// Apple keeps it: the render never leaves the device there.
-    private func fallbackContextRender(provider: AIProvider, supportsTools: Bool) async -> String {
+    /// Apple keeps it: the render never leaves the device there. The reply
+    /// in `turnID` is marked with what the render carries that a cloud
+    /// provider may not see, as on an Apple turn of its own.
+    private func fallbackContextRender(provider: AIProvider, supportsTools: Bool, turnID: UUID) async -> String {
         guard !supportsTools || provider.id == .apple else { return "" }
         let ctx = await owner.contextSource.currentContext()
-        return ctx.compactRender(includeAmbientLocation: provider.id == .apple || ctx.liveWorkout != nil)
+        let includesLocation = provider.id == .apple || ctx.liveWorkout != nil
+        owner.mark(ctx.sensitivity(ofRenderIncludingAmbientLocation: includesLocation), onTurn: turnID)
+        return ctx.compactRender(includeAmbientLocation: includesLocation)
     }
 
     /// Mark a stream as finished. The `generation` arg lets us no-op when

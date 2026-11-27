@@ -493,6 +493,24 @@ check "log_redaction/location_coordinate" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedCoordinate(location: CLLocation) { debugLog(\"at \\(location.coordinate)\") }'+chr(10))"
 
+# A location abbreviated to `loc` is still the location.
+check "log_redaction/loc_value" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedLoc(loc: CLLocation) { debugLog(\"at \\(loc)\") }'+chr(10))"
+
+# A message built in a local before the call carries its value into the call.
+check "log_redaction/prebuilt_message" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedPrebuilt(road: String) {'+chr(10)+'    let msg = \"on \\(road)\"'+chr(10)+'    debugLog(msg)'+chr(10)+'}'+chr(10))"
+
+# Text appended to a local message with `+=` reaches the call too.
+check "log_redaction/appended_message" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedAppended(query: String) {'+chr(10)+'    var line = \"asked\"'+chr(10)+'    line += \": \" + query'+chr(10)+'    debugLog(\"[x] \\(line)\")'+chr(10)+'}'+chr(10))"
+
 # What the user typed, lowercased on the way in, is still what they typed.
 check "log_redaction/transformed_query" \
     "./scripts/check_log_redaction.sh" \
