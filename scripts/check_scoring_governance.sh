@@ -17,31 +17,31 @@
 #    user can see would present a made-up figure as a confidence. It may not
 #    leave Analysis/CauseDetection.
 #
-# 2. The code that decides a recovery score is hashed token by token
-#    (scripts/lib/scoring_hash.py, scheme `stored-flow`): the scoring files
-#    whole (RecoveryScoreConstants.swift, HRVThresholds.swift,
-#    RecoveryScoreCalculator*.swift, ScoreDetailBuilder, VitalsScoring,
-#    SleepScienceAnalyzer), the files that compute a stored score input whole
-#    (the overnight analysis from artifact detection and window selection to
-#    the time, frequency, nonlinear, DFA, stress and respiration metrics, the
-#    sleep staging and boundary rules, training readiness, the training-load
-#    EWMA and precedence ladder), named roots elsewhere (the ScoringBounds,
-#    ScoringWeights, StressNormativeConstants, HRVConstants and
-#    TrainingConstants enums of Constants.swift, the baseline statistics the
-#    z-score divides by, the HRV quality rule, each path's score assembly, and
-#    what builds the training, vitals and sleep snapshots stored beside a
-#    score: each workout's load, the workout merge, the heart-rate anchors,
-#    the vitals windows and baselines, the sleep fetch and nap rule),
-#    and every declaration those reach by name, wherever it is declared: the baseline SD floors, the night window and minimum
-#    night count, the fragmentation weights. Numbers, operators and names all
+# 2. The code that decides a stored score is hashed token by token
+#    (scripts/lib/scoring_hash.py, scheme `stored-reach`). Nothing in it is
+#    listed by hand: it starts from every declaration that writes a stored
+#    score's data (the score, its breakdown, the analysis result, the frozen
+#    readiness, the training, vitals and sleep snapshots, the HRV quality,
+#    the baseline's stored nights, and every value those fields hold) and
+#    follows the call graph over Emuqu/Sources: static and instance calls on
+#    a receiver whose type it infers, property reads, initializers, protocol
+#    requirements to every conformer, closures, and the callers that feed a
+#    writer its values. Where a receiver's type cannot be inferred, every
+#    declaration of that name is taken. Numbers, operators and names all
 #    count; comments, whitespace, string contents and access modifiers do
 #    not, and each token is keyed by the declaration it sits in, so moving or
 #    reordering declarations leaves the hash alone. Change a weight, a band,
-#    a threshold, a comparison or the table the score binds to and the hash
-#    moves; the gate then requires ScoringVersion.current to have moved too.
-#    This is what stops an archive quietly becoming a mixture of two
-#    algorithms under one version string, the failure the version stamp
-#    exists to prevent.
+#    a threshold, a comparison, the baseline's admission rule or the night key
+#    it counts by, and the hash moves; the gate then requires
+#    ScoringVersion.current to have moved too. This is what stops an archive
+#    quietly becoming a mixture of two algorithms under one version string,
+#    the failure the version stamp exists to prevent.
+#
+#    The gate also checks its own coverage on every run: every body token of
+#    a hashed function, found by bracket matching alone, must be filed under
+#    that function; a number planted in each hashed declaration must land in
+#    its hashed tokens; and every Analysis function the hashed code names must
+#    be hashed. A failure there is a hole in the hash, and the gate goes red.
 #
 #    The base's own sources must hash under the current scheme. A scheme whose
 #    roots the base lacks cannot hash it, and that fails (exit 2) rather than
@@ -170,6 +170,8 @@ def hash_under(scheme):
 
 scheme = scoring_hash.CURRENT_SCHEME
 current_hash, seen = hash_under(scheme)
+for hole in scoring_hash.stored_reach_self_check():
+    problems.append(f"coverage: {hole}")
 
 version_src = pathlib.Path("Emuqu/Sources/Analysis/ScoringVersion.swift").read_text(encoding="utf-8")
 match = re.search(r'static let current\s*=\s*"([^"]+)"', version_src)
