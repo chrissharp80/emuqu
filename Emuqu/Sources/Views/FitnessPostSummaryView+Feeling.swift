@@ -275,7 +275,8 @@ extension FitnessPostSummaryView {
             endDate: session.endDate,
             dominantAlpha1Band: dominantBand,
             narrative: analysis?.heroNarrative ?? "",
-            routeCoordinates: coords
+            routeCoordinates: coords,
+            routeSegmentStarts: session.workoutMetadata?.gpsSegmentStarts(count: coords.count) ?? []
         )
     }
 
@@ -544,8 +545,12 @@ extension FitnessPostSummaryView {
             initialPosition: .region(summary.regionForTrack(coordinates)),
             interactionModes: []
         ) {
-            MapPolyline(coordinates: coordinates)
-                .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            // One line per recorded segment: none across a join (`TrackSegments`).
+            let segments = TrackSegments.split(coordinates, starts: session.workoutMetadata?.gpsSegmentStarts)
+            ForEach(segments.indices, id: \.self) { index in
+                MapPolyline(coordinates: segments[index])
+                    .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            }
             if let start = coordinates.first {
                 Marker(String(localized: "Start", bundle: LanguageManager.appBundle), coordinate: start).tint(AppTheme.sage)
             }

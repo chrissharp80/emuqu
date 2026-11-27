@@ -185,6 +185,7 @@ extension WorkoutFinalizer {
     private func applyAnalyzerMetrics(to metadata: inout WorkoutMetadata, computed: WorkoutMetadata, hrrSamples: [HRRSample]) {
         metadata.gpsPolyline = computed.gpsPolyline
         metadata.gpsFixTimes = computed.gpsFixTimes
+        metadata.gpsSegmentStarts = computed.gpsSegmentStarts
         metadata.splits = computed.splits
         metadata.luciaTRIMP = computed.luciaTRIMP
         // Record the saved-library route name (if any)

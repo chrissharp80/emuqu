@@ -298,25 +298,27 @@ extension RecapCard {
     ///
     /// The polyline is drawn as a 6pt stroke in the supplied tint with
     /// a subtle outer glow so it stays legible against busy satellite
-    /// imagery.
+    /// imagery. Each recorded segment (`segmentStarts`) is its own line, so
+    /// none is drawn across a join where nothing was recorded.
     static func renderRouteMap(
         coordinates: [CLLocationCoordinate2D],
+        segmentStarts: [Int] = [],
         tint: UIColor
     ) async -> UIImage? {
         guard !coordinates.isEmpty, let options = snapshotOptions(for: coordinates) else { return nil }
         guard let snapshot = try? await MKMapSnapshotter(options: options).start() else { return nil }
-        return overlayRoute(coordinates, on: snapshot, tint: tint)
+        return overlayRoute(TrackSegments.split(coordinates, starts: segmentStarts), on: snapshot, tint: tint)
     }
 
     private static func overlayRoute(
-        _ coordinates: [CLLocationCoordinate2D],
+        _ segments: [[CLLocationCoordinate2D]],
         on snapshot: MKMapSnapshotter.Snapshot,
         tint: UIColor
     ) -> UIImage {
         let image = snapshot.image
         return UIGraphicsImageRenderer(size: image.size).image { ctx in
             image.draw(at: .zero)
-            drawRoute(coordinates.map { snapshot.point(for: $0) }, in: ctx.cgContext, tint: tint)
+            drawRoutes(segments.map { $0.map(snapshot.point(for:)) }, in: ctx.cgContext, tint: tint)
         }
     }
 
@@ -342,6 +344,10 @@ extension RecapCard {
         options.mapType = .satelliteFlyover
         options.showsBuildings = false
         return options
+    }
+
+    private static func drawRoutes(_ segments: [[CGPoint]], in cg: CGContext, tint: UIColor) {
+        for points in segments { drawRoute(points, in: cg, tint: tint) }
     }
 
     /// Black outer glow for legibility on satellite imagery, then the

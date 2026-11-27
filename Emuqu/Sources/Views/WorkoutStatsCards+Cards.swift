@@ -104,13 +104,17 @@ extension WorkoutStatsCards {
         }
     }
 
+    /// One line per run of heart rate (`SeriesRuns`): a strap dropout's
+    /// hole is left open rather than bridged.
     private func hrChart(points: [(Double, Int)], samples: [WorkoutSample], userMax: Int) -> some View {
-        Chart {
+        let runs = SeriesRuns.runs(of: points.map(\.0), maxGap: SeriesRuns.workoutMaxGapMinutes)
+        return Chart {
             hrZoneBands(points: points, userMax: userMax)
-            ForEach(Array(points.enumerated()), id: \.offset) { _, pt in
+            ForEach(Array(points.enumerated()), id: \.offset) { index, pt in
                 LineMark(
                     x: .value("Minutes", pt.0),
-                    y: .value("HR", pt.1)
+                    y: .value("HR", pt.1),
+                    series: .value("Run", runs[index])
                 )
                 .foregroundStyle(AppTheme.fitnessAccent)
                 .interpolationMethod(.monotone)
@@ -370,10 +374,12 @@ extension WorkoutStatsCards {
     private func elevationPoints(imperial: Bool) -> [FitnessSummaryCards.ElevationPoint] {
         let distanceScale = distanceScale(imperial: imperial)
         let altitudeScale = imperial ? UnitConstants.feetPerMeter : 1.0
-        return Self.elevationSeries(track).map { pt in
+        let starts = session.workoutMetadata?.gpsSegmentStarts(count: track.count) ?? []
+        return Self.elevationSeries(track, starts: starts).map { pt in
             FitnessSummaryCards.ElevationPoint(
                 distance: (pt.distance * 1_000) * distanceScale, // convert back from km then apply
-                altitude: pt.altitude * altitudeScale
+                altitude: pt.altitude * altitudeScale,
+                segment: pt.segment
             )
         }
     }
@@ -789,12 +795,14 @@ private func elevationMarks(
 ) -> some ChartContent {
     AreaMark(
         x: .value("Distance (\(xLabel))", point.distance),
-        y: .value("Elevation (\(yLabel))", point.altitude)
+        y: .value("Elevation (\(yLabel))", point.altitude),
+        series: .value("Segment", point.segment)
     )
     .foregroundStyle(AppTheme.fitnessAccent.opacity(0.3))
     LineMark(
         x: .value("Distance (\(xLabel))", point.distance),
-        y: .value("Elevation (\(yLabel))", point.altitude)
+        y: .value("Elevation (\(yLabel))", point.altitude),
+        series: .value("Segment", point.segment)
     )
     .foregroundStyle(AppTheme.fitnessAccent)
     .interpolationMethod(.catmullRom)
@@ -814,17 +822,19 @@ extension WorkoutStatsCards {
     /// Altitude against cumulative distance (km). Distance runs over every
     /// fix, but only fixes with a valid altitude (`verticalAccuracy` ≥ 0) are
     /// plotted: CoreLocation marks a missing altitude with a negative
-    /// accuracy, and its 0 is not sea-level terrain.
-    static func elevationSeries(_ track: [CLLocation]) -> [FitnessSummaryCards.ElevationPoint] {
+    /// accuracy, and its 0 is not sea-level terrain. No distance is added
+    /// across a join between recorded segments (`starts`), and each point
+    /// carries its segment so no line is drawn across one.
+    static func elevationSeries(_ track: [CLLocation], starts: [Int] = []) -> [FitnessSummaryCards.ElevationPoint] {
         guard track.count >= 2 else { return [] }
-        var cumulative = 0.0
-        var result: [FitnessSummaryCards.ElevationPoint] = []
-        for (i, fix) in track.enumerated() {
-            if i > 0 { cumulative += fix.distance(from: track[i - 1]) }
-            guard fix.verticalAccuracy >= 0 else { continue }
-            result.append(FitnessSummaryCards.ElevationPoint(distance: cumulative / 1_000, altitude: fix.altitude))
+        let along = TrackSegments.cumulativeMeters(track, starts: starts)
+        let segmentOf = TrackSegments.ranges(count: track.count, starts: starts).enumerated().flatMap { segment, range in
+            range.map { _ in segment }
         }
-        return result
+        return track.indices.compactMap { i in
+            guard track[i].verticalAccuracy >= 0 else { return nil }
+            return FitnessSummaryCards.ElevationPoint(distance: along[i] / 1_000, altitude: track[i].altitude, segment: segmentOf[i])
+        }
     }
 
     static func hrrProvenanceLabel(_ p: HRRSample.Provenance) -> String {

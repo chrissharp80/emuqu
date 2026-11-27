@@ -35,6 +35,10 @@ struct Route: Codable, Identifiable, Equatable {
     let totalDistanceMeters: Double
     let totalAscentMeters: Double
     let totalDescentMeters: Double
+    /// The trackpoints that begin a new segment of the source (a GPX
+    /// `<trkseg>`, a recorded workout's segment; `TrackSegments`). No
+    /// distance, climb or line joins one to the point before. Nil for one.
+    var segmentStarts: [Int]?
 
     struct Point: Codable, Equatable {
         let latitude: Double
@@ -93,10 +97,12 @@ struct Route: Codable, Identifiable, Equatable {
     }
 
     /// Build from a parsed GPX track. Computes cumulative distance + ascent /
-    /// descent + climb detection in one pass.
-    static func fromGPX(name: String, track: [CLLocation]) -> Route {
+    /// descent + climb detection in one pass, none of it across the join
+    /// into a new segment (`segmentStarts`).
+    static func fromGPX(name: String, track: [CLLocation], segmentStarts: [Int] = []) -> Route {
         guard track.count >= 2 else { return empty(named: name) }
-        let profile = elevationProfile(track: track)
+        let starts = TrackSegments.starts(segmentStarts, count: track.count)
+        let profile = elevationProfile(track: track, starts: starts)
         let points = track.map {
             Point(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude, altitudeMeters: $0.altitude)
         }
@@ -108,7 +114,8 @@ struct Route: Codable, Identifiable, Equatable {
             climbs: detectClimbs(track: track, cumulative: profile.cumulative),
             totalDistanceMeters: profile.cumulative.last ?? 0,
             totalAscentMeters: profile.ascent,
-            totalDescentMeters: profile.descent
+            totalDescentMeters: profile.descent,
+            segmentStarts: starts.isEmpty ? nil : starts
         )
     }
 
@@ -131,16 +138,15 @@ struct Route: Codable, Identifiable, Equatable {
     /// The totals are summed over the same 5-point smoothed altitude climb
     /// detection uses, so GPS altitude noise does not inflate them.
     private static func elevationProfile(
-        track: [CLLocation]
+        track: [CLLocation], starts: [Int]
     ) -> (cumulative: [Double], ascent: Double, descent: Double) {
-        var cumulative: [Double] = [0]
         var ascent: Double = 0
         var descent: Double = 0
+        let cumulative = TrackSegments.cumulativeMeters(track, starts: starts)
         // `1 ..< 0` traps on an empty track.
-        guard track.count > 1 else { return (cumulative, ascent, descent) }
+        guard track.count > 1 else { return ([0], ascent, descent) }
         let altitude = smooth(track.map(\.altitude), window: 5)
-        for i in 1 ..< track.count {
-            cumulative.append(cumulative[i - 1] + track[i].distance(from: track[i - 1]))
+        for i in 1 ..< track.count where !TrackSegments.crossesBreak(i, starts: starts) {
             let dh = altitude[i] - altitude[i - 1]
             if dh > 0 { ascent += dh } else { descent += abs(dh) }
         }

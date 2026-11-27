@@ -103,7 +103,10 @@ enum RouteLibrary {
             ),
             scoreDirection(
                 liveTrack: liveTrack, savedTrack: reversedTrack, liveTraveled: liveTraveled,
-                saved: saved, route: Route.fromGPX(name: saved.name, track: reversedTrack),
+                saved: saved, route: Route.fromGPX(
+                    name: saved.name, track: reversedTrack,
+                    segmentStarts: (route.segmentStarts ?? []).map { track.count - $0 }
+                ),
                 direction: .reverse
             )
         ].compactMap { $0 }

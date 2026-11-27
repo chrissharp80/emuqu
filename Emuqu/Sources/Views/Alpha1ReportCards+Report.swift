@@ -615,7 +615,9 @@ private var thresholdRules: some ChartContent {
         guard !readings.isEmpty else { return [] }
         var builder = Alpha1SegmentBuilder()
         let offsets = TrackSampleAlignment.activeOffsets(of: track, session: session)
-        for (fix, placed) in zip(track, offsets) {
+        let starts = Set(session.workoutMetadata?.gpsSegmentStarts(count: track.count) ?? [])
+        for (index, (fix, placed)) in zip(track, offsets).enumerated() {
+            if starts.contains(index) { builder.breakLine() }
             let offset = placed ?? Int(fix.timestamp.timeIntervalSince(startDate).rounded())
             builder.add(fix.coordinate, color: Self.bandColor(atOffset: offset, readings: readings))
         }
@@ -670,10 +672,16 @@ private var thresholdRules: some ChartContent {
             coords.append(coord)
         }
 
+        /// Ends the run at a join between recorded segments
+        /// (`TrackSegments`): the next fix starts a new line, none joining it
+        /// to the fix before.
+        mutating func breakLine() {
+            if !coords.isEmpty { segments.append(Alpha1Segment(coordinates: coords, color: color)) }
+            coords = []
+        }
+
         mutating func finish() -> [Alpha1Segment] {
-            if !coords.isEmpty {
-                segments.append(Alpha1Segment(coordinates: coords, color: color))
-            }
+            breakLine()
             return segments
         }
     }
@@ -750,11 +758,15 @@ private func alpha1StatsRow(stats: Alpha1ReportCards.Alpha1Stats, sampleCount: I
     }
 }
 
+/// One line per run of readings (`SeriesRuns`): a stretch whose α1 was
+/// cleared (a dropout, a rejected window) is left open rather than bridged.
 private func alpha1Line(_ alphaPoints: [(x: Double, y: Double)]) -> some ChartContent {
-    ForEach(Array(alphaPoints.enumerated()), id: \.offset) { _, pt in
+    let runs = SeriesRuns.runs(of: alphaPoints.map(\.x), maxGap: SeriesRuns.workoutMaxGapMinutes)
+    return ForEach(Array(alphaPoints.enumerated()), id: \.offset) { index, pt in
         LineMark(
             x: .value("Minutes", pt.x),
-            y: .value("α1", pt.y)
+            y: .value("α1", pt.y),
+            series: .value("Run", runs[index])
         )
         .foregroundStyle(AppTheme.dustyRose)
         .interpolationMethod(.monotone)

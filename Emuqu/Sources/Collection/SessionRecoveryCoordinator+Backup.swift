@@ -356,7 +356,7 @@ extension SessionRecoveryCoordinator {
         guard let session = archive.retrieveOrLog(sessionId), let series = session.rrSeries else { return .failed }
         let start = session.startDate
         let end = session.endDate ?? start
-        if let route = await training.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
+        if let route = await training.fetchWorkoutRoute(from: start, to: end), route.fixes.count >= 2 {
             guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) else { return .failed }
             await MainActor.run { archiveSignal.notifyChanged() }
             return .recovered(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? 0)
@@ -377,7 +377,7 @@ extension SessionRecoveryCoordinator {
     private func recoverWorkout(
         sessionId: UUID,
         points: [RRPoint],
-        track: [CLLocation]? = nil,
+        track: SegmentedTrack? = nil,
         distanceMeters: Double? = nil
     ) async -> HRVSession? {
         let outcome = await WorkoutRecoveryService.recover(

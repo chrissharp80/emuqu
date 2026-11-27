@@ -51,6 +51,19 @@ extension HRVAnalysisPipeline {
         (windowStart ..< windowEnd).filter { !flags[$0].isArtifact }.map { Double(series.points[$0].t_ms) / 1_000.0 }
     }
 
+    /// Breathing rate over the window's longest unbroken stretch
+    /// (`TimeDomainAnalyzer.longestUnbrokenRange`), its clean beats at their
+    /// own times: a spectrum resampled across a recording break interpolates
+    /// beats that were never recorded.
+    static func respirationRate(series: RRSeries, flags: [ArtifactFlags], windowStart: Int, windowEnd: Int) -> Double? {
+        let unbroken = TimeDomainAnalyzer.longestUnbrokenRange(in: series.points, range: windowStart ..< windowEnd)
+        let (start, end) = (unbroken.lowerBound, unbroken.upperBound)
+        return RespirationAnalyzer.estimateRespirationRate(
+            extractCleanRRs(series: series, flags: flags, windowStart: start, windowEnd: end),
+            beatTimes: cleanBeatTimes(series: series, flags: flags, windowStart: start, windowEnd: end)
+        )
+    }
+
     // MARK: - Private Helpers
 
     func computeTimeDomain(series: RRSeries, flags: [ArtifactFlags], start: Int, end: Int) -> TimeDomainMetrics? {
@@ -94,7 +107,6 @@ extension HRVAnalysisPipeline {
         config: ANSConfiguration?
     ) -> ANSMetrics {
         let cleanRR = Self.extractCleanRRs(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        let beatTimes = Self.cleanBeatTimes(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
         let stressIndex = StressAnalyzer.computeStressIndex(cleanRR)
         let pnsIndex = StressAnalyzer.computePNSIndex(
             meanRR: timeDomain.meanRR, rmssd: timeDomain.rmssd, sd1: nonlinear.sd1
@@ -107,7 +119,7 @@ extension HRVAnalysisPipeline {
             pnsIndex: pnsIndex,
             snsIndex: snsIndex,
             readinessScore: readinessScore(timeDomain: timeDomain, nonlinear: nonlinear, pnsIndex: pnsIndex, snsIndex: snsIndex, config: config),
-            respirationRate: RespirationAnalyzer.estimateRespirationRate(cleanRR, beatTimes: beatTimes),
+            respirationRate: Self.respirationRate(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd),
             nocturnalHRDip: nocturnalDip(daytimeRestingHR: daytimeRestingHR, nocturnalMedian: nocturnalMedian),
             daytimeRestingHR: daytimeRestingHR,
             nocturnalMedianHR: nocturnalMedian

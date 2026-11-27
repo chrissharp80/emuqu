@@ -289,6 +289,11 @@ struct WorkoutMetadata: Codable, Equatable {
     /// was stored, or re-saved by a build that drops it; their exports
     /// spread the fix times evenly.
     var gpsFixTimes: Data?
+    /// The fixes of `gpsPolyline` that begin a new recorded segment: a GPX
+    /// `<trkseg>` or `<trk>`, a separate Apple Health route, or a pause the
+    /// source stopped recording through. No distance, time or line is taken
+    /// from the fix before one to it (`TrackSegments`). Nil for one segment.
+    var gpsSegmentStarts: [Int]?
     /// Total distance covered in meters (GPS-derived, treadmill pedometer, or
     /// indoor-bike trainer).
     var distanceMeters: Double?
@@ -749,7 +754,7 @@ struct WorkoutMetadata: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
         case sport
-        case gpsPolyline, gpsFixTimes, distanceMeters, elevationGainMeters, elevationLossMeters
+        case gpsPolyline, gpsFixTimes, gpsSegmentStarts, distanceMeters, elevationGainMeters, elevationLossMeters
         case splits, laps, liveMarkers, pauseSpans
         case samples, healthKitHROffsets
         case hrrSamples, decouplingPercent, efficiencyFactor, luciaTRIMP, hrTSS
@@ -778,6 +783,7 @@ struct WorkoutMetadata: Codable, Equatable {
         unrecognizedSportRawValue = Self.unrecognizedSport(in: c)
         gpsPolyline = try c.decodeIfPresent(Data.self, forKey: .gpsPolyline)
         gpsFixTimes = try c.decodeIfPresent(Data.self, forKey: .gpsFixTimes)
+        gpsSegmentStarts = c.optionalValue([Int].self, .gpsSegmentStarts)
         distanceMeters = try c.decodeIfPresent(Double.self, forKey: .distanceMeters)
         elevationGainMeters = try c.decodeIfPresent(Double.self, forKey: .elevationGainMeters)
         elevationLossMeters = try c.decodeIfPresent(Double.self, forKey: .elevationLossMeters)
@@ -847,6 +853,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encode(unrecognizedSportRawValue ?? sport.rawValue, forKey: .sport)
         try c.encodeIfPresent(gpsPolyline, forKey: .gpsPolyline)
         try c.encodeIfPresent(gpsFixTimes, forKey: .gpsFixTimes)
+        try c.encodeIfPresent(gpsSegmentStarts, forKey: .gpsSegmentStarts)
         try c.encodeIfPresent(distanceMeters, forKey: .distanceMeters)
         try c.encodeIfPresent(elevationGainMeters, forKey: .elevationGainMeters)
         try c.encodeIfPresent(elevationLossMeters, forKey: .elevationLossMeters)
