@@ -36,8 +36,10 @@ extension SessionRecoveryCoordinator {
         guard settingsManager.settings.enableHealthKitExport else { return }
         do {
             try await writes.exportSessionMetrics(from: session)
+            PendingNightExports.record(session.id, exported: true)
         } catch {
-            debugLog("[Recovery] Apple Health export of a recovered night failed: \(error.localizedDescription)")
+            debugLog("[Recovery] Apple Health export of a recovered night failed, kept for a retry: \(error.localizedDescription)")
+            PendingNightExports.record(session.id, exported: false)
         }
     }
 

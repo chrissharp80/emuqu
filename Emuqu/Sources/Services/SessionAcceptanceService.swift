@@ -507,7 +507,8 @@ final class SessionAcceptanceService {
     /// persisted to the local archive at this point; these post-save
     /// mirrorings should finish even if the user dismisses the post-summary
     /// view. Cancellation here would lose the HealthKit row, which is the
-    /// OPPOSITE of what the user wants.
+    /// OPPOSITE of what the user wants. A failed export is kept and tried
+    /// again on the next return to the app (`PendingNightExports`).
     private func exportToHealthIfEnabled(_ session: HRVSession, enabled: Bool) {
         guard enabled else { return }
         let exportSession = session
@@ -515,8 +516,10 @@ final class SessionAcceptanceService {
         Task {
             do {
                 try await hk.exportSessionMetrics(from: exportSession)
+                PendingNightExports.record(exportSession.id, exported: true)
             } catch {
-                debugLog("[SessionAcceptanceService] HealthKit export failed: \(error.localizedDescription)")
+                debugLog("[SessionAcceptanceService] HealthKit export failed, kept for a retry: \(error.localizedDescription)")
+                PendingNightExports.record(exportSession.id, exported: false)
             }
         }
     }

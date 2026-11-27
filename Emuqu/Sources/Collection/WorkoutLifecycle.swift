@@ -37,6 +37,12 @@ final class WorkoutLifecycle {
     /// here (`SessionRecoveryCoordinator.liveRecordingIds`).
     var unsavedSessions: [HRVSession] = []
 
+    /// Heart-rate-recovery samples of saved workouts whose write to the
+    /// archived copy failed, each kept until a retry stores it
+    /// (`WorkoutSessionLifecycle.retryUnsavedWorkouts`). The summary already
+    /// shows them, so they are not dropped.
+    var unsavedHRR: [UUID: [HRRSample]] = [:]
+
     /// Whether the workout with `id` is waiting for its save to be retried.
     func isUnsaved(_ id: UUID) -> Bool {
         unsavedSessions.contains { $0.id == id }

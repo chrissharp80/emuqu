@@ -70,7 +70,8 @@ extension RecordView {
     /// Written to the in-memory session as well as the archive: a reading
     /// still waiting for acceptance may not be archived yet, and acceptance
     /// archives the in-memory copy over any stored one. The archive write goes
-    /// to the id the archive holds the night under (`storePreScoreFeeling`).
+    /// to the id the archive holds the night under (`storePreScoreFeeling`),
+    /// and a failure that loses the answer is reported (`writeReadingEdit`).
     func applyMorningFeelingAnswers(_ answers: PreScorePromptView.Answers, to session: HRVSession) {
         guard let feeling = answers.feeling, session.morningFeeling == nil else { return }
         let value = Self.feelingValue(feeling)
@@ -79,7 +80,7 @@ extension RecordView {
             sessionState.currentSession?.morningFeeling = value
         }
         let archive = collector.archive
-        Task.detached { Self.storePreScoreFeeling(value, id: id, archive: archive) }
+        Task { await writeReadingEdit(id, what: "Pre-score feeling") { try Self.storePreScoreFeeling(value, id: id, archive: archive) } }
     }
 
     private static func feelingValue(_ feeling: PreScorePromptView.Feeling) -> Int {
@@ -95,13 +96,9 @@ extension RecordView {
     /// Store the feeling on the copy the archive holds the night under
     /// (`SessionArchive.archivedId(of:)`): a night folded into one already
     /// archived takes its feeling on that night.
-    nonisolated static func storePreScoreFeeling(_ value: Int, id: UUID, archive: SessionArchive) {
-        do {
-            try archive.update(archive.archivedId(of: id)) { stored in
-                stored.morningFeeling = stored.morningFeeling ?? value
-            }
-        } catch {
-            debugLog("[RecordView] Pre-score feeling not persisted for \(id.uuidString.prefix(8)): \(error)")
+    nonisolated static func storePreScoreFeeling(_ value: Int, id: UUID, archive: SessionArchive) throws {
+        try archive.update(archive.archivedId(of: id)) { stored in
+            stored.morningFeeling = stored.morningFeeling ?? value
         }
     }
 
@@ -138,24 +135,24 @@ extension RecordView {
         return tagged
     }
 
-    /// The archive rewrite (decrypt, encode, write) runs off the main actor.
-    /// A failure on the reading still awaiting acceptance is expected (it may
-    /// not be archived yet) and only logged: acceptance archives the
-    /// in-memory copy, which holds these tags. So is a reading the archive no
-    /// longer holds (discarded or deleted meanwhile): there is nothing left to
-    /// tag. Any other reading is archived and is not saved again, so a
-    /// failure loses the edit and is reported (`tagSaveFailureMessage`), as
-    /// History reports its own.
+    /// The tags and notes, written through `writeReadingEdit`.
     func writeTagsToArchive(_ sessionId: UUID, tags: [ReadingTag], notes: String?) async {
-        let acceptanceSavesTags = sessionState.needsAcceptance && sessionState.currentSession?.id == sessionId
         let archive = collector.archive
+        await writeReadingEdit(sessionId, what: "Tags") { try Self.storeTags(tags, notes: notes, of: sessionId, in: archive) }
+    }
+
+    /// One edit's archive rewrite (decrypt, encode, write), off the main
+    /// actor. A failure that loses the edit (`ReadingEditFailure`) is
+    /// reported (`tagSaveFailureMessage`), as History reports its own; the
+    /// others are only logged. Whether acceptance still saves the reading is
+    /// read before the write, while the review is the one the edit was made on.
+    func writeReadingEdit(_ sessionId: UUID, what: String, _ write: @escaping @Sendable () throws -> Void) async {
+        let acceptanceSavesEdit = sessionState.needsAcceptance && sessionState.currentSession?.id == sessionId
         do {
-            try await Task.detached { try Self.storeTags(tags, notes: notes, of: sessionId, in: archive) }.value
-        } catch SessionArchive.ArchiveError.fileNotFound, SessionArchive.ArchiveError.sessionWasDeleted {
-            debugLog("[RecordView] Tags not written: \(sessionId.uuidString.prefix(8)) is not in the archive")
+            try await Task.detached { try write() }.value
         } catch {
-            debugLog("[RecordView] Tags not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
-            guard !acceptanceSavesTags else { return }
+            debugLog("[RecordView] \(what) not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
+            guard ReadingEditFailure.mustReport(error, acceptanceSavesEdit: acceptanceSavesEdit) else { return }
             tagSaveFailureMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
     }

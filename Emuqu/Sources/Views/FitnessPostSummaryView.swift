@@ -120,6 +120,7 @@ struct FitnessPostSummaryView: View {
     @State var showSaveRouteSheet = false
     @State var newRouteName = ""
     @State var savedRouteIDForThisSession: UUID?
+    @State var routeSaveFailed = false
     var savedRouteStore: SavedRouteStore { dependencies.location.savedRouteStore }
     /// Drives the share-sheet presentation right after PDF generation
     /// succeeds, so the user gets a single-tap flow instead of the

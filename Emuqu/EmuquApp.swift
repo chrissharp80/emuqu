@@ -563,6 +563,11 @@ struct EmuquApp: App {
                 archive: collector.archive,
                 bodyWeightKg: weight
             )
+            // Readings whose Health export failed are exported again.
+            let writes = collector.healthKit.writes
+            await PendingNightExports.retry(
+                archive: collector.archive, exportEnabled: settingsManager.settings.enableHealthKitExport
+            ) { try await writes.exportSessionMetrics(from: $0) }
         }
     }
 

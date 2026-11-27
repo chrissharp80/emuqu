@@ -198,19 +198,27 @@ extension MorningSessionPipeline {
     /// saved for this review is touched (`SessionState.reviewArchivedSessionId`):
     /// a night newly pre-archived for it, or a paused night finalized for
     /// review with Done. Any other night already in the archive is not.
-    func discardReviewArchivedSession() {
+    ///
+    /// False when the night could not be moved to Trash: it is still archived
+    /// and still under review, the error is shown, and Discard can be tapped
+    /// again. True otherwise, including when there was nothing to move.
+    @discardableResult
+    func discardReviewArchivedSession() -> Bool {
         let reviewId = sessionState.reviewArchivedSessionId
         sessionState.reviewArchivedSessionId = nil
-        guard let reviewId, reviewId == sessionState.currentSession?.id else { return }
+        guard let reviewId, reviewId == sessionState.currentSession?.id else { return true }
         do {
-            guard try archive.delete(reviewId) else { return }
+            guard try archive.delete(reviewId) else { return true }
         } catch {
             debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
-            return
+            sessionState.reviewArchivedSessionId = reviewId
+            sessionState.lastError = error
+            return false
         }
         baselineRebuild.rebuildFromArchive()
         let cloudSync = cloudSyncManager
         Task { await cloudSync.uploadDeletion(reviewId) }
+        return true
     }
 
     /// Supersede same-night overnight sessions.

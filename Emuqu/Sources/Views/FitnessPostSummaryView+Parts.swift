@@ -26,7 +26,7 @@ extension FitnessPostSummaryView {
             recapImage: $recapImage, recapImageURL: $recapImageURL,
             recapGenerating: $recapGenerating, recapSharePresented: $recapSharePresented,
             showSaveRouteSheet: $showSaveRouteSheet, newRouteName: $newRouteName,
-            savedRouteIDForThisSession: $savedRouteIDForThisSession,
+            savedRouteIDForThisSession: $savedRouteIDForThisSession, routeSaveFailed: $routeSaveFailed,
             reanalyzing: $reanalyzing, reanalyzeError: $reanalyzeError,
             elevResmoothing: $elevResmoothing, elevResmoothPreview: $elevResmoothPreview,
             elevResmoothError: $elevResmoothError, routeHistory: $routeHistory,

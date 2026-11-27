@@ -186,7 +186,7 @@ final class SessionDiscardTests: XCTestCase {
         collector.morning.archiveForReview(second)
         XCTAssertEqual(collector.sessionState.reviewFoldedIntoSessionId, night.id)
 
-        RecordView.storePreScoreFeeling(2, id: secondId, archive: archive)
+        try RecordView.storePreScoreFeeling(2, id: secondId, archive: archive)
         try RecordView.storeTags([ReadingTag.alcohol], notes: "late dinner", of: secondId, in: archive)
 
         let stored = try XCTUnwrap(try archive.retrieve(night.id))
