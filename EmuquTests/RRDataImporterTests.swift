@@ -818,7 +818,16 @@ extension RRDataImporterTests {
         XCTAssertEqual(result.sessions.map { $0.timestamps.first }, [0, 0])
     }
 
-    /// A file from an older export (local minute, no offset, no id) still
+    /// A row costs the 10 characters the offset instant adds to the legacy
+    /// minute, and nothing more.
+    func testAnRRExportRowGrowsOnlyByTheOffsetInstant() throws {
+        let (session, series) = recordedSession(start: Date(timeIntervalSince1970: 1_793_511_000), count: 1)
+        let row = ExportDataView.rrCSVRows(for: session, series: series, timeZone: TestTimeZone.newYork)
+        XCTAssertEqual(row, "2026-11-01T01:30:00-04:00,0,800,overnight\n")
+        XCTAssertEqual(row.utf8.count - "2026-11-01_0130,0,800,overnight\n".utf8.count, 10)
+    }
+
+    /// A file from an older export (local minute, no offset) still
     /// imports, read in the importing phone's time zone.
     func testALegacyRRExportStillImports() throws {
         let rows = (0 ..< 70).map { "2026-01-25_0443,\($0 * 800),800,nap" }

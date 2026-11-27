@@ -323,17 +323,17 @@ struct ExportDataView: View {
     }
 
     /// One session's rows, built as one string so the export writes once per
-    /// session: peak memory stays bounded by one session's RR rows (~2.5 MB
+    /// session: peak memory stays bounded by one session's RR rows (~1.5 MB
     /// for an overnight) instead of all sessions concatenated. Each row
     /// carries the session's start as an exact instant with its UTC offset,
-    /// its type, which the importer reads back so a nap or quick reading is
-    /// not re-imported as an overnight, and its id, which keeps two
-    /// recordings that started in the same local minute apart.
+    /// which names the recording wherever the file is read, and its type,
+    /// which the importer reads back so a nap or quick reading is not
+    /// re-imported as an overnight.
     nonisolated static func rrCSVRows(for session: HRVSession, series rrSeries: RRSeries, timeZone: TimeZone = .current) -> String {
         let prefix = RRDataImporter.emuquRRExportSessionDate(session.startDate, timeZone: timeZone)
-        let suffix = "\(session.sessionType.rawValue),\(session.id.uuidString)\n"
+        let suffix = "\(session.sessionType.rawValue)\n"
         var chunk = ""
-        chunk.reserveCapacity(rrSeries.points.count * 80)
+        chunk.reserveCapacity(rrSeries.points.count * 50)
         for point in rrSeries.points {
             chunk += "\(prefix),\(point.t_ms),\(point.rr_ms),\(suffix)"
         }

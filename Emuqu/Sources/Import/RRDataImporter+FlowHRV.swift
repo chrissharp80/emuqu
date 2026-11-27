@@ -7,9 +7,11 @@ extension RRDataImporter {
 
     /// Parse Emuqu multi-session RR export
     /// Format: session_date,timestamp_ms,rr_ms[,session_type[,session_id]]
-    /// Each session_id value is one recording. A legacy export without the
-    /// column has one session_date value per recording, split further where
-    /// its timestamps restart (`legacyRecordingSegments`).
+    /// Each session_date value (an exact instant with its UTC offset) is one
+    /// recording, split further where its timestamps restart
+    /// (`legacyRecordingSegments`): a legacy minute-only date can name more
+    /// than one. A session_id column, which no exporter writes, groups rows
+    /// by id when present.
     /// Workouts are skipped: their exercise RR is not a resting reading and
     /// the export carries none of their workout details.
     func parseFlowHRVMultiSession(_ content: String, fileName: String) throws -> FlowHRVMultiSessionResult {
@@ -43,10 +45,10 @@ extension RRDataImporter {
     }
 
     /// The recordings one group of rows holds. A group keyed by `session_id`
-    /// is one recording. A legacy group, keyed by `session_date` alone, can
-    /// hold several recordings that started in the same local minute (the
-    /// two 01:30s of a night the clocks go back, or a reading restarted
-    /// within a minute): each one is kept apart, never merged.
+    /// is one recording. A group keyed by `session_date` alone can hold
+    /// several recordings when the date is a legacy local minute (the two
+    /// 01:30s of a night the clocks go back, or a reading restarted within a
+    /// minute): each one is kept apart, never merged.
     private func flowHRVRecordings(
         key: FlowHRVRecordingKey,
         points: [(timestamp: Int64, rr: Int)],
@@ -91,8 +93,8 @@ extension RRDataImporter {
         var sessionID: Int?
     }
 
-    /// Which recording a row belongs to: its `session_id` when the export
-    /// carries one, otherwise (a legacy export) its `session_date` alone.
+    /// Which recording a row belongs to: its `session_date`, or its
+    /// `session_id` when a file carries that column.
     struct FlowHRVRecordingKey: Hashable {
         let sessionDate: String
         let sessionID: String?
@@ -227,10 +229,11 @@ extension RRDataImporter {
         return lastPoint.timestamp + Int64(lastPoint.rr)
     }
 
-    /// The header row of an Emuqu RR export. `session_id` names the recording
-    /// each row belongs to; `session_date` is its start as an ISO 8601
-    /// instant with the exporting phone's UTC offset.
-    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type,session_id"
+    /// The header row of an Emuqu RR export. `session_date` is the
+    /// recording's start as an ISO 8601 instant with the exporting phone's UTC
+    /// offset, which names the recording: two recordings at the same clock
+    /// time on a night the clocks go back carry different offsets.
+    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type"
 
     /// A recording's start as the exporter writes it in `session_date`:
     /// ISO 8601 to the second with the UTC offset of `timeZone`, e.g.
