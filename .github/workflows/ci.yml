@@ -197,11 +197,6 @@ jobs:
         # (medical-claim language). Same script as `make copy-perimeter`.
         run: python3 Tools/copy_linter/lint.py
 
-      - name: The Python ports still reproduce the Swift test expectations
-        # The same check gates.yml runs, here too so the release gate
-        # (testflight.yml calls this workflow, not gates.yml) includes it.
-        run: make validation-ports
-
       - name: Gates actually fail
         # Plants a violation for each cheap gate and requires a red exit.
         # Three gates in this repository have reported clean while missing the
@@ -436,6 +431,13 @@ jobs:
 
       - name: Strict concurrency is switched on
         run: ./scripts/check_strict_concurrency_enabled.sh
+
+      - name: The Python ports still reproduce the Swift test expectations
+        # The same check gates.yml runs, here too so the release gate
+        # (testflight.yml calls this workflow, not gates.yml) includes it.
+        # On Ubuntu, as in gates.yml: its Python has wheels for the pinned
+        # numpy and scipy, and the macOS runner's newer Python does not.
+        run: make validation-ports
 
   # Runtime data-race detection. `check_unchecked_sendable.sh` proves the count
   # of concurrency escapes has not grown; only this proves any of them are
