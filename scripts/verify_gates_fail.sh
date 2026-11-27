@@ -1016,10 +1016,13 @@ check "scoring_governance/age_norm_edit" \
     "Emuqu/Sources/Analysis/HRVThresholds.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVThresholds.swift');s=p.read_text();o='case 20 ..< 30: 45.0';assert s.count(o)==1;p.write_text(s.replace(o,'case 20 ..< 30: 50.0'))"
 
-check "scoring_governance/inline_z_clamp" \
+# An inline clamp on a live score path moves the hash. (The percentile
+# z-clamp in `zToPercentileScore` is not on any score path, so it is not
+# hashed.)
+check "scoring_governance/inline_score_clamp" \
     "./scripts/check_scoring_governance.sh" \
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='max(-3.0, min(3.0, z))';assert s.count(o)==1;p.write_text(s.replace(o,'max(-2.5, min(2.5, z))'))"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift');s=p.read_text();o='if rmssd > 0 { return min(100, max(0, absoluteRMSSDScore(rmssd))) }';assert s.count(o)==1;p.write_text(s.replace(o,'if rmssd > 0 { return min(99, max(0, absoluteRMSSDScore(rmssd))) }'))"
 
 check "scoring_governance/sleep_cap_edit" \
     "./scripts/check_scoring_governance.sh" \
@@ -1139,6 +1142,14 @@ check "scoring_governance/night_key_edit" \
     "./scripts/check_scoring_governance.sh" \
     "Emuqu/Sources/Models/SleepSchedule.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/SleepSchedule.swift');s=p.read_text();o='Calendar.current.startOfDay(for: firstWake(after: overnightWindowStart(relativeTo: date)))';assert s.count(o)==1;p.write_text(s.replace(o,'Calendar.current.startOfDay(for: date)'))"
+
+# A value handed to a hashed reader through storage is hashed where it is
+# stored: training load reads the resting HR that `WorkoutLoadRestingHR.record`
+# keeps in UserDefaults, so changing what it stores moves the hash.
+check "scoring_governance/persisted_resting_hr_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift');s=p.read_text();o='UserDefaults.standard.set([\"value\": value,';assert s.count(o)==1;p.write_text(s.replace(o,'UserDefaults.standard.set([\"value\": value * 2,'))"
 
 # A function with a closure default argument keeps its body under its own
 # name: an edit to the masked RMSSD estimator's body moves the hash.

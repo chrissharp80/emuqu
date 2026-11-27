@@ -28,7 +28,9 @@
 #    call (into their return expressions), the locals they read back to
 #    where they are defined, the parameters they read back to the argument
 #    each caller passes, the closures a caller hands over back to where they
-#    are invoked, and the properties they read back to every write of them.
+#    are invoked, the properties they read back to every write of them, and
+#    a value stored by key (UserDefaults, the Keychain, a file) that a hashed
+#    reader loads back to the write that stores it.
 #    Receivers are typed by inference; where a receiver's type is unknown, a
 #    name with few declarations is taken whole, a common one only for its
 #    Analysis functions and cases. SwiftUI views and copy-only types are not

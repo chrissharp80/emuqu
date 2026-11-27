@@ -1262,6 +1262,13 @@ class Program:
         values = {d for d in named if not self.is_function(d)}
         return values or named
 
+    def file_text(self, name):
+        if not hasattr(self, "_texts"):
+            self._texts = {}
+        if name not in self._texts:
+            self._texts[name] = pathlib.Path(name).read_text(encoding="utf-8")
+        return self._texts[name]
+
     def is_case(self, decl):
         return any(self.index[name][key].get("raw", [("", 0)])[0][0] == "case" for name, key in self.decls[decl])
 
@@ -1354,6 +1361,7 @@ class Program:
                 entry = self.index[name][key]
                 scan = _DeclScan(self, entry.get("raw", []), entry["type"])
                 scan.lines = entry.get("lines", [])
+                scan.file = name
                 scan.run()
                 found.append(scan)
             self._scans[decl] = found
@@ -2365,7 +2373,13 @@ def stored_defuse(program):
     traced_fields = set(fields)
     hashed, names, entered, seen = set(), set(), set(), set()
     work = list(roots)
-    while work:
+    persisted = _persistence_index(program)
+    handed_off = set()
+    while True:
+        if not work:
+            work = _persisted_hand_offs(program, persisted, hashed, handed_off)
+            if not work:
+                break
         item = work.pop()
         key = (id(item[1]), item[2], item[3])
         if key in seen:
@@ -2392,6 +2406,85 @@ def stored_defuse(program):
                 spans = _result_spans(scan) if _SLICE_CALLEES else [(0, len(scan.toks))]
                 work.extend((ref, scan, span, False) for span in spans)
     return hashed, names
+
+
+# Calls that persist or read a value by key: UserDefaults, the Keychain,
+# files. The label names the key; the method says which way the value goes.
+_PERSIST_LABELS = {"forKey", "key", "account", "service", "to", "contentsOf", "atPath"}
+_PERSIST_WRITES = {
+    "set", "setValue", "setObject", "setData", "setString", "setBool", "setDouble", "setInteger",
+    "removeObject", "write", "save", "store", "update", "add", "createFile",
+}
+
+
+def _persistence_index(program):
+    """(decl, scan, key, is_write, call span) for every keyed persistence call."""
+    out = []
+    for decl in program.decls:
+        for scan in program.scans(decl):
+            toks = scan.toks
+            for k in range(1, len(toks) - 1):
+                if toks[k] not in _PERSIST_LABELS or toks[k + 1] != ":" or toks[k - 1] not in ("(", ","):
+                    continue
+                depth, j = 0, k - 1
+                while j >= 0:
+                    depth += {")": 1, "(": -1}.get(toks[j], 0)
+                    if depth < 0:
+                        break
+                    j -= 1
+                if j < 1:
+                    continue
+                key = _persist_key(program, scan, k + 2)
+                if key:
+                    end = _skip_balanced(scan.raw, j)
+                    value = scan.argument(j, end, "_", 0) or scan._enclosing_call(k)
+                    out.append((decl, scan, key, toks[j - 1] in _PERSIST_WRITES, value))
+    return out
+
+
+def _persist_key(program, scan, k):
+    """What identifies the key an argument at toks[k] names: the constant it
+    reads, or the text of a string literal."""
+    toks = scan.toks
+    if k >= len(toks):
+        return None
+    if toks[k] == '"':
+        text = program.file_text(scan.file)
+        pos = scan.raw[k][1]
+        return ("literal", text[pos:_skip_string(text, pos)])
+    end = k
+    while end + 1 < len(toks) and (IDENT_RE.match(toks[end + 1]) or toks[end + 1] in (".", "?", "!")):
+        end += 1
+    if toks[k] == "." or end not in scan.precise_at:
+        return None  # an implicit member (a Codable key) or an untyped name identifies no key
+    found = {d for d in scan.refs_at.get(end, set()) if program.is_stored(d) and not program.is_case(d)}
+    return ("decl", frozenset(found)) if found else None
+
+
+def _persisted_hand_offs(program, persisted, hashed, handed_off):
+    """The writes that hand a value to a hashed reader through storage: a
+    write to a key a hashed declaration reads, or any write in the type of a
+    hashed value type or namespace that reads storage (its own accessor
+    pair; a service class's other stores are not taken). Each is traced
+    from the value it stores, one step up to the argument its callers pass."""
+    read_keys, read_owners = set(), set()
+    for decl, scan, key, is_write, span in persisted:
+        if not is_write and decl in hashed:
+            read_keys.add(key)
+            owner = decl.rpartition(".")[0]
+            if program.kinds.get(owner) in ("enum", "struct"):
+                read_owners.add(owner)
+    items = []
+    for decl, scan, key, is_write, span in persisted:
+        marker = (id(scan), span)
+        if not is_write or marker in handed_off or _is_excluded(program, decl):
+            continue
+        shares_key = key in read_keys or (key[0] == "decl" and any(
+            other[0] == "decl" and key[1] & other[1] for other in read_keys))
+        if shares_key or decl.rpartition(".")[0] in read_owners:
+            handed_off.add(marker)
+            items.append((decl, scan, span, "once"))
+    return items
 
 
 _STORED_DEFUSE = {}
