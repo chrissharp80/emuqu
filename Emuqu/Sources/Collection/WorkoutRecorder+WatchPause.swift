@@ -14,7 +14,9 @@ import Foundation
 // A control that arrives late is applied only when it was tapped after the
 // last pause or resume the phone made (`controlIsCurrent`): a Pause tapped
 // before the user resumed on the phone, or a Resume tapped before the pause
-// now open, was already answered by that change.
+// now open, was already answered by that change. The tap is stamped by the
+// Watch's clock, so a tap up to `watchClockTolerance` before the change
+// still counts as after it.
 
 extension WorkoutRecorder {
     /// Pauses by hand, as the Watch asked, from `tappedAt` when that is
@@ -57,12 +59,19 @@ extension WorkoutRecorder {
 
     /// Whether a Watch control tapped at `tappedAt` still acts on the state
     /// the phone is in: tapped at or after `lastChange`, the last pause or
-    /// resume it would undo. One with no tap time, or with no change before
-    /// it, applies.
+    /// resume it would undo, less `watchClockTolerance`. One with no tap
+    /// time, or with no change before it, applies.
     nonisolated static func controlIsCurrent(tappedAt: Date?, lastChange: Date?) -> Bool {
         guard let tappedAt, let lastChange else { return true }
-        return tappedAt >= lastChange
+        return tappedAt >= lastChange.addingTimeInterval(-watchClockTolerance)
     }
+
+    /// How far the Watch's clock may run behind the phone's for a tap
+    /// stamped just before a change (an auto-resume, say) to still count as
+    /// made after it. A paired Watch takes its time from the phone, so they
+    /// differ by well under a second; a control sent longer before the
+    /// change than this was answered by it.
+    nonisolated static let watchClockTolerance: TimeInterval = 2
 
     /// When a Watch Resume ends the pause: the tap held between the pause's
     /// start and `now`, or `now` when the Watch stamped no tap. A tap stamped

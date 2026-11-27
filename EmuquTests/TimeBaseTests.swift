@@ -237,11 +237,14 @@ final class TimeBaseTests: XCTestCase {
     // MARK: - A Watch control that arrives after the phone moved on
 
     /// A control applies only when it was tapped at or after the last change
-    /// it would act on; one with no tap time, or no change before it, applies.
+    /// it would act on, or within `watchClockTolerance` before it (the
+    /// Watch's clock a moment behind); one with no tap time, or no change
+    /// before it, applies.
     func testAWatchControlAppliesOnlyWhenTappedAfterTheLastChange() {
         let change = Date(timeIntervalSince1970: 1_790_000_000)
         let cases: [(tap: Date?, last: Date?, applies: Bool)] = [
-            (change.addingTimeInterval(-1), change, false), (change, change, true),
+            (change.addingTimeInterval(-3), change, false), (change.addingTimeInterval(-2), change, true),
+            (change.addingTimeInterval(-1), change, true), (change, change, true),
             (change.addingTimeInterval(1), change, true), (nil, change, true), (change, nil, true)
         ]
         for testCase in cases {
