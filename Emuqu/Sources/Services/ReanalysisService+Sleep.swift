@@ -200,6 +200,7 @@ extension ReanalysisService {
         _ newSleep: SleepData, sessionId: UUID, sessionEnd: Date, inputs: SleepBoundaryWrite.Inputs
     ) -> HRVSession? {
         var written: HRVSession?
+        archive.noteReuploadIntent([sessionId])
         do {
             try archive.update(sessionId, requestingReupload: false) { stored in
                 written = Self.retroApplied(newSleep, to: &stored, sessionEnd: sessionEnd, inputs: inputs)
@@ -308,6 +309,7 @@ extension ReanalysisService {
     }
 
     private func persistManualAnalysis(_ updatedSession: HRVSession, originalId: UUID) async -> HRVSession? {
+        archive.noteReuploadIntent([updatedSession.id])
         do {
             try archive.archive(updatedSession, skipSameNightMerge: false, requestingReupload: true)
             baselineTracker.update(with: updatedSession, sleepSchedule: settingsProvider().sleepSchedule)
@@ -575,6 +577,7 @@ extension ReanalysisService {
     /// longer archived or the write fails.
     private func persistSnapshot(_ freshContext: TrainingContext, onto session: HRVSession) throws {
         var updated = session
+        archive.noteReuploadIntent([session.id])
         try archive.update(session.id, requestingReupload: false) { stored in
             stored.trainingSnapshot = freshContext
             stored.analysisResult?.trainingContext = freshContext

@@ -481,9 +481,10 @@ final class ReanalysisService {
         return outcome
     }
 
-    /// Hands a rewritten session to iCloud sync to upload again, with the
-    /// request recorded on disk first (`SessionArchive.noteReuploadIntent`):
-    /// a kill before the upload task runs leaves it for the next launch.
+    /// Hands a rewritten session to iCloud sync to upload again. Each writer
+    /// recorded the request on disk before its write
+    /// (`SessionArchive.noteReuploadIntent`); it is recorded again here for a
+    /// write made elsewhere, so a kill before the upload task runs leaves it.
     func queueUpload(_ session: HRVSession) {
         archive.noteReuploadIntent([session.id])
         Task { [onSessionUploaded] in onSessionUploaded(session) }

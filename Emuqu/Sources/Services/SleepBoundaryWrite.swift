@@ -77,6 +77,8 @@ enum SleepBoundaryWrite {
             debugLog("[UpdateSleepBounds] Bailed: session \(read.id.uuidString.prefix(8)) not in archive")
             return .notArchived
         }
+        // Uploaded again once written (`ReanalysisService.queueUpload`): asked for first.
+        archive.noteReuploadIntent([read.id])
         var outcome = Outcome.written(read)
         try archive.updateIfChanged(read.id, requestingReupload: edit.isUserAdjustment) { stored in
             guard readIsCurrent(read, stored: stored) else {

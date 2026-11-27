@@ -371,17 +371,18 @@ extension ArchiveMigrations {
     }
 
     /// Phase 3: update archive.index + tombstones under lock, for the copies
-    /// not written since phase 1 checked them. Each retired id is then kept
-    /// under its keeper (`recordFold`), which holds its user content: a screen
-    /// or queue that still names the retired copy writes to the keeper.
+    /// not written since phase 1 checked them. Each retired id is kept under
+    /// its keeper (`recordFold`) before the tombstones are saved, so a screen
+    /// naming it writes to the keeper even after a kill before the index save
+    /// (`finishInterruptedMoves`); a listed copy's fold is not followed.
     private func retireUnlessWritten(_ checkedMoves: [(QuarantineMove, String)]) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         let moves = keepingCopiesWrittenSinceTheCheck(checkedMoves)
         guard !moves.isEmpty else { return }
         do {
-            try retireQuarantined(Set(moves.map(\.id)))
             moves.forEach { archive.state.recordFold(of: $0.id, into: $0.keeper) }
+            try retireQuarantined(Set(moves.map(\.id)))
         } catch {
             debugLog("[Archive] ⚠️ Failed to save the indexes after quarantining duplicates — moving the files back: \(error)", level: .warning)
             restoreFromQuarantine(moves)
@@ -428,6 +429,7 @@ extension ArchiveMigrations {
         archive.state.deletedSessionIds.formUnion(ids)
         do {
             try archive.state.saveDeletedIndex()
+            ids.forEach { ArchiveStore.betweenFileAndIndex?($0) }
             try archive.state.saveIndex()
         } catch {
             archive.state.index = preIndex
@@ -781,9 +783,7 @@ extension ArchiveMigrations {
     /// new file hash be replaced in the index with a stale one. It is rare work —
     /// only nights with unlinked segments — so the short hold is the right trade.
     func relinkSameNightSessions() {
-        let workItems = relinkWorkItems()
-        guard !workItems.isEmpty else { return }
-        let results = workItems.compactMap { relinkUnderLock($0) }
+        let results = relinkWorkItems().compactMap { relinkUnderLock($0) }
         // Rewritten in place, so stale in iCloud: each asked to upload again before its write.
         archive.store.requestReupload(of: Set(results.map(\.sessionId)))
     }
@@ -842,11 +842,10 @@ extension ArchiveMigrations {
     /// the old hash for the rewritten file, and every read of the night would
     /// fail its integrity check after a relaunch. The next launch tries again.
     ///
-    /// The file and the index entry change in two steps, so the rewrite
-    /// carries the marker every rewrite of an archived session does
-    /// (`markRewriteStarting`): killed between them, the next launch re-hashes
-    /// the file (`healInterruptedRewrites`). The upload-again request is
-    /// recorded before the write.
+    /// File and entry change in two steps, so the rewrite carries the marker
+    /// every rewrite of an archived session does (`markRewriteStarting`) for
+    /// the next launch to re-hash by (`healInterruptedRewrites`); the
+    /// upload-again request is recorded before the write.
     private func relinkUnderLock(_ work: RelinkWork) -> RelinkResult? {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }

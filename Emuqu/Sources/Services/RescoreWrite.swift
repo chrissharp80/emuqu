@@ -60,6 +60,9 @@ enum RescoreWrite {
             debugLog("[ReanalysisService] Rescored session \(rescored.id.uuidString.prefix(8)) is not in the archive — not written")
             return .notArchived
         }
+        // Every written rescore is uploaded again (`ReanalysisService.queueUpload`):
+        // asked for on disk first, so a kill after the write keeps the request.
+        archive.noteReuploadIntent([rescored.id])
         var outcome = Outcome.written(rescored)
         try archive.updateIfChanged(rescored.id, requestingReupload: false) { stored in
             guard inputsMatch(stored, read, kind: kind) else {
