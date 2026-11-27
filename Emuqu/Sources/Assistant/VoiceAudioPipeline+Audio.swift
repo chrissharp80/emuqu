@@ -789,7 +789,7 @@ extension VoiceAudioPipeline {
         let delta = String(turn.text[start ..< end])
         controller.spokenCharCursor = safeLen
         controller.currentResponseText = String(turn.text.prefix(safeLen))
-        if let chunk = controller.textChunker.append(delta: delta) { controller.speak(chunk) }
+        if let chunk = controller.textChunker.append(delta: delta) { controller.speak(chunk, numbersVerified: true) }
     }
 
     @MainActor
@@ -820,7 +820,7 @@ extension VoiceAudioPipeline {
     /// the reply failed with nothing said.
     @MainActor
     private func speakResponseTail() {
-        if let remainder = controller.textChunker.finalize() { controller.speak(remainder) }
+        if let remainder = controller.textChunker.finalize() { controller.speak(remainder, numbersVerified: true) }
         speakConfirmationQuestionIfShown()
         speakErrorRecoveryLineIfNeeded()
     }

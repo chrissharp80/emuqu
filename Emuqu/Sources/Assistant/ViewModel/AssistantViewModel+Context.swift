@@ -596,10 +596,18 @@ final class StreamTextBuffer {
     /// canned safety replies, so a reply split across flushes is still
     /// recognised as the reply (`CoachVoiceGuard.scrub(_:continuing:)`).
     private var safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
+    /// The values each published piece's numbers are checked against
+    /// (`MetricsVerifier.verifyReply`), or nil for no check.
+    private let verifiedState: (@MainActor () -> MetricsVerifier.AppState)?
+    /// Corrections made in this round's published text, recorded for the
+    /// next prompt only once the round ends with that text still shown
+    /// (`commitCorrections`): text the round rewinds was never the reply.
+    private var stagedCorrections: [MetricsVerifier.Discrepancy] = []
 
-    init(owner: any AssistantTranscript, turnID: UUID) {
+    init(owner: any AssistantTranscript, turnID: UUID, verifiedState: (@MainActor () -> MetricsVerifier.AppState)? = nil) {
         self.owner = owner
         self.turnID = turnID
+        self.verifiedState = verifiedState
         if let index = owner.liveTurnIndex(for: turnID) {
             self.roundStartTextLen = owner.turns[index].text.count
         } else {
@@ -684,12 +692,34 @@ final class StreamTextBuffer {
     /// `safetyCopy` sees each sentence in order: the app's canned safety
     /// reply passes only as that reply, opening sentence first, however the
     /// flushes cut it.
+    ///
+    /// The numbers are checked here too, on the same whole sentences, before
+    /// they are shown: a corrected value is what the user first reads and
+    /// what is saved, so nothing on screen changes after it was read.
     private func scrubbing(_ text: String) -> String {
         let result = CoachVoiceGuard.scrub(text, continuing: &safetyCopy)
         for trigger in result.triggers {
             AssistantTurnRouter.recordCoachVoiceInterception(reason: trigger.reason)
         }
-        return result.scrubbed
+        return numbersVerified(result.scrubbed)
+    }
+
+    /// `text` with each number that contradicts the app's values replaced,
+    /// the correction staged for the next prompt.
+    private func numbersVerified(_ text: String) -> String {
+        guard let state = verifiedState?() else { return text }
+        let result = MetricsVerifier.verifyReply(text, against: state)
+        guard !result.discrepancies.isEmpty else { return text }
+        debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
+        stagedCorrections += result.discrepancies
+        return result.correctedText ?? text
+    }
+
+    /// The round ended with its text shown: tell the next prompt what was
+    /// corrected in it.
+    func commitCorrections() {
+        MetricsVerifier.recordCorrections(stagedCorrections)
+        stagedCorrections = []
     }
 
     /// Round ended text-only → advance the voice speakable cursor to
@@ -709,8 +739,10 @@ final class StreamTextBuffer {
     /// round's tool decision, and voice (which tracks what it has spoken)
     /// would skip it.
     func rewindToRoundStart() {
-        // The withdrawn text no longer leads into anything published next.
+        // The withdrawn text no longer leads into anything published next,
+        // and was never the reply, so its corrections are not reported.
         safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
+        stagedCorrections.removeAll()
         // Resolve the live turn by id.
         guard let index = currentIndex else { return }
         if let cursor = owner.speakableTextCursor[turnID], cursor > roundStartTextLen {

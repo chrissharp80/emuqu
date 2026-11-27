@@ -40,10 +40,14 @@ struct ChatServices: Sendable {
     @MainActor
     var trainingMetricsCache: TrainingMetricsCache { container.analysis.trainingMetricsCache }
     var userFactsStore: UserFactsStore { container.assistant.userFactsStore }
-    /// The values the metrics verifier checks a reply's app-state claims against.
+    /// The values the metrics verifier checks a reply against: the live
+    /// workout broker and the app state, the same ones voice checks.
     @MainActor
     var verifiedAppState: MetricsVerifier.AppState {
-        MetricsVerifier.AppState(settings: settingsManager.settings, trainingMetricsCache: trainingMetricsCache, archive: sessionArchive)
+        MetricsVerifier.AppState(
+            settings: settingsManager.settings, trainingMetricsCache: trainingMetricsCache, archive: sessionArchive,
+            liveWorkout: liveWorkoutBroker.currentSnapshot()
+        )
     }
     @MainActor
     var voiceConversationController: VoiceConversationController { container.assistant.voiceConversationController }

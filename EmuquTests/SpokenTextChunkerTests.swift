@@ -100,6 +100,13 @@ final class SpokenTextChunkerTests: XCTestCase {
         )
     }
 
+    /// A numbered list keeps its numbers when spoken, as the chat shows them,
+    /// so a line that only looks like a list item loses nothing.
+    func testStripMarkdownKeepsListNumbers() {
+        XCTAssertEqual(SpokenTextChunker.stripMarkdownForSpeech("1. Warm up\n2) Intervals"), "1, Warm up\n2, Intervals")
+        XCTAssertEqual(SpokenTextChunker.stripMarkdownForSpeech("Reps done:\n5. Nice work."), "Reps done:\n5, Nice work.")
+    }
+
     func testStripMarkdownPreservesMathAsterisk() {
         // "5 * 3" must NOT lose the asterisk — only word-adjacent * is emphasis.
         let stripped = SpokenTextChunker.stripMarkdownForSpeech("5 * 3 = 15")

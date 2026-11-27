@@ -47,7 +47,7 @@ enum AssistantCitationResolver {
             guard let date = match.date,
                   let sessionId = dayToSessionId[Self.dayKeyFormatter.string(from: date)],
                   let swiftRange = Range(match.range, in: output),
-                  !isTimeOnly(output[swiftRange]),
+                  !isNotADay(output, range: swiftRange),
                   !isAlreadyInsideLink(output, range: swiftRange)
             else { continue }
             let original = String(output[swiftRange])
@@ -126,6 +126,26 @@ enum AssistantCitationResolver {
             in: text, range: NSRange(text.startIndex..., in: text), withTemplate: ""
         )
         return !stripped.contains { $0.isLetter || $0.isNumber }
+    }
+
+    /// A match the detector dates that names no day: a time of day, or a
+    /// fraction.
+    private static func isNotADay(_ text: String, range: Range<String.Index>) -> Bool {
+        isTimeOnly(text[range]) || isBareFraction(text, range: range)
+    }
+
+    /// "4/5" with no year is a fraction or a score as often as a date ("4/5
+    /// nights", "rated 4/5"), and the detector dates it. It is linked only
+    /// where it reads as a date: after a date preposition ("on 11/24",
+    /// "since 4/5") or as a list heading ("11/24: recovery 55").
+    static func isBareFraction(_ text: String, range: Range<String.Index>) -> Bool {
+        let matched = text[range].trimmingCharacters(in: .whitespaces)
+        guard matched.range(of: #"^\d{1,2}/\d{1,2}$"#, options: .regularExpression) != nil else { return false }
+        let before = String(text[..<range.lowerBound].suffix(16)).lowercased()
+        let afterDatePreposition = before.range(of: #"\b(?:on|since|from|until|till|by|before|after|of)\s+$"#, options: .regularExpression) != nil
+        let lineStart = before.range(of: #"(?:^|\n)\s*(?:[-*•]\s*)?$"#, options: .regularExpression) != nil
+        let listHeading = lineStart && text[range.upperBound...].hasPrefix(":")
+        return !(afterDatePreposition || listHeading)
     }
 
     /// Parses a `flowrecovery://session/<uuid>` URL and returns the session id.
