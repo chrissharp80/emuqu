@@ -12,6 +12,12 @@ extension WindowSelector {
     }
 
     /// Scan a range of the series, evaluating windows at regular intervals.
+    /// Windows start every `stepSize` beats from `bandStart`; each holds at
+    /// least `windowSize` beats and runs on until it spans
+    /// `config.minWindowSpanMs` (`timeFlooredEnd`), so a full window is a
+    /// five-minute short-term recording at any heart rate. A band too short
+    /// to hold one such window is scanned on beat count alone, so a short
+    /// night is still measured; the acceptance rule then reads its span.
     /// `artifactRateLimit` overrides `config.maxArtifactRate` when supplied —
     /// `scanBandWithArtifactFallback` uses this to run a strict 10% pass
     /// first, falling back to the permissive 15% cutoff only if the strict
@@ -25,23 +31,50 @@ extension WindowSelector {
         sessionEndMs: Int64,
         artifactRateLimit: Double? = nil
     ) -> [ScoredRecoveryBlock] {
-        var windows: [ScoredRecoveryBlock] = []
-        var scanIdx = grid.bandStart + grid.windowSize
-        while scanIdx <= grid.bandEnd {
-            if let block = evaluateWindow(
-                series: series,
-                flags: flags,
-                startIdx: scanIdx - grid.windowSize,
-                endIdx: scanIdx,
-                sessionStartMs: sessionStartMs,
-                sessionEndMs: sessionEndMs,
+        windowRanges(points: series.points, grid: grid).compactMap { range in
+            evaluateWindow(
+                series: series, flags: flags,
+                startIdx: range.lowerBound, endIdx: range.upperBound,
+                sessionStartMs: sessionStartMs, sessionEndMs: sessionEndMs,
                 artifactRateLimit: artifactRateLimit
-            ) {
-                windows.append(block)
-            }
-            scanIdx += grid.stepSize
+            )
         }
-        return windows
+    }
+
+    /// The index ranges `scanWindows` evaluates, in start order.
+    func windowRanges(points: [RRPoint], grid: ScanGrid) -> [Range<Int>] {
+        let timed = grid.bandEnd > grid.bandStart
+            && Self.spanMs(points, grid.bandStart ..< grid.bandEnd) >= config.minWindowSpanMs
+        var ranges: [Range<Int>] = []
+        var start = grid.bandStart
+        while let end = timed
+            ? timeFlooredEnd(points: points, start: start, minEnd: start + grid.windowSize, limit: grid.bandEnd)
+            : (start + grid.windowSize <= grid.bandEnd ? start + grid.windowSize : nil) {
+            ranges.append(start ..< end)
+            start += grid.stepSize
+        }
+        return ranges
+    }
+
+    /// The exclusive end of the window that starts at `start`: at least
+    /// `minEnd`, extended beat by beat until the window spans
+    /// `config.minWindowSpanMs`. Nil when that end would pass `limit`.
+    func timeFlooredEnd(points: [RRPoint], start: Int, minEnd: Int, limit: Int) -> Int? {
+        guard start < minEnd, minEnd <= limit, limit <= points.count else { return nil }
+        var end = minEnd
+        while Self.spanMs(points, start ..< end) < config.minWindowSpanMs {
+            guard end < limit else { return nil }
+            end += 1
+        }
+        return end
+    }
+
+    /// The time a run of beats covers, from the start of its first beat to
+    /// the end of its last (`RRPoint.endMs`): the length the Task Force
+    /// short-term recording and `HRVConstants.MinimumDuration` are written
+    /// in. `range` is non-empty and inside `points`.
+    static func spanMs(_ points: [RRPoint], _ range: Range<Int>) -> Int64 {
+        points[range.upperBound - 1].endMs - points[range.lowerBound].t_ms
     }
 
     /// One window's slice of the series, already bounds-checked.
@@ -152,6 +185,9 @@ extension WindowSelector {
         )
     }
 
+    /// The block is half-open in time: it ends where its last beat ends, so
+    /// its span is the time it covers and the first beat at or after `endMs`
+    /// is the first one outside it (`SessionMerger.repointed`).
     private func scoredBlock(
         slice: WindowSlice,
         rrValues: [(index: Int, rr: Double)],
@@ -171,7 +207,7 @@ extension WindowSelector {
         guard let firstPoint = slice.points.first, let lastPoint = slice.points.last else { return nil }
         return ScoredRecoveryBlock(
             startIndex: slice.startIdx, endIndex: slice.endIdx,
-            startMs: firstPoint.t_ms, endMs: lastPoint.t_ms,
+            startMs: firstPoint.t_ms, endMs: lastPoint.endMs,
             artifactRate: artifactRate,
             ectopicRate: Double(rrValues.count - cleanRRs.count) / Double(rrValues.count),
             meanHR: metrics.meanHR, hrCV: metrics.hrCV,

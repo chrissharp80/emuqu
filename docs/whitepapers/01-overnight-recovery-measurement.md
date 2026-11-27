@@ -236,7 +236,7 @@ With `B` beats in the band:
 - `size = 400` if `B ≥ 400`; else `B/2` if `B ≥ 240`; else `max(60, ⌊0.6·B⌋)`.
 - `step = max(10, ⌊size/10⌋)`, so 40 beats for a 400-beat window.
 
-Windows are `[e − size, e)` for `e = bandStart + size, bandStart + size + step, …, ≤ bandEnd`. A 400-beat window lasts about 6.7 min at 60 bpm (5 min at 80 bpm).
+Windows start at `s = bandStart, bandStart + step, …`. Each is `[s, e)` with `e` the first index `≥ s + size` at which the window spans 5 min, from the start of its first beat to the end of its last; a window whose `e` would pass `bandEnd` is not built. A 400-beat window lasts about 6.7 min at 60 bpm, so below about 80 bpm the window is exactly `size` beats; above it the window takes the extra beats 5 min holds. A band shorter than 5 min is scanned on `size` alone, `e = s + size`, so a short night is still measured. A tapped window is the 400 beats around the tap, widened the same way.
 
 #### 3.5.2 Per-window evaluation
 
@@ -279,7 +279,7 @@ Let `base` be the leave-current-out baseline for this night (Section 3.6.4).
 
 *Why it works.*
 
-- *Geometry.* A 400-beat window is close to the 5-min short-term recording of the Task Force standard [4] and long enough for DFA α1. Shrinking it only when the band is short means a short night is still measured rather than skipped.
+- *Geometry.* Every full window is at least the 5-min short-term recording of the Task Force standard [4], measured in time, and at least 400 beats, enough for DFA α1. A beat count alone would make the window shorter than 5 min above about 80 bpm, and the structural test (Section 3.6.1) would then reject a full window for its heart rate. Shrinking it only when the band is short means a short night is still measured rather than skipped.
 - *Strict pass first.* The 10% cap is tried first so that, whenever clean data exist, only clean data compete; 15% is a fallback that applies only when nothing would otherwise be measured.
 - *Spike filter.* Adjacent windows share about 90% of their beats, so a stable physiological state appears in several neighboring windows. A window that exceeds *both* overlapping neighbors by 50% owes the excess to the few beats it does not share with them, which is the signature of a transient rather than a state.
 - *Organized filter.* α1 near 1 and a low CV mark a stretch with a steady rhythm and no drift, which is what a repeatable measurement window needs.
@@ -292,7 +292,7 @@ Let `base` be the leave-current-out baseline for this night (Section 3.6.4).
 
 1. Session type is overnight.
 2. Data quality is not `insufficient` and not `preSleep` (Section 3.8.3).
-3. *Structural soundness:* the analysis window (the whole session if the analysis has none) lasts ≥ 5 min (300 000 ms), **and** the window is organized **or** the session lasts ≥ 3 h (10 800 s).
+3. *Structural soundness:* the analysis window (the whole session if the analysis has none) lasts ≥ 5 min (300 000 ms) from the start of its first beat to the end of its last, the span the selector builds every full window to (Section 3.5.1), **and** the window is organized **or** the session lasts ≥ 3 h (10 800 s).
 4. The reading's SDNN was measured, not estimated (an imported summary that does not state SDNN carries an estimate).
 
 *Why it works.* Gate 3 deliberately ignores the direction of the reading. The display path treats a short reading differently depending on whether it lands above or below baseline (Section 3.8.3), because a brief clean high reading is still worth showing. For aggregation, that asymmetry would be a ratchet. Short windows have the largest sampling error, so their high readings overshoot most. Admitting the high ones and rejecting the low ones would raise `lnRmssdMean`, every later night would score lower against it, and the correcting samples would be exactly the ones excluded. The structural test is therefore symmetric: a 4-minute window is not baseline-quality whichever side of the mean it falls on. The one direction-dependent exclusion comes through gate 2: a below-baseline session shorter than 3 h is marked `insufficient` by quality rule 3 (`classifyHRVQuality` in `Emuqu/Sources/Services/SessionAcceptanceService.swift`) and is not admitted, while the same session above baseline is admitted if it passes gate 3.
@@ -489,7 +489,7 @@ The vitals sub-score is the mean of whichever sub-scores exist. A missing input 
 | Input | Sub-score |
 |---|---|
 | Sleep HR (strap window mean HR, Section 3.8.1) | `max(0, 100 − 10·max(0, (HR − hrMean)/hrSD))`. Requires a baseline. At or below baseline scores 100. |
-| Respiratory rate with a 7-night baseline | `max(0, 100 − 15·max(0, (rate − baseline) − 1))`. Below baseline scores 100. |
+| Respiratory rate with a 7-night baseline (readings from at least 3 nights) | `max(0, 100 − 15·max(0, (rate − baseline) − 1))`. Below baseline scores 100. |
 | Respiratory rate without a baseline | 100 within 12–18 br/min; above 18: `100 − 15·(rate − 18)`, floor 0; below 12: 90 |
 | Apple Watch wrist temperature (deviation from the user's own baseline, which Apple establishes after about 5 nights [15]; dropped if there is no baseline) | ≤ +0.3 °C → 100; ≤ +0.5 °C → 75; ≤ +1.0 °C → 50; above → 25. Cooler than baseline scores 100. |
 

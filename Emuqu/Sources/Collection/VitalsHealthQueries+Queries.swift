@@ -112,12 +112,10 @@ extension VitalsHealthQueries {
         }
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
         let liveValue: Double? = await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
-            HKStatisticsQuery(
-                quantityType: respType,
-                quantitySamplePredicate: predicate,
-                options: .discreteAverage
-            ) { _, statistics, error in
-                resolve(Self.respiratoryBaselineValue(statistics: statistics, error: error))
+            HKSampleQuery(
+                sampleType: respType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil
+            ) { _, samples, error in
+                resolve(Self.respiratoryBaselineValue(samples: samples, error: error))
             }
         }
         if let liveValue {
@@ -127,16 +125,18 @@ extension VitalsHealthQueries {
         return Self.cachedBaselineIfToday(RespiratoryBaselineCache.read()?.value, relativeTo: referenceDate)
     }
 
-    nonisolated private static func respiratoryBaselineValue(statistics: HKStatistics?, error: Error?) -> Double? {
+    nonisolated private static func respiratoryBaselineValue(samples: [HKSample]?, error: Error?) -> Double? {
         if let error {
             debugLog("[HealthKitManager] Respiratory baseline query error: \(error.localizedDescription)")
             return nil
         }
-        guard let avg = statistics?.averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute())) else {
-            debugLog("[HealthKitManager] No respiratory baseline data found in 7-day window")
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        let readings = (samples as? [HKQuantitySample] ?? []).map { (end: $0.endDate, value: $0.quantity.doubleValue(for: unit)) }
+        guard let mean = VitalsScoring.baselineMean(readings) else {
+            debugLog("[HealthKitManager] Respiratory baseline: too few nights in the 7-day window")
             return nil
         }
-        return avg
+        return mean
     }
 
     /// Fetch oxygen saturation around a reference date
@@ -278,21 +278,20 @@ extension VitalsHealthQueries {
     }
 
     /// Normalises each sample the same way `fetchWristTemperature` does, then
-    /// averages whatever survived.
+    /// averages whatever survived (`VitalsScoring.baselineMean`).
     nonisolated private static func meanWristTemperatureDeviation(samples: [HKSample]?, error: Error?) -> Double? {
         if let error {
             debugLog("[HealthKitManager] Wrist temp baseline query error: \(error.localizedDescription)")
             return nil
         }
-        guard let samples = samples as? [HKQuantitySample], !samples.isEmpty else {
-            debugLog("[HealthKitManager] No wrist temp baseline data found in 7-day window")
+        let deviations = (samples as? [HKQuantitySample] ?? []).compactMap { sample in
+            wristTemperatureDeviation(sample.quantity.doubleValue(for: .degreeCelsius())).map { (end: sample.endDate, value: $0) }
+        }
+        guard let mean = VitalsScoring.baselineMean(deviations) else {
+            debugLog("[HealthKitManager] Wrist temp baseline: too few nights in the 7-day window")
             return nil
         }
-        let deviations = samples.compactMap {
-            wristTemperatureDeviation($0.quantity.doubleValue(for: .degreeCelsius()))
-        }
-        guard !deviations.isEmpty else { return nil }
-        return deviations.reduce(0, +) / Double(deviations.count)
+        return mean
     }
 
     // MARK: - Vitals Data Observer

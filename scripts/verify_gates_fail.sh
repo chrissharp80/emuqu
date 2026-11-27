@@ -987,6 +987,41 @@ check "scoring_governance/flipped_operator" \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
 
+# Inputs that reach a stored score through an instance value rather than a
+# name the scoring files write move the hash too: the ANS norms and the SNS
+# index the composite's ANS balance reads, the HRV quality rule that swaps
+# in the baseline, the overnight window's time floor, the sleep staging
+# epoch floor and the training readiness curve.
+check "scoring_governance/ans_norm_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Utilities/Constants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');s=p.read_text();o='static let refRMSSD: Double = 42.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let refRMSSD: Double = 40.0'))"
+
+check "scoring_governance/sns_index_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/StressAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/StressAnalysis.swift');s=p.read_text();o='let zMeanHR = (meanHR - StressNormativeConstants.refMeanHR)';assert s.count(o)==1;p.write_text(s.replace(o,'let zMeanHR = (meanHR + StressNormativeConstants.refMeanHR)'))"
+
+check "scoring_governance/hrv_quality_rule_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='let longEnough = sessionDuration >= HRVConstants';assert s.count(o)==1;p.write_text(s.replace(o,'let longEnough = sessionDuration > HRVConstants'))"
+
+check "scoring_governance/window_span_floor_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/WindowSelector+Scoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/WindowSelector+Scoring.swift');s=p.read_text();o='var minWindowSpanMs: Int64 = HRVConstants.MinimumDuration.forReliableWindowMs';assert s.count(o)==1;p.write_text(s.replace(o,'var minWindowSpanMs: Int64 = 0'))"
+
+check "scoring_governance/sleep_epoch_floor_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift');s=p.read_text();o='private static let minValidRRsPerWindow = 8';assert s.count(o)==1;p.write_text(s.replace(o,'private static let minValidRRsPerWindow = 9'))"
+
+check "scoring_governance/readiness_curve_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/ReadinessScoring.swift');s=p.read_text();o='guard capacityRatio > 0 else { return r.readinessAtZero }';assert s.count(o)==1;p.write_text(s.replace(o,'guard capacityRatio >= 0 else { return r.readinessAtZero }'))"
+
 # A change of hashing scheme must not open a window for a constant change:
 # with the base's baseline written under the older `static-lets` scheme, a
 # constant edited and the baseline rewritten under the current scheme still
@@ -994,7 +1029,7 @@ check "scoring_governance/flipped_operator" \
 # commits a `static-lets` baseline as the base, then takes the working copy's
 # constants and gate and records their current-scheme hash.
 check "scoring_governance/scheme_change_hides_constant_change" \
-    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s decl-tokens\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-tokens | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s decl-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
@@ -1004,7 +1039,7 @@ check "scoring_governance/scheme_change_hides_constant_change" \
 # current scheme, version unchanged, still fails, because the base's own
 # sources are hashed under the current scheme as well.
 check "scoring_governance/scheme_change_hides_operator_change" \
-    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s decl-tokens\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-tokens | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s decl-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
 

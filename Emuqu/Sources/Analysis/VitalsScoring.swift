@@ -5,6 +5,20 @@ import Foundation
 /// the legacy SpO2 override path. The composite `calculate` entry points and
 /// the display helpers are `RecoveryScoreCalculator`'s own API.
 enum VitalsScoring {
+    /// The mean of a baseline window's readings, or nil when they come from
+    /// fewer nights than a baseline is formed from: the HRV baseline's floor
+    /// (`BaselineTracker.RecoveryBaselineStats.minimumDays`), so one night's
+    /// samples are never scored as a "7-night baseline". A night is the
+    /// calendar day a reading ends on, moved back 12 hours, so readings
+    /// either side of midnight count as one night. The mean is over
+    /// readings, as HealthKit's discrete average is.
+    nonisolated static func baselineMean(_ readings: [(end: Date, value: Double)]) -> Double? {
+        let calendar = Calendar.current
+        let nights = Set(readings.map { calendar.startOfDay(for: $0.end.addingTimeInterval(-12 * 3600)) })
+        guard nights.count >= BaselineTracker.RecoveryBaselineStats.minimumDays else { return nil }
+        return readings.map { $0.value }.reduce(0, +) / Double(readings.count)
+    }
+
     // MARK: - Vitals Sub-Score (Tier 3 contributor)
 
     /// Compute the 0–100 Vitals sub-score that feeds the recovery composite at
@@ -77,9 +91,10 @@ enum VitalsScoring {
 
     /// Prefers the user's 7-day baseline (carried on the RecoveryVitals payload
     /// itself, distinct from the HR/HRV baseline). When the user has the rate
-    /// but the baseline hasn't accumulated yet — Apple Watch needs 7 nights of
-    /// overnight RR samples before `fetchRespiratoryRateBaseline` returns
-    /// non-nil — this falls back to the published-population window (12–18
+    /// but the baseline hasn't accumulated yet — `fetchRespiratoryRateBaseline`
+    /// returns nil until the 7-night window holds readings from at least
+    /// `BaselineTracker.RecoveryBaselineStats.minimumDays` nights
+    /// (`baselineMean`) — this falls back to the published-population window (12–18
     /// br/min for healthy adults asleep). Better than silently dropping the
     /// sub-score and pretending we have "no data" when we clearly have a value.
     private static func respiratorySubScore(vitals: RecoveryVitals) -> Double? {

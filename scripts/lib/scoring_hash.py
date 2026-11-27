@@ -15,7 +15,7 @@ import re
 import sys
 from decimal import Decimal, InvalidOperation
 
-CURRENT_SCHEME = "decl-tokens"
+CURRENT_SCHEME = "decl-flow"
 
 # --- static-lets ----------------------------------------------------------
 # `static let <name> = <number>` declarations only, in two files and two
@@ -297,11 +297,13 @@ class DeclarationWalker:
         return j < 0 or not re.match(r"[\w$)\]]", tokens[j])
 
 
-def _decl_sources():
+def _decl_sources(sources=None, globs=None):
     """Groups of files that must each yield a number: one per fixed source,
     one per glob (a glob's extension files may hold none of their own)."""
-    groups = [(name, [name]) for name in DECL_SOURCES]
-    for pattern in DECL_GLOBS:
+    sources = DECL_SOURCES if sources is None else sources
+    globs = DECL_GLOBS if globs is None else globs
+    groups = [(name, [name]) for name in sources]
+    for pattern in globs:
         matched = sorted(str(p) for p in pathlib.Path(".").glob(pattern))
         if not matched:
             raise ConfigError(f"no files match {pattern}")
@@ -550,9 +552,9 @@ def _resolve(chain, tpath, decls):
     return []
 
 
-def _root_decls(index, decls):
+def _root_decls(index, decls, token_roots=None):
     found = []
-    for name, roots in TOKEN_ROOTS.items():
+    for name, roots in (TOKEN_ROOTS if token_roots is None else token_roots).items():
         if name not in index:
             raise ConfigError(f"missing {name}")
         for root in roots:
@@ -564,19 +566,19 @@ def _root_decls(index, decls):
     return found
 
 
-def decl_tokens_items():
+def decl_tokens_items(sources=None, globs=None, token_roots=None):
     """{key: [token, ...]}: the scoring files whole, the roots, and every
     declaration they reach by name, each key once."""
     index = _token_index()
     decls = _by_decl(index)
     whole = set()
-    for label, names in _decl_sources():
+    for label, names in _decl_sources(sources, globs):
         if not any(_has_number({k: e["tokens"] for k, e in index.get(n, {}).items()}) for n in names):
             raise ConfigError(f"no numeric literals found in {label}")
         whole.update(names)
     chosen = {(name, key) for name in whole for key in index[name]}
     work = list(chosen)
-    for decl in _root_decls(index, decls):
+    for decl in _root_decls(index, decls, token_roots):
         work.extend(decls[decl])
     seen_decls = set()
     while work:
@@ -594,16 +596,92 @@ def decl_tokens_items():
     return merged
 
 
-def decl_tokens_hash():
+def _tokens_digest(items):
     digest = hashlib.sha256()
     seen = 0
-    for key, values in sorted(decl_tokens_items().items()):
+    for key, values in sorted(items.items()):
         digest.update(f"{key}={' '.join(values)}\n".encode())
         seen += len(values)
     return digest.hexdigest()[:16], seen
 
 
-SCHEMES = {"static-lets": static_lets_hash, "decl-literals": decl_literals_hash, CURRENT_SCHEME: decl_tokens_hash}
+def decl_tokens_hash():
+    return _tokens_digest(decl_tokens_items())
+
+
+# --- decl-flow ------------------------------------------------------------
+# `decl-tokens` over every declaration that reaches a stored score, not only
+# the ones the scoring files name. The score also reads values carried on
+# instances (the analysis result's RMSSD, mean HR, DFA α1, PNS and SNS
+# indices, its data quality, the night's sleep stages, the vitals baselines,
+# the training readiness frozen beside it), and following names alone stops
+# at those: an edit to the ANS norms or to the window geometry changed stored
+# scores with the hash unmoved. So the files that compute a stored score
+# input are hashed whole, as the scoring files are: the overnight analysis
+# from beats to metrics (artifact detection, window selection, the time,
+# frequency, nonlinear, DFA, stress and respiration analyses), the sleep
+# staging and boundary rules, and training readiness. In files that also
+# hold storage, networking or UI, the declarations that turn those inputs
+# into a stored score are roots: the HRV quality rule, the score assembly
+# of each path that stores a score, and the constant enums they read.
+# Collection code (Bluetooth, strap download, source selection) and copy
+# stay out: they decide which beats exist, not how a score is computed.
+FLOW_SOURCES = DECL_SOURCES + [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift",
+    "Emuqu/Sources/Analysis/SleepResolver.swift",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift",
+]
+FLOW_GLOBS = DECL_GLOBS + [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline*.swift",
+    "Emuqu/Sources/Analysis/WindowSelector*.swift",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier*.swift",
+]
+FLOW_ROOTS = {
+    "Emuqu/Sources/Utilities/Constants.swift": [
+        "ScoringBounds", "ScoringWeights", "StressNormativeConstants", "HRVConstants",
+    ],
+    **{name: roots for name, roots in TOKEN_ROOTS.items() if name != "Emuqu/Sources/Utilities/Constants.swift"},
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift": [
+        "SessionAcceptanceService.classifyHRVQuality",
+        "SessionAcceptanceService.scoreBreakdown",
+    ],
+    "Emuqu/Sources/Services/ReanalysisService.swift": [
+        "ReanalysisService.hasInsufficientData",
+        "ReanalysisService.computeFrozenReadiness",
+        "ReanalysisService.rescoredBreakdown",
+    ],
+    "Emuqu/Sources/Collection/MorningSessionPipeline+Analysis.swift": [
+        "MorningSessionPipeline.computeRecoveryScore",
+        "MorningSessionPipeline.scoreBreakdown",
+    ],
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift": [
+        "MorningProcessingService.ansBalance",
+        "MorningProcessingService.computeRecoveryScore",
+    ],
+}
+
+
+def decl_flow_items():
+    return decl_tokens_items(FLOW_SOURCES, FLOW_GLOBS, FLOW_ROOTS)
+
+
+def decl_flow_hash():
+    return _tokens_digest(decl_flow_items())
+
+
+SCHEMES = {
+    "static-lets": static_lets_hash, "decl-literals": decl_literals_hash,
+    "decl-tokens": decl_tokens_hash, CURRENT_SCHEME: decl_flow_hash,
+}
 
 
 def scheme_of(fields):
@@ -614,7 +692,7 @@ def scheme_of(fields):
 if __name__ == "__main__":
     scheme = sys.argv[1] if len(sys.argv) > 1 else CURRENT_SCHEME
     if scheme == "--dump":
-        for key, values in sorted(decl_tokens_items().items()):
+        for key, values in sorted(decl_flow_items().items()):
             print(f"{key}={' '.join(values)}")
         raise SystemExit(0)
     try:

@@ -122,7 +122,12 @@ final class SessionAcceptanceService {
     }
 
     /// The analysis window's length, or the session's when there is none.
-    nonisolated private static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
+    /// The one reading of the span both this rule and the baseline's
+    /// structural gate (`BaselineTracker.isStructurallySound`) compare with
+    /// `forReliableWindowMs`. A window's bounds are half-open in time (the
+    /// selector ends it where its last beat ends), so this is the time the
+    /// window covers, the quantity the 5-minute threshold is written in.
+    nonisolated static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
         guard let wsMs = result.windowStartMs, let weMs = result.windowEndMs else { return Int64(sessionDuration * 1000) }
         return weMs - wsMs
     }

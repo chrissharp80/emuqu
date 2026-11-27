@@ -287,13 +287,13 @@ Window selection operates on the **30-70% band of actual sleep duration** (from 
 | **Peak RMSSD** | Highest RMSSD, no organization filter |
 | **Peak SDNN** | Highest total variability |
 | **Peak Total Power** | Highest frequency domain power (SDNN proxy) |
-| **Custom** | User tap on chart → 400-beat window, ignores 30-70% band |
+| **Custom** | User tap on chart → 400-beat window widened to span 5 min, ignores 30-70% band |
 
 A custom window is a preview until the user taps Apply. Apply (`ReanalysisService.applyManualAnalysis` → `persistManualAnalysis`) re-scores the session from that window, sets `windowUserAdjusted`, keeps the automatic pick in `autoWindowResult` / `autoWindowScore`, archives the session (requesting a re-upload) and feeds it to `BaselineTracker.update`. From then on the stored score, the baseline later nights are scored against, and the trends all use the custom window. Cancel or leaving the screen saves nothing.
 
 ### Algorithm Steps
 
-**Config**: 400-beat target window, 40-beat slide step, clean-beat requirement = max(50, 75% of window) capped at 300 for full windows, 30-70% band, stability weight 10.0.
+**Config**: 400-beat target window that also spans at least 5 min (`minWindowSpanMs`, first beat's start to last beat's end), 40-beat slide step, clean-beat requirement = max(50, 75% of window) capped at 300 for full windows, 30-70% band, stability weight 10.0.
 
 **Artifact rate is a two-pass rule, not one number.** Pass 1 keeps only windows at or under
 `maxArtifactRateStrict = 0.10`, the bound the literature converges on (Plews 2013, Lipponen &
@@ -302,7 +302,7 @@ methods, no window at all) does the scan re-run at `maxArtifactRate = 0.15`, so 
 and `HRVDetailV2View` surfaces the rate so the user knows the reading is degraded.
 
 **Step 1**: Build all windows within 30-70% using adaptive sizing:
-- ≥400 beats in band → full 400-beat windows
+- ≥400 beats in band → full 400-beat windows, extended beat by beat until each spans 5 min (a band shorter than 5 min is scanned on beat count alone)
 - 240-399 beats → 50% of available beats
 - <240 beats → 60% of available (minimum 60 beats)
 - Step size: max(10, windowSize / 10)

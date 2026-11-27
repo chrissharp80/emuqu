@@ -67,9 +67,11 @@ struct Verification {
     struct Config {
         /// Minimum points required (~5 min at 60 bpm)
         var minPoints: Int = HRVConstants.MinimumBeats.forAnalysis
-        /// Minimum duration in hours (5 minutes = 0.083 hours)
-        /// Allows naps and short rest periods - window selection handles finding best 5-min segment
-        var minDurationHours: Double = 0.083
+        /// Minimum duration in hours: the 5-minute short-term recording
+        /// (`HRVConstants.MinimumDuration.forReliableWindowMs`), so a reading
+        /// this check passes is long enough for the window the acceptance
+        /// rule trusts. Allows naps and short rest periods.
+        var minDurationHours: Double = Double(HRVConstants.MinimumDuration.forReliableWindowMs) / 3_600_000
         /// Maximum artifact percentage (hard fail)
         var maxArtifactPercent: Double = HRVConstants.Artifacts.maxPercentForAnalysis
         /// Warning threshold for artifacts
