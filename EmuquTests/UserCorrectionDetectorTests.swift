@@ -372,4 +372,57 @@ final class UserCorrectionDetectorTests: XCTestCase {
             (UserCorrectionDetector.renderAssertedBlock(signals) ?? "").contains("- tsb: +2.1")
         )
     }
+
+    // MARK: - Other times, plans and units
+
+    /// A past reading, a goal or a workout prescription is not today's value,
+    /// so it must not be rendered as an authoritative correction; a plain
+    /// statement about now still is.
+    func testOnlyTodaysValuesAreAsserted() {
+        let rows: [(text: String, key: String, value: Double?)] = [
+            ("Last month my rhr was 48. Why is it higher now?", "rhr", nil),
+            ("I'm aiming for a ctl of 80 before the marathon.", "ctl", nil),
+            ("Tomorrow do 5x1km at hr 170.", "hr", nil),
+            ("my max hr was 195 back in 2019", "max hr", nil),
+            ("my target tsb is -10 for race day", "tsb", nil),
+            ("my rhr is 52 this morning", "rhr", 52),
+            ("last night my rmssd was 38", "rmssd", 38),
+            ("My HRV is 38 this morning, not 55.", "rmssd", 38),
+            ("my ctl is 62", "ctl", 62)
+        ]
+        for row in rows {
+            XCTAssertEqual(UserCorrectionDetector.detect(userMessages: [row.text]).assertedValues[row.key], row.value, row.text)
+        }
+    }
+
+    /// A pace or distance keeps the unit it was given in: 8:30 per mile is
+    /// not 8:30 per kilometer.
+    func testPaceAndDistanceKeepTheirUnit() {
+        let rows: [(text: String, line: String)] = [
+            ("My pace was 8:30 per mile.", "- pace: 8:30 min/mi"),
+            ("my pace is 5:15/km", "- pace: 5:15 min/km"),
+            ("distance was 10 miles", "- distance: 10 mi"),
+            ("my pace is 5:15", "- pace: 5:15")
+        ]
+        for row in rows {
+            let block = UserCorrectionDetector.renderAssertedBlock(UserCorrectionDetector.detect(userMessages: [row.text])) ?? ""
+            XCTAssertTrue(block.split(separator: "\n").contains { $0 == row.line }, "\(row.text): \(block)")
+        }
+    }
+
+    /// "Stop telling me" is a data override only with data after it, or as
+    /// the whole reply.
+    func testStopSayingIsAnOverrideOnlyAboutTheNumbers() {
+        let rows: [(text: String, override: Bool)] = [
+            ("stop telling me to slow down every kilometer", false),
+            ("stop saying great job after every split", false),
+            ("stop saying my tsb is -20", true),
+            ("stop telling me it's 45", true),
+            ("quit repeating those numbers", true),
+            ("no!!! stop saying that", true)
+        ]
+        for row in rows {
+            XCTAssertEqual(UserCorrectionDetector.detect(userMessages: [row.text]).explicitOverrideRequested, row.override, row.text)
+        }
+    }
 }

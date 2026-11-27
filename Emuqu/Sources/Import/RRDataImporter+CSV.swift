@@ -17,29 +17,80 @@ extension RRDataImporter {
         guard let headerLine = lines.first(where: { _ in true }) else {
             throw ImportError.noRRData
         }
-        let separator = Self.detectSeparator(firstLine: headerLine)
+        return (try delimitedRRValues(headerLine: headerLine, lines: lines), [:], nil)
+    }
+
+    /// The RR values of delimited records whose first record is
+    /// `headerLine`: its header, when it has one, names the RR column, and
+    /// its separator and decimal mark decide how every row is read.
+    /// `shapeRRColumn` is the RR column the file's shape already names,
+    /// used when no header column does.
+    func delimitedRRValues(
+        headerLine: String, lines: some Sequence<String>, shapeRRColumn: Int? = nil
+    ) throws -> [Int] {
         let hasHeader = Self.looksLikeHeader(headerLine)
-        let rrColumn = hasHeader
-            ? Self.rrColumnIndex(inHeaderLine: headerLine, separator: separator)
+        let rows = lines.dropFirst(hasHeader ? 1 : 0)
+        let layout = Self.delimitedLayout(headerLine: headerLine, hasHeader: hasHeader, rows: rows)
+        let headerColumn = hasHeader
+            ? Self.rrColumnIndex(inHeaderLine: headerLine, separator: layout.separator)
             : nil
-        let values = try rrValues(
-            from: lines.dropFirst(hasHeader ? 1 : 0), separator: separator, rrColumn: rrColumn
-        )
-        return (values, [:], nil)
+        return try rrValues(from: rows, layout: layout, rrColumn: headerColumn ?? shapeRRColumn)
     }
 
     /// The RR column of each data line, in milliseconds. Zero, negative or
     /// absurd values ("1e30") are not beats, and would overflow the running
     /// time sums downstream, so they are dropped.
-    private func rrValues(from lines: some Sequence<String>, separator: Character, rrColumn: Int?) throws -> [Int] {
+    private func rrValues(from lines: some Sequence<String>, layout: DelimitedLayout, rrColumn: Int?) throws -> [Int] {
+        let separator = layout.separator
         var values: [Int] = []
         for line in lines {
             let columns = Self.fields(of: line, separator: separator)
-            guard let value = Self.rrValue(fromColumns: columns, rrColumnIndex: rrColumn, convert: convertToMilliseconds),
+            let numbers = layout.decimalComma ? columns.map(Self.withDecimalPoint) : columns
+            guard let value = Self.rrValue(fromColumns: numbers, rrColumnIndex: rrColumn, convert: convertToMilliseconds),
                   Self.storableRRRange.contains(value) else { continue }
             try Self.appendBeat(value, to: &values)
         }
         return values
+    }
+
+    // MARK: - Separator and decimal mark
+
+    /// How a delimited file's fields are split and its numbers written.
+    struct DelimitedLayout: Equatable {
+        let separator: Character
+        /// Numbers are written with a decimal comma ("0,812"), as a CSV
+        /// saved in a European locale writes them.
+        let decimalComma: Bool
+    }
+
+    /// A `;` or tab file has the comma free for the decimal mark, so its
+    /// numbers are read with one. A comma file uses a decimal comma only
+    /// when it is one column (a single-name header, or none) and every row
+    /// is one RR in seconds written that way (`isDecimalCommaSeconds`); its
+    /// rows are then one field each.
+    static func delimitedLayout(headerLine: String, hasHeader: Bool, rows: some Sequence<String>) -> DelimitedLayout {
+        let separator = detectSeparator(firstLine: headerLine)
+        guard separator == "," else { return DelimitedLayout(separator: separator, decimalComma: true) }
+        let oneColumn = !hasHeader || !headerLine.contains(",")
+        guard oneColumn, rows.allSatisfy(isDecimalCommaSeconds) else {
+            return DelimitedLayout(separator: ",", decimalComma: false)
+        }
+        return DelimitedLayout(separator: "\t", decimalComma: true)
+    }
+
+    /// Whether a row is a single RR in seconds with a decimal comma: 0, 1
+    /// or 2 whole seconds and one to three decimals ("0,812", "0,8",
+    /// "1,05"). A "timestamp,rr" row does not fit: its RR has more digits
+    /// than three, or its timestamp more than one.
+    static func isDecimalCommaSeconds(_ row: String) -> Bool {
+        let parts = row.split(separator: ",", omittingEmptySubsequences: false)
+        guard parts.count == 2, ["0", "1", "2"].contains(parts[0]) else { return false }
+        return (1 ... 3).contains(parts[1].count) && parts[1].allSatisfy { $0.isASCII && $0.isNumber }
+    }
+
+    /// A field with its decimal comma written as a point, so `Double` reads it.
+    static func withDecimalPoint(_ field: String) -> String {
+        field.replacingOccurrences(of: ",", with: ".")
     }
 
     /// Appends one beat, or throws `.tooLarge` once `values` holds
@@ -84,10 +135,13 @@ extension RRDataImporter {
     // All four are
     // pure and `static`, so each is testable without an importer instance.
 
-    /// Semicolon only when the line uses it *instead of* commas — a European
-    /// CSV. A line containing both is treated as comma-separated.
+    /// Tab when the line has one (a tab-separated export, where a comma can
+    /// only be a decimal mark). Otherwise semicolon only when the line uses
+    /// it *instead of* commas, as a European CSV does. A line containing both is
+    /// treated as comma-separated.
     static func detectSeparator(firstLine: String) -> Character {
-        firstLine.contains(";") && !firstLine.contains(",") ? ";" : ","
+        if firstLine.contains("\t") { return "\t" }
+        return firstLine.contains(";") && !firstLine.contains(",") ? ";" : ","
     }
 
     /// Whether the first row looks like column names rather than data.
@@ -159,8 +213,15 @@ extension RRDataImporter {
 
     // MARK: - Plain Text Parsing
 
+    /// RR values written one or more to a line. A text file that is a table
+    /// instead (`columnarTimeColumn`: a time column beside the RR one) is
+    /// read as a tab-separated file, so its header or shape picks the RR
+    /// column and its timestamps are not taken for beats.
     func parsePlainText(_ content: String) throws -> [Int] {
         let lines = Self.dataLines(of: content, quoteAware: false).filter { !Self.isComment($0) }
+        if let table = Self.columnarTimeColumn(lines) {
+            return try textTableRRValues(lines, table: table)
+        }
         var values: [Int] = []
         for line in lines {
             // Space-, comma- or semicolon-separated values on one line.
@@ -182,6 +243,57 @@ extension RRDataImporter {
         guard let value = Double(token), value.isFinite else { return nil }
         let converted = convertToMilliseconds(value)
         return Self.storableRRRange.contains(converted) ? converted : nil
+    }
+
+    /// Lines of a text file looked at to tell a table from RR values.
+    static let columnarSampleSize = 100
+    /// Rows of numbers a table needs before one of its columns rising
+    /// throughout is taken for a time column. RR values a few to a line can
+    /// rise for a few lines by chance, not for ten.
+    static let minimumColumnarRows = 10
+
+    /// The time column of a text file that is a table, and its width: most
+    /// of its first lines hold the same count (two or more) of numbers and
+    /// nothing else, and one column rises on every row. Nil for RR values
+    /// written one or more to a line.
+    static func columnarTimeColumn(_ lines: some Sequence<String>) -> (time: Int, width: Int)? {
+        let sample = Array(lines.prefix(columnarSampleSize))
+        let rows = sample.compactMap(numericRow)
+        guard rows.count >= minimumColumnarRows, rows.count * 2 > sample.count,
+              let width = rows.first?.count, rows.allSatisfy({ $0.count == width }) else { return nil }
+        let time = (0 ..< width).first { column in
+            zip(rows, rows.dropFirst()).allSatisfy { earlier, later in earlier[column] < later[column] }
+        }
+        return time.map { (time: $0, width: width) }
+    }
+
+    /// A text table's RR values, read as tab-separated rows. A header whose
+    /// names hold spaces ("Time (s) RR (ms)") does not split into the
+    /// table's columns, so it is skipped and the shape decides: of two
+    /// columns, the one that is not the time.
+    private func textTableRRValues(
+        _ lines: some Sequence<String>, table: (time: Int, width: Int)
+    ) throws -> [Int] {
+        let first = lines.first(where: { _ in true }) ?? ""
+        let misaligned = Self.fields(of: Self.tabJoined(first), separator: "\t").count != table.width
+        let rows = lines.dropFirst(Self.looksLikeHeader(first) && misaligned ? 1 : 0).lazy.map(Self.tabJoined)
+        guard let headerLine = rows.first(where: { _ in true }) else { throw ImportError.noRRData }
+        let rrColumn = table.width == 2 ? 1 - table.time : nil
+        return try delimitedRRValues(headerLine: headerLine, lines: rows, shapeRRColumn: rrColumn)
+    }
+
+    /// A line's numbers when it holds two or more and nothing else.
+    static func numericRow(_ line: String) -> [Double]? {
+        let tokens = line.split(whereSeparator: \.isWhitespace)
+        let numbers = tokens.compactMap { Double($0) }
+        return tokens.count >= 2 && numbers.count == tokens.count ? numbers : nil
+    }
+
+    /// A line as tab-separated fields: as it is when it has tabs already,
+    /// else split at its runs of white space.
+    static func tabJoined(_ line: String) -> String {
+        guard !line.contains("\t") else { return line }
+        return line.split(whereSeparator: \.isWhitespace).joined(separator: "\t")
     }
 
     func parseCSVLine(_ line: String) -> [String] {
@@ -253,37 +365,68 @@ extension RRDataImporter {
     }
 
     /// Parse various date formats. A slash date is read in `slashOrder`,
-    /// the order its file uses (`slashDateOrder(of:)`).
+    /// the order its file uses (`slashDateOrder(of:)`), and only a slash
+    /// date is: a formatter matches the punctuation between its fields
+    /// loosely, so "01/05/24" would otherwise read as the year 1 through
+    /// "yyyy-MM-dd". A date before `earliestRecordingDate` is a misread
+    /// (a two-digit year taken for four), not a recording, and is passed
+    /// over for the next format.
     func parseDate(_ string: String, slashOrder: SlashDateOrder = .monthFirst) -> Date? {
+        let isSlashDate = string.contains("/")
         let slashFormatters = slashOrder == .dayFirst ? Self.dayFirstFormatters : Self.monthFirstFormatters
-        for formatter in Self.dateFormatters + slashFormatters {
-            if let date = formatter.date(from: string) {
-                return date
-            }
+        let candidates = isSlashDate ? slashFormatters : Self.dateFormatters
+        if let date = candidates.lazy.compactMap({ $0.date(from: string) }).first(where: Self.isRecordingDate) {
+            return date
         }
-        // Try ISO8601
+        guard !isSlashDate else { return nil }
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return iso.date(from: string)
+        return iso.date(from: string).flatMap { Self.isRecordingDate($0) ? $0 : nil }
     }
 
-    /// The fixed unambiguous formats exporters write, tried in order.
+    /// The last day of 1999 in UTC, so 1 January 2000 passes in every time
+    /// zone. No export the importer reads holds a recording older.
+    static let earliestRecordingDate = Date(timeIntervalSince1970: 946_598_400)
+
+    static func isRecordingDate(_ date: Date) -> Bool {
+        date >= earliestRecordingDate
+    }
+
+    /// The fixed unambiguous formats exporters write, tried in order: to
+    /// the second, to the minute (a spreadsheet re-save drops the seconds),
+    /// or as a 12-hour time.
     private static let dateFormatters = formatters([
         "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
         "yyyy-MM-dd'T'HH:mm:ssZ",
         "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd HH:mm",
+        "yyyy-MM-dd h:mm:ss a",
+        "yyyy-MM-dd h:mm a",
         "yyyy-MM-dd"
     ])
-    private static let monthFirstFormatters = formatters(["MM/dd/yyyy HH:mm:ss", "MM/dd/yyyy"])
-    private static let dayFirstFormatters = formatters(["dd/MM/yyyy HH:mm:ss", "dd/MM/yyyy"])
+    private static let monthFirstFormatters = formatters(slashFormats(dayAndMonth: "MM/dd"))
+    private static let dayFirstFormatters = formatters(slashFormats(dayAndMonth: "dd/MM"))
+
+    /// Every slash format in one day/month order: a four-digit year before a
+    /// two-digit one ("1/5/24", as a spreadsheet writes a short date), then
+    /// year first ("2024/01/15"), each with a time to the second, to the
+    /// minute, in 12-hour form, or none.
+    private static func slashFormats(dayAndMonth: String) -> [String] {
+        let times = [" HH:mm:ss", " HH:mm", " h:mm:ss a", " h:mm a", ""]
+        let yearLast = ["yyyy", "yy"].flatMap { year in times.map { "\(dayAndMonth)/\(year)\($0)" } }
+        return yearLast + times.map { "yyyy/MM/dd\($0)" }
+    }
 
     /// POSIX locale so a device set to a non-Gregorian calendar still parses
-    /// them.
+    /// them; strict, so a format only reads a date written its way; and a
+    /// two-digit year is in this century.
     private static func formatters(_ formats: [String]) -> [DateFormatter] {
         formats.map { format in
             let formatter = DateFormatter()
             formatter.dateFormat = format
             formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.isLenient = false
+            formatter.twoDigitStartDate = Date(timeIntervalSince1970: 946_684_800)
             return formatter
         }
     }

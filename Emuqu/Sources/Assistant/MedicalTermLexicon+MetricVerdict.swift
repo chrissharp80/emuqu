@@ -49,7 +49,8 @@ extension MedicalTermLexicon {
             "monitor(?:ing)?\\s+(?:yourself\\s+)?for\\s+(?:any\\s+)?(?:\\w+\\s+)?symptoms?",
             "before\\s+(?:(?:cold|flu)\\b|(?:you|people|they|users?|someone)\\s+(?:\\w+\\s+)?(?:(?:feel|report|notice)\\w*\\s+(?:\\w+\\s+){0,2}(?:unwell|ill|sick|symptoms?|illness)|(?:get|fall|become)\\w*\\s+(?:sick|ill))\\b)",
             "early\\s+illness",
-            "(?:low\\s+blood\\s+(?:sugar|glucose)|hypoglyc\\w*)",
+            // Not fuelling advice ("eat early so you avoid low blood sugar").
+            "(?<!avoid\\s)(?<!avoiding\\s)(?<!prevent\\s)(?<!preventing\\s)(?:low\\s+blood\\s+(?:sugar|glucose)|hypoglyc\\w*)",
             "stay(?:ing)?\\s+home",
             "illness\\s+coming\\s+on",
             "fighting\\s+(?:something|off\\s+(?:illness|infection|a\\s+(?:cold|bug)))",
@@ -59,7 +60,8 @@ extension MedicalTermLexicon {
             "load[- ]bearing",
             "clinical\\s+safety",
             "mirage",
-            "(?:genuine|real|true)\\s+(?:organi[sz]ed\\s+)?recovery",
+            // Not a plan: "make tomorrow a true recovery day", "a real recovery week".
+            "(?:genuine|real|true)\\s+(?:organi[sz]ed\\s+)?recovery(?!\\s+(?:day|days|run|runs|ride|rides|week|weeks|session|sessions|jog|workout|block)\\b)",
             "early[- ]warning\\s+system",
             "strong\\s+predictor",
             // Evidence superlatives: naming a metric or a strap as the
@@ -84,9 +86,9 @@ extension MedicalTermLexicon {
             "sistema\\s+de\\s+alerta\\s+precoce", "forte\\s+preditor",                              // pt-BR
             "sicurezza\\s+clinica", "recupero\\s+reale", "miraggio",
             "sistema\\s+di\\s+allerta\\s+precoce", "forte\\s+predittore",                           // it
-            "klinische\\s+sicherheit", "echte\\s+erholung", "trugbild",
+            "klinische\\s+sicherheit", "(?<!plane\\s)(?<!dir\\s)echte\\s+erholung(?!\\s+ein\\b)", "trugbild", // not "Plane echte Erholung ein"
             "fr[üu]hwarnsystem", "starker\\s+pr[äa]diktor",                                         // de
-            "klinische\\s+veiligheid", "echt\\s+herstel", "luchtspiegeling",
+            "klinische\\s+veiligheid", "(?<!plan\\s)echt\\s+herstel(?!\\s+in\\b)", "luchtspiegeling", // not "Plan echt herstel in"
             "vroegtijdig\\s+waarschuwingssysteem", "sterke\\s+voorspeller",                         // nl
             "klinisk\\s+sikkerhed", "[æa]gte\\s+restitution", "tidligt\\s+varslingssystem",         // da
             "klinisk\\s+sikkerhet", "ekte\\s+restitusjon", "tidlig\\s+varslingssystem",             // nb

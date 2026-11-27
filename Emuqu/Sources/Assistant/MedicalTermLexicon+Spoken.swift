@@ -67,7 +67,9 @@ extension MedicalTermLexicon {
         "(?:can['’]?t|cannot|can\\s+not|unable\\s+to)\\s+(?:breathe?|catch\\s+my\\s+breath|get\\s+(?:any\\s+|enough\\s+)?air)",
         "(?:it['’]?s|is)\\s+(?:(?:really|so|very)\\s+)?(?:hard|difficult)\\s+to\\s+breathe", "short\\s+of\\s+breath",
         "no\\s+puedo\\s+(?:respirar|recuperar\\s+el\\s+aire)", "me\\s+falta\\s+(?:el\\s+)?aire",                  // es
-        "me\\s+cuesta\\s+respirar", "me\\s+(?:estoy\\s+)?ahog(?:o|ando)",
+        // "Me ahogo" is also being winded on a climb or gasping at a swim stroke.
+        "me\\s+cuesta\\s+respirar", "me\\s+estoy\\s+ahogando",
+        "me\\s+ahogo(?!\\s+(?:cuando\\s+nado|al\\s+nadar|nadando|en\\s+(?:las?|el)\\s+(?:subidas?|cuestas?|series|piscina|agua)))",
         "(?:peux|peut|arrive)\\s+(?:pas|plus)\\s+(?:[àa]\\s+)?respirer", "du\\s+mal\\s+[àa]\\s+respirer",          // fr
         "manque\\s+d['’]air", "souffle\\s+court", "je\\s+suffoque",
         "(?:bekomme?|kriege?|krieg)\\s+keine\\s+luft", "keine\\s+luft\\s+(?:mehr\\s+)?(?:bekomme|kriege)",        // de
@@ -79,19 +81,21 @@ extension MedicalTermLexicon {
         "kan\\s+niet\\s+(?:meer\\s+)?ademen", "krijg\\s+geen\\s+(?:lucht|adem)", "kortademig",                    // nl
         "kan\\s+ikke\\s+(?:f[åa]\\s+vejret|tr[æa]kke\\s+vejret|[åa]nde)", "f[åa]r\\s+ikke\\s+(?:luft|vejret)",    // da
         "(?:f[åa]r|kan)\\s+ikke\\s+puste", "klarer\\s+ikke\\s+[åa]\\s+puste",                                    // nb
-        "kan\\s+inte\\s+andas", "f[åa]r\\s+(?:inte|ingen)\\s+luft", "sv[åa]rt\\s+att\\s+andas",                  // sv
+        "kan\\s+inte\\s+andas", "f[åa]r\\s+(?:inte|ingen)\\s+luft", "(?<!var\\s)sv[åa]rt\\s+att\\s+andas", // sv: not "det var svårt att andas i backen"
         "en\\s+saa\\s+henke[äa]", "en\\s+pysty\\s+hengitt[äa]m[äa][äa]n", "hengitt[äa]minen\\s+on\\s+vaikeaa",   // fi
         "hengenahdistu\\w*",
         "get\\s+ekki\\s+anda[ðd]", "n[æa]\\s+ekki\\s+andanum", "f[æa]\\s+ekki\\s+loft",                          // is
         "не\\s+могу\\s+(?:дышать|вздохнуть|отдышаться)", "не\\s+хватает\\s+воздуха", "задыхаюсь",               // ru
-        "(?:тяжело|трудно)\\s+дышать", "одышк\\w*"
+        "(?<!было\\s)(?:тяжело|трудно)\\s+дышать", "одышк\\w*" // not "было тяжело дышать на подъёме"
     ]
 
     static let spokenBreathlessnessUnbounded: [String] = [
-        "息ができ", "息が出来", "息が苦し", "息苦し", "呼吸ができ", "呼吸が苦し", "息が吸えない",                  // ja
+        // Not "息ができるペース" (a pace I can breathe at) or a past climb ("息が苦しかった").
+        "息ができな", "息が出来な", "息が苦し(?!かった)", "息苦し(?!かった)", "呼吸ができな", "呼吸が苦し(?!かった)", "息が吸えない", // ja
         "喘不过气", "喘不上气", "无法呼吸", "不能呼吸", "呼吸不了", "吸不上气", "透不过气", "上不来气",               // zh-Hans
-        "숨을 못 쉬", "숨을 못쉬", "숨을 쉴 수 없", "숨을 쉴 수가 없", "숨쉬기 힘들", "숨 쉬기 힘들",
-        "숨쉬기가 힘들", "숨쉬기 어렵", "숨쉬기가 어렵", "숨이 막히", "숨이 막혀",          // ko
+        // Not a past climb ("숨쉬기 힘들었어요") or a breathtaking view ("숨이 막히는 경치").
+        "숨을 못 쉬", "숨을 못쉬", "숨을 쉴 수 없", "숨을 쉴 수가 없", "숨쉬기 힘들(?!었)", "숨 쉬기 힘들(?!었)",
+        "숨쉬기가 힘들(?!었)", "숨쉬기 어렵(?!었)", "숨쉬기가 어렵(?!었)", "숨이 막히(?!는\\s*(?:경치|풍경|광경|장면))", "숨이 막혀", // ko
         "لا أستطيع التنفس", "لا استطيع التنفس", "ما أقدر أتنفس", "ما اقدر اتنفس", "صعوبة في التنفس", "ضيق في التنفس", "أختنق" // ar
     ]
 
@@ -100,7 +104,9 @@ extension MedicalTermLexicon {
         "i(?:['’]?m|\\s+am)\\s+(?:going\\s+to|gonna|about\\s+to)\\s+collapse",
         "i\\s+(?:might|could|think\\s+i(?:['’]ll|\\s+will))\\s+collapse", "(?:lost|losing)\\s+consciousness",
         "desmay(?:e|a|ado|ada|ando|ar|arme|aron)", "perd[íi]\\s+el\\s+conocimiento", "me\\s+desplom[ée]",         // es
-        "[ée]vanou(?:i|ie|is|it|ir|issement)s?", "perdu\\s+connaissance", "perdre\\s+connaissance",              // fr
+        // A person faints; a lead "s'est évanouie" (vanished).
+        "me\\s+suis\\s+[ée]vanoui\\w*", "m['’]\\s*[ée]vanou(?:ir|is|it|i|ie)", "(?:il|elle)\\s+s['’]est\\s+[ée]vanoui\\w*",
+        "[ée]vanouissements?", "perdu\\s+connaissance", "perdre\\s+connaissance", // fr
         "fait\\s+un\\s+malaise", "me\\s+suis\\s+effondr[ée]e?", "tomb[ée]e?\\s+dans\\s+les\\s+pommes",
         "ohnm[äa]chtig\\w*", "bin\\s+(?:\\w+\\s+){0,2}(?:zusammengebrochen|umgekippt|kollabiert)",               // de
         "kippe\\s+(?:gleich\\s+)?um",
@@ -108,7 +114,7 @@ extension MedicalTermLexicon {
         "sono\\s+(?:\\w+\\s+)?collassat[oa]",
         "desmai(?:ar|ando|ada|ado|e)", "perdi\\s+(?:a\\s+)?(?:consci[êe]ncia|os\\s+sentidos)",                    // pt-BR
         "(?:val|viel|vielen)\\s+(?:bijna\\s+)?flauw", "flauw\\s+(?:gevallen|vallen)", "bewusteloos",               // nl
-        "in\\s+elkaar\\s+gezakt", "buiten\\s+bewustzijn",
+        "(?:ik\\s+ben|hij\\s+is|zij\\s+is|ze\\s+is)\\s+(?:\\w+\\s+)?in\\s+elkaar\\s+gezakt", "buiten\\s+bewustzijn", // not "mijn tempo is in elkaar gezakt"
         "besvim(?:e|er|t)", "mistede\\s+bevidstheden",
         "(?:jeg|han|hun)\\s+(?:\\w+\\s+)?(?:faldt|falt|segnet)\\s+om\\b(?!\\s+(?:natten|kvelden|aftenen|morgenen))",                            // da, nb
         "svimte\\s+av", "mistet\\s+bevisstheten",
