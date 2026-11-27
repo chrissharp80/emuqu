@@ -858,10 +858,38 @@ mutate "rr_merge_leaves_series_unsorted" "EmuquTests/WorkoutRRMergeTests" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRRMerge.swift');s=p.read_text();o='        points.sort { '+chr(36)+'0.t_ms < '+chr(36)+'1.t_ms }';assert s.count(o)==1;p.write_text(s.replace(o,'        points.sort { '+chr(36)+'0.t_ms > '+chr(36)+'1.t_ms }'))"
 
 # A watch or sourceless workout never started a strap stream. Adopting that
-# buffer fabricates beats from an earlier session.
+# buffer fabricates beats from an earlier session, at finalize and on every
+# live tick (backup, beat count, heart rate).
 mutate "rr_merge_adopts_stale_stream_for_watch_workouts" "EmuquTests/WorkoutRRMergeTests" \
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRRMerge.swift');s=p.read_text();o='        var points: [RRPoint] = source == .strap ? streaming : []';assert s.count(o)==1;p.write_text(s.replace(o,'        var points: [RRPoint] = streaming'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRRMerge.swift');s=p.read_text();o='        source == .strap ? streaming : []';assert s.count(o)==1;p.write_text(s.replace(o,'        streaming'))"
+
+# The live tick reads the buffer without asking whose it is.
+mutate "workout_tick_reads_stale_strap_buffer" "EmuquTests/WorkoutStrapOwnershipTests" \
+    "Emuqu/Sources/Collection/WorkoutTicker+Tick.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutTicker+Tick.swift');s=p.read_text();o='WorkoutRRMerge.liveStrapBuffer(source: lifecycle.activeHRSource, streaming: core.strapStream.streamedRRPoints)';assert s.count(o)==1;p.write_text(s.replace(o,'core.strapStream.streamedRRPoints'))"
+
+# Dismissing an old summary stops whichever stream is live, an overnight's
+# included.
+mutate "acknowledge_stops_another_sessions_stream" "EmuquTests/WorkoutStrapOwnershipTests" \
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceFetch.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+DeviceFetch.swift');s=p.read_text();o='stream.streamingStartTime == ownStart else {';assert s.count(o)==1;p.write_text(s.replace(o,'stream.streamingStartTime == ownStart || stream.isStreaming else {'))"
+
+# A night re-analysed elsewhere keeps its old reading in the baseline.
+mutate "baseline_sync_ignores_a_changed_reading" "EmuquTests/BaselineArchiveSyncTests" \
+    "Emuqu/Sources/Collection/BaselineArchiveSync.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/BaselineArchiveSync.swift');s=p.read_text();o='        return abs(archived - held) > rmssdTolerance';assert s.count(o)==1;p.write_text(s.replace(o,'        return abs(archived - held) > rmssdTolerance * 1_000_000'))"
+
+# A full night folded into an insufficient fragment keeps the fragment's class.
+mutate "merge_keeps_the_fragments_quality" "EmuquTests/SessionMergeClockTests" \
+    "Emuqu/Sources/Storage/SessionMerger.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='        existing.hrvDataQuality = imported.hrvDataQuality';assert s.count(o)==1;p.write_text(s.replace(o,'        existing.hrvDataQuality = existing.hrvDataQuality ?? imported.hrvDataQuality'))"
+
+# Acceptance after a fold reads the review card's own id, which the archive
+# no longer holds.
+mutate "review_acceptance_reads_the_folded_away_id" "EmuquTests/SessionDiscardTests" \
+    "Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift');s=p.read_text();o='        foldedId ?? session.id';assert s.count(o)==1;p.write_text(s.replace(o,'        session.id'))"
 
 # The Watch fallback carries strap data the phone never saw. Dropping it
 # shortens the series and shifts every window after the gap.
@@ -1233,6 +1261,16 @@ mutate "assistant_baseline_counts_night_twice" "EmuquTests/ScoreFactorFactsTests
     "Emuqu/Sources/Assistant/Facts/BaselineFacts.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/BaselineFacts.swift');s=p.read_text();o='return nights.values.compactMap { night in night.max { (\$0.endDate ?? \$0.date) < (\$1.endDate ?? \$1.date) } }';assert s.count(o)==1;p.write_text(s.replace(o,'return nights.values.flatMap { \$0 }'))"
 
+# "A recovery of 200 m jog" is the rest between reps, not the score. Read as
+# a score it is rewritten into a fabricated training prescription.
+mutate "recovery_claim_reads_rep_recovery_as_score" "EmuquTests/RecoveryClaimPatternTests" \
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='|workouts?|m|meters?|metres?|km|kilometers?|kilometres?|k|mi|miles?|yd|yards?|ft|feet|s|secs?|seconds?|bpm|beats?|w|watts?|laps?|reps?|x|sets?|rounds?|strides?|steps?';assert s.count(o)==1;p.write_text(s.replace(o,'|workouts?'))"
+
+# A list of past nights by weekday is rewritten to today's score.
+mutate "verifier_reads_a_named_day_as_today" "EmuquTests/RecoveryClaimPatternTests" \
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='\"(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?\",';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=' || words == [\"interval\", \"ms\"]';assert s.count(o)==1;p.write_text(s.replace(o,''))"

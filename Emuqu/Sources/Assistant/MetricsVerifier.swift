@@ -322,10 +322,16 @@ enum MetricsVerifier {
     /// different scale, not a lie. "Recovery 48 hours" is a duration, not a
     /// score. A 0–100 correction is the integer the dashboard shows
     /// (`RecoveryScoreCalculator.displayScore`), not the raw score × 10.
-    private static func recoveryScoreClaims(in text: String, score10: Double) -> [Discrepancy] {
+    ///
+    /// In a workout prescription "recovery" is the rest between reps: "a
+    /// recovery of 200 m jog", "recovery of 90 s", "recovery at 130 bpm". A
+    /// number with a distance, time, heart-rate, power or rep unit after it is
+    /// that, not a score, and is left alone.
+    static func recoveryScoreClaims(in text: String, score10: Double) -> [Discrepancy] {
         claimsMatching(
             in: text,
-            pattern: #"\brecovery(?:\s+score)?(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))\b(?!\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            pattern: #"\brecovery(?:\s+score)?(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))\b"#
+                + #"(?!\.\d|\s*%|\s*-?\s*(?:"# + notAScoreUnits + #")\b)"#,
             check: ClaimCheck(
                 actual: Double(RecoveryScoreCalculator.displayScore(score10 * 10)), tolerance: 4.0, metric: "recovery_score"
             ) { // assume 0-100 form first
@@ -333,6 +339,11 @@ enum MetricsVerifier {
             }
         ).compactMap { onTheClaimsScale($0, score10: score10) }
     }
+
+    /// Units that make the number after "recovery" a duration, distance,
+    /// heart rate, power or rep count rather than a score.
+    private static let notAScoreUnits =
+        "days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?|m|meters?|metres?|km|kilometers?|kilometres?|k|mi|miles?|yd|yards?|ft|feet|s|secs?|seconds?|bpm|beats?|w|watts?|laps?|reps?|x|sets?|rounds?|strides?|steps?"
 
     /// A claim within tolerance on the 0–10 scale is the same score, so it is
     /// dropped. A wrong claim of 10 or under is a 0–10 claim and is corrected
@@ -603,9 +614,20 @@ enum MetricsVerifier {
     private static let clauseSeparators =
         #"[,;(—–]|\s-\s|\b(?:vs\.?|versus|compared|but|while|whereas|from)\b"#
 
-    /// Another time than now: "3 days ago", "yesterday", "last week".
-    private static let timeMarkers =
-        #"\b(?:ago|yesterday|last\s+(?:week|month|year|time|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|previous(?:ly)?|earlier|before|on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b"#
+    /// Another time than now: "3 days ago", "yesterday", "last week", and a
+    /// day named by date or weekday, as in a list of past nights ("Nov 24:
+    /// recovery 55", "11/24 recovery 55", "Monday: recovery 61"), or a span
+    /// ("this week", "over the past 7 days"). A number placed on another day
+    /// is not checked: leaving one unchecked is harmless, while correcting a
+    /// past value to today's writes a false history.
+    private static let timeMarkers = #"\b(?:"# + [
+        #"ago|yesterday|last\s+(?:week|month|year|time|night)|previous(?:ly)?|earlier|before"#,
+        #"(?:this|past|each|every|per)\s+(?:week|month|year|day|night)s?|over\s+the\s+(?:last|past)"#,
+        "(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?",
+        #"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?"#,
+        #"\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*"#,
+        #"\d{1,4}[/-]\d{1,2}(?:[/-]\d{2,4})?"#
+    ].joined(separator: "|") + #")\b"#
 
     /// A summary, target, hypothetical or comparison rather than the value
     /// now: "average", "keep it", "if", "higher than".
