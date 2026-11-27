@@ -1343,6 +1343,47 @@ mutate "merge_drops_picked_flag" "EmuquTests/ArchivePolicyTests" \
     "Emuqu/Sources/Storage/SessionMerger.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='        existing.windowUserAdjusted = imported.windowUserAdjusted\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
+# An on-disk file holding a session the index already lists (under another
+# name, or behind a legacy absolute path) must not be adopted as a second entry.
+mutate "orphan_scan_ignores_indexed_session_ids" "EmuquTests/ArchiveInterruptionTests" \
+    "Emuqu/Sources/Storage/SessionArchive+IndexIdentity.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive+IndexIdentity.swift');s=p.read_text();o='sessionIds = Set(entries.map(';assert s.count(o)==1;p.write_text(s.replace(o,'sessionIds = Set(entries.prefix(0).map('))"
+
+# Two entries of one session id are one recording listed twice; ranking them
+# as keeper and loser tombstones the night everywhere.
+mutate "dedupe_pairs_a_session_with_itself" "EmuquTests/ArchivePolicyTests" \
+    "Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift');s=p.read_text();o='let unlinked = SessionArchiveEntry.oneEntryPerSession(dayEntries';assert s.count(o)==1;p.write_text(s.replace(o,'let unlinked = (dayEntries'))"
+
+# Launch rewrites legacy absolute paths to bare names and collapses same-id entries.
+mutate "boot_skips_index_normalisation" "EmuquTests/ArchiveInterruptionTests" \
+    "Emuqu/Sources/Storage/SessionArchive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive.swift');s=p.read_text();o='normalizeIndexIdentity()\n        reconcileOrphanFiles()';assert s.count(o)==1;p.write_text(s.replace(o,'reconcileOrphanFiles()'))"
+
+# A live backup pulled from another device is that device's crash-safety copy
+# while it records; retiring it because a scan here pulled it deletes it mid-night.
+mutate "pulled_live_backup_retired_from_icloud" "EmuquTests/LostSessionRecoveryTests" \
+    "Emuqu/Sources/Services/SessionRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionRecoveryService.swift');s=p.read_text();o='? .retire : .keep';assert s.count(o)==1;p.write_text(s.replace(o,'? .retire : .retire'))"
+
+# An import older than the stored nights is scored against its archived window,
+# not the absolute RMSSD bands.
+mutate "old_import_skips_archive_baseline" "EmuquTests/SessionImportScoringTests" \
+    "Emuqu/Sources/Collection/ImportScoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ImportScoring.swift');s=p.read_text();o='oldestArchivedNight: oldest) else {';assert s.count(o)==1;p.write_text(s.replace(o,'oldestArchivedNight: oldest.flatMap { _ in nil }) else {'))"
+
+# The strap beats a saved night was scored on, rescued beside its larger
+# stream backup, must not stay behind as a phantom lost session.
+mutate "night_rescue_left_after_save" "EmuquTests/StrapRecoveryFlowTests" \
+    "Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift');s=p.read_text();o='if usedDevice { nightRescue';assert s.count(o)==1;p.write_text(s.replace(o,'if usedDevice && devicePoints.isEmpty { nightRescue'))"
+
+# A deletion applied from another device keeps the tombstone's time, so a Trash
+# restore made after it there still wins.
+mutate "remote_deletion_dated_by_apply_time" "EmuquTests/CloudPullRecordTests" \
+    "Emuqu/Sources/Storage/CloudPullCoordinator+Fetch.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudPullCoordinator+Fetch.swift');s=p.read_text();o='try manager.archive.deleteWithoutTrash(sessionId, deletedAt: deletedAt)';assert s.count(o)==1;p.write_text(s.replace(o,'try manager.archive.deleteWithoutTrash(sessionId, deletedAt: nil)'))"
+
 mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=' || words == [\"interval\", \"ms\"]';assert s.count(o)==1;p.write_text(s.replace(o,''))"
