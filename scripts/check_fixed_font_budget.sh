@@ -94,23 +94,33 @@ if not os.path.isdir(root):
 # The needle is the `Font.system(size:)` call itself, with or without the
 # `Font` prefix, wherever it appears: inside `.font(...)`, as a stored `Font`,
 # or as an argument on a continuation line.
-NEEDLE = re.compile(r"(?<![\w])(?:Font)?\.system\(size:\s*([^,)]+)")
+NEEDLE = re.compile(r"(?<![\w])(?:Font)?\.system\(\s*size:\s*([^,)]+)")
+# Font.custom(_:fixedSize:) is the other spelling that opts out of scaling.
+CUSTOM_FIXED = re.compile(r"\.custom\([^()]*?fixedSize:\s*([^,)]+)")
 LITERAL_ARG = re.compile(r"^[\d.]+$")
-count = 0
-files = 0
+# A bare name bound to a numeric literal by a plain let is the same fixed
+# size one step removed; a name declared @ScaledMetric anywhere in the root
+# is the migration target and is not counted.
+SCALED = re.compile(r"@ScaledMetric[^\n]*?\bvar\s+(\w+)")
+CONSTANT = re.compile(r"\blet\s+(\w+)\s*(?::\s*CGFloat)?\s*=\s*([\d.]+)\s*$", re.M)
+texts = []
 for dirpath, _dirnames, filenames in os.walk(root):
     for name in filenames:
         if not name.endswith(".swift"):
             continue
-        files += 1
         with open(os.path.join(dirpath, name), encoding="utf-8", errors="replace") as handle:
-            for line in handle:
-                stripped = line.strip()
-                if stripped.startswith("//"):
-                    continue
-                for argument in NEEDLE.findall(line):
-                    if LITERAL_ARG.match(argument.strip()):
-                        count += 1
+            # Comment lines blanked, newlines kept: the call may span lines.
+            texts.append("".join("\n" if l.strip().startswith("//") else l
+                                 for l in handle.readlines()))
+files = len(texts)
+scaled = {n for t in texts for n in SCALED.findall(t)}
+constants = {n for t in texts for n, _v in CONSTANT.findall(t)} - scaled
+count = 0
+for text in texts:
+    for argument in NEEDLE.findall(text) + CUSTOM_FIXED.findall(text):
+        argument = argument.strip()
+        if LITERAL_ARG.match(argument) or argument in constants:
+            count += 1
 if files == 0:
     sys.stderr.write("check_fixed_font_budget: no Swift files under " + root + "\n")
     sys.exit(66)

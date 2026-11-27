@@ -253,6 +253,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
     }
 
     private func gradeSegment(_ fixes: [BreadcrumbFix]) -> (Double, Int) {
+        guard fixes.count >= 2 else { return (0, 0) }
         var acc: Double = 0
         var startIdx = 0
         for i in (1 ..< fixes.count).reversed() {

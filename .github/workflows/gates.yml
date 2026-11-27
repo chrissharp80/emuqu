@@ -1,6 +1,6 @@
 name: Gates
 
-# The script gates, on every push, on a Linux runner.
+# The script gates, on every pull request and push to main, on a Linux runner.
 #
 # `ci.yml` also runs on every pull request and push to `main`; its jobs need
 # macOS. This workflow is the complement — every gate in `make ci` that is
@@ -19,6 +19,9 @@ name: Gates
 #
 # `check_gates_wired.sh` audits both files: every gate must run in `ci.yml`, and in
 # this file too unless its NOT_ON_PUSH map says why it cannot (SwiftLint, Xcode).
+# It also fails if either workflow stops triggering on every pull request, or a
+# gate's step or job gains `continue-on-error`, an `|| true`, or an `if:` that
+# can skip it on a pull request.
 
 on:
   push:

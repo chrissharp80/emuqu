@@ -34,7 +34,9 @@ read_budget() {
     value="$(tr -d '[:space:]' < "$file_path")"
     # A whole number only. `(( count > budget ))` with a budget of `83.0` is a
     # bash syntax error, which `if` reads as false: the gate would pass.
-    if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+    # No leading zero either: bash reads `08` as octal, `(( count > 08 ))` is
+    # an error, and `if` reads the error as false.
+    if [[ ! "$value" =~ ^(0|[1-9][0-9]*)$ ]]; then
         echo "Budget file is not a whole number: $file_path" >&2
         exit 65
     fi
@@ -81,7 +83,7 @@ root = sys.argv[1]
 pattern = re.compile(
     # Verb PREFIXES of a call: `createDirectory(`, `removeItem(`, `setAttributes(`
     # and `write(to:` all count. A bare word rule misses every one of them.
-    r"(?<![A-Za-z0-9_])try\?.*(?:\b(?:write|save|persist|encode|store|setValue|setAttributes|setResourceValue|create|remove|delete|move|copy)[A-Za-z]*\s*\("
+    r"(?<![A-Za-z0-9_])try\?.*(?:\b(?:write|save|persist|encode|store|setValue|setAttributes|setResourceValue|create|remove|delete|move|copy|replace|trash|truncate|update|insert|upsert)[A-Za-z]*\s*\("
     # Call-shaped, not word-shaped. Here `archive` is both the write verb and
     # the name of the object it is called on, so a bare word match counts every
     # `try? archive.retrieve(...)` read as a write and the gate becomes noise.
@@ -97,12 +99,12 @@ for dirpath, _dirnames, filenames in os.walk(root):
             continue
         path = os.path.join(dirpath, name)
         with open(path, encoding="utf-8", errors="replace") as handle:
-            for line in handle:
-                stripped = line.strip()
-                if stripped.startswith("//"):
-                    continue
-                if pattern.search(line):
-                    count += 1
+            code = [l for l in handle.read().split("\n") if not l.strip().startswith("//")]
+        # A call continued on the next line (`try? data\n    .write(to:)`) is
+        # one statement: join leading-dot continuations before matching.
+        for line in re.sub(r"\n\s*(?=\.)", "", "\n".join(code)).split("\n"):
+            if pattern.search(line):
+                count += 1
 print(count)
 PY
 )" || return 1

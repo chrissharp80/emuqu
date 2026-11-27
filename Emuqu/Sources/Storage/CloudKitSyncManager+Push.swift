@@ -631,7 +631,7 @@ extension CloudKitSyncManager {
             try FileManager.default.removeItem(at: url)
         } catch let nsError as NSError where nsError.domain == NSCocoaErrorDomain &&
                                             nsError.code == NSFileNoSuchFileError {
-            // Already gone; no action needed.
+            // swallow-ok: the file is already gone
         } catch {
             debugLog("[CloudKit] Failed \(context): \(error)")
         }

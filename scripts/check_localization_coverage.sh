@@ -70,6 +70,18 @@ with open(catalogue_path, encoding="utf-8") as fh:
 source = catalogue.get("sourceLanguage", "en")
 strings = catalogue["strings"]
 
+# A permission prompt with no catalogue entry is not "untranslated" here, it is
+# absent from the denominator: it ships English in every locale at 100%.
+import os, plistlib
+if os.path.basename(catalogue_path) == "InfoPlist.xcstrings":
+    plist_path = os.path.join(os.path.dirname(catalogue_path), "Info.plist")
+    with open(plist_path, "rb") as fh:
+        plist_keys = plistlib.load(fh)
+    absent = sorted(k for k in plist_keys if k.endswith("UsageDescription") and k not in strings)
+    if absent:
+        print(f"FAIL: {plist_path} prompts with no entry in {catalogue_path}: {', '.join(absent)}")
+        raise SystemExit(1)
+
 # Only keys that are actually meant to be translated count.
 translatable = {
     key: value

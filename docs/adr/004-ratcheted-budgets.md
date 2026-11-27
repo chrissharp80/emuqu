@@ -24,9 +24,10 @@ a push to main, so every commit of a multi-commit push is inside the range.
 Only when that tip is missing from the checkout (a branch-creating or forced
 push) does the gate fall back to the parent commit, and it says so.
 
-There is no per-site escape hatch. There are zero `swiftlint:disable` directives
-in `Emuqu/Sources`, and the refactor-spec gate counts justified exceptions
-separately so they cannot hide inside the main number.
+No directive escapes a rule: the SwiftLint budget gate fails on any
+`swiftlint:disable` in the app or watch sources. The refactor-spec gate's
+per-site waivers are counted against budgets of their own so they cannot hide
+inside the main number.
 
 ## Why not a hard zero
 

@@ -49,7 +49,7 @@ PROMPT_TYPES = r"(?:CBCentralManager|CBPeripheralManager)"
 # Expressions that CONSTRUCT something whose initialiser shows a system
 # permission prompt.
 PROMPTING = re.compile(
-    rf"\b{PROMPT_TYPES}\s*\("
+    rf"\b{PROMPT_TYPES}\s*(?:\.\s*init\s*)?\("
     rf"|:\s*{PROMPT_TYPES}\s*[!?]?\s*=\s*\.init\s*\("
     r"|\bPolarBleApiDefaultImpl\s*\.\s*polarImplementation\s*\("
 )
@@ -60,8 +60,11 @@ BUILDER_PROPERTY = re.compile(
     rf"\bvar\s+(\w+)\s*(?::\s*{PROMPT_TYPES}\b(?!\s*[?!])|=\s*{PROMPT_TYPES}\s*\()"
 )
 INIT_HEADER = re.compile(
-    r"\s*(?:(?:public|internal|private|fileprivate|required|convenience|override|nonisolated)(?:\(\w+\))?\s+)*init\s*[(<]"
+    r"\s*(?:@\w+(?:\([^)]*\))?\s+)*"
+    r"(?:(?:public|internal|private|fileprivate|required|convenience|override|nonisolated)(?:\(\w+\))?\s+)*init[?!]?\s*[(<]"
 )
+# A line that opens a type body: its first `{` holds members.
+TYPE_HEADER = re.compile(r"(?:^|\s)(?:class|struct|enum|actor|extension)\s+[A-Za-z_]")
 STORED = re.compile(
     r"\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|internal|private|fileprivate|static|final|nonisolated)(?:\(\w+\))?\s+)*(?:let|var)\s+\w+"
 )
@@ -133,6 +136,15 @@ def called(text, functions):
     return None
 
 
+def stored_calls(text, functions):
+    """The first of `functions` a property initialiser calls, bare or through
+    a type (`makeCentral()`, `Self.makeCentral()`, `Owner.makeCentral()`)."""
+    for name in sorted(functions):
+        if re.search(rf"(?<![\w])(?:\w+\s*\.\s*)?{name}\s*\(", text):
+            return name
+    return None
+
+
 def unconditional_init_touch(text, names, strip_braces=True):
     """The builder property this init-body text reads, if any (`_ = central`, `central.state`).
 
@@ -152,12 +164,27 @@ def scan(file, problems):
     builders = builder_properties(lines)
     builder_methods = builder_functions(lines, builders)
     in_init, init_depth, depth = False, 0, 0
+    # One entry per open brace: "type" (a type body, whose direct lines are
+    # members), "propinit" (the closure that initialises a stored property,
+    # run when the owner is built), or "other".
+    stack = []
     for n, line in enumerate(lines, 1):
         header = bool(INIT_HEADER.match(line))
         if header:
             in_init, init_depth = True, depth
         opened = depth
-        depth += line.count("{") - line.count("}")
+        member = not stack or stack[-1] == "type"
+        in_propinit = "propinit" in stack
+        stored_line = member and STORED.match(line) and " lazy " not in f" {line} "
+        first = "type" if TYPE_HEADER.search(line) and not re.search(r"\bclass\s+(?:func|var|let)\b", line) \
+            else "propinit" if stored_line and re.search(r"=\s*\{", line) else "other"
+        for char in line:
+            if char == "{":
+                stack.append(first)
+                first = "other"
+            elif char == "}" and stack:
+                stack.pop()
+        depth = len(stack)
         # Code at the init body's own top level runs every time; code nested
         # deeper sits behind a condition or in a closure.
         top_level = line.split("{", 1)[1] if header and "{" in line else (line if opened == init_depth + 1 else "")
@@ -166,11 +193,15 @@ def scan(file, problems):
             # type sits at brace depth 1 (0 at file scope); anything inside a
             # function or closure is 2 or more, and a local built there is
             # exactly the lazy construction this gate is asking for.
-            stored_property = opened <= 1 and STORED.match(line)
-            if stored_property and " lazy " not in f" {line} ":
+            if stored_line:
                 problems.append((file, n, line.strip(), "built in a stored property"))
+            elif in_propinit:
+                problems.append((file, n, line.strip(), "built in a stored property's initialiser closure"))
             elif in_init:
                 problems.append((file, n, line.strip(), "built inside init()"))
+        elif stored_line and stored_calls(line.split("=", 1)[-1], builder_methods):
+            problems.append((file, n, line.strip(),
+                             f"stored property calls `{stored_calls(line.split('=', 1)[-1], builder_methods)}()`, which builds one"))
         elif in_init and top_level:
             touched = unconditional_init_touch(top_level, builders)
             calls = called(re.sub(r"\{[^{}]*\}", "", top_level), builder_methods)

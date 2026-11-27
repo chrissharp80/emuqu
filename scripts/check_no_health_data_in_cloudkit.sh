@@ -29,7 +29,7 @@ cd "$(dirname "$0")/.."
 # snake_case words, and it is a health field when any word is on this list, so
 # `avgHR`, `hrvScore` and `resting_heart_rate_bpm` are caught as well as the
 # exact names, not only a fixed set of spellings.
-HEALTH_WORDS='hr|hrv|rmssd|sdnn|pnn50|heart|pulse|bpm|spo2|oxygen|respiratory|respiration|sleep|recovery|readiness|score|vo2|resting|temperature|alpha1|strain|stress|calories'
+HEALTH_WORDS='hr|hrv|rmssd|sdnn|pnn50|heart|pulse|bpm|spo2|oxygen|respiratory|respiration|sleep|recovery|readiness|score|vo2|resting|temperature|alpha1|strain|stress|calories|rr|ibi|beat|beats|interval|intervals|dfa|hrr|ecg|weight|mass|bmi|glucose|blood|pressure|cadence|power|energy|steps|workout|route|location|latitude|longitude|altitude|elevation|distance|pace|speed'
 bad=0
 
 # function_body <name> <file>: prints `func <name>` through the closing brace at
@@ -99,7 +99,8 @@ if not files:
 CONSTANT = re.compile(r"\blet\s+(\w+)\s*(?::\s*String\s*)?=\s*\"([^\"]+)\"")
 SUBSCRIPT = re.compile(r"\b(\w+)(?:\.encryptedValues)?\s*\[\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\]\s*=(?!=)\s*(.*)$")
 ALIAS = re.compile(r"\b(?:let|var)\s+(\w+)\s*(?::\s*CKRecord\b[^=]*)?=\s*(?:\w*[rR]ecord\b|CKRecord\s*\()"
-                   r"|\b(\w+)\s*:\s*CKRecord\b(?!\s*\.)")
+                   r"|\b(\w+)\s*:\s*CKRecord\b(?!\s*\.)"
+                   r"|\b(?:let|var)\s+(\w+)\s*=\s*\w*[rR]ecords\b|\bfor\s+(\w+)\s+in\s+\w*[rR]ecords\b")
 BULK = re.compile(r"\.setValuesForKeys\s*\(")
 SETTER = re.compile(r"\.set(?:Value|Object)\s*\((.*),\s*forKey:\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\)")
 
@@ -123,7 +124,7 @@ def is_record(name, aliases):
 
 
 for path, text in texts.items():
-    aliases = {a or b for a, b in ALIAS.findall(text)}
+    aliases = {next(g for g in groups if g) for groups in ALIAS.findall(text)}
     for n, line in enumerate(text.split("\n"), 1):
         code = line.split("//")[0]
         if BULK.search(code):
@@ -132,7 +133,9 @@ for path, text in texts.items():
                   for k in keys_of(m.group(2), m.group(3))]
         writes += [(k, m.group(1)) for m in SETTER.finditer(code) for k in keys_of(m.group(2), m.group(3))]
         for key, value in writes:
-            if is_health(key):
+            # Clearing a field writes nothing; the bytes of an asset are held to
+            # the sealing checks on its writer below.
+            if is_health(key) and value.strip() != "nil" and not value.strip().startswith("CKAsset("):
                 print(f"{path}:{n}: {line.strip()} — plaintext health field written to a CKRecord")
             elif legacy.match(key) and value.strip() != "nil":
                 print(f"{path}:{n}: {line.strip()} — legacy plaintext settings field written with a value")

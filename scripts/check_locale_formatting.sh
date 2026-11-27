@@ -51,14 +51,13 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 # The Watch app is all display: every number it formats is read on the wrist.
-SCAN_DIRS=("Emuqu/Sources/Views" "Emuqu/Sources/Export" "EmuquWatch Watch App")
+SCAN_DIRS=("Emuqu/Sources/Views" "Emuqu/Sources/Export" "Emuqu/Sources/Assistant/Views" "Emuqu/Sources/ViewModels" "EmuquWatch Watch App")
 # Narrative generators: they live under Analysis/ and ViewModels/ but their
 # output is sentences, not numbers for a machine.
 SCAN_GLOBS=(
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator"*.swift
     "Emuqu/Sources/Analysis/CoachReportGenerator"*.swift
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift"
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift"
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine"*.swift
 )
 # `SessionStorageDiagnostic` builds its strings in Storage/ but they are
@@ -67,7 +66,7 @@ SCAN_GLOBS=(
 # and SDNN figures on the diagnostics screen printed a hardcoded "." decimal
 # separator to every comma-locale user.
 SCAN_FILES=(
-    "Emuqu/Sources/Assistant/Views/CitationQuickView.swift"
+    "Emuqu/EmuquApp.swift"
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift"
     "${SCAN_GLOBS[@]}"
 )
@@ -96,7 +95,7 @@ import re, sys, pathlib
 
 # The call may be split across lines, so the whole file is searched, and the
 # locale is looked for inside THIS call's parentheses, not anywhere on the line.
-FMT   = re.compile(r'String\(\s*format:\s*"((?:[^"\\\n]|\\.)*)"\s*,')
+FMT   = re.compile(r'(?:\bString|\.init)\(\s*format:\s*(?:String\(\s*localized:\s*|NSLocalizedString\(\s*)?"((?:[^"\\\n]|\\.)*)"')
 FLOAT = re.compile(r"%[-+ #0-9.']*[efgEFG]")
 INT   = re.compile(r"%[-+ #0-9.']*(?:l{0,2}[diu])")
 LOG   = re.compile(r'\b(debugLog|NSLog|os_log)\s*\(')

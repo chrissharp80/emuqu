@@ -27,7 +27,7 @@ fi
 
 failed=0
 
-hits=$(grep -nE 'INFOPLIST_KEY_NS[A-Za-z]*UsageDescription' "$PBXPROJ" || true)
+hits=$(grep -nE 'INFOPLIST_KEY_[A-Za-z]*UsageDescription' "$PBXPROJ" || true)
 if [[ -n "$hits" ]]; then
     echo "FAIL: INFOPLIST_KEY_*UsageDescription entries found in $PBXPROJ:" >&2
     echo "$hits" >&2

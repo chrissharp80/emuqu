@@ -365,7 +365,7 @@ This gate runs on every push to main and every pull request.
 
 #### 3.6.1 Policy and counting
 
-**Decision record.** The repository's architecture decision record (ADR) on ratcheted budgets, ADR 004, states the policy. Every quality rule has a measured numeric ceiling, never an aspirational one. A ceiling may only move down, and a floor only up. There is no per-site escape hatch: the app sources contain no SwiftLint disable directives. The record reasons that a gate nobody can satisfy gets routed around, while a measured ceiling blocks regression immediately.
+**Decision record.** The repository's architecture decision record (ADR) on ratcheted budgets, ADR 004, states the policy. Every quality rule has a measured numeric ceiling, never an aspirational one. A ceiling may only move down, and a floor only up. No SwiftLint directive escapes a rule: the SwiftLint budget gate fails on any disable directive in the app or watch sources, and the refactor-spec gate's per-site waivers count against budgets of their own. The record reasons that a gate nobody can satisfy gets routed around, while a measured ceiling blocks regression immediately.
 
 **Measured means measured.** The tech-debt budget gate fails not only when a count exceeds its ceiling but also when the ceiling sits above the count: a change that removes debt must lower the budget file in the same commit, or every later addition up to the old ceiling would pass unseen. Several other count gates only print a reminder to lower a budget that sits above its count. A ceiling must be a whole number, because a comparison against a decimal ceiling is a shell syntax error that an `if` reads as false. The Watch target is counted the same five ways as the app and held to one combined ceiling of its own.
 

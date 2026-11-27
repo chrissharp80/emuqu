@@ -31,6 +31,28 @@ fail() {
 
 # One `SWIFT_VERSION` per build configuration is the reliable denominator —
 # every configuration that compiles Swift has one.
+# The counts below read only the plain `KEY = value;` spelling. Xcode also
+# applies conditional settings ("KEY[sdk=iphoneos*]" = ...), compiler flags in
+# OTHER_SWIFT_FLAGS and xcconfig files, and each can switch off what the
+# counts report as on, for the device build alone.
+override_report="$(python3 - "$PROJECT_FILE" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+KEYS = r"(?:SWIFT_VERSION|SWIFT_STRICT_CONCURRENCY|SWIFT_TREAT_WARNINGS_AS_ERRORS|OTHER_SWIFT_FLAGS)"
+for m in re.finditer(r'^\s*"?' + KEYS + r'\[[^\]]*\]"?\s*=', text, re.M):
+    print("conditional setting: " + m.group(0).strip())
+FLAGS = re.compile(r"-swift-version|-language-mode|-strict-concurrency|-no-warnings-as-errors|-suppress-warnings|-Wwarning")
+for m in re.finditer(r'OTHER_SWIFT_FLAGS"?\s*=\s*(\([^)]*\)|[^;]*);', text):
+    if FLAGS.search(m.group(1)):
+        print("OTHER_SWIFT_FLAGS overrides the language mode or warnings: " + " ".join(m.group(1).split())[:120])
+if "baseConfigurationReference" in text:
+    print("a configuration reads an xcconfig file, which this gate does not parse")
+PY
+)"
+if [[ -n "$override_report" ]]; then
+    fail "$(printf '%s\n\n%s' "$override_report" "Set these as plain per-configuration settings so the counts below see them.")"
+fi
+
 configs=$(grep -c 'SWIFT_VERSION = ' "$PROJECT_FILE" | tr -d ' ')
 strict=$(grep -c "SWIFT_STRICT_CONCURRENCY = ${EXPECTED_LEVEL};" "$PROJECT_FILE" | tr -d ' ')
 swift6=$(grep -c "SWIFT_VERSION = ${EXPECTED_SWIFT_VERSION};" "$PROJECT_FILE" | tr -d ' ')

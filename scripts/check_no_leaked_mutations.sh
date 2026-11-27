@@ -54,8 +54,72 @@ for part in parts:
     else:
         cases.append((name, pm.group(1) if pm else '?', None))
 
+def shell_unquote(body):
+    """The text of a double-quoted shell argument."""
+    return re.sub(r'\\([$"`\\])', r"\1", body)
+
+
+class Tracked(str):
+    """A file's text that records every `.replace(old, new)` made on it."""
+    log = []
+
+    def replace(self, old, new, *rest):
+        Tracked.log.append((str(old), str(new)))
+        return Tracked(str.replace(self, old, new, *rest))
+
+
+def insertions(script):
+    """(old, new) of every replacement the case's own script makes in which
+    `new` keeps `old`: a mutation that ADDS code around the original. For
+    those, the original surviving proves nothing; the addition must be absent.
+    The script runs against the file's current text and writes nothing."""
+    import builtins, types
+    fake = types.ModuleType("pathlib")
+
+    class FakePath:
+        def __init__(self, *parts):
+            self.path = pathlib.Path(*parts)
+
+        def read_text(self, *a, **k):
+            return Tracked(self.path.read_text())
+
+        def write_text(self, *a, **k):
+            return 0
+
+        def exists(self):
+            return self.path.exists()
+
+    fake.Path = FakePath
+    real_import = builtins.__import__
+
+    def guarded_import(name, *a, **k):
+        return fake if name == "pathlib" else real_import(name, *a, **k)
+
+    Tracked.log = []
+    try:
+        # No `open`: the only file access a case gets is the fake, read-only Path.
+        exec(script, {"__builtins__": {**vars(builtins), "__import__": guarded_import, "open": None}})
+    except Exception:
+        pass  # A failed assert is a vanished original, reported below.
+    return [(old, new) for old, new in Tracked.log if old and old in new and new != old]
+
+
+scripts = {}
+for part in parts:
+    name = part.split('"', 1)[0]
+    body = part.split("\n\n", 1)[0]
+    quoted = re.findall(r'"((?:[^"\\]|\\.)*)"', body)
+    if quoted:
+        scripts[name] = shell_unquote(quoted[-1])
+
 leaked, unparsed = [], []
 for name, path, orig in cases:
+    script = scripts.get(name)
+    if script and pathlib.Path(path).exists():
+        current = pathlib.Path(path).read_text()
+        if any(new in current for _, new in insertions(script)):
+            leaked.append((name, path, "the mutation's added code is present, so a mutation is still applied"))
+            continue
     if orig is None:
         unparsed.append(name)
         continue

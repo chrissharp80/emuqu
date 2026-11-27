@@ -84,17 +84,27 @@ if "struct StrapHeartRateFeed" not in feed:
           "re-point this gate at the heart-rate subscription.", file=sys.stderr)
     raise SystemExit(2)
 
+def top_level(block):
+    """The body of `block` with every nested `{ ... }` removed: what runs
+    unconditionally, not behind a condition, closure, or Task."""
+    inner = block[block.index("{") + 1: -1]
+    while re.search(r"\{[^{}]*\}", inner):
+        inner = re.sub(r"\{[^{}]*\}", "", inner)
+    return inner
+
 problems = []
-if not re.search(r"\bfeed\.start\(", established):
-    problems.append("linkEstablished no longer starts the heart-rate feed")
+if not re.search(r"\bfeed\.start\(", top_level(established)):
+    problems.append("linkEstablished no longer starts the heart-rate feed unconditionally")
 
 WAITS = re.compile(
     r"(awaitFeature|whenFeatureUsable|requireUsable|isUsable|isReady|waitOutcome|state)"
-    r"\(\s*(of:\s*)?\.heartRate\b|isHrStreamingReady|Task\.sleep|sleepQuietly|sleepIgnoringCancellation"
+    r"\(\s*(of:\s*)?(?:StrapFeature)?\.heartRate\b|isHrStreamingReady"
+    r"|Task\s*(?:<[^>]*>)?\s*\.\s*sleep|\.sleep\s*\(\s*(?:for|until):|sleepQuietly|sleepIgnoringCancellation"
 )
-hit = WAITS.search(feed)
-if hit:
-    problems.append(f"StrapHeartRateFeed waits before subscribing (`{hit.group(0)}`)")
+for where, text in (("StrapHeartRateFeed", feed), ("linkEstablished", established)):
+    hit = WAITS.search(text)
+    if hit:
+        problems.append(f"{where} waits before subscribing (`{hit.group(0)}`)")
 
 if not problems:
     print("check_hr_feed_subscribes_on_link: clean. "

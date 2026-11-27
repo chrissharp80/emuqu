@@ -45,7 +45,7 @@ SOURCE_ROOT="${SOURCE_ROOTS[0]}"
 # people — including it produced only false positives. Person-names are
 # reached through the contact-specific properties below.
 PII_PATTERN='\\\(([^)]*\.)?(email|emailAddress|recipientEmail|fullName|firstName|lastName|contactName|recipientName|apiKey|token|bearer|password|secret)[^)]*\)'
-GEO_PATTERN='\\\([^)]*\.(latitude|longitude)[^)]*\)'
+GEO_PATTERN='\\\(([^)]*\.)?(latitude|longitude|lat|lon|lng)\b[^)]*\)'
 # What the user said or typed (an assistant or web-search query, a voice
 # transcript, a prompt) and where they are (a street or city name), bare or
 # truncated with `.prefix(n)`, with or without a `?? "…"` fallback. A count or
@@ -90,8 +90,8 @@ CONCAT_PATTERN='"[[:space:]]*\+[[:space:]]*([A-Za-z_][A-Za-z0-9_]*\.)*('"$CONCAT
 # every one outside this gate's field of view. An `os.Logger` is matched under
 # both names this repo gives one (`logger`, `log`) and when it is built in place
 # (`Logger(…)` then `.debug(…)`, the chained call allowed on the next line).
-LOGGER_LEVEL='(debug|info|notice|warning|error|fault|trace|critical)'
-LOG_CALL="(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|(logger|log)[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(]"
+LOGGER_LEVEL='(debug|info|notice|warning|error|fault|trace|critical|log)'
+LOG_CALL="(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|(log|[A-Za-z_]*[Ll]ogger|[A-Za-z_]+Log)[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(]"
 
 # A missing root would make the scan read nothing and report clean.
 for root in "${SOURCE_ROOTS[@]}"; do

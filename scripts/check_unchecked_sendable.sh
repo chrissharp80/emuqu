@@ -48,11 +48,18 @@ ALLOWLIST=(
 
 # Find every `.swift` file under the iOS app + Watch app and grep for the
 # annotations. Use BSD-grep-portable flags only.
+# Any `@unchecked` (it only ever qualifies Sendable, spelled `Sendable`,
+# `Swift.Sendable`, or across a line break) and `nonisolated(unsafe)` with any
+# inner spacing.
+ESCAPES='@unchecked([^A-Za-z0-9_]|$)|nonisolated[[:space:]]*\([[:space:]]*unsafe'
+for root in Emuqu "EmuquWatch Watch App"; do
+    [[ -d "$root" ]] || { echo "check_unchecked_sendable: scan root missing: $root" >&2; exit 2; }
+done
 RG_TMP=$(gate_mktemp unchecked-sendable) || exit $?
 trap 'rm -f "$RG_TMP"' EXIT
 
 find Emuqu "EmuquWatch Watch App" -name '*.swift' -type f -print0 \
-    | xargs -0 grep -nHE '@unchecked Sendable|nonisolated\(unsafe\)' \
+    | xargs -0 grep -nHE "$ESCAPES" \
     > "$RG_TMP" 2>/dev/null || true
 
 # Filter out comment-line matches: format is `path:lineno:content`.
@@ -88,7 +95,7 @@ if [ ${#VIOLATIONS[@]} -gt 0 ]; then
     echo "ERROR: @unchecked Sendable or nonisolated(unsafe) found in non-allowlisted files:"
     for v in "${VIOLATIONS[@]}"; do
         echo "  - $v"
-        grep -nHE '@unchecked Sendable|nonisolated\(unsafe\)' "$v" | sed 's/^/      /'
+        grep -nHE "$ESCAPES" "$v" | sed 's/^/      /'
     done
     echo
     echo "Either:"

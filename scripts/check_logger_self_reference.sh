@@ -22,20 +22,23 @@ if [[ ! -s "$file" ]]; then
     exit 2
 fi
 
-# `attempt(` is never legitimate in this file. `debugLog(` is the file's own
-# entry point, so only calls made from inside the `DebugLogger` class body
-# count: the free functions after it (`debugLog`, `debugLogExternal`) are the
-# API, not the logger calling itself.
+# Only the public entry points at file scope (`func debugLog(`,
+# `func debugLogExternal(`) may reach the logger: they are the API, not the
+# logger calling itself. Everything else in the file is the logger, its file
+# writer `BoundedLogFile` included, and must not call `attempt(`, `debugLog(`,
+# `debugLogExternal(`, or resolve the logger (`DebugLogger.shared`,
+# `.debugLogger`), each of which re-enters `DebugLogger.shared`.
 hits="$(awk '
-    /^(final )?class DebugLogger/ { inside = 1 }
-    inside && /^}/ { inside = 0 }
+    /^func (debugLog|debugLogExternal)\(/ { api = 1 }
     {
         line = $0
         sub(/^[ \t]+/, "", line)
         if (line ~ /^\/\//) next
-        if (line ~ /(^|[^A-Za-z0-9_])attempt\(/) { print NR ": " $0; next }
-        if (inside && line ~ /(^|[^A-Za-z0-9_])debugLog\(/ && line !~ /func debugLog\(/) print NR ": " $0
+        sub(/\/\/.*$/, "", line)
+        if (!api && line ~ /(^|[^A-Za-z0-9_])(attempt|debugLog|debugLogExternal)\(/ && line !~ /func (debugLog|debugLogExternal)\(/) print NR ": " $0
+        else if (!api && line ~ /DebugLogger\.shared|\.debugLogger([^A-Za-z0-9_]|$)/) print NR ": " $0
     }
+    api && /^}/ { api = 0 }
 ' "$file")"
 if [[ -n "$hits" ]]; then
     echo "check_logger_self_reference: DebugLog.swift calls the logger from inside the logger:" >&2

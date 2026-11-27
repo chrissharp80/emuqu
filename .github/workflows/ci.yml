@@ -197,6 +197,11 @@ jobs:
         # (medical-claim language). Same script as `make copy-perimeter`.
         run: python3 Tools/copy_linter/lint.py
 
+      - name: The Python ports still reproduce the Swift test expectations
+        # The same check gates.yml runs, here too so the release gate
+        # (testflight.yml calls this workflow, not gates.yml) includes it.
+        run: make validation-ports
+
       - name: Gates actually fail
         # Plants a violation for each cheap gate and requires a red exit.
         # Three gates in this repository have reported clean while missing the
