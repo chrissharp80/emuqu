@@ -17,26 +17,40 @@ extension SessionDataMigrations {
     ///   AND RMSSD below the recovery baseline.
     ///
     /// Matched sessions are flipped to `.insufficient` and rescored against
-    /// the baseline, then re-archived. Runs exactly once per install.
+    /// the baseline, then re-archived. Runs once per install, again on later
+    /// launches while a night could not be read or written
+    /// (`finishTrainingMigration`).
     /// A night with no earlier nights to form its baseline is left as it is.
     func runInsufficientDataMigrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.insufficientDataMigrationKey) else { return }
         // No baseline yet — can't evaluate the gate. Try again on next launch.
         guard baselineTracker.recoveryBaselineStats != nil else {
-            debugLog("[InsufficientDataMigration] No baseline stats yet — skipping this launch")
-            return
+            return debugLog("[InsufficientDataMigration] No baseline stats yet: skipping this launch")
         }
         let sessions = archivedSessions.filter { $0.meanRMSSD != nil }
-        var candidates = 0
-        var rescored = 0
+        var tally = (candidates: 0, rescored: 0, missed: 0)
         for index in 0 ..< sessions.count {
-            guard let session = await sessions.session(at: index), Self.isInsufficientDataCandidate(session) else { continue }
-            candidates += 1
-            if rescoreIfInsufficient(session) { rescored += 1 }
+            guard let session = await sessions.session(at: index) else { tally.missed += 1; continue }
+            guard Self.isInsufficientDataCandidate(session) else { continue }
+            tally.candidates += 1
+            switch rescoreIfInsufficient(session) {
+            case .rescored: tally.rescored += 1
+            case .notWritten: tally.missed += 1
+            case .unchanged: break
+            }
         }
-        defaults.set(true, forKey: Self.insufficientDataMigrationKey)
-        debugLog("[InsufficientDataMigration] Complete. Rescored \(rescored) of \(candidates) candidate sessions.")
+        let finished = Self.finishTrainingMigration(key: Self.insufficientDataMigrationKey, complete: tally.missed == 0)
+        debugLog("[InsufficientDataMigration] \(finished ? "Complete" : "Pass done, runs again"). Rescored \(tally.rescored) of \(tally.candidates) candidate sessions (\(tally.missed) unread or unwritten).")
+    }
+
+    /// What `rescoreIfInsufficient` did to one night.
+    private enum InsufficientRescoreOutcome {
+        case rescored
+        /// The gate kept it, or its copy changed since the load.
+        case unchanged
+        /// The rescore could not be written; the night is tried again.
+        case notWritten
     }
 
     /// Complete, scored nights that were accepted as good-quality — the only
@@ -57,12 +71,12 @@ extension SessionDataMigrations {
     /// kept rather than overwritten by the loaded copy. A copy whose inputs
     /// changed since the load (a window picked by hand, a sleep edit) is left
     /// as it is: the gate decided on what it no longer holds.
-    private func rescoreIfInsufficient(_ session: HRVSession) -> Bool {
+    private func rescoreIfInsufficient(_ session: HRVSession) -> InsufficientRescoreOutcome {
         guard let result = session.analysisResult,
               let baseline = reanalysisService.scoringBaseline(for: session),
               ReanalysisService.hasInsufficientData(
                   session: session, analysisResult: result, baselineRmssd: exp(baseline.lnRmssdMean)
-              ) else { return false }
+              ) else { return .unchanged }
         // Read before the write: the baseline can read the archive's index,
         // which the update holds locked while its closure runs.
         let context = reanalysisService.rescoreContext(for: session)
@@ -70,12 +84,12 @@ extension SessionDataMigrations {
             let written = try archive.updateIfChanged(session.id, requestingReupload: false) {
                 Self.flagInsufficient(&$0, decidedOn: session, context: context)
             }
-            guard written else { return false }
+            guard written else { return .unchanged }
             debugLog("[InsufficientDataMigration] Rescored session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery vs baseline")
-            return true
+            return .rescored
         } catch {
             debugLog("[InsufficientDataMigration] Failed to archive rescored session \(session.id.uuidString.prefix(8)): \(error)")
-            return false
+            return .notWritten
         }
     }
 

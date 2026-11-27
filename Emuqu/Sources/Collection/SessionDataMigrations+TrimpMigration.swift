@@ -39,7 +39,7 @@ extension SessionDataMigrations {
         debugLog("[TrimpRepairMigration] Starting — \(sessions.count) sessions in archive")
         let result = await reanalysisService.repairTrainingSnapshots(sessions: sessions) { _, _ in }
         let finished = Self.finishTrainingMigration(
-            key: Self.trimpRepairMigrationKey, complete: result.unanswered == 0 && trainingRecalibrationFinished
+            key: Self.trimpRepairMigrationKey, complete: result.coversEverySession && trainingRecalibrationFinished
         )
         debugLog("[TrimpRepairMigration] \(finished ? "Complete" : "Pass done, runs again"). Repaired \(result.repaired) of \(result.candidates) candidates (\(result.unanswered) unanswered, \(result.errors) errors).")
     }

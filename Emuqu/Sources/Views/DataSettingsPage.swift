@@ -152,27 +152,37 @@ struct DataSettingsPage: View {
         if case .error = syncManager.syncState {
             return forceSyncSummary(newlyUploaded: delta)
         }
-        guard syncManager.lastSyncDate != lastSyncBefore else {
+        guard syncManager.lastSyncDate != lastSyncBefore || !syncManager.isUpToDate else {
             return String(localized: "Nothing was synced this time: another sync may still be running. Try again in a moment.", bundle: LanguageManager.appBundle)
         }
         return forceSyncSummary(newlyUploaded: delta)
     }
 
+    /// "Up to date" only under the sync's own rule (`isUpToDate`); otherwise
+    /// what was uploaded, then what still waits.
     @MainActor
     private func forceSyncSummary(newlyUploaded delta: Int) -> String {
         if case let .error(msg) = syncManager.syncState {
             return String(localized: "Sync failed: \(msg). Try again in a moment.", bundle: LanguageManager.appBundle)
         }
+        var parts: [String] = []
         if delta > 0 {
             // Two sentences so each count gets its own plural form.
-            let synced = String(localized: "Synced \(delta) sessions to iCloud.", bundle: LanguageManager.appBundle)
-            let total = String(localized: "Total uploaded: \(syncManager.uploadedCount).", bundle: LanguageManager.appBundle)
-            return synced + " " + total
+            parts.append(String(localized: "Synced \(delta) sessions to iCloud.", bundle: LanguageManager.appBundle))
+            parts.append(String(localized: "Total uploaded: \(syncManager.uploadedCount).", bundle: LanguageManager.appBundle))
         }
-        if syncManager.pendingUploadCount > 0 {
-            return String(localized: "\(syncManager.pendingUploadCount) sessions still pending retry. iCloud may be unreachable.", bundle: LanguageManager.appBundle)
-        }
+        if let waiting = notUpToDateLine { parts.append(waiting) }
+        guard parts.isEmpty else { return parts.joined(separator: " ") }
         return String(localized: "Up to date. \(syncManager.uploadedCount) sessions in iCloud.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Why an idle sync is not up to date, or nil when it is.
+    @MainActor
+    private var notUpToDateLine: String? {
+        guard !syncManager.isUpToDate else { return nil }
+        guard syncManager.archive.hasCompleteIndex else { return CloudSyncMessages.historyNotReadable }
+        let waiting = syncManager.uploadsWaitingCount
+        return waiting > 0 ? CloudSyncMessages.uploadsWaiting(waiting) : nil
     }
 
     var body: some View {
@@ -232,7 +242,11 @@ struct DataSettingsPage: View {
     private var syncStateLabel: some View {
         switch syncManager.syncState {
         case .idle:
-            Text("Up to date", bundle: LanguageManager.appBundle).foregroundColor(AppTheme.textSecondary)
+            if let waiting = notUpToDateLine {
+                Text(waiting).foregroundColor(AppTheme.softGoldText).font(.caption)
+            } else {
+                Text("Up to date", bundle: LanguageManager.appBundle).foregroundColor(AppTheme.textSecondary)
+            }
         case .syncing:
             HStack(spacing: 6) {
                 ProgressView().scaleEffect(0.8)

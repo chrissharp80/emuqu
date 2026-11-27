@@ -4,7 +4,7 @@ import XCTest
 /// A deferred upload must eventually become eligible again.
 ///
 /// Every assertion runs against `CloudKitSyncManager.defersForBackoff`, the
-/// decision `pendingPushBatch` uses, with the cycle passed in so it can be
+/// decision `pendingPushIds` uses, with the cycle passed in so it can be
 /// advanced deterministically instead of waiting on real pushes.
 ///
 /// What has to be asserted is PROGRESS, not bucket stability. A decision built

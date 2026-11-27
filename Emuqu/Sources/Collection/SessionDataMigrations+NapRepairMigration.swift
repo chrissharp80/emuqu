@@ -32,8 +32,9 @@ extension SessionDataMigrations {
     /// HealthKit cannot be read for a night (locked, or the query failed) the
     /// scan stops without marking that night or setting the flag, and the
     /// rest runs on a later launch. A night whose nap could not be written
-    /// stays unmarked and leaves the flag unset too, so a later launch folds
-    /// it in. Runs once per install once it completes.
+    /// stays unmarked and leaves the flag unset too, as does a night that
+    /// could not be read, so a later launch folds it in, up to
+    /// `maxTrainingMigrationAttempts`. Runs once per install once it completes.
     func runNapRepairMigrationIfNeeded() async {
         let defaults = UserDefaults.standard
         // Flag check FIRST, before touching the archive (matches the other
@@ -44,11 +45,10 @@ extension SessionDataMigrations {
             debugLog("[NapRepairMigration] HealthKit nap data unreadable — stopping; the rest is retried next launch", level: .warning)
             return
         }
-        guard scan.failed == 0 else {
-            debugLog("[NapRepairMigration] \(scan.failed) nights' naps could not be written — retrying next launch", level: .warning)
+        guard Self.finishTrainingMigration(key: Self.napRepairMigrationKey, complete: scan.failed == 0) else {
+            debugLog("[NapRepairMigration] \(scan.failed) nights could not be read or their naps written: retrying next launch", level: .warning)
             return
         }
-        defaults.set(true, forKey: Self.napRepairMigrationKey)
         let nightsSuffix = scan.adjustedNights.isEmpty ? "" : " — nights: \(scan.adjustedNights.joined(separator: ", "))"
         debugLog("[NapRepairMigration] Complete — scanned \(scan.scanned) overnight sessions, adjusted \(scan.adjustedNights.count) for daytime naps\(nightsSuffix)")
     }
@@ -61,7 +61,7 @@ extension SessionDataMigrations {
         var (scanned, failed) = (0, 0)
         var adjustedNights: [String] = []
         for entry in entries {
-            guard let session = await retrieveOffMain(entry.sessionId, caller: "NapRepairMigration") else { continue }
+            guard let session = await retrieveOffMain(entry.sessionId, caller: "NapRepairMigration") else { failed += 1; continue }
             if session.napRepaired == true { continue } // per-session idempotency
             scanned += 1
             switch await repairNap(session, entry: entry) {

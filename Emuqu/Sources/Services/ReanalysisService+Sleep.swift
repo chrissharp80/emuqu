@@ -438,7 +438,14 @@ extension ReanalysisService {
         /// Sessions left as stored because HealthKit did not answer the
         /// workout query for their date.
         var unanswered: Int = 0
+        /// The pass was cancelled before it reached every session.
+        var stoppedEarly = false
         var sampleLog: String = ""
+
+        /// Every session was read and answered, and every repair written.
+        var coversEverySession: Bool {
+            unanswered == 0 && errors == 0 && !stoppedEarly
+        }
     }
 
     /// Recompute training snapshots for all completed sessions from HealthKit.
@@ -448,8 +455,9 @@ extension ReanalysisService {
     private func repairSnapshot(
         ofSessionAt index: Int, in sessions: ArchivedSessions, into result: inout TrainingRepairResult
     ) async {
-        guard let session = await sessions.session(at: index),
-              session.state == .complete, session.analysisResult != nil else { return }
+        // An unread session counts as an error, not as one with nothing to repair.
+        guard let session = await sessions.session(at: index) else { return result.errors += 1 }
+        guard session.state == .complete, session.analysisResult != nil else { return }
         result.candidates += 1
         await repairSnapshot(for: session, into: &result)
     }
@@ -468,7 +476,7 @@ extension ReanalysisService {
         )
 
         for index in 0 ..< analysed.count {
-            if Task.isCancelled { break }
+            if Task.isCancelled { result.stoppedEarly = true; break }
             progress(index, analysed.count)
             await repairSnapshot(ofSessionAt: index, in: analysed, into: &result)
         }

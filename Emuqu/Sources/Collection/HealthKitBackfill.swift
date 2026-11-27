@@ -160,7 +160,7 @@ final class HealthKitBackfill {
         // between would look unexported and go to Health twice.
         guard HealthExportClaims.claim(entry.sessionId) else { return tally.failed += 1 }
         defer { HealthExportClaims.release(entry.sessionId) }
-        guard var session = readableSession(entry, archive: archive) else { return tally.skipped += 1 }
+        guard var session = readableSession(entry, archive: archive, tally: &tally) else { return }
         guard Self.needsBackfill(session) else { return tally.skipped += 1 }
         guard !Self.exportedUnstamped().contains(entry.sessionId.uuidString) else {
             return stampAlreadyExported(entry.sessionId, archive: archive, tally: &tally)
@@ -168,18 +168,25 @@ final class HealthKitBackfill {
         await exportClaimed(&session, entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
     }
 
-    /// The session, or nil when it cannot be read (its file is missing or
-    /// cannot be decrypted). Retrying will not make it readable, so the
-    /// caller counts it as skipped rather than failed: counted as failed it
-    /// held the watermark for good, and every foreground decrypted every
-    /// workout again.
-    private func readableSession(_ entry: SessionArchiveEntry, archive: SessionArchive) -> HRVSession? {
+    /// The session, or nil when it cannot be read. A failure retrying will
+    /// not clear (the file missing, undecryptable or undecodable) counts as
+    /// skipped: counted as failed it held the watermark for good, and every
+    /// foreground decrypted every workout again. One that clears by itself
+    /// (`ArchiveAccessFailure.mayClear`: the device locked, the disk full)
+    /// counts as failed, so the watermark holds and the workout is exported
+    /// once it can be read, not left out of Apple Health as done.
+    private func readableSession(
+        _ entry: SessionArchiveEntry, archive: SessionArchive, tally: inout (exported: Int, skipped: Int, failed: Int)
+    ) -> HRVSession? {
         let id = entry.sessionId.uuidString.prefix(8)
         do {
             if let session = try archive.retrieve(entry.sessionId) { return session }
             debugLog("[HealthKitManager] backfill: workout \(id) is listed but missing from the archive — skipped", level: .warning)
+            tally.skipped += 1
         } catch {
-            debugLog("[HealthKitManager] backfill: workout \(id) could not be read — skipped: \(error.localizedDescription)", level: .warning)
+            let forNow = ArchiveAccessFailure.mayClear(error)
+            debugLog("[HealthKitManager] backfill: workout \(id) could not be read (\(forNow ? "retried" : "skipped")): \(error.localizedDescription)", level: .warning)
+            if forNow { tally.failed += 1 } else { tally.skipped += 1 }
         }
         return nil
     }

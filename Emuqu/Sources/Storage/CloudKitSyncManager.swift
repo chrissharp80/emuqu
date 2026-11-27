@@ -162,6 +162,31 @@ final class CloudKitSyncManager {
         state.pendingUploadIds.count
     }
 
+    /// Sessions this device should have in iCloud and does not: everything
+    /// archived or queued, minus what is uploaded, quarantined (shown in
+    /// Troubleshooting, `quarantinedCount`) or kept on this device
+    /// (`CloudKitSyncState.markLocalOnly`). What the push works through, and
+    /// what has to be empty before a sync counts as up to date.
+    var outstandingUploadIds: Set<UUID> {
+        Set(archive.store.entries.map(\.sessionId))
+            .union(state.pendingUploadIds)
+            .subtracting(state.uploadedSessionIds)
+            .subtracting(state.quarantinedSessionIds)
+            .subtracting(state.localOnlySessionIds)
+    }
+
+    /// How many sessions still wait to go up (`outstandingUploadIds`).
+    var uploadsWaitingCount: Int {
+        outstandingUploadIds.count
+    }
+
+    /// Whether Settings may say "Up to date": no sync running or failed,
+    /// the archive's index loaded (an index that did not load lists none of
+    /// the sessions the push should cover), and nothing waiting to go up.
+    var isUpToDate: Bool {
+        syncState == .idle && archive.hasCompleteIndex && uploadsWaitingCount == 0
+    }
+
     /// Count of sessions QUARANTINED from sync due to a permanent prep failure
     /// (corrupt file / newer schema). Non-zero means data exists locally that
     /// cannot sync — surface it (Settings/Troubleshooting) so the user knows,
@@ -387,7 +412,7 @@ final class CloudKitSyncManager {
     ///     locally but never appear on the user's other devices.
     ///
     /// The gate applies only to this direct upload, made right after an
-    /// archive write. The batch push (`pendingPushBatch`) uploads every
+    /// archive write. The batch push (`pendingPushIds`) uploads every
     /// archived entry whatever its state, so a session skipped here still
     /// goes up on the next full sync.
     ///
@@ -784,9 +809,17 @@ final class CloudKitSyncManager {
             try await self.requireSyncStillOn()
             try await self.accountGuard.requireConfirmedAccount()
             await self.pull.pullRemoteChanges()
+            try Self.requirePhaseNotCutShort()
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
         }
+    }
+
+    /// A pull the watchdog or an account change cut short returns without an
+    /// error; the sync it ends is not complete, and stamps nothing.
+    nonisolated private static func requirePhaseNotCutShort() throws {
+        try Task.checkCancellation()
+        guard CloudAccountIdentity.isConfirmed else { throw CloudAccountGuard.Halt.stopped }
     }
 
     /// Ends a sync the user switched off while it ran, before its next
@@ -823,24 +856,58 @@ final class CloudKitSyncManager {
     /// `.syncing`. Nor does one whose bookkeeping could not be written
     /// (`CloudKitSyncState.hasUnsavedBookkeeping`): a relaunch would load the
     /// older files, so the sync is shown as failed and the next one is not
-    /// held back by the interval.
+    /// held back by the interval. Nor does one that leaves sessions waiting
+    /// to go up (`uploadsWaitingCount`) or ran over an index that did not
+    /// load: it is not complete, Settings shows what still waits
+    /// (`isUpToDate`), and the next activation syncs again.
     private func finishSuccessfulSync(pushed: Int, startedAt: Date) {
         // Turned off during this run, by `CloudAccountGuard.stopSync` (its
         // message stays) or by the user: nothing is stamped.
         guard settings.iCloudSyncEnabled else { return }
         if !schemaUnavailable {
-            if let syncError = lastPullErrorMessage ?? lastPushErrorMessage ?? lastDeletionErrorMessage {
-                syncState = .error(syncError)
-            } else if state.hasUnsavedBookkeeping {
-                debugLog("[CloudKit] Full sync ran, but its record of what was uploaded could not be saved — not stamped, so the next activation syncs again", level: .error)
-                syncState = .error(CloudSyncMessages.progressNotSaved)
-            } else {
-                lastSyncDate = Date()
-                syncState = .idle
-            }
+            apply(Self.completion(
+                syncError: lastPullErrorMessage ?? lastPushErrorMessage ?? lastDeletionErrorMessage,
+                bookkeepingUnsaved: state.hasUnsavedBookkeeping,
+                indexComplete: archive.hasCompleteIndex,
+                waitingUploads: uploadsWaitingCount
+            ))
         }
         let elapsed = Date().timeIntervalSince(startedAt)
         debugLog("[CloudKit] Full sync done — pushed=\(pushed), totalUploaded=\(state.uploadedSessionIds.count), elapsed=\(String(format: "%.1f", elapsed))s, schemaUnavailable=\(schemaUnavailable), pullError=\(lastPullErrorMessage ?? "none")")
+    }
+
+    /// How a full sync that ran every phase ended.
+    enum SyncCompletion: Equatable {
+        /// Everything it covers is done: `lastSyncDate` is stamped.
+        case upToDate
+        /// A phase failed in a way the user is shown.
+        case failed(String)
+        /// It ran, but sessions still wait to go up, or the archive's index
+        /// did not load: nothing is stamped.
+        case incomplete
+    }
+
+    /// The one rule for how a full sync ends: up to date only when no phase
+    /// failed, its bookkeeping was saved, the index it pushed from was
+    /// complete and no session waits to go up.
+    static func completion(syncError: String?, bookkeepingUnsaved: Bool, indexComplete: Bool, waitingUploads: Int) -> SyncCompletion {
+        if let syncError { return .failed(syncError) }
+        if bookkeepingUnsaved { return .failed(CloudSyncMessages.progressNotSaved) }
+        return indexComplete && waitingUploads == 0 ? .upToDate : .incomplete
+    }
+
+    private func apply(_ completion: SyncCompletion) {
+        switch completion {
+        case .upToDate:
+            lastSyncDate = Date()
+            syncState = .idle
+        case let .failed(message):
+            debugLog("[CloudKit] Full sync ran but did not complete, not stamped: \(message)", level: .warning)
+            syncState = .error(message)
+        case .incomplete:
+            debugLog("[CloudKit] Full sync ran with \(uploadsWaitingCount) session(s) still waiting to upload (index complete: \(archive.hasCompleteIndex)), not stamped", level: .warning)
+            syncState = .idle
+        }
     }
 
     /// Run full sync only when enough time has passed since the last successful sync.

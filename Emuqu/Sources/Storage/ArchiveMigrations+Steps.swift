@@ -42,6 +42,12 @@ extension ArchiveMigrations {
     func runDeferredMigrations() {
         reencryptPendingSessions(in: archive)
         archive.state.resealPlainIndexIfNeeded()
+        // An index that did not load lists none of the sessions: a pass over
+        // it would set each backfill's done flag having read nothing.
+        guard archive.hasCompleteIndex else {
+            debugLog("[Archive] Index not loaded this launch: archive migrations wait for a launch that reads it", level: .warning)
+            return
+        }
         migrateRecoveryScores()
         migrateEndDates()
         migrateMetrics()
@@ -112,8 +118,8 @@ extension ArchiveMigrations {
     /// not. Setting it only when the work list comes back empty would never
     /// happen: an entry with nothing to patch (a workout has no sleep
     /// fields) stays in the list for good, and every launch would re-read and
-    /// decrypt all of them. A session that fails to load keeps the flag off
-    /// so the next launch tries it again.
+    /// decrypt all of them. A session that fails to load, or patches the
+    /// index could not save, keep the flag off so the next launch tries again.
     @discardableResult
     private func runIndexMigration(
         flag: String, label: String,
@@ -130,8 +136,8 @@ extension ArchiveMigrations {
             guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label, encryption: archive.encryption) else { loadedAll = false; continue }
             if let patched = patch(entry, session) { patches.append((entry.sessionId, patched)) }
         }
-        applyIndexPatches(patches, label: label)
-        if loadedAll { UserDefaults.standard.set(true, forKey: flag) }
+        let saved = applyIndexPatches(patches, label: label)
+        if loadedAll, saved { UserDefaults.standard.set(true, forKey: flag) }
         return patches.count
     }
 
@@ -151,24 +157,32 @@ extension ArchiveMigrations {
     }
 
     /// Phase 3 of every migration here: apply the patches under lock and
-    /// persist. A no-op when nothing was patched.
+    /// persist. A no-op when nothing was patched. False when the index could
+    /// not be saved: the patches then live only in memory.
     ///
     /// A patch was built from the entry as it stood in phase 1. If the session
     /// was re-archived since, its entry now carries a new file hash, and the
     /// patch would put the old one back — the next read then fails its
     /// integrity check. Such a patch is dropped; the re-archive already wrote a
     /// complete entry.
-    private func applyIndexPatches(_ patches: [(UUID, SessionArchiveEntry)], label: String) {
-        guard !patches.isEmpty else { return }
+    @discardableResult
+    private func applyIndexPatches(_ patches: [(UUID, SessionArchiveEntry)], label: String) -> Bool {
+        guard !patches.isEmpty else { return true }
         archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
         for (id, patchedEntry) in patches {
             if let idx = archive.state.index.firstIndex(where: { $0.sessionId == id }),
                archive.state.index[idx].fileHash == patchedEntry.fileHash {
                 archive.state.index[idx] = patchedEntry
             }
         }
-        do { try archive.state.saveIndex() } catch { debugLog("[Archive] Failed to save index after \(label): \(error)") }
-        archive.archiveLock.unlock()
+        do {
+            try archive.state.saveIndex()
+            return true
+        } catch {
+            debugLog("[Archive] Failed to save index after \(label): \(error)", level: .warning)
+            return false
+        }
     }
 
     /// If neither sleep field resolves, there's nothing to patch — leave the

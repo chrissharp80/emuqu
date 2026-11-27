@@ -843,15 +843,19 @@ extension EmuquApp {
         // Iterating newest-first means the dashboard-visible session
         // gets rescored FIRST, so even if the run is cut short,
         // the user's currently-displayed score is the corrected one.
-        let allEntries = await MainActor.run { reanalysis.archive.store.entries }
+        let (allEntries, indexComplete) = await MainActor.run {
+            (reanalysis.archive.store.entries, reanalysis.archive.hasCompleteIndex)
+        }
         let unprocessed = allEntries.filter { !processed.contains($0.sessionId) }
+        // An index that did not load lists no sessions: nothing visited is
+        // not every session covered.
         guard !unprocessed.isEmpty else {
-            return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: true)
+            return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: indexComplete)
         }
         let processedThisRun = await rescoreAll(unprocessed, into: &processed, of: allEntries.count, reanalysis: reanalysis)
         return RescoreChunk(
             processed: processedThisRun, totalDone: processed.count, total: allEntries.count,
-            complete: allEntries.allSatisfy { processed.contains($0.sessionId) }
+            complete: indexComplete && allEntries.allSatisfy { processed.contains($0.sessionId) }
         )
     }
 

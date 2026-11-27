@@ -29,14 +29,13 @@ extension SessionDataMigrations {
             case .unchanged: continue
             }
         }
-        // A night whose write failed is still wrong: leave the flag unset so
-        // the next launch tries again. Nights already corrected read as
-        // correct and are skipped.
-        guard failed == 0 else {
-            debugLog("[TimeInBedRepair] Corrected time in bed on \(repaired) nights; \(failed) could not be written — retrying next launch", level: .warning)
+        // A night that could not be read or written may still be wrong:
+        // leave the flag unset so a later launch tries again. Nights already
+        // corrected read as correct and are skipped.
+        guard Self.finishTrainingMigration(key: Self.timeInBedRepairKey, complete: failed == 0) else {
+            debugLog("[TimeInBedRepair] Corrected time in bed on \(repaired) nights; \(failed) could not be read or written: retrying next launch", level: .warning)
             return
         }
-        defaults.set(true, forKey: Self.timeInBedRepairKey)
         debugLog("[TimeInBedRepair] Complete. Corrected time in bed on \(repaired) nights.")
     }
 
@@ -53,8 +52,9 @@ extension SessionDataMigrations {
     /// correction is applied to the archive's copy as it is at the write, so
     /// a change saved since the load is kept.
     private func repairTimeInBed(_ entry: SessionArchiveEntry) async -> TimeInBedRepairOutcome {
-        guard let session = await retrieveOffMain(entry.sessionId, caller: "TimeInBedRepair"),
-              let snapshot = session.sleepSnapshot,
+        // Unread is not "nothing to correct".
+        guard let session = await retrieveOffMain(entry.sessionId, caller: "TimeInBedRepair") else { return .failed }
+        guard let snapshot = session.sleepSnapshot,
               snapshot.timeInBedIsSleepPlusAwake,
               snapshot.inBedMinutes != snapshot.nightSleepMinutes + snapshot.awakeMinutes
         else { return .unchanged }

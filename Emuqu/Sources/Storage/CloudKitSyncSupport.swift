@@ -761,6 +761,16 @@ enum CloudSyncMessages {
     static var deletionsPending: String {
         String(localized: "Some deleted sessions are still in iCloud — retrying", bundle: LanguageManager.appBundle)
     }
+    /// Sessions this device has not got into iCloud yet; the next sync
+    /// tries them again.
+    static func uploadsWaiting(_ count: Int) -> String {
+        String(localized: "\(count) sessions still pending retry. iCloud may be unreachable.", bundle: LanguageManager.appBundle)
+    }
+    /// The archive's index did not load this launch, so sync cannot tell
+    /// which sessions still need to go up.
+    static var historyNotReadable: String {
+        String(localized: "Your history on this iPhone can't be read yet. Sync will try again.", bundle: LanguageManager.appBundle)
+    }
     static var previousSyncTimedOut: String {
         String(localized: "Previous sync timed out — retrying", bundle: LanguageManager.appBundle)
     }

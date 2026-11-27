@@ -9,7 +9,8 @@ import HealthKit
 
 extension HealthWorkoutImporter {
     /// Workouts in Apple Health from the last `days` that Emuqu does not
-    /// already have, newest first.
+    /// already have, newest first; nil when the workout list could not be
+    /// read (an error or a timeout), which is not "none to import".
     ///
     /// Emuqu's own writes are excluded at the query, not filtered afterwards:
     /// the app exports every workout it records back to Apple Health, so
@@ -19,10 +20,10 @@ extension HealthWorkoutImporter {
         days: Int = 30,
         archive: SessionArchive,
         now: Date = Date()
-    ) async -> [Candidate] {
+    ) async -> [Candidate]? {
         guard access.isAvailable else { return [] }
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
-        let workouts = await externalWorkouts(from: start, to: now)
+        guard let workouts = await externalWorkouts(from: start, to: now) else { return nil }
         let archived = archive.store.entries(from: start, to: now)
             .filter { $0.sessionType == .workout }
             .map(\.date)
@@ -95,9 +96,9 @@ extension HealthWorkoutImporter {
 
     // MARK: - Queries
 
-    /// Every workout in the window that this app did not write. A failed or
-    /// timed-out read is logged and comes back empty.
-    private func externalWorkouts(from start: Date, to end: Date) async -> [HKWorkout] {
+    /// Every workout in the window that this app did not write; nil, logged,
+    /// when the read failed or timed out.
+    private func externalWorkouts(from start: Date, to end: Date) async -> [HKWorkout]? {
         let inWindow = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
         let notOurs = NSCompoundPredicate(
             notPredicateWithSubpredicate: HKQuery.predicateForObjects(from: HKSource.default())
@@ -106,7 +107,7 @@ extension HealthWorkoutImporter {
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await workouts(
             matching: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort], reading: "workout list"
-        ) ?? []
+        )
     }
 
     /// The workout, or nil when it is gone, the read failed or it timed out;
@@ -117,8 +118,8 @@ extension HealthWorkoutImporter {
         )?.first
     }
 
-    /// Workouts matching `predicate`, or nil when the read timed out. A read
-    /// error is logged and comes back as an empty list.
+    /// Workouts matching `predicate`, or nil when the read failed or timed
+    /// out (both logged): an empty list means HealthKit answered with none.
     private func workouts(
         matching predicate: NSPredicate,
         limit: Int,
@@ -133,25 +134,25 @@ extension HealthWorkoutImporter {
                 limit: limit, sortDescriptors: sortDescriptors
             ) { _, samples, error in
                 Self.noteFailedRead(what, error: error)
-                resolve((samples as? [HKWorkout]) ?? [])
+                resolve(error == nil ? (samples as? [HKWorkout]) ?? [] : nil)
             }
         }
-        if found == nil { Self.noteTimedOutRead(what) }
+        if found == nil { Self.noteUnansweredRead(what) }
         return found
     }
 
     /// Logs a HealthKit read that came back with an error; nothing when
-    /// `error` is nil. The callers still return an empty result, which the
-    /// import screen reads as "nothing there"; the log line is what tells
-    /// the two apart.
+    /// `error` is nil. The read then comes back nil, not empty, so the
+    /// import screen does not read a failure as "nothing there".
     nonisolated static func noteFailedRead(_ what: String, error: Error?) {
         guard let error else { return }
         debugLog("[HealthImport] \(what) read failed: \(error.localizedDescription)", level: .warning)
     }
 
-    /// Logs a HealthKit read that hit its time limit; see `noteFailedRead`.
-    nonisolated static func noteTimedOutRead(_ what: String) {
-        debugLog("[HealthImport] \(what) read timed out", level: .warning)
+    /// Logs a HealthKit read that hit its time limit or failed; see
+    /// `noteFailedRead`.
+    nonisolated static func noteUnansweredRead(_ what: String) {
+        debugLog("[HealthImport] \(what) read timed out or failed", level: .warning)
     }
 
     /// The workout's GPS track, or empty for an indoor or route-less workout.
@@ -223,7 +224,7 @@ extension HealthWorkoutImporter {
             }
         }
         guard let windows else {
-            Self.noteTimedOutRead("step")
+            Self.noteUnansweredRead("step")
             return []
         }
         return windows
