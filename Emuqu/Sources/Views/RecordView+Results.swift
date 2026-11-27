@@ -69,7 +69,8 @@ extension RecordView {
     ///
     /// Written to the in-memory session as well as the archive: a reading
     /// still waiting for acceptance may not be archived yet, and acceptance
-    /// archives the in-memory copy over any stored one.
+    /// archives the in-memory copy over any stored one. The archive write goes
+    /// to the id the archive holds the night under (`storePreScoreFeeling`).
     func applyMorningFeelingAnswers(_ answers: PreScorePromptView.Answers, to session: HRVSession) {
         guard let feeling = answers.feeling, session.morningFeeling == nil else { return }
         let value = Self.feelingValue(feeling)
@@ -91,9 +92,12 @@ extension RecordView {
         }
     }
 
-    nonisolated private static func storePreScoreFeeling(_ value: Int, id: UUID, archive: SessionArchive) {
+    /// Store the feeling on the copy the archive holds the night under
+    /// (`SessionArchive.archivedId(of:)`): a night folded into one already
+    /// archived takes its feeling on that night.
+    nonisolated static func storePreScoreFeeling(_ value: Int, id: UUID, archive: SessionArchive) {
         do {
-            try archive.update(id) { stored in
+            try archive.update(archive.archivedId(of: id)) { stored in
                 stored.morningFeeling = stored.morningFeeling ?? value
             }
         } catch {
@@ -110,7 +114,8 @@ extension RecordView {
     /// The morning tag is added when the recording ended between 4 and 10 AM.
     /// The tags go onto `currentSession` as well as the archive: a reading not
     /// archived yet has no file to update, and acceptance archives the
-    /// in-memory copy over any stored one.
+    /// in-memory copy over any stored one. The archive write goes to the id
+    /// the archive holds the night under (`storeTags`).
     func persistTagsAndNotes(for session: HRVSession) async {
         let tags = Array(Self.tagsToSave(selectedTags, endedAt: session.endDate ?? Date()))
         let notes = sessionNotes.isEmpty ? nil : sessionNotes
@@ -141,18 +146,25 @@ extension RecordView {
     /// tag. Any other reading is archived and is not saved again, so a
     /// failure loses the edit and is reported (`tagSaveFailureMessage`), as
     /// History reports its own.
-    func writeTagsToArchive(_ id: UUID, tags: [ReadingTag], notes: String?) async {
-        let acceptanceSavesTags = sessionState.needsAcceptance && sessionState.currentSession?.id == id
+    func writeTagsToArchive(_ sessionId: UUID, tags: [ReadingTag], notes: String?) async {
+        let acceptanceSavesTags = sessionState.needsAcceptance && sessionState.currentSession?.id == sessionId
         let archive = collector.archive
         do {
-            try await Task.detached { try archive.updateTags(id, tags: tags, notes: notes) }.value
+            try await Task.detached { try Self.storeTags(tags, notes: notes, of: sessionId, in: archive) }.value
         } catch SessionArchive.ArchiveError.fileNotFound, SessionArchive.ArchiveError.sessionWasDeleted {
-            debugLog("[RecordView] Tags not written: \(id.uuidString.prefix(8)) is not in the archive")
+            debugLog("[RecordView] Tags not written: \(sessionId.uuidString.prefix(8)) is not in the archive")
         } catch {
-            debugLog("[RecordView] Tags not written to the archive for \(id.uuidString.prefix(8)): \(error)")
+            debugLog("[RecordView] Tags not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
             guard !acceptanceSavesTags else { return }
             tagSaveFailureMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
+    }
+
+    /// Write the tags and notes to the copy the archive holds the reading
+    /// under (`SessionArchive.archivedId(of:)`): a night folded into one
+    /// already archived takes its edits on that night.
+    nonisolated static func storeTags(_ tags: [ReadingTag], notes: String?, of sessionId: UUID, in archive: SessionArchive) throws {
+        try archive.updateTags(archive.archivedId(of: sessionId), tags: tags, notes: notes)
     }
 
     /// The tag-save failure alert, on the Record screen and on each report

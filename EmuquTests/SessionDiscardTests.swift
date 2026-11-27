@@ -168,6 +168,33 @@ final class SessionDiscardTests: XCTestCase {
         XCTAssertNotNil(retrieved, "the acceptance would update an id the archive does not hold")
     }
 
+    /// After a fold the review card's own id is not in the archive; the
+    /// feeling, tags and notes given on the card land on the night that is.
+    func testMorningCardEditsAfterAFoldLandOnTheNightTheArchiveKept() async throws {
+        let collector = makeCollector()
+        let lastNight = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-3600)
+        let night = try archivedNight(startingAt: lastNight)
+        let secondId = UUID()
+        let secondStart = lastNight.addingTimeInterval(3600)
+        let points = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 980 : 1020) }
+        let second = HRVSession(
+            id: secondId, startDate: secondStart, endDate: secondStart.addingTimeInterval(5 * 3600), state: .complete,
+            sessionType: .overnight,
+            rrSeries: RRSeries(points: points, sessionId: secondId, startDate: secondStart),
+            analysisResult: nil, artifactFlags: nil
+        )
+        collector.morning.archiveForReview(second)
+        XCTAssertEqual(collector.sessionState.reviewFoldedIntoSessionId, night.id)
+
+        RecordView.storePreScoreFeeling(2, id: secondId, archive: archive)
+        try RecordView.storeTags([ReadingTag.alcohol], notes: "late dinner", of: secondId, in: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(night.id))
+        XCTAssertEqual(stored.morningFeeling, 2, "the feeling went to an id the archive does not hold")
+        XCTAssertEqual(stored.tags.map(\.id), [ReadingTag.alcohol.id])
+        XCTAssertEqual(stored.notes, "late dinner")
+    }
+
     /// Deleting announces the change the way archiving does, so every
     /// observer of the archive refreshes without the caller telling it.
     func testDeleteAnnouncesTheChange() throws {

@@ -51,8 +51,11 @@ enum SessionMerger {
         var adoptAnalysisResult = false
         /// Fill existing's nil recoveryScore from imported (no-RR-merge path).
         var adoptRecoveryScore = false
+        /// The user's own content on the imported side (`decideUserContent`).
         var tagsToAppend: [ReadingTag] = []
         var adoptNotes = false
+        var adoptMorningFeeling = false
+        var adoptPerceivedReadiness = false
         var adoptImportedMetrics = false
 
         /// Mirrors the historical `changed` return contract: any RR change
@@ -60,7 +63,8 @@ enum SessionMerger {
         /// fill-in counts.
         var hasChanges: Bool {
             rrChange != nil || adoptAnalysisResult || adoptRecoveryScore
-                || !tagsToAppend.isEmpty || adoptNotes || adoptImportedMetrics
+                || !tagsToAppend.isEmpty || adoptNotes || adoptMorningFeeling
+                || adoptPerceivedReadiness || adoptImportedMetrics
         }
     }
 
@@ -98,16 +102,12 @@ enum SessionMerger {
         return outcome
     }
 
-    /// Metadata fills. RR decisions never touch tags/notes/importedMetrics,
-    /// so deciding from the pre-merge snapshot is safe.
+    /// Metadata fills. RR decisions never touch the user's content or
+    /// importedMetrics, so deciding from the pre-merge snapshot is safe.
     private static func decideMetadataFills(
         imported: HRVSession, existing: HRVSession, into outcome: inout MergeOutcome
     ) {
-        let existingTagIds = Set(existing.tags.map(\.id))
-        outcome.tagsToAppend = imported.tags.filter { !existingTagIds.contains($0.id) }
-        if let importedNotes = imported.notes, !importedNotes.isEmpty, (existing.notes ?? "").isEmpty {
-            outcome.adoptNotes = true
-        }
+        decideUserContent(imported: imported, existing: existing, into: &outcome)
         if existing.importedMetrics == nil, imported.importedMetrics != nil {
             outcome.adoptImportedMetrics = true
         }
@@ -266,12 +266,18 @@ enum SessionMerger {
     /// When this is false we keep the existing analysis — it was computed on
     /// at least as much raw data, and swapping in a smaller-session analysis
     /// would be a regression.
+    ///
+    /// A window the user picked (`windowUserAdjusted`) wins over beat counts
+    /// on either side: the existing pick is kept, an imported pick is taken.
+    /// The kept analysis is re-pointed at the same beats in the composite
+    /// (`applyComposite`), so the pick and the score it gave stay valid.
     private static func shouldAdoptImportedAnalysis(
         imported: HRVSession, existing: HRVSession,
         importedPoints: [RRPoint], existingPoints: [RRPoint]
     ) -> Bool {
-        imported.analysisResult != nil
-            && (existing.analysisResult == nil || importedPoints.count > existingPoints.count)
+        guard imported.analysisResult != nil, existing.windowUserAdjusted != true else { return false }
+        return imported.windowUserAdjusted == true || existing.analysisResult == nil
+            || importedPoints.count > existingPoints.count
     }
 
     // MARK: Imperative shell
@@ -287,10 +293,7 @@ enum SessionMerger {
         } else {
             applyRRChange(outcome, from: imported, to: &existing)
         }
-        existing.tags.append(contentsOf: outcome.tagsToAppend)
-        if outcome.adoptNotes {
-            existing.notes = imported.notes
-        }
+        applyUserContent(outcome, from: imported, to: &existing)
         if outcome.adoptImportedMetrics {
             existing.importedMetrics = imported.importedMetrics
         }
@@ -407,13 +410,15 @@ enum SessionMerger {
     }
 
     /// What was decided about the analysis being adopted goes with it: its
-    /// quality class, and the sleep and vitals snapshots taken for its night.
+    /// quality class, whether its window was picked by hand, and the sleep and
+    /// vitals snapshots taken for its night.
     /// Left behind, a full night folded into a short fragment would keep the
     /// fragment's `.insufficient` (which re-scoring never revisits once set)
     /// and its snapshots. A snapshot the adopted side never took keeps the
     /// one there is.
     private static func adoptAnalysisDerivedState(from imported: HRVSession, to existing: inout HRVSession) {
         existing.hrvDataQuality = imported.hrvDataQuality
+        existing.windowUserAdjusted = imported.windowUserAdjusted
         existing.sleepSnapshot = imported.sleepSnapshot ?? existing.sleepSnapshot
         existing.vitalsSnapshot = imported.vitalsSnapshot ?? existing.vitalsSnapshot
     }
