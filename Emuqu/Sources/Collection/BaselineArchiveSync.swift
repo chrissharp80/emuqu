@@ -9,7 +9,8 @@ import Foundation
 /// step the baseline is rebuilt from the archive once (`rebuild`).
 ///
 /// Out of step: a night the baseline holds that the archive no longer does,
-/// or a scored overnight the archive holds that the baseline does not. The
+/// a scored overnight the archive holds that the baseline does not, or a
+/// night both hold whose archived reading changed (`storedReadingDiffers`). The
 /// paths that update the baseline themselves (acceptance, reanalysis) have
 /// done so by the time the burst settles, so they cause no rebuild.
 @MainActor
@@ -58,10 +59,27 @@ final class BaselineArchiveSync {
         rebuild()
     }
 
-    /// Whether the baseline and the archive disagree about the night `id`.
+    /// Whether the baseline and the archive disagree about the night `id`:
+    /// one side holds it and the other does not, or both hold it but the
+    /// archive's copy was re-analysed elsewhere (a reanalysis synced from
+    /// another device replaces the night under the same id) to a different
+    /// RMSSD or to a reading no longer reliable enough for the baseline.
     func isOutOfStep(_ id: UUID) -> Bool {
-        let inBaseline = baseline.holdsReading(of: id)
-        guard let entry = archive.store.entries.first(where: { $0.sessionId == id }) else { return inBaseline }
-        return !inBaseline && entry.sessionType == .overnight && entry.recoveryScore != nil && entry.meanRMSSD != nil
+        let held = baseline.heldRMSSD(of: id)
+        guard let entry = archive.store.entries.first(where: { $0.sessionId == id }) else { return held != nil }
+        guard let held else {
+            return entry.sessionType == .overnight && entry.recoveryScore != nil && entry.meanRMSSD != nil
+        }
+        return Self.storedReadingDiffers(held: held, entry: entry)
     }
+
+    /// A held night whose archived copy now reads differently, or is now
+    /// unreliable or no longer an overnight, is stale in the baseline.
+    static func storedReadingDiffers(held: Double, entry: SessionArchiveEntry) -> Bool {
+        guard entry.sessionType == .overnight, entry.isReliableForHRVAggregates, let archived = entry.meanRMSSD else { return true }
+        return abs(archived - held) > rmssdTolerance
+    }
+
+    /// Below this (ms) two RMSSD values are the same reading stored twice.
+    static let rmssdTolerance = 0.001
 }

@@ -202,8 +202,13 @@ extension WorkoutTicker {
     /// The live snapshot only feeds the AI assistant,
     /// so the per-tick build is skipped when the assistant is off (matches
     /// the geocode gate in `refreshEnvironmentContextIfNeeded`).
+    ///
+    /// The strap buffer is read only for a strap workout: a stopped stream
+    /// keeps its points, so for a Watch or no-HR workout it may hold a
+    /// previous session's beats, which must not be backed up, counted or
+    /// turned into heart rate under this workout's id.
     func incrementalBackupTick() {
-        let buffer = core.strapStream.streamedRRPoints
+        let buffer = WorkoutRRMerge.liveStrapBuffer(source: lifecycle.activeHRSource, streaming: core.strapStream.streamedRRPoints)
         workoutHR.beatCount = buffer.count
 
         runIncrementalBackup(buffer: buffer)

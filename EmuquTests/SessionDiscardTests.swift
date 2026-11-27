@@ -143,6 +143,31 @@ final class SessionDiscardTests: XCTestCase {
         XCTAssertNil(collector.sessionState.reviewFoldedIntoSessionId)
     }
 
+    /// After a fold the review card's own id is not in the archive; the
+    /// acceptance re-scores, and tags, the night that is.
+    func testAcceptanceAfterAFoldReadsTheNightTheArchiveKept() async throws {
+        let collector = makeCollector()
+        let lastNight = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-3600)
+        let night = try archivedNight(startingAt: lastNight)
+        let secondId = UUID()
+        let secondStart = lastNight.addingTimeInterval(3600)
+        let points = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 980 : 1020) }
+        let second = HRVSession(
+            id: secondId, startDate: secondStart, endDate: secondStart.addingTimeInterval(5 * 3600), state: .complete,
+            sessionType: .overnight,
+            rrSeries: RRSeries(points: points, sessionId: secondId, startDate: secondStart),
+            analysisResult: nil, artifactFlags: nil
+        )
+        collector.sessionState.currentSession = second
+        collector.morning.archiveForReview(second)
+
+        let archivedId = MorningSessionPipeline.archivedId(of: second, foldedInto: collector.sessionState.reviewFoldedIntoSessionId)
+
+        XCTAssertEqual(archivedId, night.id)
+        let retrieved = await collector.retrieveFullSessionAsync(archivedId)
+        XCTAssertNotNil(retrieved, "the acceptance would update an id the archive does not hold")
+    }
+
     /// Deleting announces the change the way archiving does, so every
     /// observer of the archive refreshes without the caller telling it.
     func testDeleteAnnouncesTheChange() throws {

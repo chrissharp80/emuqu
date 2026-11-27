@@ -634,6 +634,14 @@ final class BaselineTracker: @unchecked Sendable {
         return historicalData.contains { $0.sessionId == id }
     }
 
+    /// The RMSSD the stored night of the session `id` holds, or nil when the
+    /// baseline holds no reading of it.
+    func heldRMSSD(of id: UUID) -> Double? {
+        lock.lock()
+        defer { lock.unlock() }
+        return historicalData.first { $0.sessionId == id }?.rmssd
+    }
+
     /// Calculate deviation from baseline for a session
     /// - Parameter session: Session to compare against baseline
     /// - Returns: Deviation metrics, or nil if no baseline

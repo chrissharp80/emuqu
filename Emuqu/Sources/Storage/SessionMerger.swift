@@ -328,6 +328,7 @@ enum SessionMerger {
             let offsetMs = MillisecondOffset.between(imported.startDate, and: existing.startDate, fallback: 0)
             let existingPoints = existing.rrSeries?.points ?? []
             existing.analysisResult = imported.analysisResult.map { repointed(shifted($0, by: offsetMs), onto: existingPoints) }
+            adoptAnalysisDerivedState(from: imported, to: &existing)
         }
         if outcome.adoptRecoveryScore {
             adoptFrozenScore(from: imported, to: &existing)
@@ -394,13 +395,27 @@ enum SessionMerger {
         }
     }
 
-    /// The analysis result and the frozen score triple move together.
+    /// The analysis result and the frozen score triple move together, with
+    /// the state read off that analysis (`adoptAnalysisDerivedState`).
     private static func adoptAnalysis(
         _ shouldAdopt: Bool, from imported: HRVSession, to existing: inout HRVSession
     ) {
         guard shouldAdopt else { return }
         existing.analysisResult = imported.analysisResult
         adoptFrozenScore(from: imported, to: &existing)
+        adoptAnalysisDerivedState(from: imported, to: &existing)
+    }
+
+    /// What was decided about the analysis being adopted goes with it: its
+    /// quality class, and the sleep and vitals snapshots taken for its night.
+    /// Left behind, a full night folded into a short fragment would keep the
+    /// fragment's `.insufficient` (which re-scoring never revisits once set)
+    /// and its snapshots. A snapshot the adopted side never took keeps the
+    /// one there is.
+    private static func adoptAnalysisDerivedState(from imported: HRVSession, to existing: inout HRVSession) {
+        existing.hrvDataQuality = imported.hrvDataQuality
+        existing.sleepSnapshot = imported.sleepSnapshot ?? existing.sleepSnapshot
+        existing.vitalsSnapshot = imported.vitalsSnapshot ?? existing.vitalsSnapshot
     }
 
     /// Adopt the imported session's frozen SCORE TRIPLE as a unit.

@@ -141,6 +141,12 @@ extension MorningSessionPipeline {
         streamingLifecycle.sessionStartTime = nil
     }
 
+    /// The id the night on the review card is archived under: its own, or
+    /// that of the night the archive folded it into (`reviewFoldedIntoSessionId`).
+    nonisolated static func archivedId(of session: HRVSession, foldedInto foldedId: UUID?) -> UUID {
+        foldedId ?? session.id
+    }
+
     /// Save the night before the user reviews it, so a crash on the review
     /// card never loses it. A night that was not in the archive before is
     /// remembered so "Discard" can take it back out; one the archive folded

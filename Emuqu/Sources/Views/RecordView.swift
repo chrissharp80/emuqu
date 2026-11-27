@@ -429,7 +429,9 @@ struct RecordView: View {
 
     /// Read from the archive to get the latest version — background
     /// refinement may have archived a composite/device session under the same
-    /// ID, superseding the streaming-only one.
+    /// ID, superseding the streaming-only one. A night the archive folded into
+    /// one it already held lives under that night's id, so that is the one
+    /// re-scored and given the pre-night tags and notes.
     ///
     /// Off-main decode. `archive.retrieve` does a synchronous
     /// disk read + decrypt + full rrSeries JSON decode; this Task inherits the
@@ -441,9 +443,10 @@ struct RecordView: View {
     /// notes, was re-archived.
     private func scoreLatestVersion(of session: HRVSession) async -> Bool {
         debugLog("[AutoAccept] currentSession=\(session.id.uuidString.prefix(8)), source=\(session.dataSourceSummary?.selectedSource ?? "nil")")
-        let retrieved = await collector.retrieveFullSessionAsync(session.id)
+        let archivedId = MorningSessionPipeline.archivedId(of: session, foldedInto: sessionState.reviewFoldedIntoSessionId)
+        let retrieved = await collector.retrieveFullSessionAsync(archivedId)
         let latestSession = preSessionTagged(retrieved ?? session)
-        debugLog("[AutoAccept] archive.retrieve(\(session.id.uuidString.prefix(8))): \(retrieved == nil ? "FAILED — using in-memory session" : "OK"), source=\(latestSession.dataSourceSummary?.selectedSource ?? "nil")")
+        debugLog("[AutoAccept] archive.retrieve(\(archivedId.uuidString.prefix(8))): \(retrieved == nil ? "FAILED — using in-memory session" : "OK"), source=\(latestSession.dataSourceSummary?.selectedSource ?? "nil")")
         return await collector.morning.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
     }
 
