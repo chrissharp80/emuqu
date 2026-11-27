@@ -52,6 +52,12 @@ protocol HealthKitServiceProtocol: Sendable {
     ///   For historical sessions, pass the session's end date so ATL/CTL/TSB reflect that point in time.
     func calculateTrainingLoad(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad
 
+    /// `calculateTrainingLoad(relativeTo:)`, but nil when HealthKit did not
+    /// answer the workout query (the store locked, an error, a timeout), so a
+    /// stored training snapshot is never rewritten from a failed query read
+    /// as a period with no workouts.
+    func calculateTrainingLoadIfAnswered(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad?
+
     // MARK: - Recovery Vitals
 
     /// Fetch recovery vitals (respiratory rate, SpO2, temperature)
@@ -201,5 +207,9 @@ struct HealthKitService: HealthKitServiceProtocol {
     /// The morning reading's seven-day load.
     func calculateTrainingLoad(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad {
         await training.calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
+    }
+
+    func calculateTrainingLoadIfAnswered(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad? {
+        await training.answeredTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
     }
 }

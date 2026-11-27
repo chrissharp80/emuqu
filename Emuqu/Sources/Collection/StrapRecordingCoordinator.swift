@@ -75,14 +75,30 @@ final class StrapRecordingState {
 
     /// Whether a stored strap recording that began at `start` may be cleared.
     func isRecordingSaved(startedAt start: Date) -> Bool {
-        savedRecordingCheck?(start) ?? downloadLedger.wasDownloaded(recordingStartedAt: start)
+        savedRecordingCheck?(start) ?? downloadLedger.wasSaved(recordingStartedAt: start)
     }
 
     /// Backs `recording` up through `onUnrecoveredDataRescued`. False when
     /// the backup failed or nothing is set to take it: the strap then still
-    /// holds the only copy, and must not be cleared.
+    /// holds the only copy, and must not be cleared. A backup on disk puts
+    /// the recording on the saved record.
     func rescueToBackup(_ recording: StrapRecording) -> Bool {
-        onUnrecoveredDataRescued?(recording) ?? false
+        guard onUnrecoveredDataRescued?(recording) ?? false else { return false }
+        noteSaved(recording)
+        return true
+    }
+
+    /// `recording`'s beats are on disk, in a backup or an archived session,
+    /// so the strap's copy of it may be cleared (`StrapDownloadLedger`).
+    func noteSaved(_ recording: StrapRecording) {
+        guard let start = recording.startedAt else { return }
+        downloadLedger.markSaved(recordingStartedAt: start)
+    }
+
+    /// The beats of the recording a session downloaded for itself, one that
+    /// began at or after the session's `start`, are on disk.
+    func noteDownloadsSaved(recordedSince start: Date) {
+        downloadLedger.markDownloadsSaved(recordedSince: start)
     }
 
     /// Helper to update fetch progress on main thread

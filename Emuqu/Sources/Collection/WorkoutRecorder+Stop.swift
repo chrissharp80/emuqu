@@ -147,6 +147,10 @@ extension WorkoutRecorder {
     ) async -> (session: HRVSession, saveOutcome: WorkoutSaveOutcome) {
         debugLog("[Recorder.stop] step=finalizeSession (rrPoints=\(rrPoints.count), elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         let finished = await finalizer.finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
+        if finished.saveOutcome == .saved {
+            // The strap recording downloaded for this workout is in the archive.
+            core.strapRecorder.device.noteDownloadsSaved(recordedSince: lifecycle.sessionStartDate ?? stopDate)
+        }
         // Used once, by this finalize.
         capture.wristHROffsets = []
         lifecycle.liveSnapshotAtStop = nil

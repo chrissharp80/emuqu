@@ -184,7 +184,7 @@ final class StrapArmingTests: XCTestCase {
         let lastNight = Date().addingTimeInterval(-20 * 3600)
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 700))
         let manager = linkedManager(radio)
-        manager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: lastNight)
+        manager.deviceRecording.downloadLedger.markSaved(recordingStartedAt: lastNight)
 
         try await manager.recording.startFreshRecording()
 

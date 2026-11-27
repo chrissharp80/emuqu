@@ -1123,12 +1123,12 @@ mutate "baseline_rebuild_drops_unread_nights" "EmuquTests/BaselineTrackerTests" 
 # A pause backs the strap's downloaded beats up before the analysis.
 mutate "pause_leaves_strap_night_in_memory" "EmuquTests/StrapRecoveryFlowTests" \
     "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift');s=p.read_text();o='        await morning.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift');s=p.read_text();o='        await keepDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
 
 # A Skip as the download finishes keeps the downloaded beats.
 mutate "late_skip_drops_download" "EmuquTests/StrapRecoveryFlowTests" \
     "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift');s=p.read_text();o='        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift');s=p.read_text();o='        if let recording, morning.rescueDownloadedBeats(recording.points(onClockOf: baseSession.startDate), baseSession: baseSession) {\n';assert s.count(o)==1;p.write_text(s.replace(o,'        if let recording, recording.points.isEmpty {\n'))"
 
 # Discard Night leaves nothing in the Trash.
 mutate "discard_leaves_night_in_trash" "EmuquTests/RecordingDiscardTests" \

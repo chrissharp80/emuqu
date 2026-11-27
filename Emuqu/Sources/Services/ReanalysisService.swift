@@ -79,6 +79,9 @@ final class ReanalysisService {
     private let windowSelector: WindowSelector
     private let artifactDetector: ArtifactDetector
     let baselineTracker: BaselineTracker
+    /// Archive-rebuilt baselines of nights older than the tracker's stored
+    /// window (`scoringBaseline(for:)`).
+    var archivedBaselineMemo = ArchivedBaselineMemo()
 
     /// Closure returning the current user settings snapshot.
     let settingsProvider: () -> UserSettings
@@ -217,27 +220,6 @@ final class ReanalysisService {
         }.value
     }
 
-    /// Reanalyze selects the recovery window with the
-    /// SAME rule as the initial ("morning") analyze: ranked against the
-    /// rolling baseline (calculateTier1), exactly like MorningProcessingService.
-    /// Passing `baselineStats: nil` here makes reanalyze rank by raw RMSSD
-    /// (highest HRV wins) while morning ranks baseline-relative, so reanalyze
-    /// systematically chooses a higher-HRV window and produces a higher score
-    /// than the accepted morning score — which trains the user to reanalyze
-    /// every day.
-    /// Read on the actor so the all-value struct can be captured into the
-    /// detached task. Peak-metric methods (.peakRMSSD etc.) still select their
-    /// window via selectWindowByMethod, which is baseline-agnostic by
-    /// definition — the baseline here only feeds the companion capacity scan,
-    /// matching the morning path.
-    /// Like the scorer, it leaves out the session's own night: a reading is
-    /// compared with the nights before it, never with itself.
-    func scoringBaseline(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
-        baselineTracker.recoveryBaselineStats(
-            excludingNightOf: session, sleepSchedule: settingsProvider().sleepSchedule
-        )
-    }
-
     /// The consolidated-recovery path ranks candidate windows; every other
     /// method picks by its own metric and borrows only the capacity scan.
     nonisolated private static func selectWindow(
@@ -311,6 +293,7 @@ final class ReanalysisService {
         _ session: HRVSession, series: RRSeries, method: WindowSelectionMethod
     ) async -> (session: HRVSession, healedTraining: Bool)? {
         debugLog("[ReanalysisService] Re-analyzing session \(session.id) with \(series.points.count) points")
+        await prepareScoringBaseline(for: session)
         // Copy the original session and update only what reanalysis changes.
         let sessionEndDate = session.endDate ?? session.startDate.addingTimeInterval(12 * 60 * 60)
         let bounds = Self.analysisBounds(for: session, sessionEndDate: sessionEndDate)
@@ -432,10 +415,12 @@ final class ReanalysisService {
     /// live (includes-today) value — it snaps back to wake on the next
     /// reanalyze. Only used when training-load integration is on and
     /// it returns real values; otherwise the existing frozen snapshot
-    /// stands (nil is intentional when integration is off).
+    /// stands (nil is intentional when integration is off). So it does when
+    /// HealthKit did not answer the workout query (`calculateTrainingLoadIfAnswered`):
+    /// read as no workouts, the load would be the archive's workouts alone.
     private func wakeTimeTraining(candidate: TrainingContext?, sessionEndDate: Date) async -> TrainingContext? {
-        guard settingsProvider().enableTrainingLoadIntegration else { return candidate }
-        let wakeLoad = await healthKit.calculateTrainingLoad(relativeTo: sessionEndDate)
+        guard settingsProvider().enableTrainingLoadIntegration,
+              let wakeLoad = await healthKit.calculateTrainingLoadIfAnswered(relativeTo: sessionEndDate) else { return candidate }
         guard let wakeContext = TrainingContext(from: wakeLoad, relativeTo: sessionEndDate),
               wakeContext.atl > 0 || wakeContext.ctl > 0 else { return candidate }
         return wakeContext
@@ -489,6 +474,9 @@ final class ReanalysisService {
         debugLog("[ReanalysisService] Re-analysis complete")
     }
 
+    /// The score, breakdown and frozen readiness against the nights before
+    /// the session; the stored ones stay when no baseline can be built for
+    /// it (`keepsStoredScore`).
     private func applyRecoveryScore(
         to session: inout HRVSession,
         analysisResult: HRVAnalysisResult,
@@ -497,6 +485,12 @@ final class ReanalysisService {
     ) {
         if let frozen = frozenTraining {
             session.analysisResult?.trainingContext = frozen
+        }
+        guard !Self.keepsStoredScore(originalSession, baseline: scoringBaseline(for: session)) else {
+            session.recoveryScore = originalSession.recoveryScore
+            session.scoreBreakdown = originalSession.scoreBreakdown
+            session.frozenReadiness = originalSession.frozenReadiness
+            return
         }
         let scored = deterministicRecoveryScore(for: session, result: analysisResult)
         session.recoveryScore = scored.score
@@ -582,8 +576,9 @@ final class ReanalysisService {
 
     /// One score-only pass from the archived copy. Nil when the session or
     /// its analysis is missing, the archived copy cannot be read (logged at
-    /// `.error` by `ArchivedSessionRead`), the composite is NaN/Inf, or the
-    /// write fails.
+    /// `.error` by `ArchivedSessionRead`), no baseline can be built for a
+    /// night that has a stored score (`keepsStoredScore`), the composite is
+    /// NaN/Inf, or the write fails.
     private func scoreOnlyRun(sessionId: UUID) async -> RescoreWrite.Outcome? {
         let read = ArchivedSessionRead.read(sessionId, from: archive, caller: "recomputeScoreOnly")
         guard let session = read.session else {
@@ -596,6 +591,8 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] recomputeScoreOnly: session has no analysisResult — nothing to score from")
             return nil
         }
+        await prepareScoringBaseline(for: session)
+        guard !Self.keepsStoredScore(session, baseline: scoringBaseline(for: session)) else { return nil }
         let healedTraining = await healedTrainingContext(for: session, result: result)
         guard let updated = rescored(session, result: result, training: healedTraining) else { return nil }
         let healed = healedTraining.map { RescoreWrite.heals($0, over: session.trainingSnapshot ?? result.trainingContext) } ?? false

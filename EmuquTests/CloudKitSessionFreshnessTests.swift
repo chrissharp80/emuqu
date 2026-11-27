@@ -232,6 +232,52 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertEqual(server["isDeleted"] as? Int64, TrashRestoreCoordinator.restoredMarker)
     }
 
+    /// The reviewer's sequence: deleted and then restored on device A at
+    /// `restoredAt`; deleted on device B, offline, ten minutes later; then A
+    /// re-uploads the session for a tag edit, which moves the record's
+    /// modification date past B's deletion. The restore keeps its own time
+    /// through the re-upload, so B's deletion stays.
+    func testAReuploadAfterARestoreDoesNotUndoALaterDeletionOnAnotherDevice() {
+        let id = UUID()
+        let restoredAt = Date(timeIntervalSince1970: 1_790_000_000)
+        let deletedOnB = restoredAt.addingTimeInterval(600)
+        let reuploadedAt = deletedOnB.addingTimeInterval(600)
+        let server = makeRecord(for: id, modifiedAt: earlier)
+        server["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
+        server[TrashRestoreCoordinator.restoredAtField] = restoredAt as CKRecordValue
+        let tagEdit = makeRecord(for: id, modifiedAt: later, probe: "tag edit")
+        tagEdit["isDeleted"] = 0 as CKRecordValue
+        var state = makeSyncState()
+
+        XCTAssertTrue(CloudKitSessionFreshness.overwrite(server, with: tagEdit, yieldingIn: &state))
+
+        XCTAssertEqual(TrashRestoreCoordinator.restoredAt(of: server), restoredAt, "the re-upload moved the restore's time")
+        XCTAssertFalse(TrashRestoreCoordinator.restoreIsNewer(
+            isRestore: (server["isDeleted"] as? Int64) == TrashRestoreCoordinator.restoredMarker,
+            restoredAt: TrashRestoreCoordinator.restoredAt(of: server),
+            recordModifiedAt: reuploadedAt, thanDeletionAt: deletedOnB
+        ), "B's later deletion was dropped for the re-upload")
+        XCTAssertTrue(TrashRestoreCoordinator.restoreIsNewer(
+            isRestore: true, restoredAt: restoredAt, recordModifiedAt: reuploadedAt,
+            thanDeletionAt: restoredAt.addingTimeInterval(-600)
+        ), "a deletion made before the restore still yields to it")
+    }
+
+    /// A record restored by a build that kept no restore time is given its
+    /// modification date before the re-upload (the latest the restore can
+    /// have been), so later re-uploads do not move it either.
+    func testAReuploadFixesTheRestoreTimeOfAnOlderMarkedRecord() {
+        let server = makeRecord(for: UUID(), modifiedAt: earlier)
+        let lastSaved = Date(timeIntervalSince1970: 1_790_000_000)
+
+        TrashRestoreCoordinator.carryRestore(
+            onto: server, serverDeleted: TrashRestoreCoordinator.restoredMarker, restoredAt: nil, modifiedAt: lastSaved
+        )
+
+        XCTAssertEqual(server["isDeleted"] as? Int64, TrashRestoreCoordinator.restoredMarker)
+        XCTAssertEqual(TrashRestoreCoordinator.restoredAt(of: server), lastSaved)
+    }
+
     /// Fields an older build wrote and this one no longer does are cleared.
     func testOverwriteClearsFieldsTheLocalRecordDoesNotCarry() {
         let id = UUID()

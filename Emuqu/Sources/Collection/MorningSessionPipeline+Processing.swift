@@ -262,17 +262,20 @@ extension MorningSessionPipeline {
     }
 
     /// The strap's beats are on this device before anything else can fail.
-    /// The download is on record as soon as the beats arrive, and the stream's
-    /// own backup, dated by the night's start, would then count as holding the
-    /// strap's recording (`RRCollector.isStrapRecordingSaved`) and let the
-    /// next arming clear it. So the night's backup is replaced by the merged
-    /// beats it will be scored on. When the strap's beats were not used, or
-    /// that backup cannot be written (it would replace a larger one), they get
-    /// their own backup in Lost Sessions (`rescueDownloadedBeats`).
-    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
-        guard let devicePoints, !devicePoints.isEmpty else { return }
-        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return }
-        rescueDownloadedBeats(devicePoints, baseSession: baseSession)
+    /// The night's backup is replaced by the merged beats it will be scored
+    /// on. When the strap's beats were not used, or that backup cannot be
+    /// written (it would replace a larger one), they get their own backup in
+    /// Lost Sessions (`rescueDownloadedBeats`).
+    ///
+    /// True only once a backup holding the strap's beats is on disk: the
+    /// caller then puts the recording on the saved record
+    /// (`StrapRecordingCoordinator.noteDownloadsSaved`), and until it does the
+    /// next arming keeps the strap's copy. False with nothing downloaded.
+    @discardableResult
+    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async -> Bool {
+        guard let devicePoints, !devicePoints.isEmpty else { return false }
+        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return true }
+        return rescueDownloadedBeats(devicePoints, baseSession: baseSession)
     }
 
     /// Replaces the night's backup with `points`; false when it was not written.
@@ -306,17 +309,24 @@ extension MorningSessionPipeline {
 
     /// Downloaded strap beats go to their own backup, dated by the night's
     /// start, so Lost Sessions can recover them. A pause the archive would not
-    /// take rescues the strap's beats it holds the same way.
-    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) {
-        guard let internalPoints, !internalPoints.isEmpty else { return }
+    /// take rescues the strap's beats it holds the same way. True when the
+    /// backup is on disk. A failed one is shown to the user, and the strap's
+    /// copy, never put on the saved record, stays recoverable from the Record
+    /// screen and is not cleared by the next arming.
+    @discardableResult
+    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) -> Bool {
+        guard let internalPoints, !internalPoints.isEmpty else { return false }
         do {
             try rawBackup.backup(
                 points: internalPoints, sessionId: UUID(),
                 deviceId: strapLink.connectedDeviceId, captureDate: baseSession.startDate
             )
             debugLog("[RRCollector] Backed up \(internalPoints.count) downloaded strap beats the night could not use (recoverable via Lost Sessions)")
+            return true
         } catch {
             debugLog("[RRCollector] Failed to back up \(internalPoints.count) downloaded strap beats: \(error)", level: .error)
+            sessionState.lastError = error
+            return false
         }
     }
 

@@ -16,7 +16,12 @@ extension SessionDataMigrations {
     ///
     /// Delegates to `repairTrainingSnapshots`, which recomputes each session's
     /// training context from current HealthKit workout history using the
-    /// current math. Runs exactly once per install.
+    /// current math. A night HealthKit did not answer for is left as stored,
+    /// and the migration then runs again on a later launch, up to
+    /// `maxTrainingMigrationAttempts` (`finishTrainingMigration`). It also
+    /// runs again while the training recalibration has not finished, so its
+    /// context stays the one the archive keeps (see the ordering note on
+    /// `SessionDataMigrations`).
     ///
     /// The flag check comes FIRST, before the archive is read at all, so a
     /// launch after the migration has run does no disk work. The archive is
@@ -33,7 +38,9 @@ extension SessionDataMigrations {
         let sessions = archivedSessions
         debugLog("[TrimpRepairMigration] Starting — \(sessions.count) sessions in archive")
         let result = await reanalysisService.repairTrainingSnapshots(sessions: sessions) { _, _ in }
-        defaults.set(true, forKey: Self.trimpRepairMigrationKey)
-        debugLog("[TrimpRepairMigration] Complete. Repaired \(result.repaired) of \(result.candidates) candidates (\(result.errors) errors).")
+        let finished = Self.finishTrainingMigration(
+            key: Self.trimpRepairMigrationKey, complete: result.unanswered == 0 && trainingRecalibrationFinished
+        )
+        debugLog("[TrimpRepairMigration] \(finished ? "Complete" : "Pass done, runs again"). Repaired \(result.repaired) of \(result.candidates) candidates (\(result.unanswered) unanswered, \(result.errors) errors).")
     }
 }

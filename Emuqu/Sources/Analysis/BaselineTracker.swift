@@ -267,7 +267,7 @@ final class BaselineTracker: @unchecked Sendable {
     var recoveryBaselineStats: RecoveryBaselineStats? {
         lock.lock()
         defer { lock.unlock() }
-        return stats(from: historicalData)
+        return Self.stats(from: historicalData)
     }
 
     /// Baseline stats to score `session` against: the stored nights BEFORE
@@ -286,11 +286,11 @@ final class BaselineTracker: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let night = sleepSchedule.nightKey(for: session.startDate)
-        return stats(from: historicalData.filter { sleepSchedule.nightKey(for: $0.date) < night })
+        return Self.stats(from: historicalData.filter { sleepSchedule.nightKey(for: $0.date) < night })
     }
 
     /// The 60 most recent points, or nil below `minimumDays`.
-    private func stats(from points: [BaselineDataPoint]) -> RecoveryBaselineStats? {
+    static func stats(from points: [BaselineDataPoint]) -> RecoveryBaselineStats? {
         guard points.count >= RecoveryBaselineStats.minimumDays else { return nil }
         let recentData = Array(points.suffix(Self.recoveryWindowNights))
         let lnValues = lnRmssdValues(recentData)
@@ -299,14 +299,14 @@ final class BaselineTracker: @unchecked Sendable {
     }
 
     /// ln(RMSSD) values — zero/negative RMSSD is invalid and dropped.
-    private func lnRmssdValues(_ points: [BaselineDataPoint]) -> [Double] {
+    private static func lnRmssdValues(_ points: [BaselineDataPoint]) -> [Double] {
         points.compactMap { point -> Double? in
             guard point.rmssd > 0 else { return nil }
             return log(point.rmssd)
         }
     }
 
-    private func baselineStats(
+    private static func baselineStats(
         recentData: [BaselineDataPoint],
         lnValues: [Double]
     ) -> RecoveryBaselineStats {
@@ -369,7 +369,7 @@ final class BaselineTracker: @unchecked Sendable {
     /// 7-day CV of ln(RMSSD) — Plews: reduced CV signals overreaching. The
     /// window is the 7 most recent stored nights, as for the display
     /// baseline (`baselineWindowDays`).
-    private func sevenDayCV(_ points: [BaselineDataPoint]) -> Double? {
+    private static func sevenDayCV(_ points: [BaselineDataPoint]) -> Double? {
         guard points.count >= 7 else { return nil }
         let ln7 = lnRmssdValues(Array(points.suffix(7)))
         guard ln7.count >= 3 else { return nil }
@@ -433,16 +433,8 @@ final class BaselineTracker: @unchecked Sendable {
     static func baselineRMSSDs(
         rebuiltFrom sessions: [HRVSession], beforeNightOf session: HRVSession, sleepSchedule: SleepSchedule
     ) -> [Double] {
-        let night = sleepSchedule.nightKey(for: session.startDate)
-        let points = sessions
-            .filter { isBaselineCandidate($0) && sleepSchedule.nightKey(for: $0.startDate) < night }
-            .sorted { $0.startDate < $1.startDate }
-            .compactMap { candidate in candidate.analysisResult.map { dataPoint(session: candidate, result: $0) } }
-        var nights: [BaselineDataPoint] = []
-        for point in points {
-            mergeIntoNight(point, into: &nights, sleepSchedule: sleepSchedule)
-        }
-        return nights.sorted { $0.date < $1.date }.suffix(recoveryWindowNights).map(\.rmssd)
+        nights(rebuiltFrom: sessions, beforeNightOf: session, sleepSchedule: sleepSchedule)
+            .suffix(recoveryWindowNights).map(\.rmssd)
     }
 
     /// Update baseline with new session data.
@@ -592,7 +584,7 @@ final class BaselineTracker: @unchecked Sendable {
         return !result.isEstimated(.sdnn)
     }
 
-    private static func dataPoint(session: HRVSession, result: HRVAnalysisResult) -> BaselineDataPoint {
+    static func dataPoint(session: HRVSession, result: HRVAnalysisResult) -> BaselineDataPoint {
         BaselineDataPoint(
             date: session.startDate,
             endDate: session.endDate,
