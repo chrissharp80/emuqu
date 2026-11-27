@@ -640,7 +640,7 @@ extension LiveDFAAnalyzer {
                 startMs = max(startMs, wall)
             }
             nextStartMs = startMs + Int64(point.rr_ms)
-            return RRPoint(t_ms: startMs, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+            return point.retimed(t_ms: startMs, wallClockMs: point.wallClockMs)
         }
     }
 }

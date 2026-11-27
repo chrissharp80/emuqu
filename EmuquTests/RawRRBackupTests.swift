@@ -205,7 +205,7 @@ final class RawRRBackupTests: XCTestCase {
         try backup.backup(points: points, sessionId: sessionId)
 
         let csv = try backup.exportToCSV(sessionId)
-        XCTAssertTrue(csv.hasPrefix("timestamp_ms,rr_ms,hr_bpm\n"))
+        XCTAssertTrue(csv.hasPrefix("timestamp_ms,rr_ms,hr_bpm,wall_clock_ms,follows_removed_beat\n"))
         XCTAssertTrue(csv.contains("0,800,"))
         XCTAssertTrue(csv.contains("800,750,"))
     }

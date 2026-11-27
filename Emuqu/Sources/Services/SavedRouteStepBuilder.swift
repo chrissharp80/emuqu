@@ -125,35 +125,49 @@ enum SavedRouteStepBuilder {
         }
         let direction = inferDirection(from: originalCoords, currentLocation: currentLocation)
         let coords = direction == .forward ? originalCoords : Array(originalCoords.reversed())
-        let turnIndices = detectTurns(in: coords)
-        debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) \(direction.rawValue) — \(coords.count) trackpoints, \(turnIndices.count) turns detected", level: .info)
+        let segments = recordedSegments(of: coords, forwardStarts: route.segmentStarts, direction: direction)
+        debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) \(direction.rawValue) — \(coords.count) trackpoints in \(segments.count) segments", level: .info)
         return await result(
-            coords: coords, turnIndices: turnIndices, direction: direction, routeName: savedRoute.name,
-            roadGraph: roadGraph
+            segments: segments, direction: direction, routeName: savedRoute.name, roadGraph: roadGraph
         )
     }
 
-    /// Name the turns, cut the route into steps, and total it up.
+    /// The route's coordinates, one array per recorded segment
+    /// (`Route.segmentStarts`, numbered on the forward track), in walking
+    /// order. Nothing was recorded between two segments, so no step, turn,
+    /// distance or guidance line is taken across the join: each segment is
+    /// guided on its own, and the next one opens with a heading from its own
+    /// first point. Segments of one point carry no path and are left out.
+    static func recordedSegments(
+        of coords: [CLLocationCoordinate2D], forwardStarts: [Int]?, direction: Direction
+    ) -> [[CLLocationCoordinate2D]] {
+        let starts = direction == .forward ? forwardStarts : forwardStarts?.map { coords.count - $0 }
+        return TrackSegments.split(coords, starts: starts).filter { $0.count >= 2 }
+    }
+
+    /// Name the turns, cut each segment into steps, and total it up.
     ///
     /// Walking pace 1.4 m/s — ~3.1 mph, the international adult average for
     /// "purposeful" walking. Future improvement: pull the user's median pace
     /// from past walks of this saved route via SessionArchive.
     private static func result(
-        coords: [CLLocationCoordinate2D], turnIndices: [Int], direction: Direction, routeName: String,
-        roadGraph: RoadGraphService
-    ) async -> BuildResult {
-        let names = await resolveNames(coords: coords, turnIndices: turnIndices, roadGraph: roadGraph)
-        let steps = buildSteps(
-            coords: coords,
-            boundaries: stepBoundaries(turnIndices: turnIndices, lastIndex: coords.count - 1),
-            names: names, routeName: routeName
-        )
+        segments: [[CLLocationCoordinate2D]], direction: Direction, routeName: String, roadGraph: RoadGraphService
+    ) async -> BuildResult? {
+        guard let end = segments.last?.last else { return nil }
+        var steps: [ActiveRouteSession.InternalStep] = []
+        var unnamedCount = 0
+        for coords in segments {
+            let turnIndices = detectTurns(in: coords)
+            let names = await resolveNames(coords: coords, turnIndices: turnIndices, roadGraph: roadGraph)
+            steps += buildSteps(coords: coords, boundaries: stepBoundaries(turnIndices: turnIndices, lastIndex: coords.count - 1), names: names)
+            unnamedCount += names.unnamedCount
+        }
+        let endName = await roadName(at: end, coords: segments.last ?? [end], index: (segments.last?.count ?? 1) - 1, roadGraph: roadGraph)
+        steps.append(arrivalStep(at: end, endName: endName, routeName: routeName))
         let totalDistance = steps.reduce(0) { $0 + $1.distance }
         return BuildResult(
-            steps: steps, totalDistanceMeters: totalDistance,
-            totalDurationSeconds: totalDistance / 1.4, direction: direction,
-            routeName: routeName, hasUnnamedTurns: names.unnamedCount > 0,
-            destinationCoordinate: coords[coords.count - 1]
+            steps: steps, totalDistanceMeters: totalDistance, totalDurationSeconds: totalDistance / 1.4, direction: direction,
+            routeName: routeName, hasUnnamedTurns: unnamedCount > 0, destinationCoordinate: end
         )
     }
 
@@ -168,10 +182,9 @@ enum SavedRouteStepBuilder {
         return userCL.distance(from: startCL) <= userCL.distance(from: endCL) ? .forward : .reverse
     }
 
-    /// The road names one route needs: the two endpoints and every turn.
+    /// The road names one recorded segment needs: its start and every turn.
     private struct ResolvedNames {
         let start: String?
-        let end: String?
         let byIndex: [Int: String]
         let unnamedCount: Int
     }
@@ -185,9 +198,6 @@ enum SavedRouteStepBuilder {
     ) async -> ResolvedNames {
         // Start segment name (used for "Head north on <name>")
         let startName = await roadName(at: coords[0], coords: coords, index: 0, roadGraph: roadGraph)
-        let endName = await roadName(
-            at: coords[coords.count - 1], coords: coords, index: coords.count - 1, roadGraph: roadGraph
-        )
         var byIndex: [Int: String] = [:]
         var unnamedCount = 0
         for idx in turnIndices {
@@ -197,7 +207,7 @@ enum SavedRouteStepBuilder {
                 unnamedCount += 1
             }
         }
-        return ResolvedNames(start: startName, end: endName, byIndex: byIndex, unnamedCount: unnamedCount)
+        return ResolvedNames(start: startName, byIndex: byIndex, unnamedCount: unnamedCount)
     }
 
     /// Step boundaries: 0, each turn, then the end. Turns lie strictly
@@ -207,11 +217,12 @@ enum SavedRouteStepBuilder {
         [0] + turnIndices + [lastIndex]
     }
 
+    /// One recorded segment's steps: the heading from its first point, then
+    /// a step from each turn.
     private static func buildSteps(
         coords: [CLLocationCoordinate2D],
         boundaries: [Int],
-        names: ResolvedNames,
-        routeName: String
+        names: ResolvedNames
     ) -> [ActiveRouteSession.InternalStep] {
         var steps: [ActiveRouteSession.InternalStep] = []
         // A route whose boundary detection found nothing yields no steps
@@ -230,8 +241,6 @@ enum SavedRouteStepBuilder {
                 polyline: polyline(for: segCoords)
             ))
         }
-        guard !steps.isEmpty, let end = coords.last else { return steps }
-        steps.append(arrivalStep(at: end, names: names, routeName: routeName))
         return steps
     }
 
@@ -239,9 +248,9 @@ enum SavedRouteStepBuilder {
     /// orientation for the first, the turn for each one after — so the
     /// route closes with a zero-length step at the end that says "Arrive".
     private static func arrivalStep(
-        at end: CLLocationCoordinate2D, names: ResolvedNames, routeName: String
+        at end: CLLocationCoordinate2D, endName: String?, routeName: String
     ) -> ActiveRouteSession.InternalStep {
-        let text = names.end.map {
+        let text = endName.map {
             String(localized: "Arrive at \(routeName) — finish on \($0)", bundle: LanguageManager.appBundle)
         } ?? String(localized: "Arrive at \(routeName)", bundle: LanguageManager.appBundle)
         return ActiveRouteSession.InternalStep(instructions: text, distance: 0, polyline: polyline(for: [end]))

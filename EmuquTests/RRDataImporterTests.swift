@@ -819,12 +819,14 @@ extension RRDataImporterTests {
     }
 
     /// A row costs the 10 characters the offset instant adds to the legacy
-    /// minute, and nothing more.
-    func testAnRRExportRowGrowsOnlyByTheOffsetInstant() throws {
+    /// minute, the wall-clock cell and the removed-beat cell (both empty for
+    /// a beat the sensor recorded itself with nothing removed before it), and
+    /// nothing more.
+    func testAnRRExportRowGrowsOnlyByTheOffsetInstantAndTheTwoBeatCells() throws {
         let (session, series) = recordedSession(start: Date(timeIntervalSince1970: 1_793_511_000), count: 1)
         let row = ExportDataView.rrCSVRows(for: session, series: series, timeZone: TestTimeZone.newYork)
-        XCTAssertEqual(row, "2026-11-01T01:30:00-04:00,0,800,overnight\n")
-        XCTAssertEqual(row.utf8.count - "2026-11-01_0130,0,800,overnight\n".utf8.count, 10)
+        XCTAssertEqual(row, "2026-11-01T01:30:00-04:00,0,800,overnight,,\n")
+        XCTAssertEqual(row.utf8.count - "2026-11-01_0130,0,800,overnight\n".utf8.count, 12)
     }
 
     /// A file from an older export (local minute, no offset) still

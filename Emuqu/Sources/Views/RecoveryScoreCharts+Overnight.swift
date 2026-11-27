@@ -413,7 +413,7 @@ extension RecoveryScoreCharts {
             let isArtifact = flags.map { absolute < $0.count && $0[absolute].isArtifact } ?? false
             return !isArtifact && HRVConstants.RRInterval.isValid(points[absolute].rr_ms)
         }
-        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: lo ..< hi)
+        let breaks = TimeDomainAnalyzer.beatsNotAdjacentToPrevious(in: points, range: lo ..< hi)
         let validPairs = (1 ..< hi - lo).count { isValid($0) && isValid($0 - 1) && !breaks.contains(lo + $0) }
         guard validPairs >= 20 else { return nil }
         return TimeDomainAnalyzer.rmssd(points: points, range: lo ..< hi, isValid: isValid)

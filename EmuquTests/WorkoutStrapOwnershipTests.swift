@@ -93,6 +93,19 @@ final class WorkoutStrapOwnershipTests: XCTestCase {
         XCTAssertTrue(WorkoutRRMerge.liveStrapBuffer(source: .none, streaming: beats(3)).isEmpty)
     }
 
+    /// The beat after a PPI interval the quality gate rejected is marked as
+    /// following a removed beat, also when the rejection ended the batch
+    /// before; the beats around it otherwise are not.
+    func testABeatAfterARejectedPPIIntervalIsMarked() {
+        let stream = streamBuffering(since: Date())
+        stream.ppiRemovedSinceLastBeat = false
+        let good = StrapPPIReading(ppInMs: 800, ppErrorEstimate: 5, blockerBit: 0, hr: 70)
+        let rejected = StrapPPIReading(ppInMs: 800, ppErrorEstimate: 60, blockerBit: 1, hr: 70)
+        stream.ingestPpi([good, good, rejected])
+        stream.ingestPpi([good, good])
+        XCTAssertEqual(stream.streamedRRPoints.map(\.isAfterRemovedBeat), [false, false, true, false])
+    }
+
     /// A Verity Sense keeps sending its heart rate while every PPI interval
     /// is rejected (motion-flagged, high error estimate: common running).
     /// The strap stays live from that reading, the live heart rate and the

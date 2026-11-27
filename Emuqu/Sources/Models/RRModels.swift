@@ -14,17 +14,30 @@ struct RRPoint: Codable, Equatable {
     /// Heart rate calculated by the device (bpm)
     /// Only populated during streaming mode (from Polar H10 sensor); nil for internal recording
     let hr: Int?
+    /// True when the sensor's quality gate removed one or more intervals
+    /// right before this beat (`StrapPPIFilter`), so it is not adjacent to
+    /// the beat before it in the series and no successive difference is
+    /// taken across the pair (Task Force 1996; `TimeDomainAnalyzer.isAdjacentBeat`).
+    /// Nil otherwise, and then not encoded, so a beat without it is stored
+    /// and synced exactly as before and an older build ignores the key.
+    let followsRemovedBeat: Bool?
+
+    /// Whether `followsRemovedBeat` is set.
+    var isAfterRemovedBeat: Bool {
+        followsRemovedBeat == true
+    }
 
     /// The same beat moved `offsetMs` later on both the session clock and the
     /// wall clock — how a child segment is re-based onto its parent's timeline
     /// when two recordings are merged.
     func shifted(by offsetMs: Int64) -> RRPoint {
-        RRPoint(
-            t_ms: t_ms + offsetMs,
-            rr_ms: rr_ms,
-            wallClockMs: wallClockMs.map { $0 + offsetMs },
-            hr: hr
-        )
+        retimed(t_ms: t_ms + offsetMs, wallClockMs: wallClockMs.map { $0 + offsetMs })
+    }
+
+    /// The same beat at other times. Every copy that moves a beat goes through
+    /// this, so its heart rate and `followsRemovedBeat` are never dropped.
+    func retimed(t_ms newTMs: Int64, wallClockMs newWallClockMs: Int64?) -> RRPoint {
+        RRPoint(t_ms: newTMs, rr_ms: rr_ms, wallClockMs: newWallClockMs, hr: hr, followsRemovedBeat: isAfterRemovedBeat)
     }
 
     /// Whether this RR interval falls within the physiologically valid range
@@ -38,14 +51,17 @@ struct RRPoint: Codable, Equatable {
         self.rr_ms = rr_ms
         wallClockMs = nil
         hr = nil
+        followsRemovedBeat = nil
     }
 
-    /// Full initializer with wall-clock timestamp (for streaming mode)
-    init(t_ms: Int64, rr_ms: Int, wallClockMs: Int64?, hr: Int? = nil) {
+    /// Full initializer with wall-clock timestamp (for streaming mode).
+    /// `followsRemovedBeat` false is stored as nil (not encoded).
+    init(t_ms: Int64, rr_ms: Int, wallClockMs: Int64?, hr: Int? = nil, followsRemovedBeat: Bool = false) {
         self.t_ms = t_ms
         self.rr_ms = rr_ms
         self.wallClockMs = wallClockMs
         self.hr = hr
+        self.followsRemovedBeat = followsRemovedBeat ? true : nil
     }
 
     /// End timestamp (start + duration)

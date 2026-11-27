@@ -706,20 +706,13 @@ final class RawRRBackup: @unchecked Sendable {
         PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
     }
 
-    /// Export a backup to CSV format
+    /// A backup as the one-recording RR CSV (`RRDataImporter.recordingCSV`),
+    /// both clocks kept so a dropout in it is still visible.
     func exportToCSV(_ sessionId: UUID) throws -> String {
         guard let entry = try retrieve(sessionId) else {
             throw BackupError.notFound
         }
-
-        var csv = "timestamp_ms,rr_ms,hr_bpm\n"
-        for point in entry.points {
-            // Guard rr_ms > 0: a zero interval that survived persistence would
-            // otherwise write "inf" into the hr cell (garbage, not a crash).
-            let hr = point.rr_ms > 0 ? 60000.0 / Double(point.rr_ms) : 0
-            csv += "\(point.t_ms),\(point.rr_ms),\(String(format: "%.1f", hr))\n"
-        }
-        return csv
+        return RRDataImporter.recordingCSV(points: entry.points)
     }
 }
 

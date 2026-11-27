@@ -118,7 +118,7 @@ enum WorkoutAlpha1Reanalyzer {
     /// The beats re-stamped onto the gap-corrected (wall-clock) timeline.
     private static func wallClockTimeline(_ rrPoints: [RRPoint]) -> [RRPoint] {
         zip(rrPoints, WorkoutAnalyzer.gapCorrectedOffsetsMs(rrPoints)).map { point, offsetMs in
-            RRPoint(t_ms: offsetMs, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+            point.retimed(t_ms: offsetMs, wallClockMs: point.wallClockMs)
         }
     }
 

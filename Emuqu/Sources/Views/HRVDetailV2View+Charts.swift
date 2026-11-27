@@ -79,7 +79,7 @@ extension HRVDetailV2View {
         let elapsedSec: Double
         let rrMs: Int
         /// The unbroken stretch the beat is in: a new one starts after every
-        /// recording break (`TimeDomainAnalyzer.isRecordingBreak`), and the
+        /// beat not adjacent to its predecessor (`TimeDomainAnalyzer.isAdjacentBeat`), and the
         /// chart draws no line from one to the next.
         var run = 0
     }
@@ -90,7 +90,7 @@ extension HRVDetailV2View {
         var out: [RRPlotPoint] = []
         var run = 0
         for (i, p) in series.points.enumerated() {
-            if i > 0, TimeDomainAnalyzer.isRecordingBreak(between: series.points[i - 1], and: p) { run += 1 }
+            if i > 0, !TimeDomainAnalyzer.isAdjacentBeat(series.points[i - 1], p) { run += 1 }
             guard i % 4 == 0 else { continue }
             out.append(RRPlotPoint(id: i, elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms, run: run))
         }
@@ -245,10 +245,11 @@ extension HRVDetailV2View {
         var out: [PoincarePair] = []
         // Cap to 600 pairs for chart perf.
         let stride = max(1, pts.count / 600)
-        // A pair across a recording break is two beats that were never
-        // adjacent (`TimeDomainAnalyzer.isRecordingBreak`), so it is not plotted.
+        // A pair across a recording break or a removed beat is two beats that
+        // were never adjacent (`TimeDomainAnalyzer.isAdjacentBeat`), so it is
+        // not plotted.
         for i in Swift.stride(from: 0, to: pts.count - 1, by: stride)
-            where !TimeDomainAnalyzer.isRecordingBreak(between: pts[i], and: pts[i + 1]) {
+            where TimeDomainAnalyzer.isAdjacentBeat(pts[i], pts[i + 1]) {
             out.append(PoincarePair(id: i, x: pts[i].rr_ms, y: pts[i + 1].rr_ms))
         }
         return out

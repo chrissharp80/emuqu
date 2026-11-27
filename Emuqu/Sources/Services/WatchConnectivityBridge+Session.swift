@@ -238,7 +238,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     private func handleWatchStrapSample(_ message: [String: Any]) {
         guard !Self.isStaleStrapSample(message) else { return }
         latestWatchStrapHR = WatchPayloadBounds.plausibleHeartRate(message["hr"] as? Int)
-        let rrThisBatch = Self.rrMillis(in: message)
+        let rrThisBatch = WatchStrapBeat.beats(rrMillis: Self.rrMillis(in: message), sentAt: Self.sentAt(message))
         if !rrThisBatch.isEmpty {
             pendingWatchStrapRRLock.lock()
             pendingWatchStrapRR.append(contentsOf: rrThisBatch)
@@ -251,6 +251,13 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             pendingWatchStrapRRLock.unlock()
         }
         latestWatchStrapAt = Date()
+    }
+
+    /// When the Watch received the sample (`ts`), which is when its beats
+    /// end; when it arrived here for a sample without a usable one.
+    private static func sentAt(_ message: [String: Any]) -> TimeInterval {
+        guard let ts = message["ts"] as? Double, ts.isFinite, ts > 0 else { return Date().timeIntervalSince1970 }
+        return ts
     }
 
     /// WatchConnectivity round-trips numeric arrays as `[Double]` on some

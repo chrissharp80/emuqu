@@ -230,14 +230,7 @@ extension OvernightStreamingCoordinator {
             return nil
         }
         debugLog("[RRCollector] Offset child timestamps by \(offsetMs / 60000) minutes")
-        return data.points.map { point in
-            RRPoint(
-                t_ms: point.t_ms + offsetMs,
-                rr_ms: point.rr_ms,
-                wallClockMs: point.wallClockMs.map { $0 + offsetMs },
-                hr: point.hr
-            )
-        }
+        return data.points.map { $0.shifted(by: offsetMs) }
     }
 
     /// The child's identity and metadata, re-anchored to the parent's start.

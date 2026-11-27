@@ -182,9 +182,9 @@ struct LiveWaveformView: View {
         let range = yRange
         for (index, point) in points.enumerated() {
             let position = plotPoint(index, of: point, count: points.count, size: size, range: range)
-            // The line lifts at a recording break (a Bluetooth dropout): the
-            // beats either side were never adjacent.
-            if index == 0 || TimeDomainAnalyzer.isRecordingBreak(between: points[index - 1], and: point) {
+            // The line lifts at a recording break (a Bluetooth dropout) or a
+            // removed beat: the beats either side were never adjacent.
+            if index == 0 || !TimeDomainAnalyzer.isAdjacentBeat(points[index - 1], point) {
                 path.move(to: position)
             } else {
                 path.addLine(to: position)

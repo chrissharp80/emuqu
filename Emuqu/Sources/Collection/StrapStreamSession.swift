@@ -55,6 +55,10 @@ final class StrapStreamSession {
     var streamingCumulativeMs: Int64 = 0
     /// The streaming buffer's safety-cap warning has been logged this session.
     @ObservationIgnored var hasLoggedStreamingCap = false
+    /// The PPI gate rejected an interval since the last kept beat, so the
+    /// next one is marked `followsRemovedBeat`. Carried across batches: a
+    /// rejection at the end of one belongs to the first beat of the next.
+    @ObservationIgnored var ppiRemovedSinceLastBeat = false
     /// Links re-established during the current session, so the overnight
     /// backup can flush on each one.
     var streamingReconnectCount: Int = 0
@@ -126,6 +130,7 @@ final class StrapStreamSession {
         lastUIUpdateBeatCount = 0
         streamingCumulativeMs = 0
         hasLoggedStreamingCap = false
+        ppiRemovedSinceLastBeat = false
         streamingStartTime = Date()
         streamingElapsedSeconds = 0
         streamingReconnectCount = 0
@@ -201,10 +206,15 @@ final class StrapStreamSession {
         for reading in readings {
             guard let interval = StrapPPIFilter.acceptedInterval(StrapPPISample(
                 ppInMs: reading.ppInMs, ppErrorEstimate: reading.ppErrorEstimate, blockerBit: reading.blockerBit
-            )) else { continue }
+            )) else {
+                ppiRemovedSinceLastBeat = true
+                continue
+            }
+            let afterRemoved = StrapPPIFilter.marksRemovedBeat(ppiRemovedSinceLastBeat, after: _streamedRRPoints)
             guard appendStreamedBeat(
-                rrMs: interval, wallClockMs: wallClockMs, hr: reading.hr > 0 ? reading.hr : nil
+                rrMs: interval, wallClockMs: wallClockMs, hr: reading.hr > 0 ? reading.hr : nil, followsRemovedBeat: afterRemoved
             ) else { break }
+            ppiRemovedSinceLastBeat = false
         }
         publishStreamingProgress(heartbeatLabel: "PPI beats")
     }
@@ -229,7 +239,7 @@ final class StrapStreamSession {
 
     /// Append one beat, advancing the cumulative clock. Returns false once the
     /// safety cap is hit.
-    private func appendStreamedBeat(rrMs: Int, wallClockMs: Int64, hr: Int?) -> Bool {
+    private func appendStreamedBeat(rrMs: Int, wallClockMs: Int64, hr: Int?, followsRemovedBeat: Bool = false) -> Bool {
         guard _streamedRRPoints.count < Self.maxStreamingBufferSize else {
             // Once per session: the count stays at the cap, so without the
             // flag every later batch would log it again.
@@ -240,7 +250,7 @@ final class StrapStreamSession {
             return false
         }
         _streamedRRPoints.append(RRPoint(
-            t_ms: streamingCumulativeMs, rr_ms: rrMs, wallClockMs: wallClockMs, hr: hr
+            t_ms: streamingCumulativeMs, rr_ms: rrMs, wallClockMs: wallClockMs, hr: hr, followsRemovedBeat: followsRemovedBeat
         ))
         streamingCumulativeMs += Int64(rrMs)
         return true
