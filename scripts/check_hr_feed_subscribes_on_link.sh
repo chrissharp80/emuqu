@@ -93,13 +93,19 @@ def top_level(block):
     return inner
 
 problems = []
-if not re.search(r"\bfeed\.start\(", top_level(established)):
+body = top_level(established)
+start = re.search(r"\bfeed\.start\(", body)
+# A `return` or `throw` ahead of the call at the top level (a `guard`'s
+# else-block is removed as a nested block, its `guard` keyword is not) makes
+# the start conditional.
+if not start or re.search(r"\b(?:guard|return|throw)\b", body[:start.start()]):
     problems.append("linkEstablished no longer starts the heart-rate feed unconditionally")
 
 WAITS = re.compile(
     r"(awaitFeature|whenFeatureUsable|requireUsable|isUsable|isReady|waitOutcome|state)"
     r"\(\s*(of:\s*)?(?:StrapFeature)?\.heartRate\b|isHrStreamingReady"
-    r"|Task\s*(?:<[^>]*>)?\s*\.\s*sleep|\.sleep\s*\(\s*(?:for|until):|sleepQuietly|sleepIgnoringCancellation"
+    r"|Task\s*(?:<[^>]*>)?\s*\.\s*sleep|\.sleep\s*\(\s*(?:for|until|forTimeInterval):|sleepQuietly|sleepIgnoringCancellation"
+    r"|(?<![\w.])u?sleep\s*\(|\bThread\s*\.\s*sleep\b"
 )
 for where, text in (("StrapHeartRateFeed", feed), ("linkEstablished", established)):
     hit = WAITS.search(text)

@@ -59,6 +59,17 @@ restore_all() {
     TOUCHED=()
 }
 
+# Whether a red gate fell over rather than reported the violation: an
+# interpreter error (a Python traceback, a bash unbound variable, syntax error
+# or missing command) or an exit code no gate uses for a finding (126 and 127
+# are bash's could-not-run codes, above 128 is a signal). A plant that breaks
+# the gate itself proves nothing about whether it catches the violation.
+gate_crashed() {
+    local code="$1" output="$2"
+    (( code == 126 || code == 127 || code > 128 )) && return 0
+    grep -qE 'Traceback \(most recent call last\)|: unbound variable|: syntax error|: command not found' <<<"$output"
+}
+
 # check <name> <gate command> <file to mutate> <python mutation>
 check() {
     local name="$1" gate="$2" file="$3" mutation="$4"
@@ -82,11 +93,15 @@ check() {
         return
     fi
 
-    eval "$gate" >/dev/null 2>&1
-    local code=$?
+    local output code
+    output="$(eval "$gate" 2>&1)"
+    code=$?
     restore_all
 
-    if (( code != 0 )); then
+    if (( code != 0 )) && gate_crashed "$code" "$output"; then
+        printf "  \033[31mFAIL\033[0m  %-34s CRASHED instead of reporting (exit %d); a crash is not a catch\n" "$name" "$code"
+        FAIL=$((FAIL + 1))
+    elif (( code != 0 )); then
         printf "  \033[32mPASS\033[0m  %-34s went red on a planted violation\n" "$name"
         PASS=$((PASS + 1))
     else
@@ -234,6 +249,30 @@ check "copy_perimeter/permission_prompt" \
     "python3 Tools/copy_linter/lint.py" \
     "Emuqu/Info.plist" \
     "import pathlib;p=pathlib.Path('Emuqu/Info.plist');s=p.read_text();o='Emuqu reads from Apple Health';assert s.count(o)==1;p.write_text(s.replace(o,'Emuqu diagnoses overtraining from Apple Health'))"
+
+# Every concept the README says is checked in all 17 languages, planted in a
+# French translation with no English word for the English patterns to catch.
+check "copy_perimeter/translated_diagnosis" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='Les segments sont notés indépendamment.';assert s.count(o)==1;p.write_text(s.replace(o,'Emuqu peut diagnostiquer votre état.'))"
+
+check "copy_perimeter/translated_overtraining" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='Les segments sont notés indépendamment.';assert s.count(o)==1;p.write_text(s.replace(o,'Les segments montrent un surentraînement.'))"
+
+check "copy_perimeter/translated_injury_risk" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='Les segments sont notés indépendamment.';assert s.count(o)==1;p.write_text(s.replace(o,'Les segments montrent un risque de blessure.'))"
+
+# A concept the every-locale list names but the linter cannot load must stop
+# the run, not drop out of the check while it reports clean.
+check "copy_perimeter/unloadable_concept" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='        diagnosis, injuryRisk, overtraining'+chr(10)+'    ]';assert s.count(o)==1;p.write_text(s.replace(o,'        diagnosis, injuryRisk, overtraining, plantedMissingConcept'+chr(10)+'    ]'))"
 
 check "perimeter_sync/concept_not_scrubbed" \
     "./scripts/check_perimeter_sync.sh" \
@@ -1187,6 +1226,147 @@ check "budget_monotonicity/swiftlint_threshold_raised" \
     "./scripts/check_budget_monotonicity.sh HEAD" \
     ".swiftlint.yml" \
     "import pathlib;p=pathlib.Path('.swiftlint.yml');s=p.read_text();o='line_length:'+chr(10)+'  warning: 300';assert s.count(o)==1;p.write_text(s.replace(o,'line_length:'+chr(10)+'  warning: 1700'))"
+
+# Spellings each gate's header claims and an earlier pattern missed.
+check "logger_self_reference/self_shared" \
+    "./scripts/check_logger_self_reference.sh" \
+    "Emuqu/Sources/Utilities/DebugLog.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/DebugLog.swift');p.write_text(p.read_text()+chr(10)+'extension DebugLogger { func plantedReentry() { Self.shared.flush() } }'+chr(10))"
+
+check "hr_feed/guarded_start" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        feed.start(generation: generation)';assert s.count(o)==1;p.write_text(s.replace(o,'        guard plantedReady else { return }'+chr(10)+o))"
+
+check "hr_feed/thread_sleep" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapHeartRateFeed.swift');p.write_text(p.read_text()+chr(10)+'func plantedWait() { Thread.sleep(forTimeInterval: 10) }'+chr(10))"
+
+check "test_skip_budget/multiline_disabled" \
+    "./scripts/check_test_skip_budget.sh" \
+    "EmuquTests/StressAnalysisTests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquTests/StressAnalysisTests.swift');p.write_text(p.read_text()+chr(10)+'@Test('+chr(10)+'    \"planted\",'+chr(10)+'    .disabled(\"radio\")'+chr(10)+')'+chr(10)+'func plantedDisabled() {}'+chr(10))"
+
+check "test_skip_budget/slack" \
+    "./scripts/check_test_skip_budget.sh" \
+    ".ci/test_skip_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/test_skip_budget.txt');p.write_text(str(int(p.read_text().strip())+1)+chr(10))"
+
+check "spec_conformance/discarded_error" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfunc plantedDiscard() {\n    do { try plantedDiscardThrow() } catch { _ = error }\n}\nfunc plantedDiscardThrow() throws {}\n')"
+
+check "spec_conformance/example_inside_a_word" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfunc plantedCorpse() {\n    // let memoryUsage = Probe.read()\n    // archive.save(memoryUsage)\n}\n')"
+
+check "coremotion_handler_isolation/event_updates" \
+    "./scripts/check_coremotion_handler_isolation.sh" \
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='        pedometer.startUpdates(from: start) { @Sendable [weak self] data, error in';assert s.count(o)==1;p.write_text(s.replace(o,'        pedometer.startEventUpdates { event, _ in _ = event }'+chr(10)+o))"
+
+check "locale_formatting/nsstring_format" \
+    "./scripts/check_locale_formatting.sh" \
+    "Emuqu/Sources/Views/SettingsView.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFormat = NSString(format: \"%.1f km\", 1.0) as String'+chr(10))"
+
+check "xcodebuild_pinned/spaced_make_alias" \
+    "./scripts/check_xcodebuild_pinned.sh" \
+    "Makefile" \
+    "import pathlib;p=pathlib.Path('Makefile');p.write_text(p.read_text()+chr(10)+'PLANTED_XCODEBUILD = xcode'+'build'+chr(10)+'planted-build:'+chr(10)+chr(9)+'\$(PLANTED_XCODEBUILD) test -scheme Emuqu'+chr(10))"
+
+check "xcodebuild_pinned/python_heredoc_in_shell" \
+    "./scripts/check_xcodebuild_pinned.sh" \
+    "scripts/check_file_names.sh" \
+    "import pathlib;p=pathlib.Path('scripts/check_file_names.sh');p.write_text(p.read_text()+chr(10)+'python3 - <<PLANTED'+chr(10)+'import subprocess; subprocess.run([\"xcode'+'build\", \"test\", \"-scheme\", \"Emuqu\"])'+chr(10)+'PLANTED'+chr(10))"
+
+check "eager_permission_prompt/qualified_builder_in_init" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    init() { peripheralManager = Self.plantedMake() }'+chr(10)+'    static func plantedMake() -> CBPeripheralManager { CBPeripheralManager(delegate: nil, queue: nil) }'))"
+
+check "eager_permission_prompt/wrapped_stored_property" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    private let plantedManager: CBPeripheralManager ='+chr(10)+'        CBPeripheralManager(delegate: nil, queue: nil)'))"
+
+check "no_developer_endpoint/unlisted_sdk" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');p.write_text(p.read_text()+'\n/* planted https://github.com/TelemetryDeck/SwiftSDK reference */\n')"
+
+check "gates_wired/fallback_echo" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/ci.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='run: ./scripts/check_log_redaction.sh'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,'run: ./scripts/check_log_redaction.sh || echo \"::warning::failed\"'+chr(10)))"
+
+check "gates_wired/make_ignore_errors" \
+    "./scripts/check_gates_wired.sh" \
+    "Makefile" \
+    "import pathlib;p=pathlib.Path('Makefile');s=p.read_text();o=chr(9)+'@build/validation-venv/bin/python -I Tools/validation/test_ports.py';assert s.count(o)==1;p.write_text(s.replace(o,chr(9)+'@-build/validation-venv/bin/python -I Tools/validation/test_ports.py'))"
+
+check "doc_links/watch_path" \
+    "./scripts/check_doc_links.sh" \
+    "README.md" \
+    "import pathlib;p=pathlib.Path('README.md');p.write_text(p.read_text()+'\nSee \`EmuquWatch Watch App/PlantedGone.swift\` for details.\n')"
+
+check "doc_links/budget_value_on_the_line_before" \
+    "./scripts/check_doc_links.sh" \
+    "docs/LOCALIZATION.md" \
+    "import pathlib;p=pathlib.Path('docs/LOCALIZATION.md');p.write_text(p.read_text()+'\nThe floor is 100 percent; see\nmin_localization_coverage.txt for details.\n')"
+
+check "fixed_font/qualified_constant" \
+    "./scripts/check_fixed_font_budget.sh" \
+    "Emuqu/Sources/Views/SettingsView.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private enum PlantedLayout {'+chr(10)+'    static let plantedTitleSize: CGFloat = 34'+chr(10)+'}'+chr(10)+'private let plantedFixedFont = Text(\"x\").font(.system(size: PlantedLayout.plantedTitleSize, weight: .bold))'+chr(10))"
+
+check "localization_bundle/inside_interpolation" \
+    "./scripts/check_localization_bundle.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'let plantedNested = \"\\\\(String(localized: \"planted average\")): 1\"'+chr(10))"
+
+check "log_redaction/wrapped_value" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedWrapped(email: String?) { debugLog(\"to \\\\(String(describing: email))\") }'+chr(10))"
+
+check "log_redaction/logger_sink" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedSink(query: String) { DebugLogger.shared.log(\"asked \\\\(query)\") }'+chr(10))"
+
+check "log_redaction/optional_logger" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedOptional(logger: Logger?, query: String) { logger?.info(\"asked \\\\(query)\") }'+chr(10))"
+
+check "cloudkit/key_from_enum_raw_value" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');p.write_text(p.read_text()+chr(10)+'func plantedWrite(record: CKRecord, s: HRVSession) { record[PlantedField.meanRMSSD.rawValue] = 1.0 as CKRecordValue }'+chr(10))"
+
+check "science_register/computed_property" \
+    "./scripts/check_science_register.sh" \
+    "Emuqu/Sources/Collection/TrainingLoad.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingLoad.swift');p.write_text(p.read_text()+chr(10)+'extension TrainingLoad { var plantedSleepDebtPenalty: Double { 1.0 } }'+chr(10))"
+
+check "coupling_budget/implicit_member_read" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'let plantedServices = WorkoutServices(.current)'+chr(10))"
+
+check "empty_range/guard_that_does_not_dominate" \
+    "./scripts/check_empty_range_loops.sh" \
+    "Emuqu/Sources/Analysis/Verification.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/Verification.swift');p.write_text(p.read_text()+'\nfunc plantedRange(xs: [Int]) {\n    if xs.count >= 2 { print(xs) }\n    for i in 0 ..< xs.count - 2 { print(i) }\n}\n')"
+
+check "empty_range/guard_of_the_wrong_polarity" \
+    "./scripts/check_empty_range_loops.sh" \
+    "Emuqu/Sources/Analysis/Verification.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/Verification.swift');p.write_text(p.read_text()+'\nfunc plantedRange(xs: [Int]) {\n    guard xs.isEmpty else { return }\n    for i in 1 ..< xs.count { print(i) }\n}\n')"
 
 # The Thread Sanitizer gate needs a simulator build, so here it runs against a
 # stand-in xcodebuild that behaves as the real one does in the ways the gate

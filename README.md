@@ -74,10 +74,10 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   the help centre, the assistant's fact catalogue and the PDF report. A copy
   linter and a perimeter check keep prohibited medical vocabulary out of all
   of them. The English patterns cover the Swift sources and the string
-  catalogue; twelve regulated-claim concepts (named conditions, diagnosis,
-  treatment, regulatory clearance and similar) are also checked in all 17
-  catalogue languages. The linter reads the Swift sources and string
-  catalogues, not these docs.
+  catalogue; the regulated-claim concepts (named conditions, diagnosis,
+  injury prediction, overtraining, treatment, regulatory clearance and
+  similar) are also checked in all 17 catalogue languages. The linter reads
+  the Swift sources and string catalogues, not these docs.
 - **Running all night on a phone.** Background Bluetooth capture with
   incremental backup, recovery from the strap's own memory after a crash, and
   CloudKit sync that never touches the main thread.

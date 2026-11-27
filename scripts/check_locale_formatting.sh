@@ -95,7 +95,7 @@ import re, sys, pathlib
 
 # The call may be split across lines, so the whole file is searched, and the
 # locale is looked for inside THIS call's parentheses, not anywhere on the line.
-FMT   = re.compile(r'(?:\bString|\.init)\(\s*format:\s*(?:String\(\s*localized:\s*|NSLocalizedString\(\s*)?"((?:[^"\\\n]|\\.)*)"')
+FMT   = re.compile(r'(?:\b(?:NS)?String|\.init)\(\s*format:\s*(?:String\(\s*localized:\s*|NSLocalizedString\(\s*)?"((?:[^"\\\n]|\\.)*)"')
 FLOAT = re.compile(r"%[-+ #0-9.']*[efgEFG]")
 INT   = re.compile(r"%[-+ #0-9.']*(?:l{0,2}[diu])")
 LOG   = re.compile(r'\b(debugLog|NSLog|os_log)\s*\(')

@@ -837,14 +837,17 @@ extension VoiceAudioPipeline {
     /// once this line has played to the end
     /// (`VoiceConversationController.confirmationLineEnded`); a reply voice
     /// detached from (a workout alert preempting it) never speaks it, so its
-    /// request lapses.
+    /// request lapses. The question is spoken word for word or not at all
+    /// (`speakVerbatim`): a line the output perimeter would rewrite is left
+    /// unasked, so its request lapses too.
     @MainActor
     func speakConfirmationQuestionIfShown() {
         let turns = controller.assistantViewModel.turns
         guard let idx = controller.activeAssistantIndex, turns.indices.contains(idx),
-              turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt else { return }
+              turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt,
+              let line = controller.speakVerbatim(question, voice: WorkoutVoiceCoach.appLanguageVoice())
+        else { return }
         controller.currentResponseText += (controller.currentResponseText.isEmpty ? "" : " ") + question
-        guard let line = controller.speak(question, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) else { return }
         controller.spokenConfirmation = (utterance: line, turnID: turns[idx].id)
     }
 

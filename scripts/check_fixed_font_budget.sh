@@ -98,11 +98,12 @@ NEEDLE = re.compile(r"(?<![\w])(?:Font)?\.system\(\s*size:\s*([^,)]+)")
 # Font.custom(_:fixedSize:) is the other spelling that opts out of scaling.
 CUSTOM_FIXED = re.compile(r"\.custom\([^()]*?fixedSize:\s*([^,)]+)")
 LITERAL_ARG = re.compile(r"^[\d.]+$")
+QUALIFIED_NAME = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+$")
 # A bare name bound to a numeric literal by a plain let is the same fixed
 # size one step removed; a name declared @ScaledMetric anywhere in the root
 # is the migration target and is not counted.
 SCALED = re.compile(r"@ScaledMetric[^\n]*?\bvar\s+(\w+)")
-CONSTANT = re.compile(r"\blet\s+(\w+)\s*(?::\s*CGFloat)?\s*=\s*([\d.]+)\s*$", re.M)
+CONSTANT = re.compile(r"\blet\s+(\w+)\s*(?::\s*(?:CGFloat|Double|Float))?\s*=\s*([\d.]+)\s*(?://[^\n]*)?$", re.M)
 texts = []
 for dirpath, _dirnames, filenames in os.walk(root):
     for name in filenames:
@@ -118,7 +119,10 @@ constants = {n for t in texts for n, _v in CONSTANT.findall(t)} - scaled
 count = 0
 for text in texts:
     for argument in NEEDLE.findall(text) + CUSTOM_FIXED.findall(text):
+        # `Layout.titleSize` and `Self.titleSize` name the same constant.
         argument = argument.strip()
+        if QUALIFIED_NAME.match(argument):
+            argument = argument.rsplit(".", 1)[-1]
         if LITERAL_ARG.match(argument) or argument in constants:
             count += 1
 if files == 0:

@@ -91,31 +91,57 @@ def mask_literals(text):
     """Same text, with the inside of every string literal blanked out.
 
     Index-preserving, so positions found in the mask are valid in the original.
-    Everything downstream — paren matching and the `bundle:` search — runs on
-    the mask, so neither interpolation parens nor a translated string that
+    Everything downstream (paren matching and the `bundle:` search) runs on
+    the mask, so neither a literal's parens nor a translated string that
     happens to contain the word "bundle:" can be mistaken for code. That second
     case is a false NEGATIVE, which is the dangerous direction: it would let an
-    unqualified lookup through.
+    unqualified lookup through. An interpolation (`\\( ... )`) is code, not
+    literal text, so it is kept, with its own literals masked in turn: a lookup
+    nested in one is checked like any other.
     """
-    out, i, n = [], 0, len(text)
+    return mask_code(text, 0, len(text), stop_at_paren=False)[0]
+
+
+def mask_code(text, i, n, stop_at_paren):
+    """Mask the literals in code from `i`; with `stop_at_paren`, stop after the
+    `)` that closes an interpolation. Returns (masked, end)."""
+    out, depth = [], 0
     while i < n:
         ch = text[i]
-        if ch != '"':
-            out.append(ch)
-            i += 1
+        if ch == '"':
+            masked, i = mask_literal(text, i, n)
+            out.append(masked)
             continue
-        if text.startswith('\"\"\"', i):
-            end = text.find('\"\"\"', i + 3)
-            end = n if end == -1 else end + 3
+        if stop_at_paren and ch in "()":
+            depth += 1 if ch == "(" else -1
+            if depth < 0:
+                # The closing paren is the literal's syntax, blanked like `\\(`
+                # so the mask's parens stay balanced.
+                return "".join(out) + " ", i + 1
+        out.append(ch)
+        i += 1
+    return "".join(out), i
+
+
+def mask_literal(text, i, n):
+    """Mask the literal starting at `i`, keeping its interpolations' code."""
+    triple = text.startswith('\"\"\"', i)
+    close = '\"\"\"' if triple else '"'
+    out, j = [" " * len(close)], i + len(close)
+    while j < n and not text.startswith(close, j) and (triple or text[j] != "\n"):
+        if text.startswith("\\(", j):
+            code, j = mask_code(text, j + 2, n, stop_at_paren=True)
+            out.append("  " + code)
+        elif text[j] == "\\":
+            out.append("".join(c if c == "\n" else " " for c in text[j:j + 2]))
+            j += 2
         else:
-            j = i + 1
-            while j < n and text[j] != '"':
-                j += 2 if text[j] == '\\' else 1
-            end = min(j + 1, n)
-        # Keep newlines so line numbers still line up.
-        out.append(''.join(c if c == '\n' else ' ' for c in text[i:end]))
-        i = end
-    return ''.join(out)
+            out.append("\n" if text[j] == "\n" else " ")
+            j += 1
+    if text.startswith(close, j):
+        out.append(" " * len(close))
+        j += len(close)
+    return "".join(out), j
 
 
 def call_extent(masked, open_paren):

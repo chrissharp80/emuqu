@@ -55,9 +55,15 @@ skip_sites="$(find "${TEST_DIRS[@]}" -name '*.swift' -print0 | sort -z | xargs -
     my $n = 0;
     for my $line (split /\n/, $_, -1) {
         $n++;
-        while ($line =~ /(?:^|[^[:alnum:]_])(XCTSkip(?:Unless|If)?\s*(?:\.\s*init\s*)?\(|@(?:Test|Suite)\s*\([^\n]*\.disabled\s*\(|withKnownIssue\s*[({])/g) {
+        while ($line =~ /(?:^|[^[:alnum:]_])(XCTSkip(?:Unless|If)?\s*(?:\.\s*init\s*)?\(|withKnownIssue\s*[({])/g) {
             print "$file:$n: $1\n";
         }
+    }
+    # A trait list can span lines, so `.disabled(` is matched over the whole
+    # file, within the attribute parentheses (one level of nesting).
+    while (/@(?:Test|Suite)\s*\((?:[^()]|\([^()]*\))*?\.disabled\s*\(/gs) {
+        my $at = 1 + (substr($_, 0, $-[0]) =~ tr/\n//);
+        print "$file:$at: .disabled(\n";
     }
 ')" || { echo "check_test_skip_budget: counting failed" >&2; exit 70; }
 skip_count="$(printf '%s' "$skip_sites" | grep -c . || true)"
@@ -95,6 +101,13 @@ if (( skip_count > budget )); then
     echo "real, make the test set it up; if it is not, delete the guard." >&2
     echo >&2
     printf '%s\n' "$skip_sites" >&2
+    exit 1
+fi
+
+# A ratchet holds only if the budget follows the count down: slack lets the
+# next skip in unseen.
+if (( skip_count < budget )); then
+    echo "FAIL (slack): lower ${SKIP_BUDGET_FILE} to ${skip_count} in this change to lock the gain in." >&2
     exit 1
 fi
 

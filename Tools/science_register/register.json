@@ -18,7 +18,9 @@
   "_waived_symbols": {
     "_note": "Score-adjusting names that are deliberately NOT register entries. Each needs a reason; the gate fails on a discovered symbol that is neither claimed nor listed here.",
     "listsEnglishSpO2Penalty": "Detects whether stored penalty lines are the English SpO2 text (ScoreBreakdownCopy). It reads text only and adjusts no score.",
-    "displayPenalty": "Translates a stored penalty line into the app language for display (ScoreBreakdownCopy). It reads text only and adjusts no score."
+    "displayPenalty": "Translates a stored penalty line into the app language for display (ScoreBreakdownCopy). It reads text only and adjusts no score.",
+    "lowBloodOxygenPenalty": "The localized text of the SpO2 penalty line (ScoreBreakdownCopy). It reads text only and adjusts no score; the penalty itself is spo2-flat-penalty.",
+    "missingSleepPenalty": "The localized text of the missing-sleep penalty line (ScoreBreakdownCopy). It reads text only and adjusts no score."
   },
   "scoring_version": "v3.5.nov2026",
   "entries": [
@@ -75,7 +77,10 @@
       "tests": [
         "EmuquTests/LiveDFAAnalyzerTests.swift"
       ],
-      "allowed_language": "May cite the published bias figures."
+      "allowed_language": "May cite the published bias figures.",
+      "symbols": [
+        "correctedFraction"
+      ]
     },
     {
       "id": "resting-dfa-a1-reference-band",
@@ -120,6 +125,22 @@
         "EmuquTests/StressAnalysisTests.swift"
       ],
       "allowed_language": "Composite of two derived numbers. Never autonomic dominance."
+    },
+    {
+      "id": "hard-workout-readiness-taper",
+      "status": "awaiting-validation",
+      "symbols": [
+        "readinessAdjustment",
+        "configuredTrainingLoadAdjustment"
+      ],
+      "affects": [
+        "readiness score 1-10, when training-load integration is on"
+      ],
+      "evidence": "Encodes the expectation that HRV is suppressed for a day or two after hard training by excusing up to 2 points of low readiness: 2 on the day of a hard workout, 1 the day after, 0.5 the day after that. The size and length of the taper are ours and have not been validated against any outcome.",
+      "tests": [
+        "EmuquTests/StressAnalysisTests.swift"
+      ],
+      "allowed_language": "An allowance for expected post-workout suppression. Never a statement that the user has or has not recovered."
     },
     {
       "id": "acwr-readiness-damper",

@@ -5,7 +5,7 @@ Emuqu ships with **17 languages** in `Emuqu/Localizable.xcstrings`
 Japanese, Korean, Norwegian Bokmål, Dutch, Portuguese (Brazil), Russian,
 Swedish, Simplified Chinese, plus English as the source).
 
-**Every non-English locale is at 100 % coverage, and CI enforces it.** The
+**Every non-English locale is fully translated, and CI enforces it.** The
 floor lives in `.ci/min_localization_coverage.txt` and
 `scripts/check_localization_coverage.sh` fails the build below it, so a new
 untranslated string breaks CI rather than silently falling back to English.

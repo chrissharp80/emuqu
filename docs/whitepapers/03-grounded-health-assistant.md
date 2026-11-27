@@ -78,7 +78,7 @@ Table 2.1 shows one user turn on the text path. The voice path is the same up to
 ```
                     MedicalTermLexicon (29 concepts x 17 languages)
                     |                    |                       |
-      refuseBeforeSending (12)   scrubFromOutput (21)    neverInStaticCopy (12)
+      refuseBeforeSending (12)   scrubFromOutput (21)    neverInStaticCopy (15)
                     |                    |                       |
             Input guard           Output guard            Copy linter (all locales)
         (local reply, no send)  (sentence deflection)    + English build-time list
@@ -353,7 +353,7 @@ A separate two-concept offensive-language list uses the same structure.
 
 - `refuseBeforeSending` (12) = rhythm (3) + emergency (7: chest pain, breathlessness, syncope, severe symptom, self-harm, acute cardiac event, neurovascular event; the input guard tests self-harm first and answers it with the crisis reply) + danger judgement + injury.
 - `scrubFromOutput` (21): all rhythm, claim, risk, certainty and referral concepts, plus named cardiac condition and neurovascular event.
-- `neverInStaticCopy` (12): atrial fibrillation, arrhythmia, the three condition concepts, regulatory clearance, cure, prescription, treatment claim, speculative diagnosis, pathology and clinical physiology labels.
+- `neverInStaticCopy` (15): atrial fibrillation, arrhythmia, the three condition concepts, regulatory clearance, cure, prescription, treatment claim, diagnosis, speculative diagnosis, injury risk, overtraining, pathology and clinical physiology labels.
 
 Eight concepts are **input-only**:
 
@@ -361,7 +361,7 @@ Eight concepts are **input-only**:
 - Danger judgement, because its bare adjectives (`dangerous`, `gefährlich`) appear in the app's own negating educational copy ("not because the number is dangerous in itself"). Assertion-shaped danger framing is covered on output by risk-zone framing.
 - Acute cardiac event, a strict subset of the already-scrubbed named cardiac condition. It exists so the input guard can refuse "am I having a heart attack?" without refusing "is my resting HR bradycardia?", an ordinary endurance-athlete question.
 
-Every concept is in the input group, the output group, or both (rhythm and neurovascular event). `neverInStaticCopy` excludes concepts the app's copy uses on purpose: its own safety replies say "talk to your doctor", which matches `medicalReferral`, and it names its own Diagnostics feature, a form of the `diagnosis` concept. The 12 selected concepts appear in no locale's copy outside the allow-listed disclaimers (the linter runs clean at 44a11ce), so the group can act as a hard gate.
+Every concept is in the input group, the output group, or both (rhythm and neurovascular event). `neverInStaticCopy` excludes concepts the app's copy uses on purpose: its own safety replies say "talk to your doctor", which matches `medicalReferral`. The app also names its own Diagnostics feature, a form of the `diagnosis` concept; those few catalogue keys ("Diagnostic Tools", "Advanced Diagnostics") are allow-listed with their translations, so `diagnosis` itself stays in the group. The selected concepts appear in no locale's copy outside the allow-listed strings, so the group can act as a hard gate.
 
 **Why it works.** One vocabulary consumed at three points means a term forbidden in shipped copy is also handled at input and in model output, in every language, and one edit reaches all three. Splitting by script gives each language the boundary rule that fits it, and matching on the original text keeps replacement ranges exact. Per-language exclusions at the qualifier's natural position let normal physiology, software terms and sports vocabulary through. Per-concept group membership lets each enforcement point act without rewriting the app's own safety language.
 
@@ -458,7 +458,7 @@ The linter scans the app source tree, the Watch app and both string catalogs:
 2. **Prohibition-context exemption.** The system prompt quotes forbidden framings to forbid them ("Never tell the user that a number 'predicts injury'…"). A match is excused only in two cases. (a) A guard such as `never|don't|do not` + `tell|say|use|describe|call|label|refer|frame|claim|imply` matches in the **comment-stripped** source within a 3-line window (the match line and the 2 lines above), and the literal's opening fragment (its first 40 characters, at least 3) lies in that same sentence. (b) The match's own sentence inside the literal contains a guard. A comment cannot excuse a string, and catalog values are never excused this way.
 3. **Catalogs.** An allow-listed catalog *key* clears its translations too. Every catalog is checked against the English build-time list (62 patterns) and, in *every locale*, against the multilingual `neverInStaticCopy` concepts. The linter parses these from the Swift lexicon source (bracket-matched `latin` and `unbounded` arrays, unescaped one level, compiled with the runtime's `\b` rules).
 
-Each of the following exits with code 2: a missing scan path, an unreadable file, an unparseable catalog, a missing `neverInStaticCopy` group or zero usable concepts, or an uncompilable pattern in `prohibited_terms.json` or a negation guard. A single lexicon concept is held to less: one whose `static let … = Concept(` block the linter cannot find, that has no alternatives, or whose alternatives do not compile is skipped without a message, and the run still reports clean, so a typo in one concept removes it from the every-locale check. All 12 concepts load today. PDF reports and the post-workout Coach Report email body are built from templates, contain no model-generated text, and are governed by this linter; model-drafted emails are a separate path (Section 7).
+Each of the following exits with code 2: a missing scan path, an unreadable file, an unparseable catalog, a missing `neverInStaticCopy` group, a concept in it whose `static let … = Concept(` block the linter cannot find, that has no alternatives, or whose alternatives do not compile, or an uncompilable pattern in `prohibited_terms.json` or a negation guard. A typo in one concept therefore stops the run rather than dropping that concept from the every-locale check. PDF reports and the post-workout Coach Report email body are built from templates, contain no model-generated text, and are governed by this linter; model-drafted emails are a separate path (Section 7).
 
 **Why it works.** Static copy ships in the bundle and never passes the runtime guards, so it is checked where it is written. Scanning literals as the compiler reads them covers long-form text, not just one-line strings. Scoping the exemption to the prohibiting sentence on comment-stripped source lets the prompt name what it forbids without letting a nearby comment excuse other copy. Reading the multilingual set from the runtime source means every locale follows the model's vocabulary with no second copy to keep in step.
 
@@ -804,7 +804,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | Numeric arg: `max_results` | 1–10, integer | results | Range check |
 | Lexicon concepts | 29 (+2 offensive) | count | Shared vocabulary |
 | Languages | 17 shipped locales (en + 16) | count | Lexicon and replies |
-| `refuseBeforeSending` / `scrubFromOutput` / `neverInStaticCopy` | 12 / 21 / 12 | concepts | Group sizes |
+| `refuseBeforeSending` / `scrubFromOutput` / `neverInStaticCopy` | 12 / 21 / 15 | concepts | Group sizes |
 | Sentence terminators | `. ! ? \n 。 ！ ？ ، ؟ …` | — | Segmentation |
 | Emphasis markers stripped on retry | `` * _ ` `` | — | Output guard |
 | Offensive-language recognizer confidence | 0.6 | probability | English-only entries |

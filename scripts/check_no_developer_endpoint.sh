@@ -143,7 +143,7 @@ status=$?
 
 # Analytics / tracking / crash-reporting SDKs, in the project and in the
 # resolved package graph. Presence alone contradicts the policy.
-BANNED='firebase|mixpanel|amplitude|segment\.com|sentry|bugsnag|crashlytics|appsflyer|posthog|datadog|adjust\.com|braze|onesignal|flurry|newrelic'
+BANNED='firebase|mixpanel|amplitude|segment\.com|sentry|bugsnag|crashlytics|appsflyer|posthog|datadog|adjust\.com|braze|onesignal|flurry|newrelic|telemetrydeck|instabug|countly|aptabase|appcenter|embrace-io|heap\.io|smartlook|uxcam|branch\.io|kochava|singular\.net|rollbar|raygun|launchdarkly|statsig'
 DEPENDENCY_FILES=(
     Emuqu.xcodeproj/project.pbxproj
     Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
