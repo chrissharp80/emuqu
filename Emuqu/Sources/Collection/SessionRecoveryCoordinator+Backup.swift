@@ -263,7 +263,7 @@ extension SessionRecoveryCoordinator {
     /// (`StrapRecordingPolicy.recordingIsSaved`). A session that was saved
     /// with them puts the recording on the saved record itself
     /// (`StrapRecordingState.noteSaved`).
-    private func keepUnsavedDownload(_ recording: StrapRecording?) {
+    func keepUnsavedDownload(_ recording: StrapRecording?) {
         guard let recording else { return }
         let keptAside = strapRecorder.device.rescueToBackup(recording)
         debugLog("[Recovery] The session could not be saved with the strap's \(recording.points.count) beats — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed")", level: .warning)
