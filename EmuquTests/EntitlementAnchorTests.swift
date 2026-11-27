@@ -390,4 +390,55 @@ final class EntitlementAnchorTests: XCTestCase {
         let evaluated = EntitlementAnchor.evaluatedHistory(decoded, hasHistory: true, wallClock: epoch)
         XCTAssertTrue(evaluated.isBetaTester)
     }
+
+    // MARK: - A wrong clock on another device
+
+    private let day: TimeInterval = 86_400
+
+    /// Another device whose clock was set weeks ahead raised the synced mark;
+    /// here it counts at most `maxHighWaterLead` past this install's own
+    /// time, so the trial is not ended on every device.
+    func testAnotherDevicesClockSetAheadCostsAtMostADay() {
+        let bounded = EntitlementAnchor.boundedHighWaterMark(own: epoch, merged: epoch.addingTimeInterval(40 * day), proven: nil)
+        XCTAssertEqual(bounded, epoch.addingTimeInterval(EntitlementAnchor.maxHighWaterLead))
+        let start = epoch.addingTimeInterval(-10 * day)
+        XCTAssertEqual(TrialPolicy.daysRemaining(start: start, now: bounded), 19)
+    }
+
+    /// This install's own furthest time still holds when its clock is wound
+    /// back, and a mark the App Store vouches for is kept in full.
+    func testOwnAndProvenTimesStillHoldAgainstAClockWoundBack() {
+        // (own, merged) with no proof, then a mark the App Store vouches for
+        // after this install's clock was wound back, then an honest device a
+        // little ahead.
+        XCTAssertEqual(EntitlementAnchor.boundedHighWaterMark(own: epoch, merged: epoch.addingTimeInterval(-day), proven: nil), epoch)
+        XCTAssertEqual(
+            EntitlementAnchor.boundedHighWaterMark(own: epoch.addingTimeInterval(-40 * day), merged: epoch, proven: epoch.addingTimeInterval(-3600)), epoch
+        )
+        XCTAssertEqual(EntitlementAnchor.boundedHighWaterMark(own: epoch, merged: epoch.addingTimeInterval(3600), proven: nil), epoch.addingTimeInterval(3600))
+    }
+
+    /// A trial start is a moment time has reached: a phone whose clock is set
+    /// before the trial began still reads the trial from its start.
+    func testResolvingKeepsTheMarkAtATrialStartAheadOfTheClock() {
+        let start = epoch.addingTimeInterval(5 * day)
+        var merged = record(trialStart: start, highWater: start)
+        merged.ownHighWaterMark = epoch
+        let resolved = EntitlementAnchor.resolved(merged, own: epoch)
+        XCTAssertEqual(resolved.highWaterMark, start)
+        XCTAssertNil(resolved.ownHighWaterMark, "an install's own mark is not carried into the merged record")
+    }
+
+    /// The App Store's signed time merges as the later, and the new fields
+    /// survive a round trip.
+    func testTheAppStoresSignedTimeMergesAsTheLater() throws {
+        var lhs = record(highWater: epoch)
+        lhs.trustedTime = epoch
+        var rhs = record(highWater: epoch)
+        rhs.trustedTime = epoch.addingTimeInterval(day)
+        rhs.ownHighWaterMark = epoch
+        XCTAssertEqual(EntitlementAnchor.merged(lhs, rhs)?.trustedTime, epoch.addingTimeInterval(day))
+        let decoded = try JSONDecoder().decode(EntitlementAnchor.Record.self, from: JSONEncoder().encode(rhs))
+        XCTAssertEqual(decoded, rhs)
+    }
 }

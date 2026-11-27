@@ -170,9 +170,10 @@ final class WatchConnectivityBridge: NSObject {
     /// the phone, not sent back.
     var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> WatchControlRefusal?)?
 
-    /// The `watchRequestedWorkoutStop`, `watchRequestedWorkoutPause` and
-    /// `watchRequestedWorkoutResume` userInfo key for the `Date` the End,
-    /// Pause or Resume was tapped on the wrist.
+    /// The `watchRequestedWorkoutStop`, `watchRequestedWorkoutPause`,
+    /// `watchRequestedWorkoutResume` and `watchAcknowledgedFinished` userInfo
+    /// key for the `Date` the End, Pause, Resume or Done was tapped on the
+    /// wrist.
     nonisolated static let stopTappedAtKey = "tappedAt"
 
     /// Called on the main actor when the Watch asks us to stop the active
@@ -199,8 +200,9 @@ final class WatchConnectivityBridge: NSObject {
     /// Watch summary. The workout has already been archived at stop
     /// time; this is just the "dismiss the post-workout sheet on the
     /// phone so it's not sitting there next time you pick it up" hook.
-    /// Reply-contract matches the other control messages.
-    var onAcknowledgeFinishedFromWatch: (() -> WatchControlRefusal?)?
+    /// Reply-contract matches the other control messages. Handed the time
+    /// Done was tapped, like a stop, pause or resume.
+    var onAcknowledgeFinishedFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     // MARK: Published
 

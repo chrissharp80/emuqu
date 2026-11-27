@@ -229,12 +229,19 @@ extension TrainingHealthQueries {
     /// is nothing to ask, and a query HealthKit refused because workouts were
     /// never authorized (or were denied) is an answer: both are no workouts
     /// rather than a failure, so the load is still built from the archive.
+    ///
+    /// Only other sources' workouts: what Emuqu exported to Apple Health is a
+    /// copy of a session the archive holds (`mergeArchiveAuthoritative`), and
+    /// it stays in Health after the session is trashed, trimmed or edited
+    /// until it is deleted for good. Read back, a trashed workout still
+    /// counted in the load, and the longer export of a trimmed one replaced
+    /// the trimmed recording.
     private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
         guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let startOfReferenceDay = calendar.startOfDay(for: referenceDate)
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: startOfReferenceDay) else { return [] }
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: referenceDate, options: .strictStartDate)
+        let predicate = Self.otherSourcesWorkoutPredicate(from: startDate, to: referenceDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
@@ -246,6 +253,13 @@ extension TrainingHealthQueries {
                 resolve(Self.workoutSummaries(samples, unlessFailed: error))
             }
         }
+    }
+
+    /// Workouts starting in `[start, end]` written by any source but Emuqu.
+    nonisolated static func otherSourcesWorkoutPredicate(from start: Date, to end: Date) -> NSPredicate {
+        let window = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let notOwnSource = NSCompoundPredicate(notPredicateWithSubpredicate: HKQuery.predicateForObjects(from: HKSource.default()))
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [window, notOwnSource])
     }
 
     /// The query's workouts; no workouts when HealthKit answered that the

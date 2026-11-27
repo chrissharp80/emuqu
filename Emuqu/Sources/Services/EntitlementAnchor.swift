@@ -87,8 +87,19 @@ enum EntitlementAnchor {
         var storeTrialStartDate: Date?
         /// Highest wall-clock time this app has ever observed. Guards
         /// against a user winding the device clock back to extend the
-        /// trial — see `effectiveNow(_:)`.
+        /// trial — see `effectiveNow(_:)`. Merged from every install, each
+        /// other install's held to what this one can vouch for
+        /// (`boundedHighWaterMark`).
         var highWaterMark: Date
+        /// Highest wall-clock time this install itself has observed. Kept
+        /// only in this install's own keychain item, so another install's
+        /// clock never becomes this one's own observation.
+        var ownHighWaterMark: Date?
+        /// The latest time the App Store has signed for this Apple ID (a
+        /// verified transaction's or the app transaction's `signedDate`): a
+        /// moment real time has provably reached, whatever any device's clock
+        /// says.
+        var trustedTime: Date?
         /// When a store build first checked the device for pre-existing
         /// history (see `evaluatedHistory`). Set once; the earliest value
         /// wins on merge.
@@ -114,13 +125,15 @@ enum EntitlementAnchor {
             trialStartDate: Date?,
             highWaterMark: Date,
             storeHistoryCheckedAt: Date? = nil,
-            storeTrialStartDate: Date? = nil
+            storeTrialStartDate: Date? = nil,
+            trustedTime: Date? = nil
         ) {
             self.isBetaTester = isBetaTester
             self.deviceTrialStartDate = trialStartDate
             self.storeTrialStartDate = storeTrialStartDate
             self.highWaterMark = highWaterMark
             self.storeHistoryCheckedAt = storeHistoryCheckedAt
+            self.trustedTime = trustedTime
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -128,6 +141,8 @@ enum EntitlementAnchor {
             case deviceTrialStartDate = "trialStartDate"
             case storeTrialStartDate
             case highWaterMark
+            case ownHighWaterMark
+            case trustedTime
             case storeHistoryCheckedAt
         }
     }
@@ -146,6 +161,10 @@ enum EntitlementAnchor {
     /// same date for one Apple ID; they differ only after the device switched
     /// Apple IDs, and the later date is the trial that Apple ID just started.
     /// Every entitlement sweep writes the signed-in Apple ID's date again.
+    ///
+    /// The App Store's signed time takes the LATER value: each is a moment
+    /// real time reached. An install's own observed mark is not merged: it
+    /// belongs to the item it was read from.
     static func merged(_ lhs: Record?, _ rhs: Record?) -> Record? {
         guard let lhs else { return rhs }
         guard let rhs else { return lhs }
@@ -154,8 +173,44 @@ enum EntitlementAnchor {
             trialStartDate: earlier(lhs.deviceTrialStartDate, rhs.deviceTrialStartDate),
             highWaterMark: max(lhs.highWaterMark, rhs.highWaterMark),
             storeHistoryCheckedAt: earlier(lhs.storeHistoryCheckedAt, rhs.storeHistoryCheckedAt),
-            storeTrialStartDate: later(lhs.storeTrialStartDate, rhs.storeTrialStartDate)
+            storeTrialStartDate: later(lhs.storeTrialStartDate, rhs.storeTrialStartDate),
+            trustedTime: later(lhs.trustedTime, rhs.trustedTime)
         )
+    }
+
+    /// How far the merged high-water mark may run ahead of the latest time
+    /// this install can vouch for. Two honest devices' clocks differ by
+    /// seconds; a day covers that with room to spare and bounds what one
+    /// device's wrong clock can take from the trial on every other.
+    static let maxHighWaterLead: TimeInterval = 86_400
+
+    /// The mark this install goes by: its own observations (`own`, its wall
+    /// clock included) in full, and the merged mark of every tier (`merged`)
+    /// only up to `maxHighWaterLead` past the latest moment it can vouch
+    /// for: `own`, a trial start, or a time the App Store signed
+    /// (`provenFloor`). One device's clock set weeks ahead raised the synced
+    /// mark for good, and every other device then read the trial as over;
+    /// held to the bound, it costs them at most a day. Winding this
+    /// install's clock back still holds the trial at its own furthest point.
+    static func boundedHighWaterMark(own: Date, merged: Date, proven: Date?) -> Date {
+        let ceiling = max(own, proven ?? own).addingTimeInterval(maxHighWaterLead)
+        return max(own, min(merged, ceiling))
+    }
+
+    /// The latest moment the record proves time has reached without any
+    /// device clock: the App Store's signed time, and the trial starts.
+    static func provenFloor(_ record: Record) -> Date? {
+        later(record.trustedTime, later(record.storeTrialStartDate, record.deviceTrialStartDate))
+    }
+
+    /// `merged` as this install resolves it: the high-water mark bounded
+    /// (`boundedHighWaterMark`) against `own`, this install's own furthest
+    /// observed time.
+    static func resolved(_ merged: Record, own: Date) -> Record {
+        var resolved = merged
+        resolved.ownHighWaterMark = nil
+        resolved.highWaterMark = boundedHighWaterMark(own: own, merged: merged.highWaterMark, proven: provenFloor(merged))
+        return resolved
     }
 
     /// The beta cohort is closed, so "used the app before it was on the
@@ -312,6 +367,19 @@ enum EntitlementAnchor {
         return updated
     }
 
+    /// Records a time the App Store signed for this Apple ID
+    /// (`trustedTime`), and moves the high-water mark up to it: it is a
+    /// moment real time has reached. Only a time later than the one kept
+    /// touches the keychain.
+    static func recordTrustedTime(_ signedAt: Date, wallClock: Date) {
+        guard cached().trustedTime.map({ $0 < signedAt }) ?? true else { return }
+        update(wallClock: wallClock) { record in
+            var updated = advanced(record, to: signedAt)
+            updated.trustedTime = later(record.trustedTime, signedAt)
+            return updated
+        }
+    }
+
     // MARK: - Persistence fan-out
 
     /// What one stored copy held.
@@ -340,7 +408,9 @@ enum EntitlementAnchor {
     /// Reads every tier, merges them, advances the high-water mark, applies
     /// `change`, and writes the result to each tier that holds something
     /// different and is not unreadable. Returns the merged record before
-    /// `change` and the result after it.
+    /// `change` and the result after it. The mark is resolved against this
+    /// install's own observations (`resolved`), and only those go into its
+    /// own item as `ownHighWaterMark`.
     ///
     /// One update at a time (`updateLock`): the background resolve and a
     /// main-actor update (a trial start, the history check, the legacy
@@ -352,10 +422,13 @@ enum EntitlementAnchor {
         updateLock.lock()
         defer { updateLock.unlock() }
         let tiers = readTiers()
-        let resolved = advanced(merged(tiers.defaults.storedRecord, tiers.keychain) ?? .empty, to: wallClock)
+        let own = max(tiers.ownKeychain.storedRecord?.ownHighWaterMark ?? .distantPast, wallClock)
+        let resolved = Self.resolved(merged(tiers.defaults.storedRecord, tiers.keychain) ?? .empty, own: own)
         let updated = change(resolved)
+        var ownItem = updated
+        ownItem.ownHighWaterMark = own
         if tiers.defaults != .record(updated), tiers.defaults != .unreadable { saveToDefaults(updated) }
-        if tiers.ownKeychain != .record(updated), tiers.ownKeychain != .unreadable { saveToKeychain(updated) }
+        if tiers.ownKeychain != .record(ownItem), tiers.ownKeychain != .unreadable { saveToKeychain(ownItem) }
         return (resolved, updated)
     }
 

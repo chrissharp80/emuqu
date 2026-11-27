@@ -117,8 +117,9 @@ extension EmuquApp {
     @MainActor
     func appLevelWatchAcknowledgeListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchAcknowledgedFinished)
-        for await _ in stream {
-            launchServices.recorderBox().recorder?.acknowledgeFinished()
+        for await note in stream {
+            let tappedAt = note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date
+            launchServices.recorderBox().recorder?.acknowledgeFinishedFromWatch(tappedAt: tappedAt)
         }
     }
 

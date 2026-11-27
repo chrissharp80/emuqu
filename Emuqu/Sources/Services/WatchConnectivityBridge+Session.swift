@@ -344,15 +344,15 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     ]
 
     /// The four plain stop/pause/resume/acknowledge controls, which differ only
-    /// in which callback they invoke; a stop, a pause and a resume are handed
-    /// the time they were tapped (`tapDate`). Nil for everything else, and
+    /// in which callback they invoke; each is handed the time it was tapped
+    /// (`tapDate`). Nil for everything else, and
     /// for a control whose callback is not wired yet.
     private func controlHandler(for type: MessageType, message: [String: Any]) -> (() -> WatchControlRefusal?)? {
         switch type {
         case .stopWorkoutFromWatch: return tappedHandler(onStopWorkoutFromWatch, tappedAt: Self.tapDate(message))
         case .pauseWorkoutFromWatch: return tappedHandler(onPauseWorkoutFromWatch, tappedAt: Self.tapDate(message))
         case .resumeWorkoutFromWatch: return tappedHandler(onResumeWorkoutFromWatch, tappedAt: Self.tapDate(message))
-        case .acknowledgeFinishedFromWatch: return onAcknowledgeFinishedFromWatch
+        case .acknowledgeFinishedFromWatch: return tappedHandler(onAcknowledgeFinishedFromWatch, tappedAt: Self.tapDate(message))
         default: return nil
         }
     }

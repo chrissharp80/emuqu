@@ -86,6 +86,17 @@ extension ArchiveStore {
         }
     }
 
+    /// Moves the deletion time of a session still deleted here up to `time`
+    /// (iCloud's time for its tombstone), never down. A deletion with no
+    /// recorded time keeps none: it predates restore times and loses to any
+    /// restore.
+    func raiseDeletionTime(_ id: UUID, to time: Date) {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        guard state.deletedSessionIds.contains(id), let recorded = deletionTime(of: id), recorded < time else { return }
+        Self.recordDeletionTime(id, at: time)
+    }
+
     /// Deleted sessions older than `keepDays`: Help says deleted sessions are
     /// kept for 90 days. Covers every deleted id, trashed file or not (a
     /// deleted session with only a raw backup is listed in the Trash too).

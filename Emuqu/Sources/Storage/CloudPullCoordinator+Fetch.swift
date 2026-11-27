@@ -492,22 +492,32 @@ extension CloudPullCoordinator {
     /// directly (`deleteWithoutTrash`), which throws when the file will
     /// neither go nor move into the Trash, keeping the session.
     ///
-    /// A copy with a change of this device's still waiting to upload (queued,
-    /// `pendingUploadIds`: an edit made offline, say) goes to this device's
-    /// Trash instead, so the change is not lost unrecoverably; removed as
-    /// above when the Trash cannot take it.
+    /// A copy with a change of this device's that iCloud does not hold yet
+    /// (`hasUnsentLocalChange`) goes to this device's Trash instead, so the
+    /// change is not lost unrecoverably. When the Trash cannot take it the
+    /// copy stays, and the next pull tries again: it is never removed
+    /// without a Trash copy.
     private func removeLocalCopy(_ sessionId: UUID, deletedAt: Date?) throws {
-        if manager.state.pendingUploadIds.contains(sessionId) {
-            do {
-                try manager.archive.delete(sessionId, deletedAt: deletedAt)
-                return
-            } catch {
-                debugLog("[CloudKit] Pull: the Trash could not keep \(sessionId.uuidString.prefix(8))'s unsynced change: \(error)", level: .warning)
-            }
+        if hasUnsentLocalChange(sessionId, deletedAt: deletedAt) {
+            try manager.archive.delete(sessionId, deletedAt: deletedAt)
+            return
         }
         try manager.archive.deleteWithoutTrash(sessionId, deletedAt: deletedAt)
         if !manager.archive.store.discardTrashed(sessionId) {
             debugLog("[CloudKit] Pull: \(sessionId.uuidString.prefix(8)) left a copy in the Trash, removed when the Trash expires", level: .warning)
         }
+    }
+
+    /// Whether this device changed the session in a way iCloud does not hold
+    /// yet: an upload queued in the sync state (`pendingUploadIds`), a
+    /// re-upload request on disk that sync has not taken in yet
+    /// (`ReuploadRequestJournal`: an edit made while a long sync held the
+    /// serializer), or a copy stamped as changed after the deletion was
+    /// written to iCloud (`modifiedAt`).
+    func hasUnsentLocalChange(_ sessionId: UUID, deletedAt: Date?) -> Bool {
+        if manager.state.pendingUploadIds.contains(sessionId) { return true }
+        if manager.archive.state.reuploadRequests.pending[sessionId] != nil { return true }
+        guard let deletedAt, let modifiedAt = manager.archive.entryById(sessionId)?.modifiedAt else { return false }
+        return modifiedAt > deletedAt
     }
 }
