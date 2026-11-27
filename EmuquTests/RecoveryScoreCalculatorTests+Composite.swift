@@ -152,7 +152,9 @@ extension RecoveryScoreCalculatorTests {
             respiratoryRateBaseline: 14.5, // +3 br/min above baseline
             oxygenSaturation: 97.0, oxygenSaturationMin: 96.0,
             wristTemperature: 0.1, wristTemperatureBaseline: 0.0,
-            restingHeartRate: 58.0
+            // The strap's sleep HR, the recording's mean HR: the only resting
+            // HR the score reads against the sleep-HR baseline.
+            restingHeartRate: 57.0
         )
         let breakdown = RecoveryScoreCalculator.calculateWithBreakdown(
             RecoveryScoreCalculator.ScoreInputs(

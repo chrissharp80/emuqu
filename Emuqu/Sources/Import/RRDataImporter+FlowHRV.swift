@@ -305,14 +305,19 @@ extension RRDataImporter {
 
     /// A legacy group's rows split into recordings, in file order. Each
     /// recording's `timestamp_ms` counts up from its own start, so a row
-    /// whose timestamp does not move past the row before it begins another
+    /// that is not in order after the row before it begins another
     /// recording: sorting the two together would interleave their beats.
+    /// In order is the rule a recording's timeline is read by
+    /// (`continuesTimeline`): a later timestamp, or the same one on two
+    /// streamed beats of one batch, which a composite an earlier build saved
+    /// stamped with the batch's arrival.
     static func legacyRecordingSegments(
         _ points: [ExportedBeat]
     ) -> [[ExportedBeat]] {
         var segments: [[ExportedBeat]] = []
         for point in points {
-            if let last = segments.last?.last, point.timestamp > last.timestamp {
+            if let last = segments.last?.last,
+               continuesTimeline(from: (last.timestamp, last.wallClockMs), to: (point.timestamp, point.wallClockMs)) {
                 segments[segments.count - 1].append(point)
             } else {
                 segments.append([point])

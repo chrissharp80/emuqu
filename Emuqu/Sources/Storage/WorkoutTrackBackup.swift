@@ -634,7 +634,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// torn write, or a sealed line whose key is not on this device) is
     /// skipped, and the count logged.
     private func decodeJSONLFile<T: Decodable>(url: URL, as: T.Type) -> [T] {
-        guard fileManager.fileExists(atPath: url.path),
+        guard BackupFiles.isFile(url, using: fileManager),
               let raw = attempt("WorkoutTrackBackup.readStream", { try String(contentsOf: url, encoding: .utf8) }) else { return [] }
         let manager = encryption
         var out: [T] = []
@@ -682,7 +682,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// once none holds one. A workout with no stream in this folder stays
     /// queued: its files are elsewhere, or `discard` clears it.
     private func resealStreams(of sessionId: UUID, with manager: EncryptionManager) {
-        let files = streamFiles(of: sessionId).filter { fileManager.fileExists(atPath: $0.path) }
+        let files = streamFiles(of: sessionId).filter { BackupFiles.isFile($0, using: fileManager) }
         guard !files.isEmpty else { return }
         do {
             let sealed = try files.map { try SealedJSONLines.resealFile(at: $0, with: manager) }

@@ -388,9 +388,14 @@ final class SessionImmutabilityTests: XCTestCase {
         XCTAssertEqual(copied.compositeScore, none.compositeScore, accuracy: 1e-9)
         let factors = copied.factors.map { "\($0.label) \($0.score) \($0.facts?.vitals?.sleepHR ?? -1)" }
         XCTAssertEqual(factors, none.factors.map { "\($0.label) \($0.score) \($0.facts?.vitals?.sleepHR ?? -1)" })
-        // HealthKit's resting HR is a different number and still counts.
+        // HealthKit's resting HR is not the strap's sleep HR, so it is not
+        // scored against the sleep-HR baseline either.
         let health = breakdown(meanHR: 70, vitals: vitals(restingHeartRate: 60), useBaselineHRV: true)
-        XCTAssertNotEqual(health.compositeScore, none.compositeScore, accuracy: 1e-6)
+        XCTAssertEqual(health.compositeScore, none.compositeScore, accuracy: 1e-9)
+        // A usable recording's own sleep HR is scored.
+        let strap = breakdown(meanHR: 70, vitals: vitals(restingHeartRate: 70), useBaselineHRV: false)
+        let strapless = breakdown(meanHR: 70, vitals: vitals(restingHeartRate: nil), useBaselineHRV: false)
+        XCTAssertNotEqual(strap.compositeScore, strapless.compositeScore, accuracy: 1e-6)
     }
 
     /// The snapshot rule: a usable recording's strap HR stands as sleep HR; an

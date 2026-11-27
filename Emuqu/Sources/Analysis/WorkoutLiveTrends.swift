@@ -414,7 +414,9 @@ extension WorkoutLiveTrends {
         /// `WorkoutLiveTrends.aerobicDecouplingPercent(samples:)`.
         var aerobicDecouplingPercent: Double? {
             if let unordered { return WorkoutLiveTrends.aerobicDecouplingPercent(samples: unordered) }
-            guard let last, last.offsetSec >= WorkoutLiveTrends.halfMetricsMinSeconds else { return nil }
+            // The finished workout's minimum, as the stateless estimate reads it.
+            let minimum = WorkoutAnalyzer.decouplingMinimumMovingSeconds
+            guard let last, last.offsetSec >= minimum else { return nil }
             let mid = position(atOrAfter: last.offsetSec / 2)
             func efficiency(_ positions: Range<Int>) -> Double? {
                 guard let speed = pairedSpeed.mean(positions, minimum: 30),

@@ -32,17 +32,27 @@ import Foundation
 /// - Otherwise it is an arrival time. Each beat ended no later than its batch
 ///   arrived, so each beat starts at the running sum of the run's intervals,
 ///   moved later by the least margin by which it or any later beat of the run
-///   arrived after it ended. That margin only grows where the beat clock left
-///   time out (a dropout, a removed interval), so the time comes back there,
-///   and the beats of one batch are laid back from its arrival by their own
-///   intervals instead of sharing one time. A series this already places
-///   (the beat clock set to these times) reads back unchanged.
+///   arrived after it ended, and the beats of one batch are laid back from
+///   its arrival by their own intervals instead of sharing one time. That
+///   least margin also rises by the spread of the batches' arrival delays
+///   wherever a later beat's margin jumps, so the margin is moved only where
+///   the beat clock left time out: at a beat that follows a removed interval,
+///   or where it has grown by at least `arrivalJitterMs` (a dropout). A
+///   smaller rise is held back until one of those, so a stream that lost no
+///   beats is not read as having gaps between them. A series this already
+///   places (the beat clock set to these times) reads back unchanged.
 ///
 /// The times always rise, so no two beats share one.
 enum BeatTimeline {
     /// The rounding a recorded clock that marks beat starts may lose between
     /// two beats (the Watch places beats in whole ms).
     static let startClockSlackMs: Int64 = 2
+
+    /// The most by which the least arrival margin rises between two beats
+    /// from the spread of the batches' arrival delays alone, about one
+    /// notification wait; a rise of at least this is time the stream did not
+    /// receive.
+    static let arrivalJitterMs: Int64 = 2_000
 
     /// Beats read past the end of a range, so the beats near its end are
     /// timed from the batch they arrived in (`ms(_:in:)`).
@@ -143,7 +153,8 @@ enum BeatTimeline {
     }
 
     /// The run's running starts from `originMs`, each moved later by the
-    /// least arrival margin at or after it.
+    /// least arrival margin at or after it, as far as `heldMargins` lets the
+    /// margin rise.
     private static func arrivalTimes(_ beats: [RRPoint], originMs: Int64) -> [Int64] {
         let starts = runningStarts(beats, originMs: originMs)
         var margins = [Int64](repeating: 0, count: beats.count)
@@ -152,7 +163,19 @@ enum BeatTimeline {
             least = min(least, (beats[k].wallClockMs ?? starts[k]) - starts[k] - Int64(beats[k].rr_ms))
             margins[k] = least
         }
-        return zip(starts, margins).map { $0 + $1 }
+        return zip(starts, heldMargins(margins, of: beats)).map { $0 + $1 }
+    }
+
+    /// `margins` (rising) moved only at a beat that follows a removed
+    /// interval, or where they have risen by at least `arrivalJitterMs`;
+    /// a smaller rise is held back until then. Never above `margins`, so
+    /// each beat still ends by the time its batch arrived.
+    private static func heldMargins(_ margins: [Int64], of beats: [RRPoint]) -> [Int64] {
+        var held = margins.first ?? 0
+        return zip(margins, beats).map { margin, beat in
+            if beat.isAfterRemovedBeat || margin - held >= arrivalJitterMs { held = margin }
+            return held
+        }
     }
 
     private static func runningStarts(_ beats: [RRPoint], originMs: Int64) -> [Int64] {

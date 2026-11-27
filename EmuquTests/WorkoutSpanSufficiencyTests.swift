@@ -105,8 +105,12 @@ final class WorkoutSpanSufficiencyTests: XCTestCase {
 
     func testAnHRRReadingCarriesTheTimeItWasTaken() {
         XCTAssertEqual(HRRCaptureService.measuredOffsetSec(since: start, now: start.addingTimeInterval(72.4)), 72)
-        let late = HRRSample(offsetSec: 72, hr: 120, drop: 30, peakHR: 150, provenance: .strap)
-        XCTAssertNil([late].bestAtOneMinute, "a reading 72 s after Stop is not a 1-minute recovery")
+        // Read back by the one tolerance the capture stores a reading by.
+        let pastTolerance = 60 + HRRSample.targetToleranceSec + 1
+        let late = HRRSample(offsetSec: pastTolerance, hr: 120, drop: 30, peakHR: 150, provenance: .strap)
+        XCTAssertNil([late].bestAtOneMinute, "a reading \(pastTolerance) s after Stop is not a 1-minute recovery")
+        let withinTolerance = HRRSample(offsetSec: 72, hr: 120, drop: 30, peakHR: 150, provenance: .strap)
+        XCTAssertEqual([withinTolerance].bestAtOneMinute?.offsetSec, 72, "the reading keeps the time it was taken")
     }
 
     // MARK: - Spectral span

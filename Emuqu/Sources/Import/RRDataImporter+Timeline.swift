@@ -121,7 +121,16 @@ extension RRDataImporter {
     }
 
     private static func isInOrder(_ previous: RRPoint, _ next: RRPoint) -> Bool {
-        previous.t_ms < next.t_ms || (previous.t_ms == next.t_ms && previous.wallClockMs != nil && previous.wallClockMs == next.wallClockMs)
+        continuesTimeline(from: (previous.t_ms, previous.wallClockMs), to: (next.t_ms, next.wallClockMs))
+    }
+
+    /// Whether a beat at `next` (its timestamp and wall clock) follows one
+    /// at `previous` on one recording's timeline: a later timestamp, or the
+    /// same one when both carry the same wall clock (two streamed beats of
+    /// one batch). The one rule a timeline column and a legacy export's
+    /// recordings are both read by.
+    static func continuesTimeline(from previous: (ms: Int64, wall: Int64?), to next: (ms: Int64, wall: Int64?)) -> Bool {
+        previous.ms < next.ms || (previous.ms == next.ms && previous.wall != nil && previous.wall == next.wall)
     }
 
     /// `points` with each beat's timestamp at its real start (`BeatTimeline`)

@@ -265,7 +265,9 @@ extension RawRRBackup {
     /// (a composite an earlier build saved stamped a streamed batch's beats
     /// with its one arrival time), so the timestamp alone would keep only one
     /// of them. Beats with one timestamp keep the order they were written in.
-    /// Without siblings the live file must exist.
+    /// Without siblings the live file must exist. Only files are read: a
+    /// folder set aside in a points file's place holds no beats
+    /// (`BackupFiles.isFile`).
     ///
     /// Throws when any part cannot be read: the directory listing that names
     /// the siblings, or a sibling itself. What the other parts hold is not the
@@ -275,6 +277,7 @@ extension RawRRBackup {
     func readAllPointLines(sessionId: UUID, decoder: JSONDecoder) throws -> [RRPoint] {
         let livePath = pointsURL(for: sessionId)
         let siblings = try listedCorruptedSiblingNames(of: livePath)
+            .filter { BackupFiles.isFile(backupDirectory.appendingPathComponent($0), using: fileManager) }
         var written: [RRPoint] = []
         for name in siblings {
             let url = backupDirectory.appendingPathComponent(name)
@@ -659,8 +662,16 @@ enum SealedJSONLines {
     }
 }
 
-/// Removing a backup's files.
+/// Removing a backup's files, and telling which of them hold lines.
 enum BackupFiles {
+    /// Whether `url` is a file, not a folder. A folder in a stream's or a
+    /// points file's place is set aside like an unreadable file, and holds
+    /// no lines: a read or a re-seal passes over it, a discard removes it.
+    static func isFile(_ url: URL, using fileManager: FileManager) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+    }
+
     /// Removes each file and returns those still on disk afterwards. A file
     /// already gone counts as removed; any other failure is logged.
     static func remove(_ urls: [URL], using fileManager: FileManager) -> [URL] {
