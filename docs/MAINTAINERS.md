@@ -261,8 +261,8 @@ No sweeping rewrites, no "while I'm here" changes, no new abstraction that
 doesn't delete more complexity than it adds, no new global/hidden state, no new
 magic numbers. Hold every change to the [Refactor Completion Checklist](REFACTOR_SPEC.md#refactor-completion-checklist-hard-gate).
 CI measures only part of it: `scripts/check_refactor_spec_conformance.sh` checks
-function, property and init length, nesting depth, commented-out code and empty
-catches, and other gates own `try?`, `.shared` and log redaction. Magic numbers
+function, operator, property, observer, init and deinit length, nesting depth,
+commented-out code and empty catches (on the watch target too), and other gates own `try?`, `.shared` and log redaction. Magic numbers
 are not checked by any gate (`.swiftlint.yml` does not enable `no_magic_numbers`),
 nor are the judgement items, so review is what holds them.
 

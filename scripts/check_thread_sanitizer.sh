@@ -106,6 +106,9 @@ started="$(date +%s)"
 heartbeat=$!
 
 attempt=0
+# Race reports from a run retried as blind: its canary went unseen, but a race it
+# did report is still a race, and the run that replaces it may miss it.
+earlier_races=""
 while :; do
     attempt=$(( attempt + 1 ))
     set +e
@@ -116,6 +119,7 @@ while :; do
     canary_races="$(grep 'SUMMARY: ThreadSanitizer' "$log" | grep -c "$CANARY_MARK" || true)"
     echo "Run ${attempt}: $(( ($(date +%s) - started) / 60 )) min so far; canary race reports: ${canary_races}."
     (( canary_races > 0 || attempt >= ATTEMPTS )) && break
+    earlier_races+="$(grep 'SUMMARY: ThreadSanitizer' "$log" | grep -v "$CANARY_MARK" || true)"$'\n'
     echo "Run ${attempt} was blind: the canary's planted race left no report, so this process could not see races. Running again."
 done
 stop_heartbeat
@@ -133,7 +137,7 @@ fi
 # Serial runs write `Test Case '-[EmuquTests.Foo testBar]' passed (…)`; the
 # `Test case 'Foo.testBar()' passed on …` form is counted too.
 all_races="$(grep -c 'SUMMARY: ThreadSanitizer' "$log" || true)"
-races=$(( all_races - canary_races ))
+races=$(( all_races - canary_races + $(grep -c 'SUMMARY' <<< "$earlier_races" || true) ))
 passed="$(grep -cE "Test [Cc]ase '[^']+' passed" "$log" || true)"
 failed="$(grep -cE "Test [Cc]ase '[^']+' failed" "$log" || true)"
 
@@ -142,6 +146,7 @@ echo "Thread Sanitizer: the canary's race was reported; ${races} other race repo
 if (( races > 0 )); then
     echo >&2
     echo "ERROR: Thread Sanitizer reported ${races} data race(s) besides the canary's:" >&2
+    [[ -n "$earlier_races" ]] && printf '%s\n' "$earlier_races" >&2
     grep 'SUMMARY: ThreadSanitizer' "$log" | grep -v "$CANARY_MARK" >&2 || true
     grep -B 2 -A 30 'WARNING: ThreadSanitizer' "$log" >&2
     exit 1

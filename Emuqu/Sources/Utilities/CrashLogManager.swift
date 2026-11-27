@@ -86,7 +86,7 @@ final class CrashLogManager: Sendable {
             try FileManager.default.removeItem(at: previousCrashURL)
         } catch let nsError as NSError where nsError.domain == NSCocoaErrorDomain &&
             nsError.code == NSFileNoSuchFileError {
-            // Nothing to clear.
+            // swallow-ok: the file is already gone
         } catch {
             debugLog("[CrashLogManager] Failed to clear previous crash log: \(error)")
         }
@@ -102,7 +102,7 @@ final class CrashLogManager: Sendable {
         for url in [crashLogURL, exceptionLogURL, previousCrashURL] {
             do { try fm.removeItem(at: url) } catch let nsError as NSError where nsError.domain == NSCocoaErrorDomain &&
                 nsError.code == NSFileNoSuchFileError {
-                // nothing to clear
+                // swallow-ok: the file is already gone
             } catch { collected.append(error) }
         }
         if let first = collected.first { throw first }

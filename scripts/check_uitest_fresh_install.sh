@@ -39,18 +39,30 @@ while IFS= read -r file; do
     # Strip whole-line comments AND trailing ones. A trailing `// …` is an
     # evasion on its own: the flag deleted from the array and re-added as a
     # comment on the same line passes a check that strips only whole lines.
-    code="$(sed -E -e 's|^[[:space:]]*//.*$||' -e 's|[[:space:]]+//.*$||' "$file")"
-    printf '%s\n' "$code" | grep -q '\.launch()' || continue
+    # Block comments go too: `/* … */` hides code from the compiler exactly
+    # as `//` does.
+    code="$(perl -0pe 's{/\*.*?\*/}{}gs' "$file" | sed -E -e 's|^[[:space:]]*//.*$||' -e 's|[[:space:]]+//.*$||')"
+    # `activate()` launches an app that is not running, so it is a launch.
+    printf '%s\n' "$code" | grep -qE '\.(launch|activate)\(\)' || continue
     checked=$((checked + 1))
     # The flag must sit in the launch arguments, not merely somewhere in the
     # file. `launchArguments` is often built over several lines, so accept the
     # flag on any line of a `launchArguments` assignment block: the block is
     # everything from `launchArguments` to the closing bracket.
-    printf '%s\n' "$code" \
-        | awk '/launchArguments/ { inblock = 1 }
-               inblock { print }
-               inblock && /\]/ { inblock = 0 }' \
-        | grep -q -- '-UITests-FreshInstall' || missing+=("$file")
+    #
+    # And once per app under test, not once per file: every `XCUIApplication()`
+    # the file builds needs a block of its own, so a second app built and
+    # launched without the flag in a file that resets its first is caught.
+    # (`XCUIApplication(bundleIdentifier:)` is another app, Springboard say.)
+    apps="$(printf '%s\n' "$code" | grep -o 'XCUIApplication()' | wc -l | tr -d ' ')"
+    resets="$(printf '%s\n' "$code" \
+        | awk '/launchArguments/ { inblock = 1; block = "" }
+               inblock { block = block $0 }
+               inblock && /\]/ { inblock = 0; if (block ~ /-UITests-FreshInstall/) n++ }
+               END { print n + 0 }')"
+    if (( resets == 0 || resets < apps )); then
+        missing+=("$file")
+    fi
 done < <(find "$UITEST_DIR" -name '*.swift' | sort)
 
 if (( ${#missing[@]} > 0 )); then

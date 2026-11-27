@@ -11,10 +11,10 @@ set -euo pipefail
 #
 # Every tracked Swift file whose name has a `+` must extend, or declare, the
 # type named before the `+` (or a type nested in it, or a nested type of that
-# name), and
-# nothing else: a second type gets a file of its own. `Notification.Name`
-# extensions are allowed alongside, since a notification sits with the type
-# that posts it.
+# name). Only extensions are checked: an extension of any other type fails
+# (`Notification.Name` extensions are allowed alongside, since a notification
+# sits with the type that posts it), but a second top-level type DECLARED in
+# the file is not checked, and several files hold one today.
 
 cd "$(dirname "$0")/.."
 

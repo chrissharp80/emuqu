@@ -57,10 +57,18 @@ if not workflows or not scripts:
 # xcodebuild in command position: at the start of a command, after a shell
 # operator or keyword, after make's `@`/`-` prefixes, after `run:` or `xcrun`.
 # A mention inside an echo or a sentence is preceded by a word and is not one.
+# A command word, then any wrappers that run their argument (timeout N,
+# sudo, nice, caffeinate -i, xcrun --sdk X), then xcodebuild, bare, quoted
+# or by absolute path.
 COMMAND = re.compile(
-    r"(?:^|[;&|({!@-]|\$\(|\brun:|\b(?:then|do|else|if|exec|time|command|env|xcrun))"
-    r"\s*xcodebuild(?=\s|$|\))"
+    r"(?:^|[;&|({!@-]|\$\(|\brun:|\b(?:then|do|else|if|exec|time|command|env))"
+    r"(?:\s*(?:(?:g?timeout)\s+\S+|sudo|nice|nohup|caffeinate(?:\s+-\w+)*"
+    r"|xcrun(?:\s+-{1,2}[\w-]+(?:\s+[A-Za-z][\w.]*)?)*))*"
+    r"""\s*["']?(?:/\S*/)?xcodebuild["']?(?=\s|$|\))"""
 )
+# xcodebuild bound to a name, or spawned from Python, escapes COMMAND.
+ALIAS = re.compile(r"""=["'(]?(?:/\S*/)?xcodebuild\b(?![-.])|\bxcrun\s+(?:-\S+\s+)*-f\s+xcodebuild\b""")
+PY_SPAWN = re.compile(r"""["'](?:/\S*/)?xcodebuild["']""")
 # A separator ends the invocation; what follows is another command.
 SEPARATOR = re.compile(r"&&|\|\||;|\s\|\s|\|$|\)\s*$")
 # Actions that never open the project, so never resolve packages.
@@ -105,6 +113,13 @@ def defines_variable(path, kind, text):
     return False
 
 
+for path in sorted(pathlib.Path(".").glob("scripts/**/*.py")) + sorted(pathlib.Path(".").glob("Tools/**/*.py")):
+    for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").split("\n"), 1):
+        if PY_SPAWN.search(line) and not line.lstrip().startswith("#"):
+            print(f"check_xcodebuild_pinned: {path}:{lineno} spawns xcodebuild from Python; "
+                  "call it from a shell script that sources scripts/lib/xcodebuild.sh.", file=sys.stderr)
+            raise SystemExit(1)
+
 files = [(MAKEFILE, "make")] + [(p, "yml") for p in workflows] + [(p, "sh") for p in scripts + hooks]
 checked = 0
 exempt = 0
@@ -113,6 +128,9 @@ for path, kind in files:
     text = path.read_text(encoding="utf-8", errors="ignore")
     sourced = defines_variable(path, kind, text)
     for lineno, line in logical_lines(text):
+        if ALIAS.search(line) and path.name != "check_xcodebuild_pinned.sh":
+            failures.append(f"{path}:{lineno} binds xcodebuild to a name; this gate "
+                            "can only see it called by name:\n      " + line.strip()[:110])
         for match in COMMAND.finditer(line):
             rest = line[match.end():]
             cut = SEPARATOR.search(rest)

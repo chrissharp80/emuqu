@@ -17,6 +17,7 @@
   },
   "_waived_symbols": {
     "_note": "Score-adjusting names that are deliberately NOT register entries. Each needs a reason; the gate fails on a discovered symbol that is neither claimed nor listed here.",
+    "listsEnglishSpO2Penalty": "Detects whether stored penalty lines are the English SpO2 text (ScoreBreakdownCopy). It reads text only and adjusts no score.",
     "displayPenalty": "Translates a stored penalty line into the app language for display (ScoreBreakdownCopy). It reads text only and adjusts no score."
   },
   "scoring_version": "v3.5.nov2026",
@@ -80,7 +81,8 @@
       "id": "resting-dfa-a1-reference-band",
       "status": "awaiting-validation",
       "symbols": [
-        "dfaAdjustment"
+        "dfaAdjustment",
+        "dfaAlpha1Adjustment"
       ],
       "affects": [
         "+5 Tier-1 recovery points",

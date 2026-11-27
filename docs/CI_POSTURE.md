@@ -77,7 +77,7 @@ baseline differs between them (below).
 | **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved`, an advisory allowed as unreachable staying unreachable |
 | **Documentation** | Link and constant integrity |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views, and per area in `.ci/min_coverage_areas.txt`) |
-| **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
+| **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gates_wired.sh` requires each to actually run in `ci.yml` (and in `gates.yml` unless it needs Xcode or SwiftLint), in a step that runs on every pull request and can fail it |
 
 The last row is the one that matters most. A gate that passes because it is
 measuring nothing is worse than no gate, because it is documented as protection.
@@ -237,9 +237,14 @@ narrow back without going red. The flags are passed on the command line
 rather than set in the project, so a local `xcodebuild archive` for the App
 Store can never fail because a runner was busy.
 
-**Nothing is waived.** There are zero `swiftlint:disable` directives in
-`Emuqu/Sources`. Budgets ratchet downward only, and `check_budget_monotonicity.sh`
-fails a raise that has no written justification.
+**Nothing is waived by a directive.** `enforce_swiftlint_budget.sh` fails on
+any `swiftlint:disable` in the app or watch sources. The per-site escapes that
+remain are the refactor-spec waivers (`// spec:long-function`,
+`// spec:deep-nesting`), counted against budgets of their own, and
+`// swallow-ok:` on an empty catch, which needs a reason. Budgets ratchet
+downward only, and `check_budget_monotonicity.sh` fails a raise that has no
+written justification, including a raised limit in `.swiftlint.yml` or in the
+refactor-spec and large-file gates.
 
 ## Where GitHub Actions is still used
 

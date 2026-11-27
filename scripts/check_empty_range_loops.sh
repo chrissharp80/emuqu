@@ -28,9 +28,13 @@ import pathlib, re, sys
 # Two shapes, one trap:
 #   for i in 1 ..< xs.count           -> traps when xs is empty
 #   for i in 0 ..< (xs.count - N)     -> traps when xs.count < N
+# The range is the trap, wherever it is formed: a `for` loop, a mapped
+# `(1 ..< xs.count).map`, or a slice `xs[1 ..< xs.count]`. A closed range
+# `0 ... xs.count - N` traps for the same counts as `0 ..< xs.count - N` does.
+RANGE_START = r'(?:for\s+\w+\s+in\s+|[(\[]\s*)'
 PATTERNS = [
-    re.compile(r'for\s+\w+\s+in\s+1\s*\.\.<\s*([\w.]+)\.count'),
-    re.compile(r'for\s+\w+\s+in\s+0\s*\.\.<\s*\(?\s*([\w.]+)\.count\s*-\s*(\d+)'),
+    re.compile(RANGE_START + r'1\s*\.\.<\s*([\w.]+)\.count\b(?!\s*-)'),
+    re.compile(RANGE_START + r'0\s*(?:\.\.<|\.\.\.)\s*\(?\s*([\w.]+)\.count\s*-\s*(\d+)'),
 ]
 # The enclosing unit's first line: a func, init, deinit or subscript.
 UNIT_START = re.compile(
@@ -64,7 +68,12 @@ def guaranteed_counts(var, window):
 
 
 problems = []
-for f in sorted(pathlib.Path('Emuqu/Sources').rglob('*.swift')):
+ROOTS = ['Emuqu/Sources', 'EmuquWatch Watch App']
+for root in ROOTS:
+    if not pathlib.Path(root).is_dir():
+        print(f"check_empty_range_loops: scan root missing: {root}", file=sys.stderr)
+        sys.exit(2)
+for f in sorted(p for root in ROOTS for p in pathlib.Path(root).rglob('*.swift')):
     lines = f.read_text(encoding='utf-8', errors='ignore').split('\n')
     for n, line in enumerate(lines):
         code_only = line.split('//')[0]

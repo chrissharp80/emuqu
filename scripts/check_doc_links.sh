@@ -107,13 +107,20 @@ def markdown_files():
 
 # ---------------------------------------------------------------- rule 1
 
-LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+# Inline links with or without a title or <angle> target, reference-link
+# definitions, and HTML href: each is a link a reader follows.
+LINK = re.compile(
+    r"\[[^\]]*\]\(\s*<([^>]+)>[^)]*\)"
+    r"|\[[^\]]*\]\(\s*([^)\s]+)(?:\s+\"[^\"]*\"|\s+'[^']*')?\s*\)"
+    r"|^\s{0,3}\[[^\]]+\]:\s*<?([^>\s]+)>?"
+    r"|\bhref=\"([^\"]+)\""
+)
 
 broken = []
 for path in markdown_files():
     for lineno, line in enumerate(path.read_text(errors="ignore").split("\n"), 1):
         for match in LINK.finditer(line):
-            target = match.group(1)
+            target = next(g for g in match.groups() if g)
             if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue
             # Strip an anchor fragment: docs/FOO.md#section -> docs/FOO.md

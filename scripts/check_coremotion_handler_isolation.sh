@@ -91,6 +91,7 @@ SELF_QUEUED_APIS = (
 )
 
 HANDLER_APIS = QUEUE_DELIVERED_APIS + SELF_QUEUED_APIS
+HANDLER_LABEL = re.compile(r"\b(?:withHandler|handler|completion|withCompletion)\s*:")
 CALL = re.compile(r"\.(" + "|".join(HANDLER_APIS) + r")\s*\(")
 
 def strip_comments(text):
@@ -131,10 +132,10 @@ for root in sys.argv[1:]:
             # The argument list runs to the parenthesis that closes the call.
             # The handler is a closure inside it, or a trailing closure right
             # after it; a call with neither (the `async` HealthKit forms) has
-            # no handler to check. Bounded so an unclosed call cannot scan the
-            # rest of the file.
+            # no handler to check. Unbounded: a long inline handler is still
+            # a handler, and a call that never closes is reported, not skipped.
             depth, close = 1, None
-            for index in range(match.end(), min(len(text), match.end() + 2000)):
+            for index in range(match.end(), len(text)):
                 if text[index] == "(":
                     depth += 1
                 elif text[index] == ")":
@@ -142,7 +143,9 @@ for root in sys.argv[1:]:
                     if depth == 0:
                         close = index
                         break
+            line = text[: match.start()].count("\n") + 1
             if close is None:
+                violations.append(f"{path}:{line}: {match.group(1)} call is never closed; cannot read its handler")
                 continue
             arguments = text[match.end(): close]
             after = text[close + 1:].lstrip()
@@ -151,13 +154,18 @@ for root in sys.argv[1:]:
             elif "{" in arguments:
                 body = arguments[arguments.index("{") + 1:].lstrip()
                 arguments = arguments[: arguments.index("{")]
-            else:
+            elif HANDLER_LABEL.search(arguments):
+                # A handler passed by name (`withHandler: handler`) was formed
+                # somewhere this gate cannot see, with whatever isolation that
+                # place gave it. Write it inline so its isolation is visible.
+                violations.append(f"{path}:{line}: {match.group(1)} handler is passed by name; write it inline")
                 continue
+            else:
+                continue  # The async form: no handler.
             if match.group(1) in QUEUE_DELIVERED_APIS and re.search(r"\bto:\s*\S", arguments):
                 continue  # Explicit delivery queue — isolation is stated.
             if body.startswith("@Sendable"):
                 continue
-            line = text[: match.start()].count("\n") + 1
             violations.append(f"{path}:{line}: {match.group(1)} handler is neither @Sendable nor queue-delivered")
 
 if not violations:

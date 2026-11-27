@@ -229,7 +229,7 @@ routine step.
 Emuqu is developed by one person, pushing to `main`. Five workflows live in
 `.github/workflows/`:
 
-- **`gates.yml`** runs on every push, on a Linux runner, in about a minute:
+- **`gates.yml`** runs on every pull request and push to `main`, on a Linux runner, in about a minute:
   every gate in `make ci` that needs only bash and python, plus the two
   meta-gates that prove the others are wired and fail closed.
 - **`ci.yml`** runs on every pull request and push to `main` at scope `unit`,
@@ -238,7 +238,7 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
   strict-concurrency check and Thread Sanitizer, which runs the suite serially
   after a deliberately racing canary test proves that a race fails the run. Coverage is enforced against
   ratcheted floors read from `.ci/` at run time: overall, logic and views, and one per
-  critical area (each source folder, the archive, the assistant's confirmation
+  critical area (each source folder but `Protocols/`, the archive, the assistant's confirmation
   step and the log scrubber).
 - **`performance.yml`** runs the analysis performance tests on demand.
 - **`security.yml`** runs on every pull request, every push to `main` and

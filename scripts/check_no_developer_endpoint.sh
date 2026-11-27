@@ -78,7 +78,9 @@ ALLOWED = {
 # the host is not the developer's (typically: the user typed it), or it fails.
 # Bare domain strings are not matched on their own because the assistant's
 # source lists name dozens of sites the app never contacts.
-URL = re.compile(r"https?://([A-Za-z0-9.-]+)")
+# Every network scheme, and the host after any `user@` (in
+# `https://api.openai.com@x.net` the host is x.net).
+URL = re.compile(r"\b(?:https?|wss?|ftps?)://(?:[^/\s\"@]*@)?([A-Za-z0-9.-]+)", re.I)
 HOST = re.compile(r"(?:\.host\s*=\s*|\bhost:\s*)\"([A-Za-z0-9.-]+)\"")
 INTERPOLATED_HOST = re.compile(r"://\\\(([^)]*)\)")
 CONCATENATED_HOST = re.compile(r"://\"\s*\+\s*([A-Za-z_][\w.]*)")
@@ -99,7 +101,7 @@ for root in sys.argv[1:]:
     if not base.is_dir():
         print(f"check_no_developer_endpoint: source root not found: {base}", file=sys.stderr)
         raise SystemExit(2)
-    for path in sorted(base.rglob("*.swift")):
+    for path in sorted(p for ext in ("*.swift", "*.m", "*.c", "*.h") for p in base.rglob(ext)):
         for lineno, line in enumerate(path.read_text(errors="ignore").split("\n"), 1):
             code = "" if line.lstrip().startswith("//") else line
             for match in list(URL.finditer(line)) + list(HOST.finditer(line)):

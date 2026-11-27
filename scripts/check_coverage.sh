@@ -30,7 +30,8 @@ source "$(dirname "$0")/lib/preflight.sh"
 #                fall in this bucket too; the floors were measured that way.
 #   • VIEWS    — paths under `/Sources/Views/`. Snapshot tests move it.
 #   • AREAS    — one floor per path prefix in `.ci/min_coverage_areas.txt`:
-#                each source folder, and within them the persistence core,
+#                each source folder except Views (its own floor above) and
+#                Protocols (no floor measured yet), and within them the persistence core,
 #                the assistant's confirmation step and the log scrubber. An
 #                aggregate can rise while one of these falls; this cannot.
 #

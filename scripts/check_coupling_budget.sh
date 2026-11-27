@@ -45,13 +45,24 @@ budget_files = dict(zip(("hub", "locator", "forwarder"), (pathlib.Path(p) for p 
 HUBS = "RRCollector|WorkoutRecorder|HealthKitManager|PolarManager"
 # Anywhere on a line, so `struct Part { let collector: RRCollector }` on one
 # line counts as well as the usual one property per line.
-HUB_PROPERTY = re.compile(rf"\b(?:let|var)\s+\w+\s*:\s*(?:{HUBS})\b(?!\.)")
+# `[RRCollector]`, `Optional<RRCollector>` and `Weak<RRCollector>` hold the hub too.
+HUB_PROPERTY = re.compile(rf"\b(?:let|var)\s+\w+\s*:\s*(?:\[\s*|\w+<\s*)*(?:{HUBS})\b(?!\.)")
 LOCATOR = re.compile(r"\bAppDependencies\.current\b")
-FORWARDER = re.compile(r"func (\w+)[^{]*\{\s*(?:return\s+)?(?:try\s+)?(?:await\s+)?(?:self\.)?\w+\.(\w+)\(")
+FORWARDER = re.compile(r"func (\w+)[^{]*\{\s*(?:return\s+)?(?:try\s+)?(?:await\s+)?(?:self\.)?\w+\??\.(\w+)\(")
+
+
+# By path, not by name prefix: any file called `AppDependencies<anything>.swift`
+# would otherwise be exempt wherever it sits.
+ROOT_FILES = {
+    "Utilities/AppDependencies.swift",
+    "Utilities/AppDependencies+Reanalysis.swift",
+    "Utilities/AppDependenciesEnvironment.swift",
+    "Utilities/SharedInstances.swift",
+}
 
 
 def is_root(path):
-    return path.name.startswith("AppDependencies") or path.name == "SharedInstances.swift"
+    return path.relative_to(root).as_posix() in ROOT_FILES
 
 
 def in_views(path):

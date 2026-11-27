@@ -210,6 +210,116 @@ check "xcodebuild_pinned/unpinned_build" \
     ".github/workflows/performance.yml" \
     "import pathlib;p=pathlib.Path('.github/workflows/performance.yml');t=p.read_text();assert '-onlyUsePackageVersionsFromResolvedFile \\\\\n' in t;p.write_text(t.replace('-onlyUsePackageVersionsFromResolvedFile \\\\\n','',1))"
 
+check "privacy_manifest/unknown_api_reason" \
+    "./scripts/check_privacy_manifest_vocabulary.sh" \
+    "Emuqu/PrivacyInfo.xcprivacy" \
+    "import pathlib;p=pathlib.Path('Emuqu/PrivacyInfo.xcprivacy');s=p.read_text();o='<string>C617.1</string>';assert s.count(o)==1;p.write_text(s.replace(o,'<string>X999.1</string>'))"
+
+check "privacy_manifest/undeclared_watch_file_timestamp" \
+    "./scripts/check_privacy_manifest_vocabulary.sh" \
+    "EmuquWatch Watch App/WatchSessionManager.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchSessionManager.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'func plantedAge(_ path: String) -> Date? { (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date }\n'))"
+
+check "privacy_manifest/unparseable_watch_manifest" \
+    "./scripts/check_privacy_manifest_vocabulary.sh" \
+    "EmuquWatch Watch App/PrivacyInfo.xcprivacy" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/PrivacyInfo.xcprivacy');s=p.read_text();o='</plist>';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+check "copy_perimeter/plural_variation" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='%lld Sitzung konnte nicht entfernt werden. Versuche es erneut.';assert s.count(o)==1;p.write_text(s.replace(o,'%lld Sitzung zeigt Overtraining.'))"
+
+check "copy_perimeter/permission_prompt" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Info.plist" \
+    "import pathlib;p=pathlib.Path('Emuqu/Info.plist');s=p.read_text();o='Emuqu reads from Apple Health';assert s.count(o)==1;p.write_text(s.replace(o,'Emuqu diagnoses overtraining from Apple Health'))"
+
+check "perimeter_sync/concept_not_scrubbed" \
+    "./scripts/check_perimeter_sync.sh" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='        regulatoryClearance, injuryRisk, overtraining, riskZoneFraming, pathology,';assert s.count(o)==1;p.write_text(s.replace(o,'        regulatoryClearance, injuryRisk, riskZoneFraming, pathology,'))"
+
+check "perimeter_sync/commented_out_alternative" \
+    "./scripts/check_perimeter_sync.sh" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='            \"overtrain(?:s|ed|ing)?\", \"overtraining\",';assert s.count(o)==1;p.write_text(s.replace(o,'            // \"overtrain(?:s|ed|ing)?\", \"overtraining\",'))"
+
+check "science_register/digit_in_name" \
+    "./scripts/check_science_register.sh" \
+    "Emuqu/Sources/Analysis/ScoringVersion.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/ScoringVersion.swift');s=p.read_text();o='enum ScoringVersion {';assert s.count(o)==1;p.write_text(s.replace(o,'func spo2Penalty(_ x: Double) -> Double { x * 0.9 }\n'+o))"
+
+check "science_register/retracted_claim_in_help" \
+    "./scripts/check_science_register.sh" \
+    "Emuqu/Help.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Help.xcstrings');s=p.read_text();o='2-5 minute daytime readings for on-the-spot recovery checks';assert s.count(o)==1;p.write_text(s.replace(o,o+' (ICC 0.77-0.84)'))"
+
+check "unreached_advisories/spaced_call" \
+    "./scripts/check_unreached_advisories.sh" \
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Observers.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'func plantedFw(_ api: PolarBleApi, _ id: String) { _ = api.updateFirmware (id) }\n'))"
+
+check "unreached_advisories/unproven_allowance" \
+    "./scripts/check_unreached_advisories.sh" \
+    ".github/workflows/security.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/security.yml');s=p.read_text();o='allow-ghsas: GHSA-g454-wj9r-jpg4';assert s.count(o)==1;p.write_text(s.replace(o,o+', GHSA-2c8m-8w5h-9q4f'))"
+
+check "xcodebuild_pinned/wrapped_unpinned_build" \
+    "./scripts/check_xcodebuild_pinned.sh" \
+    ".github/workflows/performance.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/performance.yml');s=p.read_text();o='          xcodebuild test \\\\\n            -onlyUsePackageVersionsFromResolvedFile \\\\\n';assert s.count(o)==1;p.write_text(s.replace(o,'          timeout 3600 xcodebuild test \\\\\n'))"
+
+check "strict_concurrency_enabled/device_only_swift5" \
+    "./scripts/check_strict_concurrency_enabled.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');s=p.read_text();o='\t\t\t\tTARGETED_DEVICE_FAMILY = 1;\n\t\t\t\tVALIDATE_PRODUCT = YES;\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'\t\t\t\t\"SWIFT_VERSION[sdk=iphoneos*]\" = 5.0;\n'))"
+
+check "infoplist_key_drift/usage_key_without_ns" \
+    "./scripts/check_infoplist_key_drift.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');s=p.read_text();o='\t\t\t\tTARGETED_DEVICE_FAMILY = 1;\n\t\t\t\tVALIDATE_PRODUCT = YES;\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'\t\t\t\tINFOPLIST_KEY_NFCReaderUsageDescription = \"Scan tags.\";\n'))"
+
+check "doc_links/reference_style_link" \
+    "./scripts/check_doc_links.sh" \
+    "docs/MAINTAINERS.md" \
+    "import pathlib;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();o='# Emuqu — Maintainer\'s Guide\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'\nSee the [runbook][rb].\n\n[rb]: RUNBOOK_MISSING.md\n'))"
+
+check "sbom_drift/commented_out_entry" \
+    "./scripts/check_sbom_drift.sh" \
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/PrivacyPolicyView.swift');s=p.read_text();o='            name: \"polar-ble-sdk\",\n';assert s.count(o)==1;i=s.rindex('        Pkg(\n',0,s.index(o));j=s.index('        ),\n',i)+11;p.write_text(s[:i]+'        /*\n'+s[i:j]+'        */\n'+s[j:])"
+
+check "sbom_drift/revision_pin" \
+    "./scripts/check_sbom_drift.sh" \
+    "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved');s=p.read_text();o='\"revision\" : \"6d7298683b5168601c6141f843701973feedc66e\",\n        \"version\" : \"8.3.0\"';assert s.count(o)==1;p.write_text(s.replace(o,'\"branch\" : \"master\",\n        \"revision\" : \"6d7298683b5168601c6141f843701973feedc66e\"'))"
+
+check "no_developer_endpoint/websocket_host" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Observers.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'let plantedSink = URL(string: \"wss://collector.example.net/ingest\")\n'))"
+
+check "no_developer_endpoint/userinfo_host" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PolarManager+Observers.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'let plantedSink = URL(string: \"https://api.openai.com@collector.example.net/ingest\")\n'))"
+
+check "no_health_data_in_cloudkit/rr_field" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift');s=p.read_text();o='        record[\"sessionId\"] = sessionId.uuidString as CKRecordValue\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'        record[\"beatCount\"] = 31_000 as CKRecordValue\n'))"
+
+check "log_redaction/logger_log_method" \
+    "./scripts/check_log_redaction.sh" \
+    "EmuquWatch Watch App/WatchStrapConnector.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchStrapConnector.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'func plantedLog(_ log: Logger, _ email: String) { log.log(\"user \\\\(email)\") }\n'))"
+
+check "log_redaction/bare_latitude" \
+    "./scripts/check_log_redaction.sh" \
+    "EmuquWatch Watch App/WatchStrapConnector.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchStrapConnector.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'func plantedLog(_ log: Logger, _ latitude: Double) { log.info(\"fix \\\\(latitude)\") }\n'))"
+
 check "strict_concurrency_enabled" \
     "./scripts/check_strict_concurrency_enabled.sh" \
     "Emuqu.xcodeproj/project.pbxproj" \
@@ -364,6 +474,9 @@ check "orphan_swift" \
     "./scripts/check_no_orphan_swift.sh" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;pathlib.Path('Emuqu/Sources/Utilities/PlantedOrphan.swift').write_text('// planted\nimport Foundation\n')"
+# The plant is a new file, which restore_all does not remove; left in place it
+# turns every later Swift-scanning check's baseline red.
+rm -f Emuqu/Sources/Utilities/PlantedOrphan.swift
 
 # ---------------------------------------------------------------------------
 # Every cheap gate in `scripts/` needs a plant here. A gate with none has
@@ -385,6 +498,38 @@ check "gates_wired/unwired_gate" \
     "./scripts/check_gates_wired.sh" \
     ".github/workflows/ci.yml" \
     "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='./scripts/check_empty_range_loops.sh';assert s.count(o)>=1;p.write_text(s.replace(o,'./scripts/check_nothing.sh',1))"
+
+# A gate that runs but cannot fail, or may not run on a pull request, is as
+# absent as an unwired one; a required job skipped by `if:` reports success.
+check "gates_wired/continue_on_error" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/ci.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='      - name: Log redaction guard'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,o+'        continue-on-error: true'+chr(10)))"
+
+check "gates_wired/swallowed_exit" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/ci.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='run: ./scripts/check_log_redaction.sh'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,'run: ./scripts/check_log_redaction.sh || true'+chr(10)))"
+
+check "gates_wired/job_skipped_on_pull_requests" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/ci.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='    name: Lint + tech-debt budgets'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,o+\"    if: github.event_name == 'schedule'\"+chr(10)))"
+
+check "gates_wired/step_condition" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/ci.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='      - name: Log redaction guard'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,o+\"        if: github.event_name == 'push'\"+chr(10)))"
+
+check "gates_wired/pull_request_path_filter" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/gates.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/gates.yml');s=p.read_text();o='  pull_request:'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,o+\"    paths-ignore: ['docs/**']\"+chr(10)))"
+
+check "gates_wired/validation_ports_dropped" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/gates.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/gates.yml');s=p.read_text();o='        run: make validation-ports'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,'        run: echo skipped'+chr(10)))"
 
 # `CBPeripheralManager` prompts the user when it is CONSTRUCTED. A stored
 # property that builds one shows the Bluetooth prompt to everyone, including the
@@ -513,6 +658,117 @@ check "leaked_mutations/chr_escaped_original" \
     "./scripts/check_no_leaked_mutations.sh" \
     "Emuqu/Sources/Collection/WorkoutSessionLifecycle+Metrics.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSessionLifecycle+Metrics.swift');s=p.read_text();o='pow('+chr(36)+'1, 4)';assert s.count(o)>=1;p.write_text(s.replace(o,'pow('+chr(36)+'1, 2)',1))"
+
+# Gate coverage: each plant below is a spelling or shape the gate once read as clean.
+check "unchecked_sendable/qualified_spelling" \
+    "./scripts/check_unchecked_sendable.sh" \
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'final class PlantedBox: @unchecked Swift.Sendable { var x = 0 }\n'))"
+
+check "logger_self_reference/file_writer_logs_through_logger" \
+    "./scripts/check_logger_self_reference.sh" \
+    "Emuqu/Sources/Utilities/DebugLog.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/DebugLog.swift');s=p.read_text();o='NSLog(\"[DebugLog] append failed: '+chr(92)+'(error)\")';assert s.count(o)==1;p.write_text(s.replace(o,'debugLog(\"[DebugLog] append failed: '+chr(92)+'(error)\")'))"
+
+check "logger_self_reference/logger_resolves_shared" \
+    "./scripts/check_logger_self_reference.sh" \
+    "Emuqu/Sources/Utilities/DebugLog.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/DebugLog.swift');s=p.read_text();o='NSLog(\"[DebugLogger] relaxing file protection failed: %@\", error.localizedDescription)';assert s.count(o)==1;p.write_text(s.replace(o,'DebugLogger.shared.log(\"relax failed\")'))"
+
+check "coremotion_handler_isolation/handler_by_name" \
+    "./scripts/check_coremotion_handler_isolation.sh" \
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='        pedometer.startUpdates(from: start) { @Sendable [weak self] data, error in';assert s.count(o)==1;p.write_text(s.replace(o,'        let planted: CMPedometerHandler = { data, _ in _ = data }\n        pedometer.startUpdates(from: start, withHandler: planted)\n'+o))"
+
+check "coremotion_handler_isolation/long_inline_handler" \
+    "./scripts/check_coremotion_handler_isolation.sh" \
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='        pedometer.startUpdates(from: start) { @Sendable [weak self] data, error in';assert s.count(o)==1;p.write_text(s.replace(o,'        pedometer.startUpdates(from: start, withHandler: { data, _ in let pad = \"'+'x'*2100+'\"; _ = (data, pad) })\n'+o))"
+
+check "hr_feed/qualified_feature_wait" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapHeartRateFeed.swift');s=p.read_text();o='        var failures = 0\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = await manager?.link.awaitFeature(StrapFeature.heartRate, until: nil)\n'+o))"
+
+check "hr_feed/link_defers_feed_start" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        feed.start(generation: generation)\n';assert s.count(o)==1;p.write_text(s.replace(o,'        Task { _ = await link.awaitFeature(.heartRate, until: nil, while: { true }); feed.start(generation: generation) }\n'))"
+
+check "no_shared_outside_root/read_in_singleton_declaration" \
+    "./scripts/check_no_shared_outside_root.sh" \
+    "Emuqu/Sources/Collection/CollectorSessionControl.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'enum PlantedHolder { static let shared = SettingsManager.shared }\n'))"
+
+check "no_shared_outside_root/read_beside_system_read" \
+    "./scripts/check_no_shared_outside_root.sh" \
+    "Emuqu/Sources/Collection/CollectorSessionControl.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl.swift');s=p.read_text();o='import Foundation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'private let plantedSession = URLSession.shared; private let plantedRead = SettingsManager.shared\n'))"
+
+check "explicit_dependencies/defaulted_parameter" \
+    "./scripts/check_explicit_dependencies.sh" \
+    "Emuqu/Sources/Services/AppLaunchTasks.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/AppLaunchTasks.swift');s=p.read_text();o='import CoreLocation\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'private func plantedHelper(_ deps: AppDependencies = .current) -> AppDependencies { deps }\n'))"
+
+check "empty_range/mapped_range" \
+    "./scripts/check_empty_range_loops.sh" \
+    "Emuqu/Sources/Assistant/Facts/BreadcrumbFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/BreadcrumbFacts.swift');s=p.read_text();o='        guard fixes.count >= 2 else { return (0, 0) }\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+check "empty_range/watch_target" \
+    "./scripts/check_empty_range_loops.sh" \
+    "EmuquWatch Watch App/WatchApp.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchApp.swift');s=p.read_text();o='import WatchKit\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'func plantedDiffs(_ xs: [Double]) -> [Double] {\n    var out: [Double] = []\n    for i in 1 ..< xs.count { out.append(xs[i] - xs[i - 1]) }\n    return out\n}\n'))"
+
+check "eager_permission_prompt/closure_initialised_property" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,'    @ObservationIgnored private var peripheralManager: CBPeripheralManager? = {\n        let manager = CBPeripheralManager(delegate: nil, queue: nil)\n        return manager\n    }()'))"
+
+check "eager_permission_prompt/dot_init_in_stored_property" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,'    @ObservationIgnored private var peripheralManager = CBPeripheralManager.init(delegate: nil, queue: nil)'))"
+
+check "eager_permission_prompt/attributed_init" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,o+'\n    @MainActor init() {\n        peripheralManager = CBPeripheralManager(delegate: nil, queue: nil)\n    }'))"
+
+check "uitest_fresh_install/second_app_without_flag" \
+    "./scripts/check_uitest_fresh_install.sh" \
+    "EmuquUITests/DashboardUITests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();o='    override func tearDown() async throws {';assert s.count(o)==1;p.write_text(s.replace(o,'    func testPlantedSecondLaunch() {\n        let other = XCUIApplication()\n        other.launchArguments += [\"-UITests\"] + UITestLanguage.english\n        other.launch()\n    }\n\n'+o))"
+
+check "test_skip_budget/skipped_in_test_plan" \
+    "./scripts/check_test_skip_budget.sh" \
+    "Emuqu.xctestplan" \
+    "import pathlib;p=pathlib.Path('Emuqu.xctestplan');s=p.read_text();o='        \"name\": \"EmuquUITests\"\n      },\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'      \"skippedTests\": [\"DataDeletionUITests\"],\n'))"
+
+check "test_skip_budget/second_skip_on_a_line" \
+    "./scripts/check_test_skip_budget.sh" \
+    "EmuquTests/ArchiveIntegrityTests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquTests/ArchiveIntegrityTests.swift');s=p.read_text();o='        try XCTSkipUnless(EncryptionManager.shared.isAvailable, \"Encryption unavailable on this test runner\")';assert s.count(o)==1;p.write_text(s.replace(o,o+'; try XCTSkipIf(true, \"planted\")'))"
+
+check "no_orphan_swift/membership_exception" \
+    "./scripts/check_no_orphan_swift.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');s=p.read_text();o='\t\t\t\tInfo.plist,\n\t\t\t);\n\t\t\ttarget = EFEA95CA2F96B4A100CE7D82';assert s.count(o)==1;p.write_text(s.replace(o,'\t\t\t\tInfo.plist,\n\t\t\t\tWatchApp.swift,\n\t\t\t);\n\t\t\ttarget = EFEA95CA2F96B4A100CE7D82'))"
+
+check "snapshot_references/commented_out_caller" \
+    "./scripts/check_snapshot_references.sh" \
+    "EmuquTests/StateSnapshotTests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquTests/StateSnapshotTests.swift');s=p.read_text();o='        assertSnapshot(of: hosted(ScoreRing(state: .loading, size: .hero)), named: \"ring-loading\")';assert s.count(o)==1;p.write_text(s.replace(o,'        // '+o.strip()))"
+
+check "snapshot_references/name_not_a_literal" \
+    "./scripts/check_snapshot_references.sh" \
+    "EmuquTests/StateSnapshotTests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquTests/StateSnapshotTests.swift');s=p.read_text();o='        assertSnapshot(of: hosted(ScoreRing(state: .loading, size: .hero)), named: \"ring-loading\")';assert s.count(o)==1;p.write_text(s.replace(o,o+'\n        let plantedName = \"ring-loading-planted\"\n        assertSnapshot(of: hosted(ScoreRing(state: .loading, size: .hero)), named: plantedName)'))"
+
+check "leaked_mutations/additive_mutation" \
+    "./scripts/check_no_leaked_mutations.sh" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        clearLinkReadings(preserveDeviceIdentity: wasStreaming)';assert s.count(o)==1;p.write_text(s.replace(o,o+'; recording.device.isRecordingOnDevice = false'))"
 
 # An attribution that no longer matches Package.resolved is a licence
 # compliance gap, not a cosmetic one.
@@ -835,6 +1091,103 @@ check "uitest_fresh_install/dropped_flag" \
     "EmuquUITests/DashboardUITests.swift" \
     "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();t=s.replace('app.launchArguments += [\"-UITests\", \"-UITests-FreshInstall\"]','app.launchArguments += [\"-UITests\"]',1);assert t!=s;p.write_text(t)"
 
+
+# Localization lookups in every call shape and in the app root.
+check "localization_bundle/split_after_paren" "./scripts/check_localization_bundle.sh" "Emuqu/Sources/Utilities/Errors.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'let plantedSplit = String('+chr(10)+'    localized: \"planted no bundle\")'+chr(10))"
+check "localization_bundle/nil_bundle" "./scripts/check_localization_bundle.sh" "Emuqu/Sources/Utilities/Errors.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'let plantedNil = String(localized: \"planted nil bundle\", bundle: nil)'+chr(10))"
+check "localization_bundle/app_root" "./scripts/check_localization_bundle.sh" "Emuqu/EmuquApp.swift" "import pathlib;p=pathlib.Path('Emuqu/EmuquApp.swift');s=p.read_text();o='Button(String(localized: \"Resume\", bundle: LanguageManager.appBundle))';assert s.count(o)==1;p.write_text(s.replace(o,'Button(String(localized: \"Resume\"))'))"
+check "localization_resolution/app_root" "./scripts/check_localization_resolution.sh" "Emuqu/EmuquApp.swift" "import pathlib;p=pathlib.Path('Emuqu/EmuquApp.swift');s=p.read_text();o='Button(String(localized: \"Resume\", bundle: LanguageManager.appBundle))';assert s.count(o)==1;p.write_text(s.replace(o,'Button(String(localized: \"Resume planted absent key\", bundle: LanguageManager.appBundle))'))"
+check "localization_resolution/single_letter_unit" "./scripts/check_localization_resolution.sh" "Emuqu/Sources/Utilities/Errors.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfunc plantedUnit(_ n: Int) -> String { String(localized: \"\\\\(n) q\", bundle: LanguageManager.appBundle) }\n')"
+check "localization_resolution/navigation_link" "./scripts/check_localization_resolution.sh" "Emuqu/Sources/Views/SettingsView.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+'\nimport SwiftUI\nprivate struct PlantedNav: View { var body: some View { NavigationLink(\"Planted absent nav key\") { EmptyView() } } }\n')"
+check "localization_orphans/commented_request" "./scripts/check_localization_orphans.sh" "Emuqu/Sources/Views/ConnectionPanelViews.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/ConnectionPanelViews.swift');s=p.read_text();o='.accessibilityHint(Text(String(localized: \"Connects to this device\", bundle: LanguageManager.appBundle)))';assert s.count(o)==1;p.write_text(s.replace(o,'// '+o))"
+check "localization_coverage/plist_prompt_absent" "./scripts/check_localization_coverage.sh Emuqu/InfoPlist.xcstrings" "Emuqu/Info.plist" "import pathlib;p=pathlib.Path('Emuqu/Info.plist');s=p.read_text();o='<key>NSMicrophoneUsageDescription</key>';assert s.count(o)==1;p.write_text(s.replace(o,'<key>NSCameraUsageDescription</key>\n\t<string>Planted English-only camera prompt.</string>\n\t'+o))"
+check "locale_formatting/localized_template" "./scripts/check_locale_formatting.sh" "Emuqu/Sources/Views/SettingsView.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFormat = String(format: String(localized: \"%.1f km\", bundle: LanguageManager.appBundle), 1.0)'+chr(10))"
+check "locale_formatting/assistant_view" "./scripts/check_locale_formatting.sh" "Emuqu/Sources/Assistant/Views/ChatBubble.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Views/ChatBubble.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFormat = String(format: \"%.1f\", 1.0)'+chr(10))"
+check "fixed_font/split_call" "./scripts/check_fixed_font_budget.sh" "Emuqu/Sources/Views/SettingsView.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFixedFont = Text(\"x\").font(.system('+chr(10)+'    size: 17, weight: .bold))'+chr(10))"
+check "fixed_font/watch_split" "./scripts/check_fixed_font_budget.sh" "EmuquWatch Watch App/WatchSessionManager.swift" "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchSessionManager.swift');p.write_text(p.read_text()+chr(10)+'import SwiftUI'+chr(10)+'private let plantedFixedFont = Font.system('+chr(10)+'    size: 17)'+chr(10))"
+check "fixed_font/custom_fixed_size" "./scripts/check_fixed_font_budget.sh" "Emuqu/Sources/Views/SettingsView.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFixedFont = Text(\"x\").font(.custom(\"Menlo\", fixedSize: 17))'+chr(10))"
+
+# Declaration shapes the spec measures, budgets bash would misread, and limits
+# kept outside .ci/.
+check "spec_conformance/property_comment_on_brace" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');body='\n'.join(['        let v%d = %d' % (i,i) for i in range(25)]);p.write_text(p.read_text()+'\nstruct PlantedProperty {\n    var planted: Int { // layout\n'+body+'\n        return 0\n    }\n}\n')"
+check "spec_conformance/deinit" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');body='\n'.join(['        let v%d = %d' % (i,i) for i in range(25)]);p.write_text(p.read_text()+'\nfinal class PlantedDeinit {\n    deinit {\n'+body+'\n    }\n}\n')"
+check "spec_conformance/operator_func" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');body='\n'.join(['        let v%d = %d' % (i,i) for i in range(25)]);p.write_text(p.read_text()+'\nstruct PlantedEquatable: Equatable {\n    static func == (lhs: PlantedEquatable, rhs: PlantedEquatable) -> Bool {\n'+body+'\n        return true\n    }\n}\n')"
+check "spec_conformance/property_observer" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');body='\n'.join(['            let v%d = %d' % (i,i) for i in range(25)]);p.write_text(p.read_text()+'\nstruct PlantedObserver {\n    var planted = 0 {\n        didSet {\n'+body+'\n        }\n    }\n}\n')"
+check "spec_conformance/closure_property_with_signature" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');body='\n'.join(['        let v%d = %d' % (i,i) for i in range(25)]);p.write_text(p.read_text()+'\nfinal class PlantedLazy {\n    lazy var planted: Int = { () -> Int in\n'+body+'\n        return 0\n    }()\n}\n')"
+check "spec_conformance/empty_catch_with_where" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfunc plantedWhere() {\n    do { try plantedThrow() } catch let e as NSError where e.code == 1 {\n        // ignore\n    } catch { print(error) }\n}\nfunc plantedThrow() throws {}\n')"
+check "spec_conformance/watch_empty_catch" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "EmuquWatch Watch App/WatchDependencies.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchDependencies.swift');p.write_text(p.read_text()+'\nfunc plantedWatchCatch() {\n    do { try plantedWatchThrow() } catch {\n        // ignore\n    }\n}\nfunc plantedWatchThrow() throws {}\n')"
+check "spec_conformance/watch_waiver_uncapped" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "EmuquWatch Watch App/WatchDependencies.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchDependencies.swift');body='\n'.join(['    let v%d = %d' % (i,i) for i in range(30)]);p.write_text(p.read_text()+'\n// spec:long-function planted reason\nfunc plantedWatchLong() {\n'+body+'\n}\n')"
+check "tech_debt_budgets/leading_zero_budget" \
+    "./scripts/enforce_tech_debt_budgets.sh" \
+    ".ci/try_optional_budget.txt" \
+    "import pathlib;pathlib.Path('.ci/try_optional_budget.txt').write_text('08'+chr(10))"
+check "tech_debt_budgets/write_continued_on_next_line" \
+    "./scripts/enforce_tech_debt_budgets.sh" \
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/TTSTextNormalizer.swift');s=p.read_text();o='        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = try? payload'+chr(10)+'            .write(to: url, options: .atomic)'+chr(10)+'        guard let regex = Self.cachedRegex(pattern) else { return text }'))"
+check "tech_debt_budgets/replace_item_write" \
+    "./scripts/enforce_tech_debt_budgets.sh" \
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/TTSTextNormalizer.swift');s=p.read_text();o='        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = try? FileManager.default.replaceItemAt(url, withItemAt: tmp)'+chr(10)+'        guard let regex = Self.cachedRegex(pattern) else { return text }'))"
+check "coupling_budget/hub_in_collection_type" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'struct PlantedHolder { let collectors: [RRCollector] }'+chr(10))"
+check "coupling_budget/optional_chained_forwarder" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'struct PlantedForwarder { weak var recorder: PlantedStopper?; func stop() { recorder?.stop() } }'+chr(10))"
+check "coupling_budget/root_by_file_name" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;pathlib.Path('Emuqu/Sources/Collection/AppDependenciesPlanted.swift').write_text('let plantedLocator = AppDependencies.current'+chr(10))"
+# That plant creates a file, which restore_all cannot remove.
+rm -f Emuqu/Sources/Collection/AppDependenciesPlanted.swift
+check "swiftlint_rule/disable_next_in_app" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'// swiftlint:disable:next force_unwrapping'+chr(10)+'private func plantedUnwrap(_ value: Int?) -> Int { value! }'+chr(10))"
+check "swiftlint_budget/slack" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    ".ci/swiftlint_warning_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/swiftlint_warning_budget.txt');p.write_text(str(int(p.read_text().strip())+1)+chr(10))"
+check "budget_monotonicity/leading_zero_ceiling" \
+    "./scripts/check_budget_monotonicity.sh HEAD" \
+    ".ci/shared_usage_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/shared_usage_budget.txt');p.write_text('0'+str(int(p.read_text().strip())-1)+chr(10))"
+check "budget_monotonicity/spec_limit_raised" \
+    "./scripts/check_budget_monotonicity.sh HEAD" \
+    "scripts/check_refactor_spec_conformance.sh" \
+    "import pathlib;p=pathlib.Path('scripts/check_refactor_spec_conformance.sh');s=p.read_text();o='MAX_BODY = 20';assert s.count(o)==1;p.write_text(s.replace(o,'MAX_BODY = 60'))"
+check "budget_monotonicity/swiftlint_threshold_raised" \
+    "./scripts/check_budget_monotonicity.sh HEAD" \
+    ".swiftlint.yml" \
+    "import pathlib;p=pathlib.Path('.swiftlint.yml');s=p.read_text();o='line_length:'+chr(10)+'  warning: 300';assert s.count(o)==1;p.write_text(s.replace(o,'line_length:'+chr(10)+'  warning: 1700'))"
+
 # The Thread Sanitizer gate needs a simulator build, so here it runs against a
 # stand-in xcodebuild that behaves as the real one does in the ways the gate
 # depends on: a race report reaches the output only when parallel testing is
@@ -867,6 +1220,14 @@ report() {
     fi
 }
 echo "Test Case '-[EmuquTests.StubTests testOne]' started."
+# `lostcanary`: the first run reports a suite race but loses the canary, so the
+# gate retries it as blind; the second run reports only the canary.
+if grep -q lostcanary "$TSAN_SUITE_FIXTURE"; then
+    runs="$TSAN_SUITE_FIXTURE.runs"; n=$(( $(cat "$runs" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$runs"
+    if (( n == 1 )); then report StubTests.testOne
+    else report ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested; fi
+    echo "Test Case '-[EmuquTests.StubTests testOne]' passed (0.001 seconds)."; echo "** TEST SUCCEEDED **"; exit 0
+fi
 [[ "${TEST_RUNNER_EMUQU_TSAN_CANARY:-}" == "1" ]] && report ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested
 grep -q race "$TSAN_SUITE_FIXTURE" && report StubTests.testOne
 echo "Test Case '-[EmuquTests.StubTests testOne]' passed (0.001 seconds)."
@@ -899,6 +1260,11 @@ check "thread_sanitizer/blind_host" \
     "$TSAN_GATE" \
     "$TSAN_SUITE_FIXTURE" \
     "import pathlib;pathlib.Path('$TSAN_SUITE_FIXTURE').write_text('blind'+chr(10))"
+
+check "thread_sanitizer/race_in_run_retried_as_blind" \
+    "$TSAN_GATE" \
+    "$TSAN_SUITE_FIXTURE" \
+    "import pathlib;pathlib.Path('$TSAN_SUITE_FIXTURE').write_text('lostcanary'+chr(10));pathlib.Path('$TSAN_SUITE_FIXTURE.runs').unlink(missing_ok=True)"
 
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"
@@ -949,7 +1315,7 @@ if (( ${#unplanted[@]} > 0 )); then
 fi
 
 # The planted orphan is created, not modified, so restore_all cannot remove it.
-rm -f Emuqu/Sources/Utilities/PlantedOrphan.swift
+rm -f Emuqu/Sources/Utilities/PlantedOrphan.swift Emuqu/Sources/Collection/AppDependenciesPlanted.swift
 
 (( FAIL == 0 )) || exit 1
 

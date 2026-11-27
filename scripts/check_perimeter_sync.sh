@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
-# CI guard: the build-time FDA perimeter and the two runtime guards share one
-# vocabulary, and none of the three may quietly grow past the others.
+# CI guard: every term the build-time FDA perimeter forbids
+# (user_facing_prohibited) is one the runtime output guard scrubs, through a
+# concept listed in its scrubFromOutput list. coach_response_prohibited is not
+# reconciled here.
 #
 # Why this exists. There were three prohibited-term
 # lists and nothing reconciled them:
@@ -100,6 +102,57 @@ def arrays(text):
                 depth -= 1
             i += 1
         yield start.group(1), text[start.end():i - 1]
+
+
+def strip_comments(text):
+    """Drop `//` and `/* */` comments outside string literals. A commented-out
+    alternative is not compiled into the guard and must not count here."""
+    out, i, n = [], 0, len(text)
+    while i < n:
+        if text[i] == '"':
+            match = LITERAL.match(text, i)
+            end = match.end() if match else i + 1
+            out.append(text[i:end]); i = end
+        elif text.startswith("//", i):
+            j = text.find("\n", i); i = n if j < 0 else j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2); i = n if j < 0 else j + 2
+        else:
+            out.append(text[i]); i += 1
+    return "".join(out)
+
+
+def concept_bodies(text):
+    """{name: body} for each `static let name = Concept(...)`, by balanced parens."""
+    bodies = {}
+    for start in re.finditer(r"static let (\w+) = Concept\(", text):
+        i, depth = start.end(), 1
+        while i < len(text) and depth:
+            if text[i] == '"':
+                match = LITERAL.match(text, i)
+                i = match.end() if match else i + 1
+                continue
+            depth += {"(": 1, ")": -1}.get(text[i], 0)
+            i += 1
+        bodies[start.group(1)] = text[start.end():i - 1]
+    return bodies
+
+
+source = strip_comments(source)
+# Only concepts the runtime output guard is built from: CoachVoiceGuard.rules
+# maps MedicalTermLexicon.scrubFromOutput. A concept that exists but is not
+# listed there scrubs nothing.
+_scrub = re.search(r"static let scrubFromOutput: \[Concept\] = \[(.*?)\]", source, re.S)
+if _scrub is None:
+    sys.stderr.write("check_perimeter_sync: MedicalTermLexicon.scrubFromOutput not found\n")
+    sys.exit(2)
+_bodies = concept_bodies(source)
+_wired = re.findall(r"\b([a-z]\w*)\b", _scrub.group(1))
+_unknown = [n for n in _wired if n not in _bodies]
+if _unknown:
+    sys.stderr.write(f"check_perimeter_sync: scrubFromOutput names unknown concepts {_unknown}\n")
+    sys.exit(2)
+source = "\n".join(_bodies[n] for n in _wired)
 
 
 alternatives = []

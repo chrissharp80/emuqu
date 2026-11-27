@@ -64,12 +64,30 @@ def call_spans(text):
         yield text[start:j - 1]
         i = text.find(needle, j)
 
-called = {}
+def code_only(text):
+    """Comments removed: a commented-out call is not a caller."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return "\n".join(re.sub(r'^((?:[^"/\n]|"(?:[^"\\\n]|\\.)*"|/(?!/))*)//.*$', r"\1", line)
+                     for line in text.split("\n"))
+
+called, unnamed = {}, []
 for f in tests_dir.rglob("*.swift"):
-    for args in call_spans(f.read_text()):
-        m = re.search(r'named:\s*"([^"]+)"', args)
+    # The harness's own `func assertSnapshot(` is a declaration, not a call.
+    code = re.sub(r"\bfunc\s+assertSnapshot\s*\(", "func declaredSnapshot(", code_only(f.read_text()))
+    for args in call_spans(code):
+        m = re.search(r'named:\s*"([^"\\]+)"\s*(?:[,)]|$)', args)
         if m:
             called[m.group(1)] = f.name
+        else:
+            # A name this gate cannot read (a variable, an interpolation) is a
+            # reference it cannot pair: missing or not, it would pass.
+            unnamed.append(f"{f.name}: assertSnapshot({args.strip()[:60]}...)")
+if unnamed:
+    print("check_snapshot_references: assertSnapshot calls without a literal name:\n")
+    for call in unnamed:
+        print(f"  {call}")
+    print("\n  Pass `named:` a string literal so the reference can be paired.")
+    sys.exit(1)
 
 stored = {p.stem for p in snaps_dir.glob("*.raw")} if snaps_dir.is_dir() else set()
 

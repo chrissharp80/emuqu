@@ -156,10 +156,11 @@ final class StreamingLifecycle {
     // The timer's run loop is the main one; deinit can run elsewhere, so it hops there.
     deinit {
         let timerBox = streamingTimerBox
+        let invalidate: @Sendable () -> Void = { timerBox.withLockUnchecked { $0?.invalidate() } }
         if Thread.isMainThread {
-            timerBox.withLockUnchecked { $0?.invalidate() }
+            invalidate()
         } else {
-            DispatchQueue.main.async { timerBox.withLockUnchecked { $0?.invalidate() } }
+            DispatchQueue.main.async(execute: invalidate)
         }
     }
 }

@@ -1198,7 +1198,8 @@ tracked (timers, tasks, notification tokens, BLE characteristics, audio
 engines) is marked `@ObservationIgnored`.
 
 **Swift 6 language mode, `complete` strict concurrency.** Every build
-configuration compiles in Swift 6 mode with warnings as errors, so an
+configuration compiles in Swift 6 mode, and the app and the watch app build
+with warnings as errors, so an
 isolation hazard is a compile error, not a diagnostic to budget. The patterns
 the tree uses, in the order you will meet them:
 

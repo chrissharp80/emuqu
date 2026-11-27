@@ -391,11 +391,7 @@ def scan_xcstrings(
                         Violation(path=path, line=0, snippet=key[:120], pattern=pattern.pattern, reason=reason)
                     )
         # Localizations
-        for _, loc in entry.get("localizations", {}).items():
-            unit = loc.get("stringUnit") or {}
-            value = unit.get("value")
-            if not isinstance(value, str):
-                continue
+        for value in _unit_values(entry.get("localizations", {})):
             if key_allowlisted or value.strip() in allowlist_strings:
                 continue
             for pattern, reason in patterns:
@@ -403,6 +399,42 @@ def scan_xcstrings(
                     violations.append(
                         Violation(path=path, line=0, snippet=value[:120], pattern=pattern.pattern, reason=reason)
                     )
+    return violations
+
+
+def _unit_values(node):
+    """Every `stringUnit.value` under a localization: plural, device and
+    substitution variations nest further units, and 1,936 localizations in
+    Localizable.xcstrings are written only that way."""
+    if isinstance(node, dict):
+        unit = node.get("stringUnit")
+        if isinstance(unit, dict) and isinstance(unit.get("value"), str):
+            yield unit["value"]
+        for key, child in node.items():
+            if key != "stringUnit":
+                yield from _unit_values(child)
+    elif isinstance(node, list):
+        for child in node:
+            yield from _unit_values(child)
+
+
+def scan_plist(path, patterns, allowlist_strings):
+    """String values of an Info.plist: the permission prompts in the
+    development language."""
+    import plistlib
+    try:
+        data = plistlib.loads(path.read_bytes())
+    except Exception as exc:
+        sys.stderr.write(f"copy_linter: cannot parse {path}: {exc}\n")
+        raise SystemExit(2)
+    violations = []
+    for key, value in data.items():
+        if not isinstance(value, str) or value.strip() in allowlist_strings:
+            continue
+        for pattern, reason in patterns:
+            if pattern.search(value):
+                violations.append(Violation(path=path, line=0, snippet=f"{key}: {value[:100]}",
+                                            pattern=pattern.pattern, reason=reason))
     return violations
 
 
@@ -561,6 +593,8 @@ def main() -> int:
             # …and the same catalogue again, with the multilingual claim
             # patterns, which apply to EVERY locale rather than English alone.
             violations.extend(scan_xcstrings(path, translated_patterns, allowlist_strings))
+        elif path.suffix == ".plist":
+            violations.extend(scan_plist(path, patterns, allowlist_strings))
 
     if not violations:
         print("copy_linter: clean. FDA perimeter holds.")
