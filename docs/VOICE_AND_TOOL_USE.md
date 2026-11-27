@@ -603,7 +603,10 @@ but the contract is stricter:
    `status=confirmation_required` with an app-written `ask_user` question.
    When the reply ends, the app shows that question under it and, in voice
    chat (workout voice included), speaks it after the reply in the app's
-   language, word for word. A message sent while the reply was still
+   language, word for word. Under a voice reply the question counts as
+   asked only once that line has played to the end (`markSpoken`): a
+   reply a workout alert cut off never speaks it, so no yes confirms it.
+   A message sent while the reply was still
    arriving (queued behind the stream) was written before the question
    existed, so the request lapses and the app asks again.
    The same call made again runs only when the user's message directly after
@@ -618,10 +621,12 @@ but the contract is stricter:
    quits.
 7. **What the model would save is confirmed first.** `assistant.memory.add`,
    `assistant.contacts.add`, `assistant.artifacts.add`,
-   `assistant.artifacts.update_status`, `location.set_address` and
-   `routes.library.rename` change nothing on the first call, and answer
-   `confirmation_required` the same way, every time
-   (`DestructiveActionContext.gate`). Finding the value in the user's
+   `assistant.artifacts.update_status`, `location.set_address`,
+   `routes.library.rename` and `routes.library.save_workout` change nothing
+   on the first call, and answer `confirmation_required` the same way, every
+   time (`DestructiveActionContext.gate`). The question names every field
+   that will be stored (a contact's notes included), and the request is
+   bound to all of them, so a call with other content needs a new yes. Finding the value in the user's
    message is not consent: "don't remember that I had knee surgery"
    contains the fact it refuses. A value the model took from a web page,
    an email or a tool result is shown to the user before it is saved. `assistant.email.compose` stages a draft only when

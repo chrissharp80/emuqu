@@ -48,7 +48,7 @@ extension AssistantMemoryNamespace {
             parameters: [
                 ActionParam("name", "How the user refers to the contact (first name, nickname, role — 'Chris', 'Coach John', 'Mom'). This is the lookup key for email.compose."),
                 ActionParam("email", "The contact's email address. Must contain '@' and a '.'."),
-                ActionParam("notes", "Optional one-line context ('training partner', 'PCP', 'wife'). Helps you describe contacts back to the user.", required: false),
+                ActionParam("notes", "Optional one-line context ('training partner', 'PCP', 'wife'), at most 120 characters. Helps you describe contacts back to the user.", required: false),
                 ActionParam("user_quote", "The user's words from their latest message asking to save this contact, copied verbatim.")
             ]
         ) { args in self.resolveAssistantContactsAdd(args) }
@@ -57,7 +57,6 @@ extension AssistantMemoryNamespace {
     private func resolveAssistantContactsAdd(_ args: [String: String]) -> FactValue {
         let name = args["name"]?.trimmingCharacters(in: .whitespaces) ?? ""
         let email = args["email"]?.trimmingCharacters(in: .whitespaces) ?? ""
-        if let problem = Self.contactInputProblem(name: name, email: email) { return problem }
         guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("add a contact")
         }
@@ -70,10 +69,13 @@ extension AssistantMemoryNamespace {
         }
     }
 
-    /// Adds the contact once the user, shown its name and address by the
-    /// app, confirmed it. An address the model took from a web page or an
-    /// email would otherwise become where `assistant.email.compose` sends
-    /// that name's mail.
+    /// Adds the contact once the user, shown by the app every field that
+    /// will be stored (name, address and notes), confirmed it. An address the
+    /// model took from a web page or an email would otherwise become where
+    /// `assistant.email.compose` sends that name's mail, and notes would ride
+    /// back into later prompts through `assistant.contacts.list`. The request
+    /// is bound to all three fields, so a call that changes any of them needs
+    /// a new yes.
     @MainActor
     static func addContact(
         name: String,
@@ -82,12 +84,13 @@ extension AssistantMemoryNamespace {
         store: EmailContactStore,
         context: DestructiveActionContext
     ) -> FactValue {
-        let question = String(localized: "Add \(name) (\(email)) to your contacts?", bundle: LanguageManager.appBundle)
+        let notes = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if let problem = contactInputProblem(name: name, email: email, notes: notes) { return problem }
         if let unconfirmed = context.gate(
-            action: "assistant.contacts.add", target: "\(name) \(email)", question: question
+            action: "assistant.contacts.add", target: [name, email, notes].joined(separator: "\n"),
+            question: addContactQuestion(name: name, email: email, notes: notes)
         ) { return unconfirmed }
-        let notes = rawNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let contact = EmailContact(name: name, email: email, notes: (notes?.isEmpty ?? true) ? nil : notes)
+        let contact = EmailContact(name: name, email: email, notes: notes.isEmpty ? nil : notes)
         guard store.add(contact) else { return contactsNotChanged() }
         return .record([
             "status": .string("added"),
@@ -97,14 +100,31 @@ extension AssistantMemoryNamespace {
         ])
     }
 
-    /// Why a contact can't be saved, or nil when name and email are usable.
-    private static func contactInputProblem(name: String, email: String) -> FactValue? {
+    /// The app's question for an add, naming every field it will store.
+    private static func addContactQuestion(name: String, email: String, notes: String) -> String {
+        guard !notes.isEmpty else {
+            return String(localized: "Add \(name) (\(email)) to your contacts?", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Add \(name) (\(email)) to your contacts with the note “\(notes)”?", bundle: LanguageManager.appBundle)
+    }
+
+    /// Longest stored name and one-line note. Both are shown in the app's
+    /// question and returned to the model by `assistant.contacts.list`.
+    static let maxContactNameLength = 80
+    static let maxContactNotesLength = 120
+    /// The longest address SMTP accepts (RFC 5321).
+    static let maxContactEmailLength = 254
+
+    /// Why a contact can't be saved, or nil when its fields are usable.
+    private static func contactInputProblem(name: String, email: String, notes: String) -> FactValue? {
         if name.isEmpty { return .missing(reason: .invalidParameter, detail: "name is required") }
         if email.isEmpty { return .missing(reason: .invalidParameter, detail: "email is required") }
         guard email.contains("@"), email.contains(".") else {
             return .missing(reason: .invalidParameter, detail: "email must look like an address (contain '@' and '.')")
         }
-        return nil
+        let limits = [("name", name, maxContactNameLength), ("email", email, maxContactEmailLength), ("notes", notes, maxContactNotesLength)]
+        guard let (field, value, limit) = limits.first(where: { $0.1.count > $0.2 }) else { return nil }
+        return .missing(reason: .invalidParameter, detail: "\(field) is \(value.count) characters; keep it to \(limit) or fewer and call again")
     }
 
     /// The answer when the address book could not be read or the change could

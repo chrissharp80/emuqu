@@ -171,7 +171,7 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertTrue(store.list().isEmpty, "the article's text was saved without the user's yes")
 
         viewModel.turns.append(ChatTurn(role: .assistant, text: "Shall I save that note?"))
-        XCTAssertTrue(viewModel.actionConfirmations.showPending(in: &viewModel.turns), "the app shows its question under the reply")
+        XCTAssertTrue(viewModel.actionConfirmations.showPending(in: &viewModel.turns, spokenReply: false), "the app shows its question under the reply")
         viewModel.turns.append(ChatTurn(role: .user, text: "yes"))
         let confirmed = await router.resolveTool(name: "assistant_artifacts_add", argsJSON: args.replacingOccurrences(of: "Summarize this article", with: "yes"))
         guard case let .record(second) = confirmed, case .boolean(true) = second["created"] else { return XCTFail("not saved after yes: \(confirmed)") }
@@ -237,7 +237,7 @@ final class FloSpotCompareTests: XCTestCase {
         let ask = AssistantMemoryNamespace.DestructiveActionContext(confirmations: confirmations, turns: turns)
         _ = AssistantMemoryNamespace.addArtifact(kind: .note, body: "buy milk", store: store, context: ask)
         turns.append(ChatTurn(role: .assistant, text: "Save it?"))
-        confirmations.showPending(in: &turns)
+        confirmations.showPending(in: &turns, spokenReply: false)
         turns.append(ChatTurn(role: .user, text: "yes"))
         let confirmed = AssistantMemoryNamespace.DestructiveActionContext(confirmations: confirmations, turns: turns)
 
@@ -297,7 +297,7 @@ final class FloSpotCompareTests: XCTestCase {
             return asked
         }
         harness.viewModel.turns.append(ChatTurn(role: .assistant, text: "Shall I?"))
-        harness.viewModel.actionConfirmations.showPending(in: &harness.viewModel.turns)
+        harness.viewModel.actionConfirmations.showPending(in: &harness.viewModel.turns, spokenReply: false)
         harness.viewModel.turns.append(ChatTurn(role: .user, text: "yes"))
         let confirmedArgs = args.replacingOccurrences(of: #""user_quote":"[^"]*""#, with: #""user_quote":"yes""#, options: .regularExpression)
         return await harness.router.resolveTool(name: name, argsJSON: confirmedArgs)

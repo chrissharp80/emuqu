@@ -299,7 +299,7 @@ extension AssistantTurnRouter {
             if droppedEmptyTurn { reportEmptyReply() }
             finishCurrentTurn(provider: provider, turnID: turnID, completed: completed)
         }
-        await owner.tools.finishStream(generation: generation)
+        await owner.tools.finishStream(generation: generation, spokenReply: voiceMode)
     }
 
     /// A current-generation turn that left no text. When no error explains
