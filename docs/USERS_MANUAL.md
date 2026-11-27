@@ -1831,7 +1831,7 @@ Emuqu has no server and no account. Nothing is ever sent to the developer. The f
   - **OpenTopoData** — route elevation, when you tap to look it up for a workout, including one imported from Apple Health: up to 100 of the route's points, rounded to about 11 m. OpenTopoData publishes no privacy policy.
   - **Overpass (OpenStreetMap)** — trail discovery (the centre of the search, rounded to about 100 m), and nearby roads during outdoor workouts or for each turn of a saved route Flo loads (the centre of a 250 m square). overpass.private.coffee publishes a privacy policy; overpass-api.de, the fallback, publishes none.
   - **Diagnostic log** — only if you share it. Health values and GPS coordinates are removed from it, but it can contain parts of what you said to Flo by voice and nearby street names.
-  - **Apple** — the geocoder for addresses, Apple Maps search for places and cross streets, server speech recognition when your device can't recognise your language on-device, and the App Store for the purchase.
+  - **Apple** — the geocoder for addresses, Apple Maps search for places and cross streets, walking directions and the route map in a workout's PDF report, server speech recognition when your device can't recognise your language on-device, and the App Store for the purchase.
   - **Hugging Face** — the one-time WhisperKit model download, if you choose WhisperKit.
 - HealthKit data access requires explicit permission.
 - Export options are available for backup and data portability.

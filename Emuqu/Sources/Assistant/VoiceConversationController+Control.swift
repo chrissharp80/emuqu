@@ -71,15 +71,26 @@ extension VoiceConversationController {
     ///
     /// When WhisperKit is the pick, kick off the model load early so it's
     /// likely ready by the time the user finishes their first utterance. The
-    /// bridge is idempotent — safe to call repeatedly.
+    /// bridge is idempotent — safe to call repeatedly. With voice mode off
+    /// nothing is loaded, so its model is never downloaded
+    /// (`usesWhisperKit`).
     @MainActor
     private func pinSTTProviderForSession() {
-        let preferred = services.settingsManager.settings.preferredSTTProvider
-        useWhisperKitForCurrentSession = STTProviderKind.effective(preferred: preferred) == .whisperKit
+        useWhisperKitForCurrentSession = Self.usesWhisperKit(
+            preferred: services.settingsManager.settings.preferredSTTProvider,
+            voiceModeOn: UserSettings.performanceFlag(.enableVoiceMode)
+        )
         guard useWhisperKitForCurrentSession else { return }
         services.whisperKitSTTBridge.prepareModelIfNeeded()
         services.whisperKitSTTBridge.reset()
         debugLog("[VoiceConv] WhisperKit selected; preparing model")
+    }
+
+    /// Whether a voice session transcribes with WhisperKit, whose model is
+    /// downloaded on first use: only with voice mode on and WhisperKit the
+    /// effective pick (`STTProviderKind.effective`).
+    static func usesWhisperKit(preferred: STTProviderKind, voiceModeOn: Bool) -> Bool {
+        voiceModeOn && STTProviderKind.effective(preferred: preferred) == .whisperKit
     }
 
     /// NOTE: voice conversation does NOT use BackgroundAudioManager.

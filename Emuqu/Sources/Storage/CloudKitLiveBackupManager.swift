@@ -253,9 +253,10 @@ final class CloudKitLiveBackupManager {
 
     /// Delete the live backup record after a session is completed and archived.
     ///
-    /// With iCloud Sync on, or for a backup this device uploaded whatever the
-    /// setting is now: removing the user's own data from iCloud is not an
-    /// upload. No zone is created for it; a missing zone means there is
+    /// Only with iCloud Sync on: while it is off nothing goes to iCloud, and a
+    /// backup this device uploaded stays awaiting deletion (`backedUpIds`,
+    /// persisted) for the full sync after sync is turned on again, as session
+    /// deletions do. No zone is created for it; a missing zone means there is
     /// nothing to delete. A delete that fails leaves the session awaiting
     /// deletion (`backedUpIds`, persisted), and the full sync deletes it
     /// again once its session is deleted (`retryAwaitingDeletion`). While the
@@ -265,7 +266,7 @@ final class CloudKitLiveBackupManager {
     /// the delete for (`keepsAwaitingDeletion`): that save may have put the
     /// record back after the delete removed it.
     func delete(sessionId: UUID) async {
-        guard settings.iCloudSyncEnabled || backedUpIds.contains(sessionId.uuidString) else { return }
+        guard Self.deletesNow(syncEnabled: settings.iCloudSyncEnabled) else { return }
         guard CloudAccountIdentity.isConfirmed else {
             backedUpIds.insert(sessionId.uuidString)
             return
@@ -281,6 +282,10 @@ final class CloudKitLiveBackupManager {
         }
         backedUpIds.remove(sessionId.uuidString)
     }
+
+    /// Whether a live-backup delete may reach iCloud now: only while sync is
+    /// on. One held back keeps its place in `backedUpIds`.
+    nonisolated static func deletesNow(syncEnabled: Bool) -> Bool { syncEnabled }
 
     /// Deletes the session's live backup record; true once iCloud holds none.
     private func deleteRecord(of sessionId: UUID) async -> Bool {

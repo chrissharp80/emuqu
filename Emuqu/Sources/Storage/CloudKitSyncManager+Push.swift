@@ -602,11 +602,13 @@ extension CloudKitSyncManager {
 
     /// Create the session zone unless this device already has. Only for the
     /// confirmed account (`CloudAccountIdentity.isConfirmed`): a zone is never
-    /// created in another Apple ID's iCloud; otherwise it throws
+    /// created in another Apple ID's iCloud. Only while uploads are allowed
+    /// (`cloudUploadsAllowed`), read here: a sync turned off while its caller
+    /// waited on the network creates nothing. Otherwise it throws
     /// `CloudAccountGuard.Halt.stopped`.
     func ensureZoneExists() async throws {
         guard !zoneCreated else { return }
-        guard CloudAccountIdentity.isConfirmed else { throw CloudAccountGuard.Halt.stopped }
+        guard CloudAccountIdentity.isConfirmed, cloudUploadsAllowed else { throw CloudAccountGuard.Halt.stopped }
 
         let zone = CKRecordZone(zoneID: zoneID)
         do {
