@@ -115,7 +115,19 @@ final class SafetyPhrasingMatrixTests: XCTestCase {
             }
             for text in row.negatives {
                 XCTAssertTrue(CoachVoiceGuard.scrub(text).didIntercept, "[\(row.language)] claim passed beside a negation: \(text)")
+                XCTAssertTrue(Self.claimsADisclaimableConcept(text), "[\(row.language)] claim read as negated: \(text)")
             }
+        }
+    }
+
+    /// Whether `text` makes a clearance, diagnosis or treatment claim outside
+    /// every negated clause. The guard's own segmentation can catch some
+    /// negatives on its own (it splits at the Arabic comma), so the clause
+    /// rule is checked on the whole sentence as well.
+    private static func claimsADisclaimableConcept(_ text: String) -> Bool {
+        MedicalTermLexicon.disclaimableClaims.contains { concept in
+            guard let regex = MedicalTermLexicon.regex(for: concept) else { return false }
+            return MedicalTermLexicon.claimMatch(of: regex, concept: concept.id, in: text) != nil
         }
     }
 

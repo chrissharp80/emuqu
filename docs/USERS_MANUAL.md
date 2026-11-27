@@ -682,7 +682,12 @@ While the AI is speaking you can interrupt by saying **at least two
 words**. One word ("stop!") won't fire — the gate deliberately requires
 two to avoid cutting the AI off every time you cough, take a loud step,
 or pass a truck. Sustained loud noise alone (wind, traffic) never
-triggers an interrupt; only decoded speech does.
+triggers an interrupt; only decoded speech does. Words that look like
+an echo of what the AI is saying don't interrupt either, with one
+exception: a message about self-harm, an injury or an emergency symptom
+interrupts even when it shares the AI's words (unless the AI is already
+giving that reply), and it is answered at once with the crisis or
+emergency reply, so you don't have to say it again.
 
 The mic button (when the AI is speaking) also forces an immediate
 interrupt. The chat's **Stop** button does the same — it now kills

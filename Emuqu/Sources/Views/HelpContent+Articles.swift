@@ -206,7 +206,10 @@ extension HelpContent {
                         """),
                     .warning("It works best with AirPods in a quiet room. On the phone speaker in wind, traffic, or a crowd it can mishear you or cut itself off. When it misbehaves, tell the assistant directly — the system prompt is written to respect what you report hearing, not deny it."),
                     .heading("Interrupting the AI"),
-                    .text("Four gates fire an interrupt together: the AI has been speaking for 600 ms (grace window), your mic has sustained non-silence for 300 ms, you said at least TWO recognized words since the AI started, and those words don't look like an echo of what the AI just said."),
+                    .text("""
+                        Four gates fire an interrupt together: the AI has been speaking for 600 ms (grace window), your mic has sustained non-silence for 300 ms, you said at least TWO recognized words since the AI started, and those words don't look like an echo of what the AI just said. \
+                        One exception: a message about self-harm, an injury or an emergency symptom interrupts even when it shares the AI's words (unless the AI is already giving that reply), and it is answered at once with the crisis or emergency reply, so you don't have to say it again.
+                        """),
                     .bullets([
                         "Two-word minimum is deliberate — a single word like \"stop!\" would fire on coughs, footsteps, and car horns. Say \"hey stop\" or \"wait\" plus one other word.",
                         "Sustained loud noise alone (wind, traffic, HVAC) doesn't interrupt. Only decoded speech does.",
@@ -278,7 +281,8 @@ extension HelpContent {
                     .heading("Voice mode isn't interrupting on my voice"),
                     .text("""
                         Four gates have to pass at once: a 600ms grace after the AI starts, 300ms of sustained voice, ≥2 new recognized words, and those words can't look like an echo of what the AI just said. If you're on phone speaker, AEC is weaker \
-                        and gate 4 sometimes blocks real interrupts. Use AirPods, or tap the mic button to force-interrupt.
+                        and gate 4 sometimes blocks real interrupts. Use AirPods, or tap the mic button to force-interrupt. \
+                        Unless the AI is already giving the crisis or emergency reply, a message about self-harm, an injury or an emergency symptom is never blocked as an echo: it interrupts the AI and gets that reply.
                         """),
                     .heading("Voice mode finalized my turn too early / won't finalize"),
                     .text("While listening, tap the paper-plane Send now button in the voice pill to force-commit whatever transcript was captured. If it never fires and the recognizer seems stuck, end and restart voice."),
