@@ -459,6 +459,8 @@ extension VoiceAudioPipeline {
     /// "Recent Problems") AND shows a short user-facing banner. If the guard
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
+        let lastAssistant = controller.assistantViewModel.turns.last(where: { $0.role == .assistant })?.text ?? ""
+        if VoiceEchoHeuristics.mustReachGuard(transcript, lastAssistantTurn: lastAssistant) { return false }
         if controller.looksLikeEcho(of: transcript), !answersHeardConfirmation(transcript) {
             debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
             controller.services.assistantInbox.flashTransientNotice(String(

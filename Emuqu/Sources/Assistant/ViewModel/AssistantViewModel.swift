@@ -437,7 +437,7 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
         services.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .rejectedEmpty }
-        if refusedWhileFloIsOff() { return .rejectedNoProvider }
+        if !answersWhileFloIsOff(trimmed), refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
         guard registry.canSend(to: registry.activeProvider) else {
             errorMessage = Self.unavailableMessage(for: registry.activeProvider.id, in: registry)
@@ -561,6 +561,13 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
         }
         services.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
         router.dispatch()
+    }
+
+    /// A message the guard answers with the emergency number gets the app's
+    /// own reply even while Flo is off: that reply never reaches a model, and
+    /// "Flo is off" is no answer to someone in crisis or hurt.
+    private func answersWhileFloIsOff(_ trimmed: String) -> Bool {
+        MedicalQueryGuard.classify(trimmed)?.namesEmergencyNumber == true
     }
 
     /// True, with the reason shown, when Flo is switched off or its notice

@@ -80,11 +80,13 @@ enum MedicalTermLexicon {
             "boezemfibrilleren", "atriumfibrilleren", // nl
             "atrieflimren", "atrieflimmer",           // da, nb
             "f[öo]rmaksflimmer",                      // sv
-            "eteisv[äa]rin[äa]",                      // fi
+            "eteisv[äa]rin\\w*",                     // fi
             "g[áa]ttatif(?:i|s)?",                    // is
-            "фибрилляция\\s+предсердий", "мерцательная\\s+аритмия" // ru
+            "фибрилляци\\w*\\s+предсерди\\w*", "мерцательн\\w*\\s+аритми\\w*", // ru
+            // The French abbreviation in capitals only: lower-case "fa" is Italian "ago".
+            "(?:de\\s+la|d['’]une|une|ma|en)\\s+(?-i:FA)"
         ],
-        unbounded: ["心房細動", "心房颤动", "房颤", "심방세동", "الرجفان الأذيني"]
+        unbounded: ["心房細動", "心房颤动", "房颤", "심방세동", "الرجفان الأذيني", "رجفان أذيني", "رجفان اذيني"]
     )
 
     static let arrhythmia = Concept(
@@ -115,7 +117,7 @@ enum MedicalTermLexicon {
             "(?<!sinus)aritmie", "hartritmestoornis(?:sen)?",   // nl
             "(?<!sinus)arytmi(?:er)?", "hjerterytmeforstyrrelse(?:r)?", // da, nb
             "hj[äa]rtrytmrubbning(?:ar)?",            // sv
-            "(?<!sinus)rytmih[äa]iri[öo]",            // fi
+            "(?<!sinus)rytmih[äa]iri\\w*",           // fi
             "hjartsl[áa]ttartruflun(?:ir|um|ar)?",          // is
             // Russian also calls it "дыхательная аритмия" without the word sinus.
             "(?<!синусовая\\s)(?<!синусовой\\s)(?<!дыхательная\\s)(?<!дыхательной\\s)аритми[яи]"  // ru
@@ -142,31 +144,34 @@ enum MedicalTermLexicon {
         latin: [
             "atrial\\s+flutter", "heart\\s+block", "bradycardias?", "tachycardias?",
             "myocardial\\s+infarction", "heart\\s+attack", "cardiac\\s+(?:arrest|event)",
-            "isch(?:a?e)mi[ac]", "angina", "hypertension", "hypotension",
+            "isch(?:a?e)mi[ac]", "angina", "hypertension", "hypotension", "high\\s+blood\\s+pressure",
             "flutter\\s+auriculaire", "bloc\\s+auriculo[- ]ventriculaire", "bradycardie", "tachycardie",
             "infarctus", "crise\\s+cardiaque", "hypertension\\s+art[ée]rielle",   // fr
             "aleteo\\s+auricular", "bloqueo\\s+card[íi]aco", "bradicardia", "taquicardia",
-            "infarto", "ataque\\s+card[íi]aco", "hipertensi[óo]n", "hipotensi[óo]n", // es, pt-BR, it
-            "vorhofflattern", "herzblock", "bradykardie", "tachykardie",
+            "infarto", "ataque\\s+card[íi]aco", "attacco\\s+(?:cardiaco|di\\s+cuore)", "hipertensi[óo]n", "hipotensi[óo]n", // es, pt-BR, it
+            "hipertens[ãa]o", "hipotens[ãa]o", "i(?:per|po)tensione",
+            "vorhofflattern", "herzblock", "bradykardie\\w*", "tachykardie\\w*", "hohe[rn]?\\s+blutdruck\\w*",
             "herzinfarkt", "herzstillstand", "bluthochdruck",                      // de
             "boezemflutter", "hartblok",              // bradycardie, tachycardie: as fr
             "hartaanval", "hartstilstand", "hoge\\s+bloeddruk",                    // nl
-            "atrieflagren", "atrieflutter", "hjerteblok", "bradykardi", "takykardi",
+            "atrieflagren", "atrieflutter", "hjerteblok", "bradykardi\\w*", "takykardi\\w*",
+            "forh[øo]jet\\s+blodtryk", "h[øo]jt\\s+blodtryk", "h[øo]yt\\s+blodtrykk",
             "hjerteanfald", "hjerteinfarkt", "hjertestop", "hjertestans",           // da, nb
-            "f[öo]rmaksfladder", "hj[äa]rtblock",     // bradykardi, takykardi: as da, nb
+            "f[öo]rmaksfladder", "hj[äa]rtblock", "h[öo]gt\\s+blodtryck",     // bradykardi, takykardi: as da, nb
             "hj[äa]rtinfarkt", "hj[äa]rtstopp",                                     // sv
-            "eteislepatus", "sydänkatkos", "bradykardia", "takykardia",
-            "syd[äa]ninfarkti", "syd[äa]npys[äa]hdys",                              // fi
-            "hjartaáfall", "hjartastopp",                                           // is
+            "eteislepatus", "sydänkatkos", "korke\\w*\\s+verenpaine\\w*", "verenpainetau\\w*",
+            "syd[äa]ninfarkti\\w*", "syd[äa]npys[äa]hdy\\w*", "syd[äa]nkohtau\\w*", // fi
+            "hjarta[áa]f\\w*", "hjartastopp\\w*", "h[áa][þt]r[ýy]sting\\w*", "h[æa]gsl[áa]tt\\w*", "hra[ðd]sl[áa]tt\\w*", // is
             // Case endings spelled out: a bare stem never matches "инфаркта" inside `\\b`.
             "трепетание\\s+предсердий", "брадикарди[яиюей]", "тахикарди[яиюей]",
-            "инфаркт(?:а|е|у|ом|ы)?", "остановк[аиуе]\\s+сердца", "гипертони[яиюей]" // ru
+            "инфаркт(?:а|е|у|ом|ы)?", "остановк[аиуе]\\s+сердца", "гипертони[яиюей]", "сердечн\\w+\\s+приступ\\w*" // ru
         ],
         unbounded: [
             "心房粗動", "心房扑动", "심방조동",
-            "徐脈", "頻脈", "心筋梗塞", "心停止",
-            "心动过缓", "心动过速", "心肌梗死", "心脏骤停",
-            "서맥", "빈맥", "심근경색", "심정지",
+            "徐脈", "頻脈", "心筋梗塞", "心停止", "心臓発作",
+            "心动过缓", "心动过速", "心肌梗死", "心脏骤停", "心脏病发作",
+            "서맥", "빈맥", "심근경색", "심정지", "심장마비",
+            "高血圧", "低血圧", "高血压", "低血压", "고혈압", "저혈압", "ارتفاع ضغط الدم", "انخفاض ضغط الدم",
             "الرفرفة الأذينية", "بطء القلب", "تسرع القلب", "نوبة قلبية", "احتشاء عضلة القلب"
         ]
     )
@@ -190,18 +195,18 @@ enum MedicalTermLexicon {
         latin: [
             "myocardial\\s+infarction", "heart\\s+attack", "cardiac\\s+(?:arrest|event)",
             "infarctus", "crise\\s+cardiaque",                    // fr
-            "infarto", "ataque\\s+card[íi]aco",                   // es, pt-BR, it
+            "infarto", "ataque\\s+card[íi]aco", "attacco\\s+(?:cardiaco|di\\s+cuore)", // es, pt-BR, it
             "herzinfarkt", "herzstillstand",                      // de
             "hartaanval", "hartstilstand",                        // nl
             "hjerteanfald", "hjerteinfarkt", "hjertestop", "hjertestans", // da, nb
             "hj[äa]rtinfarkt", "hj[äa]rtstopp",                   // sv
-            "syd[äa]ninfarkti", "syd[äa]npys[äa]hdys",            // fi
-            "hjartaáfall", "hjartastopp",                         // is
-            "инфаркт(?:а|е|у|ом|ы)?", "остановк[аиуе]\\s+сердца" // ru
+            "syd[äa]ninfarkti\\w*", "syd[äa]npys[äa]hdy\\w*", "syd[äa]nkohtau\\w*", // fi
+            "hjarta[áa]f\\w*", "hjartastopp\\w*",                // is
+            "инфаркт(?:а|е|у|ом|ы)?", "остановк[аиуе]\\s+сердца", "сердечн\\w+\\s+приступ\\w*" // ru
         ],
         unbounded: [
-            "心筋梗塞", "心停止", "心肌梗死", "心脏骤停",
-            "심근경색", "심정지",
+            "心筋梗塞", "心停止", "心臓発作", "心肌梗死", "心脏骤停", "心脏病发作",
+            "심근경색", "심정지", "심장마비",
             "نوبة قلبية", "احتشاء عضلة القلب"
         ]
     )
@@ -226,21 +231,25 @@ enum MedicalTermLexicon {
         id: "neurovascular-event",
         latin: [
             // Not "a stroke of luck", nor the swim metric ("you had a stroke rate of 34").
+            "(?:signs?|symptoms?|risk|onset|warning)\\s+of\\s+(?:an?\\s+)?stroke(?!\\s+(?:rate|count|length|cycle|index|technique|drill|rhythm|plan|type))",
+            "(?:detects?|predicts?|prevents?|warns?\\s+(?:you\\s+)?(?:of|about|before))\\s+(?:an?\\s+)?strokes?(?!\\s+(?:rate|count|length|cycle|index|technique|drill|rhythm|plan|type))",
             "(?:having|had|have)\\s+a\\s+stroke(?!\\s+(?:of\\s|rate|count|length|cycle|index|technique|drill|rhythm|plan))", "stroke\\s+(?:symptoms|victim)",
             "mini[- ]stroke", "transient\\s+ischemic\\s+attack",
-            "cerebrovascular", "pulmonary\\s+embolism", "blood\\s+clot",
+            "cerebrovascular", "pulmonary\\s+embolism", "blood\\s+clots?",
             "deep\\s+vein\\s+thrombosis",
-            "accident\\s+vasculaire\\s+c[ée]r[ée]bral", "embolie\\s+pulmonaire",
+            "accident\\s+vasculaire\\s+c[ée]r[ée]bral", "avc", "embolie\\s+pulmonaire", // avc: fr, pt-BR
             "caillot\\s+de\\s+sang",                            // fr
             "derrame\\s+cerebral", "accidente\\s+cerebrovascular", "ictus",
-            "embolia\\s+pulmonar", "co[áa]gulo\\s+de\\s+sangre", // es, pt-BR
+            "embolia\\s+pulmonar", "co[áa]gulo\\s+de\\s+sangre", "(?:tive|tendo|tenho|teve|ter)\\s+um\\s+derrame", // es, pt-BR
             "embolia\\s+polmonare", "coagulo\\s+di\\s+sangue",  // it
-            "schlaganfall", "lungenembolie", "blutgerinnsel",     // de
+            "schlaganf[äa]ll\\w*", "lungenembolie\\w*", "blutgerinnsel\\w*", // de
             "beroerte", "herseninfarct", "longembolie", "bloedstolsel", // nl
             "hjerneslag", "hjerneblødning", "blodprop", "lungeemboli",  // da, nb
             "hj[äa]rnbl[öo]dning", "slaganfall", "blodpropp", "lungemboli", // sv
-            "aivohalvaus", "aivoinfarkti", "keuhkoembolia", "verihyytym[äa]",  // fi
-            "heilabl[óo][ðd]fall", "bl[óo][ðd]tappi",             // is
+            // A swim stroke is "simtag" in Swedish; "en stroke" after having it is the illness.
+            "(?:har|hade|f[åa]tt|fick|f[åa]r)\\s+(?:jag\\s+|du\\s+)?(?:haft\\s+)?en\\s+stroke(?![-\\w])",
+            "aivohalvau\\w*", "aivoinfarkti\\w*", "keuhkoembolia\\w*", "verihyytym[äa]\\w*",  // fi
+            "heilabl[óo][ðd]f\\w*", "bl[óo][ðd]tapp\\w*",          // is
             "инсульт(?:а|е|у|ом|ы)?", "тромбоэмболи[яиюей]", "тромб(?:а|е|у|ом|ы)?" // ru
         ],
         unbounded: [
@@ -248,7 +257,7 @@ enum MedicalTermLexicon {
             // 中风险 is "medium risk", not a stroke.
             "脑卒中", "中风(?!险)", "脑梗死", "肺栓塞",
             "뇌졸중", "뇌경색", "폐색전", "혈전",
-            "سكتة دماغية", "جلطة", "انسداد رئوي"
+            "سكتة دماغية", "سكتة الدماغية", "جلطة", "انسداد رئوي"
         ]
     )
 
@@ -266,12 +275,12 @@ enum MedicalTermLexicon {
             "palpitazioni", "(?<!troppi\\s)battit[oi]\\s+irregolar[ei](?!\\s+(?:ou|o|or|e|et)\\s+(?:mal|mis|rilevat\\w*)|\\s+(?:[àa]\\s+proximit[ée]|cerca|por\\s+perto|nelle\\s+vicinanze))", // it
             // Not bare Herzklopfen, hjertebanken, hjärtklappning or 두근거림: each is
             // also the pounding heart of a climb, which is exertion (see the Spoken file).
-            "unregelm[äa][ßs]iger\\s+herzschlag",              // de
+            "unregelm[äa][ßs]iger\\s+herzschlag", "unregelm[äa][ßs]igen\\s+herzschlag\\w*", // de
             "hartkloppingen", "onregelmatige\\s+hartslag",     // nl
-            "uregelm[æa]ssig\\s+hjerterytme",                  // da, nb
+            "uregelm[æae]ss?ig\\s+hjerterytme",                // da, nb
             "oregelbunden\\s+hj[äa]rtrytm",                    // sv
-            "syd[äa]mentykytys", "eps[äa]s[äa][äa]nn[öo]llinen\\s+syke", // fi
-            "hjartsl[áa]ttar[óo]regla",                        // is
+            "syd[äa]mentykytys\\w*", "eps[äa]s[äa][äa]nn[öo]llinen\\s+syke", // fi
+            "hjartsl[áa]ttar[óo]regl\\w*",                    // is
             "учащ[её]нное\\s+сердцебиение", "перебои\\s+в\\s+сердце" // ru
         ] + spokenIrregularHeartbeat,
         unbounded: ["動悸", "心悸", "心跳不规律", "심계항진", "خفقان"] + spokenIrregularHeartbeatUnbounded
@@ -289,7 +298,8 @@ enum MedicalTermLexicon {
             // deflects the assistant explaining how to send a support log.
             "diagnos(?:e|is|es|ed|ing)(?!\\w)(?!\\s+(?:log|logs|data|tool|tools|bundle))",
             "undiagnosed",
-            "diagnostiqu(?:er|é|ée)",
+            // The verb, not the adjective in "affirmations diagnostiques": the present needs an object.
+            "diagnostiqu(?:er|é|ée|és|ées)", "diagnostiqu(?:e|ent)\\s+(?:les|la|le|l['’]|un|une|des|vos|votre|aucun\\w*|rien)\\b",
             // Romance word order puts the software noun first ("journal de diagnostic").
             "(?<!\\sde\\s)diagnostic(?!s?\\s+(?:log|logs|data|tool|tools|bundle|from|depuis|avanc[ée]|syst[èe]me|d['’]archive|complet))", // fr
             "(?<!\\sde\\s)(?<!log\\s)(?<!registro\\s)(?<!dato\\s)diagn[óo]stic[oa]s?(?!\\s+(?:del\\s+archivo|do\\s+arquivo|de\\s+sistema|del\\s+sistema|do\\s+sistema|di\\s+sistema|archivio|avanzad[oa]|avan[çc]ad[oa]|desde|em\\s+configura|da\\s+impostazioni))",
@@ -299,21 +309,23 @@ enum MedicalTermLexicon {
             // this bare form re-matches "diagnose log" and undoes it.
             "diagnose(?!\\s+(?:log|logs|data|tool|tools|bundle))", "diagnostizier(?:en|t)", // de, nl, da, nb
             "diagnos(?:er)?(?!\\s+fr[åa]n\\s+inst[äa]llningar)", // sv
-            "diagnoosi",                              // fi
+            "diagnoos\\w*", "diagnosoi\\w*",          // fi
+            // Verb forms only: "Avanceret diagnosticering" is the app's software diagnostics.
+            "diagnosticer(?:er|e|ede|et)", "diagnostiser(?:er|e|te|t|ar|ade|at|a)", // da, nb, sv
             // Icelandic `greining` means ANALYSIS as much as diagnosis, and the
             // app's own Icelandic UI uses it that way ("Greining" = Analysis,
             // "Greiningu lokið" = Analysis complete). A bare match deflected
             // the assistant every time it mentioned an analysis. The medical
             // sense is compounded.
             "sj[úu]kd[óo]msgreining\\w*", "l[æa]knisgreining\\w*",   // is
-            "диагноз", "диагностир"                   // ru
+            "диагноз\\w*", "диагностир\\w*"            // ru
         ],
         // Not the software sense: the app's own "診断ログ", "系统诊断", "진단 도구", "سجل التشخيص".
         unbounded: [
             "(?<!システム)(?<!アーカイブ)(?<!詳細な)診断(?!ログ|ツール|情報|データ)",
             "(?<!고급 )(?<!아카이브 )(?<!시스템 )진단(?! ?(?:로그|도구|정보|데이터))",
             "(?<!高级)(?<!存档)(?<!系统)诊断(?!日志|工具|信息|数据)",
-            "(?<!سجل ال)(?<!سجلات ال)(?<!أدوات ال)تشخيص(?!ي|ات| النظام)"
+            "(?<!سجل ال)(?<!سجلات ال)(?<!أدوات ال)تشخيص(?!ي|ات| النظام)", "يشخص"
         ]
     )
 
@@ -335,7 +347,8 @@ enum MedicalTermLexicon {
             "genezing\\s+van\\s+(?:je\\s+|de\\s+|uw\\s+)?(?:ziekte|aandoening)", // nl
             // Not a bare `"bota"` (Spanish/Portuguese "boot", Portuguese "puts").
             "helbrede", "helbredelse", "botemedel",   // da/nb, sv
-            "bota\\s+(?:din\\s+|en\\s+)?\\w*sjukdom\\w*", // sv
+            "helbreder\\s+(?:\\w+\\s+)?(?:sygdom|sykdom)\\w*",
+            "botar?\\s+(?:din\\s+|en\\s+)?\\w*sjukdom\\w*", // sv
             // NOT a bare `"parantaa"`, which is the ordinary Finnish verb
             // "to improve". Bare, it matches four shipped strings
             // ("parantaa untani" = improve my sleep, "parantaa tarkkuutta" =
@@ -350,27 +363,35 @@ enum MedicalTermLexicon {
             // never matches. Finnish inflects heavily; the suffix has to be
             // part of the pattern.
             "parantaa\\s+(?:sairau|tauti|taudi|vaiva)\\w*", "parannuskeino", // fi
-            "l[æa]kning",                             // is
-            "вылечить", "излечение"                   // ru
+            "l[æa]kning", "l[æa]kna[rð]?\\s+(?:\\w+\\s+)?sj[úu]kd[óo]m\\w*", // is
+            "вылечить", "излечение",                  // ru
+            "(?:вылеч|излеч)\\w*\\s+(?:\\w+\\s+)?(?:болезн\\w*|заболевани\\w*|бессонниц\\w*|диабет\\w*|депресси\\w*|гипертони\\w*)",
+            // The verb with a disease as its object: Italian "cura il recupero" is "look after your recovery".
+            "gu[ée]ri(?:t|ssent|ra|ront|ssons)\\s+(?:l['’]\\s*|les?\\s+|la\\s+|vos\\s+|votre\\s+|des\\s+)?(?:maladies?|insomnie|diab[èe]te|d[ée]pression|hypertension|anxi[ée]t[ée]|affections?)", // fr
+            "cura(?:n|mos)?\\s+(?:(?:el|la|los|las|tu|tus|su|sus|a|o|as|os|sua|seu)\\s+)?(?:enfermedad(?:es)?|insomnio|diabetes|depresi[óo]n|hipertensi[óo]n|ansiedad|doen[çc]as?|ins[ôo]nia|depress[ãa]o|hipertens[ãa]o|ansiedade)", // es, pt-BR
+            "cura(?:no)?\\s+(?:(?:le|il|i|gli|la|la\\s+tua|il\\s+tuo)\\s+|l['’]\\s*)?(?:malattie?|insonnia|diabete|depressione|ipertensione|ansia)" // it
         ],
-        unbounded: ["治癒", "治愈", "완치", "علاج نهائي"]
+        unbounded: [
+            "治癒", "治愈", "완치", "علاج نهائي", "病気を治(?:す|し|せ)", "(?:不眠症|うつ病|糖尿病|高血圧)を治", "治好(?:失眠|疾病|病|糖尿病|抑郁|高血压)",
+            "(?:병|질병|질환|불면증)을 고(?:쳐|치|칩)", "يشفي من", "يشفي الأمراض"
+        ]
     )
 
     static let treatmentClaim = Concept(
         id: "treatment-claim",
         latin: [
             "treat(?:s|ed|ing|ment)?\\s+(?:your|the)\\s+(?:illness|disease|condition)",
-            "traiter\\s+(?:votre|la)\\s+(?:maladie|affection)",       // fr
-            "tratar\\s+(?:tu|su|la)\\s+(?:enfermedad|afecci[óo]n)",   // es
-            "tratar\\s+(?:sua|a)\\s+(?:doen[çc]a|condi[çc][ãa]o)",    // pt-BR
-            "curare\\s+(?:la\\s+)?(?:tua\\s+)?malattia",            // it
-            "(?:ihre|deine)\\s+(?:krankheit|erkrankung)\\s+behandeln", // de
-            "je\\s+(?:ziekte|aandoening)\\s+behandelen",              // nl
-            "behandle\\s+(?:din\\s+)?(?:sygdom|sykdom)",              // da, nb
-            "behandla\\s+(?:din\\s+)?sjukdom",                        // sv
+            "trait(?:er|e|ent|ons)\\s+(?:votre|la|vos|les)\\s+(?:maladie|affection)s?", // fr
+            "trat(?:ar|a|amos|an)\\s+(?:tu|su|la)\\s+(?:enfermedad|afecci[óo]n)", // es
+            "trat(?:ar|a|amos|am)\\s+(?:sua|a)\\s+(?:doen[çc]a|condi[çc][ãa]o)", // pt-BR
+            "cur(?:are|a|iamo)\\s+(?:la\\s+)?(?:tua\\s+)?malattia",   // it
+            "(?:ihre|deine)\\s+(?:krankheit|erkrankung)\\s+behandeln", "behandel[nt]\\s+(?:deine|ihre|eure|die)\\s+(?:krankheit|erkrankung)\\w*", // de
+            "je\\s+(?:ziekte|aandoening)\\s+behandelen", "behandelt?\\s+(?:je|jouw|uw|de)\\s+(?:ziekte|aandoening)", // nl
+            "behandler?\\s+(?:din\\s+)?(?:sygdom|sykdom)\\w*",       // da, nb
+            "behandlar?\\s+(?:din\\s+)?sjukdom\\w*",                // sv
             "hoitaa\\s+sairauttasi",                                    // fi
-            "me[ðd]h[öo]ndla\\s+sj[úu]kd[óo]m",                        // is
-            "лечить\\s+(?:ваше|ваш[уе])\\s+(?:заболевание|болезнь)"   // ru
+            "me[ðd]h[öo]ndla\\w*\\s+sj[úu]kd[óo]m\\w*",                // is
+            "леч(?:ить|ит|им)\\s+(?:ваше|ваш[уе]|вашу)\\s+(?:заболевание|болезнь)" // ru
         ],
         unbounded: ["病気を治療", "治疗你的疾病", "질병을 치료", "علاج مرضك"]
     )
@@ -381,25 +402,27 @@ enum MedicalTermLexicon {
             // Not a coach's "prescribed pace", "session prescription is 5x1k" or "your plan prescribes 3x10 min".
             "(?<!training\\s)(?<!workout\\s)(?<!session\\s)prescriptions?(?!\\s+(?:for\\s+(?:this|the|your|today['’]s)\\s+(?:week|session|workout|run|ride|day|intervals?)|is\\s+\\d))",
             "(?<!plan\\s)(?<!coach\\s)(?<!program\\s)(?<!schedule\\s)prescrib(?:e|es|ed|ing)(?!\\s+(?:an?\\s+(?:easy|hard|rest|long)\\s+)?(?:pace|workout|session|intensity|zone|effort|load|volume|reps|sets|intervals?|training|distance|duration|day|run|ride|week|recovery\\s+(?:run|ride|day))\\b)",
-            "ordonnance", "prescrire",                // fr
-            "receta\\s+m[ée]dica", "prescripci[óo]n", // es
-            "prescri[çc][ãa]o", "receita\\s+m[ée]dica", // pt-BR
-            "prescrizione",                           // it
+            "ordonnance", "prescrire", "prescri(?:t|vent|ra|s)\\s+(?:des\\s+|vos\\s+|un\\s+|les\\s+)?(?:m[ée]dicaments|traitements?|antibiotiques)", // fr
+            "receta\\s+m[ée]dica", "prescripci[óo]n", "receta(?:r|mos|n)?\\s+(?:\\w+\\s+)?(?:medicamentos|f[áa]rmacos|medicinas|antibi[óo]ticos)", // es
+            "prescri[çc][ãa]o", "receita\\s+m[ée]dica", "receita(?:r|mos|m)?\\s+(?:\\w+\\s+)?(?:medicamentos|rem[ée]dios|antibi[óo]ticos)", // pt-BR
+            "prescrizion[ei]", "prescriv\\w*\\s+(?:\\w+\\s+)?(?:farmaci|medicine|medicinali|antibiotici)", // it
             // German Rezept, Dutch/Swedish/Danish recept, Norwegian resept,
             // Finnish resepti and Russian рецепт all also mean "recipe", so a
             // bare noun deflected every nutrition reply in those languages.
             // Only the prescription-only shapes are matched.
-            "verschreibung", "rezeptpflichtig\\w*",   // de
+            "verschreibung", "rezeptpflichtig\\w*", "verschreib\\w*\\s+(?:dir\\s+|ihnen\\s+)?(?:medikamente|arzneimittel|tabletten|medizin)", // de
             "[äa]rztliche[sn]?\\s+rezept\\w*", "rezept\\s+vom\\s+arzt", // de
             // Not bare "voorschrift": any instruction ("het voorschrift van de fabrikant").
-            "(?:arts|dokter|huisarts)s?voorschrift\\w*", "op\\s+(?:medisch\\s+)?voorschrift", "receptplichtig\\w*", "op\\s+recept", // nl
+            "schrijf\\w*\\s+(?:je\\s+|u\\s+)?(?:medicijnen|medicatie|geneesmiddelen)\\s+voor", "(?:arts|dokter|huisarts)s?voorschrift\\w*", "op\\s+(?:medisch\\s+)?voorschrift", "receptplichtig\\w*", "op\\s+recept", // nl
             "receptbelagd\\w*", "receptpligtig\\w*", "p[åa]\\s+recept", // sv, da
+            "udskriv\\w*\\s+(?:\\w+\\s+)?(?:medicin|recept\\w*)", "skriv\\w*\\s+ut\\s+(?:\\w+\\s+)?(?:medisin\\w*|resept\\w*|l[äa]kemedel|medicin\\w*|recept)",
             "reseptbelagt\\w*", "p[åa]\\s+resept",   // nb
-            "reseptil[äa][äa]k\\w*", "l[äa][äa]k[äa]rin\\s+resepti\\w*", // fi
-            "lyfse[ðd]ill",                           // is
-            "по\\s+рецепту", "рецептурн\\w*", "рецепт\\s+(?:от|у)\\s+врача" // ru
+            "reseptil[äa][äa]k\\w*", "l[äa][äa]k[äa]rin\\s+resepti\\w*", "m[äa][äa]r[äa]\\w*\\s+(?:\\w+\\s+)?(?:l[äa][äa]kkei\\w*|l[äa][äa]kett[äa]|l[äa][äa]kityst\\w*)", // fi
+            "lyfse[ðd]il\\w*", "[áa]v[íi]s\\w*\\s+(?:\\w+\\s+)?lyf\\w*",  // is
+            "по\\s+рецепту", "рецептурн\\w*", "рецепт\\s+(?:от|у)\\s+врача", // ru
+            "(?:выписыва|назнача|выпиш|назнач)\\w*\\s+(?:\\w+\\s+)?(?:лекарств\\w*|препарат\\w*|таблетк\\w*)"
         ],
-        unbounded: ["処方", "처방", "处方", "وصفة طبية"]
+        unbounded: ["処方", "처방", "处方", "وصفة طبية", "يصف (?:لك )?(?:الأدوية|الدواء|أدوية|دواء)"]
     )
 
     static let regulatoryClearance = Concept(
@@ -408,10 +431,11 @@ enum MedicalTermLexicon {
             "fda[- ]approved", "fda[- ]cleared",
             "(?:approved|cleared)\\s+by\\s+(?:the\\s+)?fda",
             "ce[- ]zertifiziert", "medizinprodukt\\s+zugelassen", // de
-            "approuv[ée]\\s+par\\s+la\\s+fda",        // fr
-            "aprobado\\s+por\\s+la\\s+fda",           // es
-            "aprovado\\s+pela\\s+fda",                // pt-BR
-            "approvato\\s+dalla\\s+fda",              // it
+            "von\\s+der\\s+fda\\s+(?:zugelassen|freigegeben|genehmigt|zertifiziert)\\w*", "fda[- ](?:zugelassen|freigegeben|genehmigt|zertifiziert)\\w*", "fda[- ]zulassung",
+            "(?:approuv|autoris|homologu)[ée]e?s?\\s+par\\s+la\\s+fda", // fr
+            "(?:aprobad|autorizad)[oa]s?\\s+por\\s+la\\s+fda",     // es
+            "(?:aprovad|autorizad|liberad)[oa]s?\\s+pela\\s+fda", // pt-BR
+            "(?:approvat|autorizzat)[oaie]\\s+dalla\\s+fda",        // it
             "medical[- ]grade", "clinical[- ]grade",
             "medizinische[rs]?\\s+qualit[äa]t",       // de
             "(?:goedgekeurd|toegelaten)\\s+door\\s+de\\s+fda", "fda[- ]goedgekeurd", "medische\\s+kwaliteit", // nl
@@ -419,12 +443,12 @@ enum MedicalTermLexicon {
             "godk[äa]nd\\s+av\\s+fda", "fda[- ]godk[äa]nd", "medicinsk\\s+kvalitet", // sv, da
             "fda:n\\s+hyv[äa]ksym[äa]", "fda[- ]hyv[äa]ksytty", "l[äa][äa]ketieteellist[äa]\\s+laatua", // fi
             "sam[þt]ykkt\\s+af\\s+fda", "fda[- ]sam[þt]ykkt", "l[æa]knisfr[æa][ðd]ileg\\w*\\s+g[æa][ðd]\\w*", // is
-            "одобрено\\s+fda"                         // ru
+            "одобрен\\w*\\s+fda"                       // ru
         ],
         // Arabic must be covered across the whole concept, not one phrase.
         unbounded: [
-            "FDA承認", "FDA認可", "FDA 승인", "FDA批准",
-            "معتمد من إدارة الغذاء والدواء", "جهاز طبي معتمد"
+            "FDA\\s*の?\\s*承認", "FDA\\s*認可", "FDA\\s*승인", "FDA\\s*批准",
+            "معتمد من إدارة الغذاء والدواء", "جهاز طبي معتمد", "موافقة FDA", "موافقة إدارة الغذاء والدواء"
         ]
     )
 
@@ -438,13 +462,13 @@ enum MedicalTermLexicon {
             "riesgo\\s+de\\s+lesi[óo]n",              // es
             "risco\\s+de\\s+les[ãa]o",                // pt-BR
             "rischio\\s+di\\s+infortunio",            // it
-            "verletzungsrisiko",                      // de
-            "blessurerisico",                         // nl
-            "skadesrisiko", "skaderisiko",            // da, nb
-            "skaderisk",                              // sv
-            "loukkaantumisriski",                     // fi
-            "meiðslah[æa]tta",                        // is
-            "риск\\s+травмы"                          // ru
+            "verletzungsrisik\\w*",                   // de
+            "blessurerisico\\w*",                      // nl
+            "skadesrisiko\\w*", "skaderisiko\\w*",      // da, nb
+            "skaderisk\\w*",                           // sv
+            "loukkaantumisrisk\\w*",                   // fi
+            "meiðslah[æa]tt\\w*",                      // is
+            "риск\\w*\\s+травм\\w*"                    // ru
         ],
         unbounded: ["怪我のリスク", "受伤风险", "부상 위험", "خطر الإصابة"]
     )
@@ -460,7 +484,7 @@ enum MedicalTermLexicon {
             "[üu]bertraining",                        // de
             "overtr[æa]ning", "overtrening",          // da, nb
             "[öo]vertr[äa]ning",                      // sv
-            "ylikuormitustila", "ylirasitustila",     // fi
+            "ylikuormitustila\\w*", "ylirasitustila\\w*", "ylikun(?:to|no)\\w*", // fi
             "ofþj[áa]lfun",                           // is
             "перетренированность"                     // ru
         ],
@@ -489,11 +513,11 @@ enum MedicalTermLexicon {
         id: "pathology",
         latin: [
             "patholog(?:y|ies|ical|ically)",
-            "pathologie",                              // fr, de, nl
+            "\\w*pathologie\\w*",                      // fr, de, nl
             "patolog[ií]a", "patologia",               // es, pt-BR, it, fi (loan)
-            "patologi",                                // da, nb, sv
+            "\\w*patologi\\w*",                        // da, nb, sv, fi
             "meinafr[æa][ðd]i",                        // is
-            "патология"                                // ru
+            "патологи\\w*"                             // ru
         ],
         unbounded: ["病理", "병리", "علم الأمراض"]
     )
@@ -516,9 +540,9 @@ enum MedicalTermLexicon {
             "autonome\\s+rigiditeit", "respiratoire\\s+compensatie",   // nl
             "autonom\\s+rigiditet", "respiratorisk\\s+kompensation",   // da, sv
             "respiratorisk\\s+kompensasjon",                          // nb
-            "autonominen\\s+j[äa]ykkyys", "hengityskompensaatio",      // fi
-            "[óo]sj[áa]lfr[áa][ðd]\\s+st[íi]fni", "[öo]ndunarj[öo]fnun", // is
-            "вегетативная\\s+ригидность", "дыхательная\\s+компенсация"  // ru
+            "autonomi\\w*\\s+j[äa]ykkyy\\w*", "hengityskompensaatio\\w*", // fi
+            "[óo]sj[áa]lfr[áa][ðd]\\w*\\s+st[íi]fni\\w*", "[öo]ndunarj[öo]fnun\\w*", // is
+            "вегетативн\\w*\\s+ригидност\\w*", "дыхательн\\w*\\s+компенсаци\\w*"  // ru
         ],
         unbounded: [
             "自律神経硬直", "呼吸代償",
@@ -622,8 +646,9 @@ extension MedicalTermLexicon {
             "starke\\s+schmerzen", "panikattacke",            // de
             "hevige\\s+pijn", "paniekaanval",                 // nl
             "kraftige\\s+smerter", "panikanfald", "panikkanfall", // da, nb
-            "sv[åa]r\\s+sm[äa]rta", "panik[åa]ngest",         // sv
+            "sv[åa]r\\s+sm[äa]rta", "panik[åa]ngest", "panikattack\\w*", // sv
             "kova\\s+kipu", "paniikkikohtaus",                // fi
+            "(?:ofsa)?kv[íi][ðd]akast\\w*", "(?:mikla|miklir|mikill|mikinn)\\s+verk(?:i|ir|ur)?", // is
             "сильная\\s+боль", "паническая\\s+атака"          // ru
         ],
         unbounded: ["激しい痛み", "パニック発作", "剧痛", "惊恐发作", "심한 통증", "공황 발작", "ألم شديد", "نوبة هلع"]
@@ -653,8 +678,8 @@ extension MedicalTermLexicon {
             "farlig(?:t)?", "livstruende", "skal\\s+jeg\\s+v[æa]re\\s+bekymret",   // da, nb
             "livshotande", "ska\\s+jag\\s+vara\\s+orolig",              // sv
             "vaarallinen", "hengenvaarallinen", "pit[äa]isik[öo]\\s+minun\\s+huolestua", // fi
-            "h[æa]ttulegt", "l[íi]fsh[æa]ttulegt",                     // is
-            "опасно", "опасн[ыа][йе]", "угрожает\\s+жизни", "стоит\\s+ли\\s+беспокоиться" // ru
+            "h[æa]ttuleg\\w*", "l[íi]fsh[æa]ttuleg\\w*",            // is
+            "опасно", "опасн[ыа][йе]", "опасен", "опасна", "угрожает\\s+жизни", "стоит\\s+ли\\s+беспокоиться" // ru
         ],
         unbounded: ["危険ですか", "命に関わ", "心配すべき", "危险吗", "有生命危险", "该担心", "위험한가요", "위험합니까", "걱정해야", "خطير", "هل يجب أن أقلق"]
     )
@@ -722,7 +747,9 @@ extension MedicalTermLexicon {
             "du\\s+har\\s+(?:m[åa]ske|kanskje|kanske)",          // da, nb, sv
             "du\\s+kan\\s+ha(?:ve)?\\s+(?!(?:en|et|ett)\\s+(?:\\w+\\s+)?\\w*(?:dag|økt|pass|tur|uke|vecka)\\b)\\w+", // da, nb, sv
             "sinulla\\s+(?:saattaa|voi)\\s+olla",                   // fi
-            "у\\s+вас\\s+(?:возможно|может\\s+быть)(?!\\s+(?:л[её]гк|отдых|выходн|тренировк|день|больше|меньше))" // ru
+            // Not "þú gætir verið með svefnskuld" (sleep debt): the claim names an illness.
+            "[þt][úu]\\s+g[æa]tir\\s+(?:veri[ðd]\\s+me[ðd]|haft)\\s+(?:\\w+\\s+)?(?:sj[úu]kd[óo]m|k[æa]fisvefn|s[ýy]king|flens|kvef|bl[óo][ðd]lei[ðd]|þunglyndi|h[áa]þr[ýy]sting|hjartsl[áa]ttartrufl|g[áa]ttatif)\\w*", // is
+            "у\\s+вас,?\\s+(?:возможно|может\\s+быть),?(?!\\s+(?:л[её]гк|отдых|выходн|тренировк|день|больше|меньше))" // ru
         ],
         // The Japanese and Korean forms must not be bare
         // `の可能性があります` ("there is a possibility of …") or
@@ -733,7 +760,7 @@ extension MedicalTermLexicon {
         // naming the illness noun the possibility is about. Chinese `可能患有`
         // and the Arabic form carry one inherently (患有 / مصابا = afflicted with).
         unbounded: [
-            "(?:病気|疾患|症状|不整脈|細動)の可能性があります",
+            "(?:病気|疾患|症状|症候群|不整脈|細動)の可能性があります",
             "可能患有",
             "(?:질환|질병|병|증상)일\\s*수\\s*있습니다",
             "قد تكون مصابا"
@@ -865,59 +892,6 @@ extension MedicalTermLexicon {
         treatmentClaim, speculativeDiagnosis, pathology, clinicalPhysiologyLabels,
         diagnosis, injuryRisk, overtraining
     ]
-
-    /// Categorical claims about an autonomic or recovery *state*.
-    ///
-    /// The rest of the perimeter is built around regulated nouns — diagnosis,
-    /// injury, FDA, named conditions — and says nothing about categorical
-    /// certainty, which is the other half of App Review Guideline 1.4.1.
-    /// "Clear parasympathetic dominance", "true recovery state" and "Your body
-    /// is in solid recovery mode" are the shapes this catches.
-    ///
-    /// The concept is the *certainty*, not the topic. Explaining parasympathetic
-    /// activity is fine and the app does it at length; declaring that the user
-    /// IS in a given autonomic state on the strength of one HRV-derived number
-    /// is not, because nothing downstream can substantiate it.
-    static let categoricalAutonomicState = Concept(
-        id: "categorical-autonomic-state",
-        latin: [
-            "(?:clear|strong|true|definite|unmistakable|obvious)\\s+(?:parasympathetic|sympathetic|vagal|autonomic)\\s+dominance",
-            "true\\s+(?:recovery|fatigue|stress|fitness)\\s+state",
-            "in\\s+(?:solid|full|complete|prime|deep)\\s+recovery\\s+mode",
-            // Case-sensitive on purpose: the claim is the emphasis
-            // ("This IS your recovery state"). The lexicon compiles
-            // case-insensitively, and without `(?-i:…)` this matched the
-            // ordinary "This is your recovery score for today".
-            "(?-i:[Tt]his\\s+IS\\s+your)",
-            "dominance\\s+(?:parasympathique|sympathique|vagale)\\s+(?:claire|nette|franche)",
-            "v[ée]ritable\\s+[ée]tat\\s+de\\s+r[ée]cup[ée]ration",                          // fr
-            "dominancia\\s+(?:parasimp[áa]tica|simp[áa]tica|vagal)\\s+(?:clara|evidente)",
-            "verdadero\\s+estado\\s+de\\s+recuperaci[óo]n",                                  // es
-            "domin[âa]ncia\\s+(?:parassimp[áa]tica|simp[áa]tica|vagal)\\s+(?:clara|evidente)",
-            "verdadeiro\\s+estado\\s+de\\s+recupera[çc][ãa]o",                               // pt-BR
-            "dominanza\\s+(?:parasimpatica|simpatica|vagale)\\s+(?:chiara|netta)",
-            "vero\\s+stato\\s+di\\s+recupero",                                               // it
-            "(?:klare|eindeutige)\\s+(?:parasympathische|sympathische|vagale)\\s+dominanz",
-            "echter\\s+erholungszustand",                                                    // de
-            "(?:duidelijke|onmiskenbare)\\s+(?:parasympathische|sympathische|vagale)\\s+dominantie",
-            "echte\\s+herstelstatus",                                                        // nl
-            "(?:tydelig|klar)\\s+(?:parasympatisk|sympatisk|vagal)\\s+dominans",
-            "(?:ekte|reel)\\s+restitusjonstilstand",                                         // da, nb
-            "(?:tydlig|klar)\\s+(?:parasympatisk|sympatisk|vagal)\\s+dominans",
-            "verkligt\\s+[åa]terh[äa]mtningstillst[åa]nd",                                   // sv
-            "(?:selke[äa]|selv[äa])\\s+(?:parasympaattinen|sympaattinen)\\s+hallitsevuus",
-            "todellinen\\s+palautumistila",                                                  // fi
-            "(?:sk[ýy]r|greinileg)\\s+(?:parasympat[íi]sk|sympat[íi]sk)\\s+yfirr[áa][ðd]",   // is
-            "(?:явное|чёткое|четкое)\\s+(?:парасимпатическое|симпатическое)\\s+преобладание",
-            "истинное\\s+состояние\\s+восстановления"                                        // ru
-        ],
-        unbounded: [
-            "明らかな副交感神経優位", "明らかな交感神経優位", "真の回復状態",
-            "明显的副交感优势", "明显的交感优势", "真正的恢复状态",
-            "명확한 부교감 우세", "명확한 교감 우세", "진정한 회복 상태",
-            "هيمنة واضحة", "حالة تعافٍ حقيقية"
-        ]
-    )
 
     /// Certainty language about the user's physiological state, and assertions
     /// of a finding the app cannot establish.
