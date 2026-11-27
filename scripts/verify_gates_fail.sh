@@ -148,6 +148,30 @@ check "cloudkit/unlisted_health_field" \
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift');s=p.read_text();o='record[\"beatCount\"] = ';assert s.count(o)==1;p.write_text(s.replace(o,'record[\"avgHR\"] = 0; record[\"beatCount\"] = ',1))"
 
+# Field writes the record's own name does not show: through another name
+# bound to it, through `encryptedValues` (still stored in iCloud), and
+# through `setValuesForKeys`, whose keys no line scan reads.
+check "cloudkit/aliased_record_field" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');s=p.read_text();o='        record[\"isDeleted\"] = 0 as CKRecordValue\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'        let ck = record; ck[\"meanRMSSD\"] = 42.0 as CKRecordValue\n'))"
+
+check "cloudkit/encrypted_values_field" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');s=p.read_text();o='        record[\"isDeleted\"] = 0 as CKRecordValue\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'        record.encryptedValues[\"meanRMSSD\"] = 42.0 as CKRecordValue\n'))"
+
+check "cloudkit/set_values_for_keys" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');s=p.read_text();o='        record[\"isDeleted\"] = 0 as CKRecordValue\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'        record.setValuesForKeys([\"recoveryScore\": 7.4])\n'))"
+
+# The seal is called and its result dropped, so the asset is the plaintext.
+check "cloudkit/sealed_then_discarded" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');s=p.read_text();o='        return try CloudPayloadCodec.sealForUpload(compressed)\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = try CloudPayloadCodec.sealForUpload(compressed)\n        return compressed\n'))"
+
 check "privacy_manifest/bad_type" \
     "./scripts/check_privacy_manifest_vocabulary.sh" \
     "Emuqu/PrivacyInfo.xcprivacy" \
@@ -168,6 +192,18 @@ check "no_developer_endpoint/missing_lock_file" \
     "./scripts/check_no_developer_endpoint.sh" \
     "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
     "import pathlib;pathlib.Path('Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved').unlink()"
+
+# A host the code builds at runtime cannot be read off the source: an
+# interpolated host and a host assigned from a variable must each go red.
+check "no_developer_endpoint/interpolated_host" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu/Sources/Services/WeatherService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WeatherService.swift');p.write_text(p.read_text().replace('import Foundation','import Foundation\nprivate let plantedHost = \"telemetry.example-analytics.io\"\nprivate let t = URL(string: \"https://\\(plantedHost)/e\")',1))"
+
+check "no_developer_endpoint/variable_host" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu/Sources/Services/WeatherService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WeatherService.swift');p.write_text(p.read_text().replace('import Foundation','import Foundation\nprivate func plantedURL(host: String) -> URL? { var c = URLComponents(); c.scheme = \"https\"; c.host = host; return c.url }',1))"
 
 check "xcodebuild_pinned/unpinned_build" \
     "./scripts/check_xcodebuild_pinned.sh" \
@@ -284,6 +320,35 @@ check "log_redaction/watch_logger" \
     "./scripts/check_log_redaction.sh" \
     "EmuquWatch Watch App/WatchStrapConnector.swift" \
     "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchStrapConnector.swift');s=p.read_text();o='dropped: \\(error.localizedDescription)';assert s.count(o)==1;p.write_text(s.replace(o,'dropped: \\(token)'))"
+
+# A location value whole prints the user's coordinates.
+check "log_redaction/location_value" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedLocation(location: CLLocation) { debugLog(\"at \\(location)\") }'+chr(10))"
+
+check "log_redaction/location_coordinate" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedCoordinate(location: CLLocation) { debugLog(\"at \\(location.coordinate)\") }'+chr(10))"
+
+# What the user typed, lowercased on the way in, is still what they typed.
+check "log_redaction/transformed_query" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedLowered(query: String) { debugLog(\"asked: \\(query.lowercased())\") }'+chr(10))"
+
+# Joined on with `+` instead of interpolated.
+check "log_redaction/concatenated_query" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedJoined(query: String) { debugLog(\"asked: \" + query) }'+chr(10))"
+
+# The beat series mapped and joined is still the beat series.
+check "log_redaction/mapped_series" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedSeries(rr: [Int]) { debugLog(\"rr: \\(rr.map(String.init).joined(separator: \",\"))\") }'+chr(10))"
 
 check "unchecked_sendable" \
     "./scripts/check_unchecked_sendable.sh" \
@@ -520,6 +585,18 @@ check "swiftlint_rule/raw_date_ms_conversion" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedMs(_ a: Date, _ b: Date) -> Int64 { Int64(a.timeIntervalSince(b) * 1000) }'+chr(10))"
 
+# No fatalError and no force-unwrap: both are errors, not budgeted warnings,
+# and the app root outside Sources is linted too.
+check "swiftlint_rule/no_fatal_error" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedCrash() -> Never { fatalError(\"planted\") }'+chr(10))"
+
+check "swiftlint_rule/force_unwrap_in_app_root" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/EmuquApp.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/EmuquApp.swift');p.write_text(p.read_text()+chr(10)+'private func plantedUnwrap(_ value: Int?) -> Int { value! }'+chr(10))"
+
 check "swiftlint_rule/invalid_configuration" \
     "./scripts/enforce_swiftlint_budget.sh" \
     ".swiftlint.yml" \
@@ -563,21 +640,21 @@ check "science_register/unknown_status" \
 check "scoring_governance/constants_changed_without_version_bump" \
     "./scripts/check_scoring_governance.sh" \
     ".ci/scoring_constants_hash.txt" \
-    "import pathlib;p=pathlib.Path('.ci/scoring_constants_hash.txt');v=p.read_text().split()[0];p.write_text(v+' 0000000000000000'+chr(10))"
+    "import pathlib;p=pathlib.Path('.ci/scoring_constants_hash.txt');f=p.read_text().split();f[1]='0'*16;p.write_text(' '.join(f)+chr(10))"
 
 # A version bump that leaves the baseline alone must not switch the check off:
 # the recorded version no longer matching is itself a failure.
 check "scoring_governance/version_bump_without_baseline" \
     "./scripts/check_scoring_governance.sh" \
     ".ci/scoring_constants_hash.txt" \
-    "import pathlib;p=pathlib.Path('.ci/scoring_constants_hash.txt');h=p.read_text().split()[1];p.write_text('v0.planted '+h+chr(10))"
+    "import pathlib;p=pathlib.Path('.ci/scoring_constants_hash.txt');f=p.read_text().split();f[0]='v0.planted';p.write_text(' '.join(f)+chr(10))"
 
 # A constant changed and the baseline rewritten to match, with the version
 # left as it is: the baseline is edited in the same change, so the gate reads
 # the version the base branch recorded. The gate refreshes a copy of the
 # baseline each run, as an author updating it in step would.
 check "scoring_governance/baseline_relabelled_without_version_bump" \
-    'b="$BACKUP_DIR/relabelled_baseline.txt"; h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$h" > "$b"; SCORING_BASELINE="$b" ./scripts/check_scoring_governance.sh' \
+    'b="$BACKUP_DIR/relabelled_baseline.txt"; h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; sed "s/ [0-9a-f]\{16\}/ $h/" .ci/scoring_constants_hash.txt > "$b"; SCORING_BASELINE="$b" ./scripts/check_scoring_governance.sh' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
@@ -589,7 +666,47 @@ check "scoring_governance/baseline_relabelled_without_version_bump" \
 # runs the gate as the push workflow does, clearing what a pull-request run
 # would otherwise pass down.
 check "scoring_governance/direct_push_without_version_bump" \
-    'd="$BACKUP_DIR/push_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && cp scripts/check_scoring_governance.sh "$d/scripts/" && (cd "$d" && h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; [[ -z "$h" ]] || printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$h" > .ci/scoring_constants_hash.txt; git -c user.name=gate -c user.email=gate@localhost commit -qam "planted push" --allow-empty && git update-ref refs/remotes/origin/main HEAD && env -u GITHUB_BASE_REF -u SCORING_BASE_REF -u GITHUB_EVENT_PATH GITHUB_ACTIONS=true GITHUB_EVENT_NAME=push PUSH_BEFORE="$(git rev-parse HEAD~1)" ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/push_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && cp .ci/scoring_constants_hash.txt "$d/.ci/" && (cd "$d" && h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; [[ -z "$h" ]] || sed -i.bak "s/ [0-9a-f]\{16\}/ $h/" .ci/scoring_constants_hash.txt; rm -f .ci/scoring_constants_hash.txt.bak; git -c user.name=gate -c user.email=gate@localhost commit -qam "planted push" --allow-empty && git update-ref refs/remotes/origin/main HEAD && env -u GITHUB_BASE_REF -u SCORING_BASE_REF -u GITHUB_EVENT_PATH GITHUB_ACTIONS=true GITHUB_EVENT_NAME=push PUSH_BEFORE="$(git rev-parse HEAD~1)" ./scripts/check_scoring_governance.sh)' \
+    "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
+
+# Numbers written inline in the scoring code shape a score as much as the
+# named constants do. Each of these edits one with the version and baseline
+# left alone, and the gate must go red: a z-score band, the band table the
+# score binds to, an age norm, the z clamp and the sleep-duration cap.
+check "scoring_governance/band_table_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='(-0.75, 64.0),';assert s.count(o)==1;p.write_text(s.replace(o,'(-0.75, 60.0),'))"
+
+check "scoring_governance/band_table_rebound" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='defaultScoringParameters: ScoringParameters = scoringParametersV2';assert s.count(o)==1;p.write_text(s.replace(o,'defaultScoringParameters: ScoringParameters = scoringParametersV1'))"
+
+check "scoring_governance/age_norm_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/HRVThresholds.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVThresholds.swift');s=p.read_text();o='case 20 ..< 30: 45.0';assert s.count(o)==1;p.write_text(s.replace(o,'case 20 ..< 30: 50.0'))"
+
+check "scoring_governance/inline_z_clamp" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='max(-3.0, min(3.0, z))';assert s.count(o)==1;p.write_text(s.replace(o,'max(-2.5, min(2.5, z))'))"
+
+check "scoring_governance/sleep_cap_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift');s=p.read_text();o='max(typicalSleepHours, 1.0), 1.2)';assert s.count(o)==1;p.write_text(s.replace(o,'max(typicalSleepHours, 1.0), 1.3)'))"
+
+# A change of hashing scheme must not open a window for a constant change:
+# with the base's baseline written under the older `static-lets` scheme, a
+# constant edited and the baseline rewritten under the current scheme still
+# fails, because the tree is rehashed the base's way. A throwaway clone
+# commits a `static-lets` baseline as the base, then takes the working copy's
+# constants and gate and records their current-scheme hash.
+check "scoring_governance/scheme_change_hides_constant_change" \
+    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
@@ -613,6 +730,19 @@ check "hr_feed/readiness_wait" \
     "./scripts/check_hr_feed_subscribes_on_link.sh" \
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapHeartRateFeed.swift');s=p.read_text();o='        var failures = 0\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = await manager?.link.awaitFeature(.heartRate, until: nil)\n'+o))"
+
+# Warnings as errors must hold in every shipping configuration. Dropped from
+# the project's Release configuration, or overridden to NO in the watch app's
+# Release, one YES line is still left in the file; both must go red.
+check "strict_concurrency_enabled/werror_dropped_from_release" \
+    "./scripts/check_strict_concurrency_enabled.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');s=p.read_text();o='\t\t\t\tSWIFT_TREAT_WARNINGS_AS_ERRORS = YES;\n';assert s.count(o)==2;i=s.rindex(o);assert s.find('name = Release;',i)<s.find('name = Debug;',i) or s.find('name = Debug;',i)<0;p.write_text(s[:i]+s[i+len(o):])"
+
+check "strict_concurrency_enabled/werror_off_in_watch_release" \
+    "./scripts/check_strict_concurrency_enabled.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');s=p.read_text();o='\t\tEFEA95DA2F96B4A200CE7D82 /* Release */ = {\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n';assert s.count(o)==1;p.write_text(s.replace(o,o+'\t\t\t\tSWIFT_TREAT_WARNINGS_AS_ERRORS = NO;\n'))"
 
 # Dropping `@Sendable` from the pedometer handler restores the exact code that
 # trapped in the field. The gate must go red on it.

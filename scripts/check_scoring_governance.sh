@@ -17,13 +17,25 @@
 #    user can see would present a made-up figure as a confidence. It may not
 #    leave Analysis/CauseDetection.
 #
-# 2. The scoring constants are hashed (RecoveryScoreConstants.swift,
-#    HRVThresholds.swift, and the ScoringBounds / ScoringWeights enums of
-#    Constants.swift, where the composite weights live). Change a weight, a
-#    threshold or a band and the hash moves; the gate then requires ScoringVersion.current to have
-#    moved too. This is what stops an archive quietly becoming a mixture of two
-#    algorithms under one version string — the failure the version stamp exists
-#    to prevent.
+# 2. Every number that shapes a recovery score is hashed
+#    (scripts/lib/scoring_hash.py, scheme `decl-literals`): the named constants
+#    of RecoveryScoreConstants.swift, HRVThresholds.swift and the
+#    ScoringBounds / ScoringWeights enums of Constants.swift, and the literals
+#    written inline in the scoring code itself (RecoveryScoreCalculator*.swift,
+#    ScoreDetailBuilder, VitalsScoring, SleepScienceAnalyzer): the z-score band
+#    tables and the `defaultScoringParameters` binding, the age/sex norms,
+#    clamps and caps. Comments and string literals are stripped, and each
+#    number is keyed by the declaration it sits in, so moving or reordering
+#    declarations leaves the hash alone. Change a weight, a band, a threshold
+#    or the table the score binds to and the hash moves; the gate then requires
+#    ScoringVersion.current to have moved too. This is what stops an archive
+#    quietly becoming a mixture of two algorithms under one version string,
+#    the failure the version stamp exists to prevent.
+#
+#    The baseline line is `<version> <hash> <scheme>`. A change to how the
+#    hash is computed rehashes with no scoring change, so the scheme is
+#    recorded and a base is always compared under its own scheme: the tree
+#    is hashed the base's way too, and a number that moved still fails.
 #
 #    The baseline must match both the current version and the current hash, so
 #    a version bump is refreshed into it in the same change. Because that file
@@ -38,9 +50,9 @@
 #    fails. Elsewhere a missing base is reported and that comparison skipped. Accepting any
 #    version other than the recorded one let one bump that left the baseline
 #    alone switch the check off for good: every later constant change passed,
-#    bump or not. Each hashed file and enum must also yield at least one
-#    constant; a refactor the pattern no longer matches (`static var`, computed
-#    values) would otherwise hash nothing and never move.
+#    bump or not. Each hashed file, glob and enum must also yield at least one
+#    number, so a source that moves away or empties cannot hash nothing and
+#    never move.
 #
 # Exit 0 clean, 1 on a violation, 2 on config error.
 
@@ -91,7 +103,6 @@ fi
 export BASE_BASELINE
 
 python3 - "$BASELINE" <<'PY'
-import hashlib
 import pathlib
 import re
 import sys
@@ -114,58 +125,26 @@ for path in sorted(pathlib.Path("Emuqu/Sources").rglob("*.swift")):
                 "UI, exports, analytics or accessibility text."
             )
 
-# --- 2. scoring constants vs the version string ---------------------------
-# Each file is hashed under a fixed key, not its path, so moving or renaming
-# a file leaves the hash alone and only a changed number moves it. The keys
-# are the paths the files had when the hash was first recorded.
-SCORING_SOURCES = [
-    ("Emuqu/Sources/Utilities/RecoveryScoreConstants.swift", "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift"),
-    ("Emuqu/Sources/Analysis/HRVThresholds.swift", "Emuqu/Sources/Analysis/HRVThresholds.swift"),
-]
-CONST_RE = re.compile(r"static let\s+(\w+)\s*:?\s*[\w<>\[\], .]*=\s*([-\d.]+)")
+# --- 2. scoring literals vs the version string -----------------------------
+# scripts/lib/scoring_hash.py holds every scheme a baseline can name; the
+# tree is hashed under the current one, and under the base's when that differs.
+sys.path.insert(0, "scripts/lib")
+import scoring_hash
 
-digest = hashlib.sha256()
-seen = 0
-for name, key in SCORING_SOURCES:
-    path = pathlib.Path(name)
-    if not path.is_file():
-        sys.stderr.write(f"check_scoring_governance: missing {name}\n")
-        raise SystemExit(2)
-    # Comments are stripped so rewording a rationale never looks like a
-    # scoring change — only the numbers count.
-    source = re.sub(r"//[^\n]*", "", path.read_text(encoding="utf-8"))
-    found = sorted(CONST_RE.findall(source))
-    if not found:
-        sys.stderr.write(f"check_scoring_governance: no scoring constants matched in {name}\n")
-        raise SystemExit(2)
-    for symbol, value in found:
-        digest.update(f"{key}:{symbol}={value}\n".encode())
-        seen += 1
 
-# Composite weights and score bounds live in Constants.swift beside
-# non-scoring constants (unit conversions, UserDefaults keys), so only
-# these two enums are hashed from it.
-SCORING_ENUMS = {"Emuqu/Sources/Utilities/Constants.swift": ["ScoringBounds", "ScoringWeights"]}
-for name, enums in SCORING_ENUMS.items():
-    path = pathlib.Path(name)
-    if not path.is_file():
-        sys.stderr.write(f"check_scoring_governance: missing {name}\n")
+def hash_under(scheme):
+    if scheme not in scoring_hash.SCHEMES:
+        sys.stderr.write(f"check_scoring_governance: unknown hashing scheme {scheme!r}\n")
         raise SystemExit(2)
-    source = re.sub(r"//[^\n]*", "", path.read_text(encoding="utf-8"))
-    for enum in enums:
-        block = re.search(r"^enum " + enum + r"\b.*?^\}", source, re.S | re.M)
-        if not block:
-            sys.stderr.write(f"check_scoring_governance: enum {enum} not found in {name}\n")
-            raise SystemExit(2)
-        found = sorted(CONST_RE.findall(block.group(0)))
-        if not found:
-            sys.stderr.write(f"check_scoring_governance: no scoring constants matched in {enum} ({name})\n")
-            raise SystemExit(2)
-        for symbol, value in found:
-            digest.update(f"{name}:{enum}.{symbol}={value}\n".encode())
-            seen += 1
+    try:
+        return scoring_hash.SCHEMES[scheme]()
+    except scoring_hash.ConfigError as error:
+        sys.stderr.write(f"check_scoring_governance: {error}\n")
+        raise SystemExit(2)
 
-current_hash = digest.hexdigest()[:16]
+
+scheme = scoring_hash.CURRENT_SCHEME
+current_hash, seen = hash_under(scheme)
 
 version_src = pathlib.Path("Emuqu/Sources/Analysis/ScoringVersion.swift").read_text(encoding="utf-8")
 match = re.search(r'static let current\s*=\s*"([^"]+)"', version_src)
@@ -179,13 +158,19 @@ if not baseline_path.is_file():
     raise SystemExit(2)
 
 fields = baseline_path.read_text(encoding="utf-8").split()
-if len(fields) != 2:
-    sys.stderr.write(f"check_scoring_governance: {baseline_path} must hold '<version> <hash>'\n")
+if len(fields) not in (2, 3):
+    sys.stderr.write(f"check_scoring_governance: {baseline_path} must hold '<version> <hash> <scheme>'\n")
     raise SystemExit(2)
-recorded_version, recorded_hash = fields
-if current_hash != recorded_hash and version == recorded_version:
+recorded_version, recorded_hash = fields[:2]
+recorded_scheme = scoring_hash.scheme_of(fields)
+if recorded_scheme != scheme:
     problems.append(
-        f"scoring constants changed ({recorded_hash} -> {current_hash}) while "
+        f"{baseline_path} was hashed under {recorded_scheme!r}, but this gate hashes under "
+        f"{scheme!r}. Write '{version} {current_hash} {scheme}' to it."
+    )
+elif current_hash != recorded_hash and version == recorded_version:
+    problems.append(
+        f"scoring literals changed ({recorded_hash} -> {current_hash}) while "
         f"ScoringVersion.current stayed {version!r}. Bump the version and update "
         f"{baseline_path}, so stored scores stay attributable to the algorithm "
         "that produced them."
@@ -193,25 +178,30 @@ if current_hash != recorded_hash and version == recorded_version:
 elif (version, current_hash) != (recorded_version, recorded_hash):
     problems.append(
         f"{baseline_path} records {recorded_version} {recorded_hash}, but the code is "
-        f"{version} {current_hash}. Write '{version} {current_hash}' to it in the same "
+        f"{version} {current_hash}. Write '{version} {current_hash} {scheme}' to it in the same "
         "change as the version bump, or the next constant change goes unchecked."
     )
 
+# The base is compared under the scheme its baseline was written with, so a
+# change of scheme leaves the comparison in force: the tree is rehashed the
+# base's way, and any number that differs from the base still fails.
 import os
 base_fields = os.environ.get("BASE_BASELINE", "").split()
-if len(base_fields) == 2:
-    base_version, base_hash = base_fields
-    if current_hash != base_hash and version == base_version:
+if len(base_fields) in (2, 3):
+    base_version, base_hash = base_fields[:2]
+    base_scheme = scoring_hash.scheme_of(base_fields)
+    tree_hash = current_hash if base_scheme == scheme else hash_under(base_scheme)[0]
+    if tree_hash != base_hash and version == base_version:
         problems.append(
-            f"scoring constants differ from the base branch ({base_hash} -> {current_hash}) "
-            f"while ScoringVersion.current is still the base's {version!r}. Editing "
-            f"{baseline_path} does not stand in for a version bump."
+            f"scoring literals differ from the base branch under its {base_scheme!r} scheme "
+            f"({base_hash} -> {tree_hash}) while ScoringVersion.current is still the base's "
+            f"{version!r}. Editing {baseline_path} does not stand in for a version bump."
         )
 
 for problem in problems:
     print(f"  {problem}", file=sys.stderr)
 
-print(f"check_scoring_governance: {seen} scoring constants hashed ({current_hash}), "
+print(f"check_scoring_governance: {seen} scoring literals hashed ({current_hash}) under {scheme}, "
       f"version {version}; rankingWeight contained to CauseDetection")
 
 if problems:

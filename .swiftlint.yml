@@ -1,4 +1,6 @@
 included:
+  # The app root sits at `Emuqu/`, outside Sources.
+  - Emuqu/EmuquApp.swift
   - Emuqu/Sources
   - EmuquTests
   - EmuquWatch Watch App
@@ -35,6 +37,11 @@ line_length:
   warning: 300
   error: 1800
   ignores_interpolated_strings: true
+
+# No force-unwrap anywhere linted: an error, so the lint step fails on the
+# first one rather than spending the warning budget.
+force_unwrapping:
+  severity: error
 
 function_body_length:
   warning: 100
@@ -82,6 +89,15 @@ custom_rules:
     name: "Stacked result builder attribute"
     regex: '@(ViewBuilder|ToolbarContentBuilder)\s+@(ViewBuilder|ToolbarContentBuilder)'
     message: "Only one result builder attribute can be attached to a declaration."
+    severity: error
+
+  # A crash on a path the app thinks impossible loses the night being
+  # recorded; the code handles the case or asserts in tests instead.
+  no_fatal_error:
+    name: "fatalError"
+    regex: '\bfatalError\s*\('
+    excluded_match_kinds: [comment, doccomment, string]
+    message: "Handle the case: fatalError crashes the app, and the night being recorded with it."
     severity: error
 
   # ADR 005: a helper that needs its owner holds it strongly and is built on

@@ -496,6 +496,123 @@ final class CloudSettingsRecordTests: XCTestCase {
     }
 }
 
+/// What actually goes to iCloud, read off the records the production upload
+/// paths build: a session record (`CloudKitSyncManager.buildSessionRecord`)
+/// and a live backup (`CloudKitLiveBackupManager.attachUpload`).
+///
+/// `check_no_health_data_in_cloudkit.sh` reads the source for field writes and
+/// seal calls, so a write it cannot parse, or an asset built from bytes other
+/// than the sealed ones, gets past it. These build the record and read it:
+/// its keys must be exactly the plain fields listed here, and its asset's
+/// bytes must be ciphertext that is neither JSON nor a readable compressed
+/// stream, and that opens with the cloud key to the payload.
+@MainActor
+final class CloudUploadRecordTests: XCTestCase {
+    private let zoneID = CKRecordZone.ID(zoneName: "HRVSessions", ownerName: CKCurrentUserDefaultName)
+
+    override func setUp() {
+        super.setUp()
+        standInForConfirmedICloudAccount()
+    }
+
+    func testASessionRecordCarriesOnlyItsPlainFieldsAndASealedAsset() throws {
+        let session = healthSession()
+        let record = try CloudKitSyncManager.buildSessionRecord(from: session, zoneID: zoneID, recordTypeName: "HRVSession")
+        defer { removeAsset(record["sessionData"]) }
+
+        // `modifiedAt` is left off once the server schema has refused it
+        // (`CloudKitSessionFreshness`), so it is allowed, not required.
+        let keys = Set(record.allKeys())
+        XCTAssertTrue(keys.isSubset(of: ["sessionId", "startDate", "isDeleted", "modifiedAt", "sessionData"]),
+                      "A session record may carry only its plain fields; health data goes in the sealed asset: \(keys.sorted())")
+        XCTAssertTrue(keys.isSuperset(of: ["sessionId", "startDate", "isDeleted", "sessionData"]), "\(keys.sorted())")
+        let payload = try openedAssetBytes(record["sessionData"])
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let uploaded = try decoder.decode(HRVSession.self, from: payload)
+        XCTAssertEqual(uploaded.id, session.id)
+        XCTAssertEqual(uploaded.rrSeries?.points.count, session.rrSeries?.points.count)
+        XCTAssertEqual(uploaded.recoveryScore, session.recoveryScore)
+    }
+
+    func testALiveBackupCarriesOnlyItsCaptureDateAndASealedAsset() throws {
+        let sessionId = UUID()
+        let points = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 800, rr_ms: 800 + $0 % 7) }
+        let record = CKRecord(recordType: "LiveRRBackup", recordID: CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID))
+        record["sessionId"] = sessionId.uuidString as CKRecordValue
+        let assetURL = try CloudKitLiveBackupManager.attachUpload(of: points, sessionId: sessionId, to: record)
+        defer { removeFile(assetURL) }
+
+        XCTAssertEqual(Set(record.allKeys()), ["sessionId", "captureDate", "rrData"],
+                       "A live backup may carry only these plain fields; the beats go in the sealed asset")
+        let uploaded = try JSONDecoder().decode([RRPoint].self, from: try openedAssetBytes(record["rrData"]))
+        XCTAssertEqual(uploaded.map(\.rr_ms), points.map(\.rr_ms))
+    }
+
+    /// The asset's bytes, checked to be sealed and then opened with the cloud
+    /// key and decompressed: what a pulling device reads.
+    private func openedAssetBytes(_ value: (any CKRecordValueProtocol)?) throws -> Data {
+        let asset = try XCTUnwrap(value as? CKAsset, "the record carries no asset")
+        let raw = try Data(contentsOf: try XCTUnwrap(asset.fileURL))
+        XCTAssertEqual(raw.prefix(CloudPayloadCodec.magic.count), CloudPayloadCodec.magic, "the asset is not in the sealed envelope")
+        XCTAssertFalse(isJSON(raw), "the asset is plain JSON")
+        XCTAssertFalse(decompressesToJSON(raw), "the asset is a readable compressed stream")
+        let opened = try DataCompression.decompress(try CloudPayloadCodec.decode(raw))
+        XCTAssertTrue(isJSON(opened), "the unsealed asset is not the JSON payload")
+        return opened
+    }
+
+    /// Whether the bytes are a compressed JSON payload as they stand, with
+    /// no key: ciphertext either fails to inflate or inflates to noise.
+    private func decompressesToJSON(_ data: Data) -> Bool {
+        do {
+            return isJSON(try DataCompression.decompress(data))
+        } catch {
+            return false
+        }
+    }
+
+    private func isJSON(_ data: Data) -> Bool {
+        do {
+            _ = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func healthSession() -> HRVSession {
+        let points = (0 ..< 300).map { RRPoint(t_ms: Int64($0) * 900, rr_ms: 900 + $0 % 11) }
+        let id = UUID()
+        var session = HRVSession(
+            id: id,
+            startDate: Date(timeIntervalSince1970: 1_700_000_000),
+            endDate: Date(timeIntervalSince1970: 1_700_028_800),
+            state: .complete,
+            sessionType: .overnight,
+            rrSeries: RRSeries(points: points, sessionId: id, startDate: Date(timeIntervalSince1970: 1_700_000_000)),
+            analysisResult: nil,
+            artifactFlags: nil
+        )
+        session.recoveryScore = 7.4
+        session.modifiedAt = Date(timeIntervalSince1970: 1_700_030_000)
+        return session
+    }
+
+    private func removeAsset(_ value: (any CKRecordValueProtocol)?) {
+        guard let url = (value as? CKAsset)?.fileURL else { return }
+        removeFile(url)
+    }
+
+    private func removeFile(_ url: URL) {
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            XCTFail("could not remove the asset file: \(error)")
+        }
+    }
+}
+
 extension XCTestCase {
     /// `CloudPayloadCodec.sealForUpload` creates a cloud key only while the
     /// signed-in iCloud account is the one sync is enabled for

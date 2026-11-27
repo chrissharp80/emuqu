@@ -99,9 +99,11 @@ The repository is set up so that a regression cannot land quietly.
   the score views, characterization tests for the collector's observable
   surface, and negative tests for the gates. Coverage floors are measured and
   ratcheted, and are never restated in prose, so they cannot drift.
-- **Strict build.** Warnings are errors. The project builds in Swift 6
+- **Strict build.** Warnings are errors in every Debug and Release build of
+  the app and the watch app. The project builds in Swift 6
   language mode with complete strict concurrency. There is no `try!`, `as!`,
-  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's 220,000 lines;
+  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's 220,000 lines,
+  and SwiftLint fails CI on the first `fatalError` or force-unwrap;
   three `preconditionFailure` calls guard hard-coded literals.
 - **Ship hygiene.** Privacy manifest, purpose strings for every entitlement,
   API keys in the Keychain and never in iCloud, GitHub Actions pinned to
