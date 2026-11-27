@@ -68,6 +68,15 @@ enum CloudKitSessionFreshness {
         return remote > local ? .importRemote : .keepLocal
     }
 
+    /// Whether this device's copy carries an edit stamped after the iCloud
+    /// copy's: a change that has not gone up. Unknown when either copy has
+    /// no stamp (never edited, or uploaded while the schema refused the
+    /// field), which is not counted as one.
+    static func holdsUnsentEdit(localModifiedAt: Date?, remoteModifiedAt: Date?) -> Bool {
+        guard let local = localModifiedAt, let remote = remoteModifiedAt else { return false }
+        return wholeSeconds(local) > wholeSeconds(remote)
+    }
+
     /// The same-second rule: the server's copy wins when it is a version other
     /// than the one this device's copy matches. Equal versions are the same
     /// copy; with no version remembered (or none on the record) the local copy
@@ -304,7 +313,10 @@ enum CloudKitSessionFreshness {
             guard decision == .importRemote else { return }
             var merged = replacing(session, with: remote)
             let kept = keepingBeatsOnlyHere(session, in: &merged)
-            if kept { merged.modifiedAt = stamp() }
+            if kept {
+                merged.modifiedAt = stamp()
+                archive.noteReuploadIntent([sessionId])
+            }
             session = merged
             replacement = (merged, kept)
         }
@@ -352,6 +364,7 @@ enum CloudKitSessionFreshness {
             var merged = session
             guard keepingBeatsOnlyHere(remote, in: &merged) else { return }
             merged.modifiedAt = stamp()
+            archive.noteReuploadIntent([sessionId])
             session = merged
             kept = true
         }
