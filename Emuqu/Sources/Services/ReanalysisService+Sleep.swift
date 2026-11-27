@@ -102,13 +102,10 @@ extension ReanalysisService {
     /// rather than aborting the whole sweep.
     private func fetchSleep(for session: HRVSession, sessionEnd: Date) async -> SleepData? {
         do {
-            let fetchedSleep = try await healthKit.fetchSleepData(
-                for: session.startDate,
-                recordingEnd: sessionEnd,
-                rrPoints: session.rrSeries?.points
+            return try await healthKit.fetchNightSleep(
+                for: session.startDate, recordingEnd: sessionEnd,
+                rrPoints: session.rrSeries?.points, nightAnchor: session.startDate
             )
-            let napMinutes = await healthKit.fetchDaytimeNapMinutes(nightAnchoredAt: session.startDate)
-            return napMinutes > 0 ? fetchedSleep.withNapSleepMinutes(napMinutes) : fetchedSleep
         } catch {
             debugLog("[ReanalysisService] Sleep retro-apply: fetch failed for \(session.id.uuidString.prefix(8)): \(error)")
             return nil
@@ -141,7 +138,7 @@ extension ReanalysisService {
         to updated: inout HRVSession,
         sessionStart: Date
     ) {
-        updated.sleepSnapshot = newSleep
+        updated.sleepSnapshot = newSleep.keepingNapCredit(of: updated.sleepSnapshot)
         let clamped = SleepBoundaryResolver.clamp(
             sleepStartMs: newSleep.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) },
             sleepEndMs: newSleep.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) },
@@ -178,15 +175,17 @@ extension ReanalysisService {
     /// getting up, so an unclamped end is reachable. `WindowSelection`
     /// re-derives both offsets defensively so no score depends on it, but the
     /// display consumers read the stored value. Offsets count from the series
-    /// start, so the recording runs to the last beat's end, as on the morning
-    /// path — not the first-to-last span, which is short when the first beat
-    /// is not at 0.
+    /// start, so the recording runs to the last beat's end on the real clock
+    /// (`BeatTimeline.endMs`), as on the morning path: not the first-to-last
+    /// span, which is short when the first beat is not at 0, and not the beat
+    /// clock, which runs behind real time where intervals were rejected or
+    /// dropped while the sleep end from Apple Health is wall-clock time.
     nonisolated static func recordingDurationMs(of session: HRVSession) -> Int64 {
-        guard let last = session.rrSeries?.points.last else {
+        guard let points = session.rrSeries?.points, !points.isEmpty else {
             let seconds = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
             return Int64(max(0, seconds) * 1000)
         }
-        return last.endMs
+        return BeatTimeline.endMs(points)
     }
 
     /// Apply the new sleep, re-classify and re-score on the archived copy,

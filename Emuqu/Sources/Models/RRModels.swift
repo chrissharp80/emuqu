@@ -565,15 +565,32 @@ struct PeakCapacity: Codable {
 
 /// Training context snapshot - captured at time of HRV recording
 /// Stores ATL/CTL/TSB so historical reports show training state from that day
+///
+/// The load figures are stored as recorded, on the scale they were recorded
+/// on (`loadScale`), and read on the TSS scale every band, blend and display
+/// uses (`atl`, `ctl`, `tsb`, `yesterdayLoad`). A snapshot frozen before
+/// every load moved to the TSS scale carries no `loadScale` and is on
+/// Banister's TRIMP scale; it is placed on the TSS scale when read, through
+/// the hrTSS rule at the current anchors (`HeartRateAnchors.tss`), and never
+/// rewritten.
 struct TrainingContext: Codable, Sendable {
-    /// Acute Training Load (7-day EWMA of TRIMP) - "fatigue"
-    let atl: Double
-    /// Chronic Training Load (42-day EWMA of TRIMP) - "fitness"
-    let ctl: Double
-    /// Training-load balance (CTL - ATL) - "form/freshness"
-    let tsb: Double
-    /// Yesterday's TRIMP (training load day before this reading)
-    let yesterdayTrimp: Double
+    /// The scale a snapshot's load figures were recorded on.
+    enum LoadScale: String, Codable, Sendable {
+        /// Banister TRIMP, the scale of every snapshot frozen before the
+        /// TSS scale; what a snapshot without a stamp is on.
+        case trimp
+        /// TSS (100 = one hour at threshold).
+        case tss
+    }
+
+    /// ATL as recorded, on `scale`.
+    let recordedATL: Double
+    /// CTL as recorded, on `scale`.
+    let recordedCTL: Double
+    /// TSB as recorded, on `scale`.
+    let recordedTSB: Double
+    /// The load of the day before this reading as recorded, on `scale`.
+    let recordedYesterdayLoad: Double
     /// VO2max at time of recording (user override or HealthKit)
     var vo2Max: Double?
     /// Days since last hard workout
@@ -581,15 +598,29 @@ struct TrainingContext: Codable, Sendable {
     /// The five most recent workouts of the training load's list (its last
     /// 14 days), for context
     let recentWorkouts: [WorkoutSnapshot]?
+    /// The scale the figures were recorded on; nil on a snapshot frozen
+    /// before the stamp existed, which is on the TRIMP scale.
+    let loadScale: LoadScale?
 
-    init(atl: Double, ctl: Double, tsb: Double, yesterdayTrimp: Double, vo2Max: Double?, daysSinceHardWorkout: Int?, recentWorkouts: [WorkoutSnapshot]?) {
-        self.atl = atl
-        self.ctl = ctl
-        self.tsb = tsb
-        self.yesterdayTrimp = yesterdayTrimp
+    private enum CodingKeys: String, CodingKey {
+        case recordedATL = "atl", recordedCTL = "ctl", recordedTSB = "tsb"
+        case recordedYesterdayLoad = "yesterdayTrimp"
+        case vo2Max, daysSinceHardWorkout, recentWorkouts, loadScale
+    }
+
+    /// The figures on `loadScale`; a context built now is on the TSS scale.
+    init(
+        atl: Double, ctl: Double, tsb: Double, yesterdayTrimp: Double, vo2Max: Double?,
+        daysSinceHardWorkout: Int?, recentWorkouts: [WorkoutSnapshot]?, loadScale: LoadScale? = .tss
+    ) {
+        recordedATL = atl
+        recordedCTL = ctl
+        recordedTSB = tsb
+        recordedYesterdayLoad = yesterdayTrimp
         self.vo2Max = vo2Max
         self.daysSinceHardWorkout = daysSinceHardWorkout
         self.recentWorkouts = recentWorkouts
+        self.loadScale = loadScale
     }
 
     /// Acute:Chronic Ratio (injury risk indicator)
@@ -612,13 +643,14 @@ struct TrainingContext: Codable, Sendable {
 
         let snapshots = Self.snapshots(of: load)
         let safe = Self.sanitized(metrics)
-        atl = safe.atl
-        ctl = safe.ctl
-        tsb = safe.tsb
-        self.yesterdayTrimp = yesterdayTrimp
+        recordedATL = safe.atl
+        recordedCTL = safe.ctl
+        recordedTSB = safe.tsb
+        recordedYesterdayLoad = yesterdayTrimp
         vo2Max = load.vo2Max
         daysSinceHardWorkout = load.daysSinceHardWorkout
         recentWorkouts = snapshots.isEmpty ? nil : snapshots
+        loadScale = .tss
     }
 
     /// Sanitize against NaN/Inf at the source. This is the ONE

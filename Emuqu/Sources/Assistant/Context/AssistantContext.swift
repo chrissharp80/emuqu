@@ -601,9 +601,11 @@ extension AssistantContext {
         return line + ", range \(formatNum(oh.minBPM, 0))–\(formatNum(oh.maxBPM, 0))"
     }
 
-    /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54, prior-day TRIMP 88".
+    /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54, prior-day load 88".
+    /// The prior-day figure is the day's load on the TSS scale ATL and CTL
+    /// are on, so it is named load, not TRIMP.
     private func trainingLoadLine(_ training: TrainingSnapshot) -> String {
-        trainingLoadCore(training) + ", prior-day TRIMP \(formatNum(training.yesterdayTrimp, 0))"
+        trainingLoadCore(training) + ", prior-day load \(formatNum(training.yesterdayTrimp, 0))"
     }
 
     /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54" — today's line, and
@@ -645,7 +647,7 @@ extension AssistantContext {
         if let dip = s.nocturnalDipPercent { line += " dip \(formatNum(dip, 1))%" }
         if let tsb = s.tsb { line += " TSB \(formatNum(tsb, 1))" }
         if let acwr = s.acwr { line += " ACWR \(formatNum(acwr, 2))" }
-        if let yt = s.yesterdayTrimp, yt > 0 { line += " trimp \(formatNum(yt, 0))" }
+        if let yt = s.yesterdayTrimp, yt > 0 { line += " prior-day load \(formatNum(yt, 0))" }
         if let f = s.morningFeeling { line += " feel \(f)/5" }
         return line
     }

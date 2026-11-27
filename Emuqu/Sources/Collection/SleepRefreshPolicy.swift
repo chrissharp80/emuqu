@@ -160,7 +160,7 @@ enum SleepRefreshPolicy {
     /// segment's offsets are clamped the same way, so a segment the Watch
     /// began before the recording did still lies inside the clamped window.
     static func applyFreshSleep(_ fresh: SleepData, to session: inout HRVSession) {
-        session.sleepSnapshot = fresh
+        session.sleepSnapshot = fresh.keepingNapCredit(of: session.sleepSnapshot)
         if let freshStart = fresh.sleepStart {
             session.sleepStartMs = max(0, MillisecondOffset.between(freshStart, and: session.startDate, fallback: 0))
         }
@@ -187,7 +187,7 @@ enum SleepRefreshPolicy {
     /// Prevents the "display snapshot present, scoring window
     /// nil/stale" divergence on CloudKit-pulled sessions.
     static func applyPulledSleep(_ resolvedSleep: SleepData, to session: inout HRVSession) {
-        session.sleepSnapshot = resolvedSleep
+        session.sleepSnapshot = resolvedSleep.keepingNapCredit(of: session.sleepSnapshot)
         if session.sleepStartMs == nil, let s = resolvedSleep.sleepStart {
             session.sleepStartMs = max(0, MillisecondOffset.between(s, and: session.startDate, fallback: 0))
         }

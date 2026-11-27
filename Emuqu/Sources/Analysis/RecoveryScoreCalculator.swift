@@ -437,6 +437,19 @@ enum RecoveryScoreCalculator {
             )
         }
 
+        /// The same inputs with a sleep HR in the vitals only when it is the
+        /// recording's own (`meanHR`, the strap sleep HR the acceptance and
+        /// re-score swap in): a substitute is not compared with the strap's
+        /// sleep-HR baseline (`RecoveryVitals.keepingOnlyStrapSleepHR`).
+        fileprivate func scoringOnlyStrapSleepHR() -> ScoreInputs {
+            ScoreInputs(
+                hrvReadiness: hrvReadiness, rmssd: rmssd, meanHR: meanHR, dfaAlpha1: dfaAlpha1,
+                baselineStats: baselineStats, sleepData: sleepData,
+                vitals: vitals?.keepingOnlyStrapSleepHR(meanHR),
+                typicalSleepHours: typicalSleepHours
+            )
+        }
+
         /// The same inputs with wrist temperature re-expressed as tonight's
         /// deviation from the user's own baseline — see
         /// `wristTemperatureAgainstPersonalBaseline`.
@@ -696,7 +709,7 @@ enum RecoveryScoreCalculator {
         ansBalance: Double?,
         referenceDate: Date
     ) -> ScoreBreakdown {
-        let inputs = rawInputs.scoringWristTemperatureAgainstBaseline()
+        let inputs = rawInputs.scoringWristTemperatureAgainstBaseline().scoringOnlyStrapSleepHR()
         let vitalsScore = VitalsScoring.calculateVitalsScore(vitals: inputs.vitals, baselineStats: inputs.baselineStats)
         let (composite, tier, factors) = ScoreDetailBuilder.buildTierComposite(tierInputs(
             inputs, vitalsScore: vitalsScore, config: config, ansBalance: ansBalance, referenceDate: referenceDate

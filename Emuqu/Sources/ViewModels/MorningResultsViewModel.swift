@@ -546,10 +546,9 @@ final class MorningResultsViewModel {
     private func loadLiveSleep() async {
         do {
             let recoveryWindow = sleepFetchWindow()
-            let sleep = try await healthKit.sleepQueries.fetchSleepData(
-                for: recoveryWindow.start,
-                recordingEnd: recoveryWindow.end,
-                rrPoints: session.rrSeries?.points
+            let sleep = try await healthKit.service.fetchNightSleep(
+                for: recoveryWindow.start, recordingEnd: recoveryWindow.end,
+                rrPoints: session.rrSeries?.points, nightAnchor: session.startDate
             )
             guard let resolved = await resolveSleep(sleep, window: recoveryWindow) else {
                 endSleepLoadingAfterWait()

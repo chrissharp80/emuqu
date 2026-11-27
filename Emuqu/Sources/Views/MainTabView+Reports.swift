@@ -19,7 +19,7 @@ extension MainTabView {
         let hr = ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
             bodyWeightKg: inputs.settings.effectiveBodyWeightKg, units: inputs.units,
-            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
+            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit, loadFTP: .current(inputs.settings)
         )
         let recent = inputs.recentOvernight
         do {
@@ -155,6 +155,8 @@ enum ReportRenderer {
         /// Assigns overnights to nights for the daily report's baseline.
         let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
+        /// The FTPs the daily report reads a workout's power TSS at.
+        var loadFTP: TrainingLoadPrecedence.FTPAnchors = .none
     }
 
     /// Frozen-snapshot comprehensive recovery PDF (no live HealthKit query),
@@ -223,7 +225,8 @@ enum ReportRenderer {
             units: profile.units,
             sleepSchedule: profile.sleepSchedule,
             temperatureUnit: profile.temperatureUnit,
-            liveLoadSnapshot: load
+            liveLoadSnapshot: load,
+            loadFTP: profile.loadFTP
         )
         try await report.generate(to: pdfURL)
     }

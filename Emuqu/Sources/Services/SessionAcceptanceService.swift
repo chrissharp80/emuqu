@@ -192,8 +192,8 @@ final class SessionAcceptanceService {
         rrPoints: [RRPoint]?, rrStart: Date
     ) async -> SleepData? {
         do {
-            return try await hk.fetchSleepData(
-                for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints, rrStart: rrStart
+            return try await hk.fetchNightSleep(
+                for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints, rrStart: rrStart, nightAnchor: rrStart
             )
         } catch {
             debugLog("[SessionAcceptanceService] Sleep fetch failed: \(error)")
@@ -213,11 +213,7 @@ final class SessionAcceptanceService {
             let fetched = await Self.sleepOrNil(
                 hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints, rrStart: sessionStart
             )
-            // Credit the day-before's qualifying nap toward 24 h sleep, as the
-            // morning pass did for the score shown before acceptance.
-            let napMinutes = await hk.fetchDaytimeNapMinutes(nightAnchoredAt: sessionStart)
-            let sleep = fetched.map { napMinutes > 0 ? $0.withNapSleepMinutes(napMinutes) : $0 }
-            return SleepAndVitals(sleep: sleep, vitals: await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
+            return SleepAndVitals(sleep: fetched, vitals: await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
         }
         guard let raced else {
             debugLog("[SessionAcceptanceService] ⚠️ HealthKit fetch timed out after 10s — scoring without sleep/vitals")

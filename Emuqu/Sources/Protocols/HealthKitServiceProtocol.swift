@@ -133,6 +133,26 @@ extension HealthKitServiceProtocol {
         )
     }
 
+    /// The night's sleep as every stored or scored snapshot carries it:
+    /// HealthKit's sleep for the recording with the qualifying nap of the day
+    /// before the night anchored at `nightAnchor` credited toward the 24 h
+    /// duration. Every fetch whose sleep is frozen, refreshed or scored reads
+    /// it here, so no refresh replaces a snapshot with a night lacking the
+    /// nap the morning pass credited.
+    func fetchNightSleep(
+        for searchStart: Date,
+        recordingEnd: Date,
+        rrPoints: [RRPoint]?,
+        rrStart: Date? = nil,
+        nightAnchor: Date
+    ) async throws -> SleepData {
+        let fetched = try await fetchSleepData(
+            for: searchStart, recordingEnd: recordingEnd,
+            rrPoints: rrPoints, autoSleepExtension: nil, rrStart: rrStart
+        )
+        return fetched.creditingNap(await fetchDaytimeNapMinutes(nightAnchoredAt: nightAnchor))
+    }
+
     func calculateTrainingLoad() async -> HealthKitManager.TrainingLoad {
         await calculateTrainingLoad(relativeTo: Date())
     }

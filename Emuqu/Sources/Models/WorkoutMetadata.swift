@@ -986,13 +986,14 @@ enum PartialDataReason: String, Codable, Equatable {
 extension [HRRSample] {
     /// The canonical HRR@60s reading, preferring strap-derived over Watch over
     /// HealthKit-computed when more than one provenance is present.
-    var bestAtOneMinute: HRRSample? { best(near: 60, tolerance: 10) }
+    var bestAtOneMinute: HRRSample? { best(near: 60) }
 
     /// Same idea for 2-minute mark.
-    var bestAtTwoMinutes: HRRSample? { best(near: 120, tolerance: 15) }
+    var bestAtTwoMinutes: HRRSample? { best(near: 120) }
 
-    private func best(near offset: Int, tolerance: Int) -> HRRSample? {
-        let within = filter { abs($0.offsetSec - offset) <= tolerance }
+    /// Within the tolerance the capture stores readings by.
+    private func best(near offset: Int) -> HRRSample? {
+        let within = filter { HRRSample.isReading(atOffset: $0.offsetSec, for: offset) }
         let order: [HRRSample.Provenance] = [.strap, .watchSamples, .healthKitComputed]
         return order.lazy.compactMap { prov in within.first { $0.provenance == prov } }.first
     }

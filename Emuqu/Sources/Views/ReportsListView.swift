@@ -486,7 +486,8 @@ struct ReportsListView: View {
         ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
             bodyWeightKg: inputs.settings.effectiveBodyWeightKg, units: inputs.units,
-            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
+            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit,
+            loadFTP: .current(inputs.settings)
         )
     }
 
