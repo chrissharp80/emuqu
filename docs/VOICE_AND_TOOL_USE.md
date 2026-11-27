@@ -601,8 +601,13 @@ but the contract is stricter:
    `assistant.contacts.remove` change nothing on the first call: it records a
    pending request (`AssistantActionConfirmations`) and returns
    `status=confirmation_required` with an app-written `ask_user` question.
+   When the reply ends, the app shows that question under it and, in voice
+   chat (workout voice included), speaks it after the reply in the app's
+   language, word for word. A message sent while the reply was still
+   arriving (queued behind the stream) was written before the question
+   existed, so the request lapses and the app asks again.
    The same call made again runs only when the user's message directly after
-   the request is a short, explicit yes (`AffirmationReply`: at most five
+   the question is a short, explicit yes (`AffirmationReply`: at most five
    words, opening with an affirmation in a shipped language, no negation,
    and every other word an affirmation, a polite filler or a word of the
    app's question, so "yes, maybe later" does not confirm). Another

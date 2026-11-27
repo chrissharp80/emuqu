@@ -984,7 +984,7 @@ extension AssistantToolRunner {
         owner.isStreaming = false
         owner.streamTask = nil
         owner.streamingTurn = nil
-        if owner.actionConfirmations.showPending(in: &owner.turns) { owner.store.save(owner.turns) }
+        if owner.actionConfirmations.settleAtReplyEnd(in: &owner.turns, replyQueued: owner.pendingSendOnFinish != nil) { owner.store.save(owner.turns) }
 
         // Drain queued send. We move it to a local first because dispatch()
         // will bump owner.streamGeneration / reset owner.isStreaming on its own; if it

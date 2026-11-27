@@ -46,16 +46,18 @@ extension AssistantMemoryNamespace {
 
     /// The first call's answer: nothing changed, and the question the app,
     /// not the model, wrote for the user. The app shows it under the reply
-    /// itself (`AssistantActionConfirmations.showPending`).
+    /// itself (`AssistantActionConfirmations.showPending`) and voice chat
+    /// speaks it after the reply.
     static func confirmationRequired(_ question: String) -> FactValue {
         .record([
             "status": .string("confirmation_required"),
             "executed": .boolean(false),
             "ask_user": .string(question),
             "next_step": .string("""
-                Nothing has been changed. The app shows the user this exact question under your reply. Say in one short sentence \
-                what you are asking them to confirm, and end your reply. Only if their next message is a plain yes, call this tool \
-                again with the same arguments and user_quote set to that reply. Any other reply cancels it.
+                Nothing has been changed. The app shows the user this exact question under your reply, and speaks it after \
+                your reply in voice chat. Say in one short sentence what you are asking them to confirm, and end your reply. \
+                Only if their next message is a plain yes, call this tool again with the same arguments and user_quote set to \
+                that reply. Any other reply cancels it.
                 """)
         ])
     }

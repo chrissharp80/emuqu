@@ -9,13 +9,15 @@ import Foundation
 // of the user's message, so a quote proves nothing about intent. The first
 // call only records the request here, with a question the app wrote. When
 // the reply ends, the app shows that question under it itself
-// (`showPending`, `ChatTurn.confirmationPrompt`): the model's own wording is
+// (`showPending`, `ChatTurn.confirmationPrompt`), and voice chat speaks it
+// after the reply in the app's language: the model's own wording is
 // not what the user agrees to, since a steered model could ask about
 // something else and collect the "yes". The action runs when the model
 // repeats the same call AND the user's very next message, which only the
 // user can write, is a short, explicit "yes" sent directly under the app's
 // question. A different reply, a later turn, a question that was never
-// shown, or `lifetime` passing, and the request lapses. One request is
+// shown, a message sent while the reply was still arriving
+// (`lapseUnshown`), or `lifetime` passing, and the request lapses. One request is
 // pending at a time; a new one replaces it.
 // Writes whose content the model supplies (a memory fact, a contact, an
 // address, a route name, a saved artifact) take the same step every time.
@@ -100,6 +102,31 @@ final class AssistantActionConfirmations {
         request.promptTurnID = turns[replyIndex].id
         pending = request
         return true
+    }
+
+    /// When a reply ends while a message the user sent during it is queued
+    /// behind the stream: the request made during the reply lapses unshown.
+    /// The queued message was written before the app's question existed, so
+    /// it answers nothing; sent next, directly under the question, a queued
+    /// "yes" would otherwise confirm a question the user never saw or heard.
+    /// The model learns the request is still unconfirmed when it repeats the
+    /// call, and the app asks again under that reply.
+    func lapseUnshown() {
+        guard pending?.promptTurnID == nil else { return }
+        pending = nil
+    }
+
+    /// What happens to a request when a reply ends: its question is shown
+    /// (`showPending`), unless a message the user sent during the reply is
+    /// queued to go next (`replyQueued`), in which case it lapses
+    /// (`lapseUnshown`). Returns whether a question was shown.
+    @discardableResult
+    func settleAtReplyEnd(in turns: inout [ChatTurn], replyQueued: Bool) -> Bool {
+        guard !replyQueued else {
+            lapseUnshown()
+            return false
+        }
+        return showPending(in: &turns)
     }
 }
 

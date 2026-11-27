@@ -483,31 +483,28 @@ enum DeterministicIntent {
         return calendar.date(byAdding: .day, value: -1, to: base) ?? base
     }
 
-    /// The overnight session that belongs to the local day containing `now`,
-    /// by the midpoint-in-day rule (same as `OvernightArchive.byDate`
-    /// and every async by-date fact).
+    /// Today's overnight: the recording the dashboard headlines
+    /// (`DashboardSessionPolicy.latestOvernightComplete`, the latest wake
+    /// day's longest reliable overnight) when that night's wake day is the
+    /// local day containing `now`. On a night split by a strap restart the
+    /// voice answer, the prompt and the dashboard all name the same half.
     ///
-    /// Overnight sessions are dated the evening they *start*, so matching
-    /// `startOfDay(entry.date) == today` would miss last night's session
-    /// every morning — an overnight begun 23:00 Monday has `date` = Monday,
-    /// which never equals Tuesday. The midpoint lands in the morning, so it
-    /// matches the day the user asks about.
+    /// Overnight sessions are dated the evening they *start*, so the day is
+    /// the wake day (`SessionDay`), not the start date: an overnight begun
+    /// 23:00 Monday belongs to Tuesday morning.
+    ///
+    /// The instant voice path ("what's my recovery/HRV today") must not
+    /// answer from an `.insufficient`/`.preSleep` partial; the index mirrors
+    /// the quality flag. Falls through to the LLM if today's only overnight
+    /// is untrustworthy, rather than voicing a bogus number.
     static func todaysOvernightEntry(now: Date, archive: SessionArchive) -> SessionArchiveEntry? {
-        let cal = Calendar.current
-        let dayStart = cal.startOfDay(for: now)
-        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
-        // The instant voice path ("what's my recovery/HRV today")
-        // must not answer from an `.insufficient`/`.preSleep` partial; the index
-        // mirrors the quality flag. Falls through to the LLM if today's only
-        // overnight is untrustworthy — correct, rather than voicing a bogus number.
-        return archive.store.entries
-            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
-            .sorted { $0.date > $1.date }
-            .first { entry in
-                let duration = (entry.endDate ?? entry.date).timeIntervalSince(entry.date)
-                let midpoint = entry.date.addingTimeInterval(duration / 2)
-                return midpoint >= dayStart && midpoint < dayEnd
-            }
+        todaysOvernightEntry(now: now, entries: archive.store.entries, calendar: .current)
+    }
+
+    static func todaysOvernightEntry(now: Date, entries: [SessionArchiveEntry], calendar: Calendar) -> SessionArchiveEntry? {
+        guard let latest = DashboardSessionPolicy.latestOvernightComplete(inEntries: entries, calendar: calendar),
+              calendar.isDate(SessionDay.date(of: latest), inSameDayAs: now) else { return nil }
+        return latest
     }
 
     // MARK: - Spoken replies

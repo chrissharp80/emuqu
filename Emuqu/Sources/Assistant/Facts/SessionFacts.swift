@@ -280,13 +280,17 @@ extension SessionNamespace {
         return .record(record)
     }
 
-    /// Identity, timing, and the shape of the effort.
+    /// Identity, timing, and the shape of the effort. `duration_sec` is the
+    /// active time the workout card shows and its pace is measured on
+    /// (`WorkoutActiveTime`), pauses left out; `elapsed_sec` is start to
+    /// stop, pauses included.
     private static func identityFields(_ s: HRVSession, meta: WorkoutMetadata?) -> [String: FactValue] {
         [
             "id": .string(s.id.uuidString),
             "date": .date(s.startDate),
             "sport": .from(meta?.sport.displayName),
-            "duration_sec": .from(s.duration.map { Int($0) }),
+            "duration_sec": .from(WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: s.duration).map { Int($0) }),
+            "elapsed_sec": .from(s.duration.map { Int($0) }),
             "distance_m": .from(meta?.distanceMeters),
             "elevation_gain_m": .from(meta?.elevationGainMeters),
             "elevation_loss_m": .from(meta?.elevationLossMeters),

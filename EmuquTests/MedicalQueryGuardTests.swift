@@ -172,6 +172,72 @@ final class MedicalQueryGuardTests: XCTestCase {
         }
     }
 
+    /// Saying one wants to die or to harm oneself, in the words people use,
+    /// gets the crisis reply in every shipped language: not only the noun
+    /// for suicide. Each of these went to a cloud model when only the stems
+    /// and a few English phrases matched.
+    func testSelfHarmIntentPhrasingGetsTheCrisisReplyInEveryLocale() {
+        let byLocale: [(locale: String, text: String)] = [
+            ("en", "I want to hurt myself"), ("en", "I wish I was dead"), ("en", "I want to take my own life"),
+            ("ar", "أريد أن أموت"), ("ar", "أريد أن أقتل نفسي"), ("ar", "لا أريد أن أعيش"),
+            ("da", "jeg vil dø"), ("da", "jeg vil ikke leve mere"), ("da", "jeg vil skade mig selv"),
+            ("de", "ich will nicht mehr leben"), ("de", "ich will sterben"), ("de", "ich möchte mich umbringen"),
+            ("de", "ich will mir etwas antun"),
+            ("es", "quiero morirme"), ("es", "no quiero vivir más"), ("es", "me quiero matar"), ("es", "quiero hacerme daño"),
+            ("fi", "haluan kuolla"), ("fi", "en halua enää elää"), ("fi", "haluan satuttaa itseäni"),
+            ("fr", "je veux mourir"), ("fr", "je ne veux plus vivre"), ("fr", "j’ai envie de me tuer"), ("fr", "je veux me faire du mal"),
+            ("is", "ég vil deyja"), ("is", "mig langar að deyja"), ("is", "ég vil ekki lifa lengur"),
+            ("it", "voglio morire"), ("it", "non voglio più vivere"), ("it", "voglio uccidermi"), ("it", "voglio farmi del male"),
+            ("ja", "死にたい"), ("ja", "もう生きていたくない"), ("ja", "自分を傷つけたい"),
+            ("ko", "죽고 싶어요"), ("ko", "더 이상 살고 싶지 않아"), ("ko", "자해하고 싶어"),
+            ("nb", "jeg vil ikke leve lenger"), ("nb", "jeg vil ta livet av meg"), ("nb", "jeg vil skade meg selv"),
+            ("nl", "ik wil dood"), ("nl", "ik wil niet meer leven"), ("nl", "ik wil mezelf van kant maken"),
+            ("pt-BR", "quero morrer"), ("pt-BR", "não quero mais viver"), ("pt-BR", "quero me matar"),
+            ("ru", "я хочу умереть"), ("ru", "не хочу больше жить"), ("ru", "хочу убить себя"),
+            ("sv", "jag vill dö"), ("sv", "jag vill inte leva längre"), ("sv", "jag vill ta livet av mig"),
+            ("zh-Hans", "我想死"), ("zh-Hans", "我不想活了"), ("zh-Hans", "我想伤害自己")
+        ]
+        for (locale, text) in byLocale {
+            XCTAssertEqual(MedicalQueryGuard.classify(text), .selfHarm, "[\(locale)] Expected self-harm for: \(text)")
+            guard case .refuse(let reply) = MedicalQueryGuard.evaluate(text) else {
+                XCTFail("[\(locale)] Expected a refusal for: \(text)")
+                continue
+            }
+            XCTAssertEqual(reply, MedicalQueryGuard.selfHarmReply, "[\(locale)] Expected the crisis reply for: \(text)")
+        }
+    }
+
+    /// Workout talk borrows the same verbs ("I'm dying", "killing me", "a
+    /// killer workout") in every language; none of it is a crisis.
+    func testExerciseIdiomsAreNotSelfHarmInAnyLocale() {
+        let byLocale: [(locale: String, text: String)] = [
+            ("en", "I'm dying after that run"), ("en", "that was a killer workout"), ("en", "this hill is killing me"),
+            ("en", "is this the hill you want to die on"), ("en", "I hurt myself on the trail"),
+            ("ar", "أنا أموت بعد هذا الجري"), ("ar", "هذا التل يقتلني"), ("ar", "تمرين قاتل"),
+            ("da", "jeg dør efter det løb"), ("da", "den bakke slår mig ihjel"),
+            ("de", "ich sterbe nach dem Lauf"), ("de", "dieser Berg bringt mich um"), ("de", "ein mörderisches Training"),
+            ("de", "ich will heute nicht mehr laufen"),
+            ("es", "me muero después de esa carrera"), ("es", "esta cuesta me está matando"), ("es", "un entrenamiento asesino"),
+            ("es", "quiero morir en el intento"),
+            ("fi", "kuolen tämän lenkin jälkeen"), ("fi", "tämä mäki tappaa minut"),
+            ("fr", "je meurs après cette course"), ("fr", "cette côte me tue"), ("fr", "un entraînement qui tue"),
+            ("is", "ég er að deyja eftir hlaupið"), ("is", "þessi brekka er að drepa mig"),
+            ("it", "sto morendo dopo questa corsa"), ("it", "questa salita mi sta uccidendo"),
+            ("it", "voglio farla finita con questo allenamento"),
+            ("ja", "このランの後で死にそう"), ("ja", "死ぬほど疲れた"),
+            ("ko", "그 러닝 후에 죽겠다"), ("ko", "이 언덕 때문에 죽을 것 같아"),
+            ("nb", "jeg dør etter den økta"), ("nb", "denne bakken tar livet av meg"),
+            ("nl", "ik ga dood na die run"), ("nl", "deze heuvel vermoordt me"),
+            ("pt-BR", "tô morrendo depois dessa corrida"), ("pt-BR", "essa subida está me matando"), ("pt-BR", "um treino matador"),
+            ("ru", "я умираю после этой пробежки"), ("ru", "этот подъём меня убивает"), ("ru", "убийственная тренировка"),
+            ("sv", "jag dör efter det passet"), ("sv", "den här backen tar livet av mig"),
+            ("zh-Hans", "跑完累死了"), ("zh-Hans", "这个坡要了我的命"), ("zh-Hans", "我今天不想活动")
+        ]
+        for (locale, text) in byLocale {
+            XCTAssertNotEqual(MedicalQueryGuard.classify(text), .selfHarm, "[\(locale)] Workout idiom misread as self-harm: \(text)")
+        }
+    }
+
     /// The stems widened above must not swallow the English drill exclusion.
     func testWidenedSelfHarmStemsStillExcludeTheDrill() {
         for input in ["suicide sprints after practice", "we ran suicides today"] {

@@ -629,10 +629,10 @@ enum AssistantSystemPrompt {
     /// Today's frozen recovery score from the most recent overnight session.
     /// Nil when there isn't one (new install, or no recording today yet).
     ///
-    /// The night is the one whose midpoint falls today, as the voice answer
-    /// picks it. Matching the start date found nothing on a normal morning
-    /// (a night is dated the evening it began) and could pick an unreliable
-    /// partial. On the dashboard's 0-100 scale.
+    /// The night is today's overnight as the dashboard and the voice answer
+    /// pick it (`DeterministicIntent.todaysOvernightEntry`): the longest
+    /// reliable recording of the night that woke today. On the dashboard's
+    /// 0-100 scale.
     @MainActor
     private static func todayRecoveryLine(_ archive: SessionArchive) -> String? {
         guard let score = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive)?.recoveryScore else { return nil }

@@ -452,3 +452,69 @@ final class AssistantActionConfirmationTests: XCTestCase {
         XCTAssertEqual(store.facts.count, 3)
     }
 }
+
+// MARK: - A message queued behind the stream
+
+/// A "yes" said while the reply is still arriving is queued behind the
+/// stream and sent when it ends. It was said before the app's question
+/// existed, so it must not answer that question.
+@MainActor
+final class QueuedReplyConfirmationTests: XCTestCase {
+    private let question = "Delete all 3 saved memory facts?"
+
+    private func makeViewModel() -> AssistantViewModel {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("QueuedReplyConfirmationTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        return AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+    }
+
+    private func evaluateClear(_ viewModel: AssistantViewModel, turns: [ChatTurn]) -> AssistantActionConfirmations.Outcome {
+        viewModel.actionConfirmations.evaluate(action: "assistant.memory.clear", target: "all", question: question, turns: turns)
+    }
+
+    /// The reply that asked to clear memory ends with "yes" queued: the
+    /// question is not shown above the queued message, and that "yes", sent
+    /// right after the reply, does not clear anything.
+    func testAYesQueuedWhileTheReplyStreamsConfirmsNothing() async {
+        let viewModel = makeViewModel()
+        let reply = ChatTurn(role: .assistant, text: "Want me to clear your saved memory?")
+        viewModel.turns = [ChatTurn(role: .user, text: "Clear my memory"), reply]
+        XCTAssertEqual(evaluateClear(viewModel, turns: viewModel.turns), .awaitingConfirmation)
+        viewModel.isStreaming = true
+        viewModel.pendingSendOnFinish = (text: "yes", fromVoice: true)
+
+        await viewModel.tools.finishStream(generation: viewModel.streamGeneration)
+        viewModel.cancel()
+
+        var turns = viewModel.turns
+        if turns.last(where: { $0.role == .user })?.text != "yes" {
+            turns.append(ChatTurn(role: .user, text: "yes"))
+        }
+        XCTAssertNil(turns.first { $0.id == reply.id }?.confirmationPrompt, "the question was shown above a message sent before it")
+        XCTAssertNotEqual(evaluateClear(viewModel, turns: turns), .confirmed, "a yes queued mid-reply confirmed the request")
+    }
+
+    /// With nothing queued, the same reply still ends with the app's question.
+    func testAReplyWithNothingQueuedShowsTheQuestion() async {
+        let viewModel = makeViewModel()
+        let reply = ChatTurn(role: .assistant, text: "Want me to clear your saved memory?")
+        viewModel.turns = [ChatTurn(role: .user, text: "Clear my memory"), reply]
+        XCTAssertEqual(evaluateClear(viewModel, turns: viewModel.turns), .awaitingConfirmation)
+        viewModel.isStreaming = true
+
+        await viewModel.tools.finishStream(generation: viewModel.streamGeneration)
+
+        XCTAssertEqual(viewModel.turns.last?.confirmationPrompt, question)
+    }
+}

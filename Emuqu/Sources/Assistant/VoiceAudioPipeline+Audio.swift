@@ -786,8 +786,7 @@ extension VoiceAudioPipeline {
 
     @MainActor
     func finishResponseFromAssistant() {
-        if let remainder = controller.textChunker.finalize() { controller.speak(remainder) }
-        speakErrorRecoveryLineIfNeeded()
+        speakResponseTail()
         // Tear the subscriptions down — they'll re-arm next time the user
         // finalises a turn. Keeping them live would cause us to react to
         // typed turns the user makes from the chat input bar.
@@ -806,6 +805,34 @@ extension VoiceAudioPipeline {
         if controller.state == .speaking, !controller.synthesizer.isSpeaking, controller.llmTask == nil {
             controller.finishResponseSpeech()
         }
+    }
+
+    /// What is left to say when the reply ends: the unfinished last
+    /// sentence, the app's confirmation question, or the recovery line when
+    /// the reply failed with nothing said.
+    @MainActor
+    private func speakResponseTail() {
+        if let remainder = controller.textChunker.finalize() { controller.speak(remainder) }
+        speakConfirmationQuestionIfShown()
+        speakErrorRecoveryLineIfNeeded()
+    }
+
+    /// The app's own question for an action the assistant asked to take
+    /// (`AssistantActionConfirmations.showPending`), spoken after the reply
+    /// it was shown under. A voice user sees no chat bubble (the workout
+    /// screens show none at all), and a "yes" may only answer a question the
+    /// user was actually asked, in the app's exact wording rather than the
+    /// model's. The question is already in the app language, so it is
+    /// spoken as a scripted line in that language's voice. It joins
+    /// `currentResponseText`, which the barge-in echo check compares the
+    /// microphone against while it plays.
+    @MainActor
+    func speakConfirmationQuestionIfShown() {
+        let turns = controller.assistantViewModel.turns
+        guard let idx = controller.activeAssistantIndex, turns.indices.contains(idx),
+              turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt else { return }
+        controller.currentResponseText += (controller.currentResponseText.isEmpty ? "" : " ") + question
+        controller.speak(question, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true)
     }
 
     /// Voice-mode network / API failure

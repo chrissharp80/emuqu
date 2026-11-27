@@ -630,40 +630,6 @@ extension MedicalTermLexicon {
         unbounded: ["危険ですか", "命に関わ", "心配すべき", "危险吗", "有生命危险", "该担心", "위험한가요", "위험합니까", "걱정해야", "خطير", "هل يجب أن أقلق"]
     )
 
-    static let selfHarm = Concept(
-        id: "self-harm",
-        latin: [
-            // "Suicide sprints" (and runs, drills, shuttles, lines) are a
-            // common conditioning drill, so that shape is excluded; the plural
-            // "suicides" never matches inside `\b…\b`. The lookahead lives on
-            // the one pattern that matches English, French and Dutch alike.
-            "suicidal", "su[ïi]cide(?!\\s+(?:sprints?|runs?|drills?|shuttles?|lines?)\\b)",
-            "kill\\s+myself", "end\\s+my\\s+life", "want\\s+to\\s+die",
-            "self[-\\s]?harm(?:ing)?",
-            // Not "hurt myself" or "cut myself": in a training app those are
-            // mostly injuries and kitchen accidents, not a crisis.
-            "(?:harm|harming|cutting)\\s+myself",
-            // iOS types a curly apostrophe by default.
-            "(?:don['’]?t|do\\s+not)\\s+want\\s+to\\s+(?:live|be\\s+alive|be\\s+here\\s+anymore)",
-            "(?:take|taking|took)\\s+an?\\s+overdose",
-            "overdos(?:e|ing)\\s+on\\s+(?:pills|meds|medication|tablets)",
-            // Stems end in `\\w*` so inflections ("suicidas", "самоубийство")
-            // and compounds ("Selbstmordgedanken") match inside `\\b…\\b`.
-            // `(?!e)` leaves English "suicide(s)" to the drill-aware pattern.
-            "me\\s+suicider",                          // fr
-            "su[ïi]c[íi]d(?!e)\\w*",                    // es, it, pt-BR, fr, nl
-            "selbstmord\\w*", "suizid\\w*",            // de
-            "zelfmoord\\w*",                           // nl
-            "selvmord\\w*",                            // da, nb
-            "sj[äa]lvmord\\w*",                        // sv
-            "itsemurh\\w*",                            // fi
-            "sj[áa]lfsv[íi]g\\w*",                     // is
-            "суицид\\w*", "самоубийств\\w*",          // ru
-            "покончить\\s+с\\s+собой"                  // ru
-        ],
-        unbounded: ["自殺", "自杀", "자살", "انتحار"]
-    )
-
     // MARK: - Medical referral (output side — we redirect, we do not prescribe)
 
     static let medicalReferral = Concept(
