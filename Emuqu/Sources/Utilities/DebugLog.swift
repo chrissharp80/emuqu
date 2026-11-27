@@ -420,7 +420,11 @@ final class DebugLogger {
         "segments", "chunks", "points", "samples", "beats", "fixes", "buffers", "frames", "channels",
         "devices", "recordings", "copies", "backups", "uploaded", "deleted", "pushed", "saved", "saves",
         "removed", "written", "rewritten", "fetched", "received", "dropped", "skipped", "merged",
-        "restored", "reported", "streamed"
+        "restored", "reported", "streamed",
+        // Code timing, microphone level and text lengths: what voice and
+        // performance triage reads. A camelCase key is matched on its last
+        // word, so "rate" can't go here: it would let `heartRate=` through.
+        "elapsed", "rms", "chars", "characters", "transcript", "tokens"
     ]
 
     /// The last word of a camelCase or snake_case key, lower-cased:

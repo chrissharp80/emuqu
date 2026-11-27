@@ -69,25 +69,59 @@ ALLOWED = {
 # (a custom base URL for a self-hosted model) are not the developer's and
 # cannot be listed here; this gate is about the hosts the code names.
 #
-# The match is lexical. A host assembled from pieces at runtime, or held in a
-# bare string constant that reaches a URL some other way, is not seen; those
-# are left to review. Bare domain strings are not matched on their own because
-# the assistant's source lists name dozens of sites the app never contacts.
-URL = re.compile(r"https?://([A-Za-z0-9.-]+)")
+# The match is lexical. A host the code builds at runtime cannot be read off
+# the source, so building one is itself what is flagged: an interpolated host
+# (`"https://\(host)/..."`), a host concatenated on (`"https://" + host`), and
+# a host assigned from a variable (`components.host = host`,
+# `URLComponents(..., host: host)`). Each such site is either on the reviewed
+# DYNAMIC_HOSTS list below, keyed by file and host expression with the reason
+# the host is not the developer's (typically: the user typed it), or it fails.
+# Bare domain strings are not matched on their own because the assistant's
+# source lists name dozens of sites the app never contacts.
+# Every network scheme, and the host after any `user@` (in
+# `https://api.openai.com@x.net` the host is x.net).
+URL = re.compile(r"\b(?:https?|wss?|ftps?)://(?:[^/\s\"@]*@)?([A-Za-z0-9.-]+)", re.I)
 HOST = re.compile(r"(?:\.host\s*=\s*|\bhost:\s*)\"([A-Za-z0-9.-]+)\"")
+INTERPOLATED_HOST = re.compile(r"://\\\(([^)]*)\)")
+CONCATENATED_HOST = re.compile(r"://\"\s*\+\s*([A-Za-z_][\w.]*)")
+VARIABLE_HOST = re.compile(r"(?:\.host\s*=(?!=)\s*|URLComponents\([^)]*\bhost:\s*)([A-Za-z_][\w.]*)")
+
+# Reviewed runtime hosts: {(file, host expression): reason}.
+DYNAMIC_HOSTS = {
+    ("Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift", "sessionHost"):
+        "the app's own `flowrecovery://session/<id>` deep link, opened in the app, never fetched",
+    ("Emuqu/Sources/Views/GetMeBackView.swift", "sosDialNumber"):
+        "`tel://` to the local emergency number, dialled by the phone, not a network request",
+}
 
 found = {}
+dynamic = []
 for root in sys.argv[1:]:
     base = pathlib.Path(root)
     if not base.is_dir():
         print(f"check_no_developer_endpoint: source root not found: {base}", file=sys.stderr)
         raise SystemExit(2)
-    for path in sorted(base.rglob("*.swift")):
+    for path in sorted(p for ext in ("*.swift", "*.m", "*.c", "*.h") for p in base.rglob(ext)):
         for lineno, line in enumerate(path.read_text(errors="ignore").split("\n"), 1):
+            code = "" if line.lstrip().startswith("//") else line
             for match in list(URL.finditer(line)) + list(HOST.finditer(line)):
                 found.setdefault(match.group(1), []).append(f"{path}:{lineno}")
+            for pattern in (INTERPOLATED_HOST, CONCATENATED_HOST, VARIABLE_HOST):
+                for match in pattern.finditer(code):
+                    if (str(path), match.group(1).strip()) not in DYNAMIC_HOSTS:
+                        dynamic.append(f"{path}:{lineno}: host built from `{match.group(1).strip()}`")
 
 unknown = {h: locs for h, locs in found.items() if h not in ALLOWED}
+
+if dynamic:
+    print(f"check_no_developer_endpoint: {len(dynamic)} URL(s) built from a runtime host.\n")
+    for site in dynamic:
+        print(f"  {site}")
+    print()
+    print("  A host the code assembles at runtime cannot be checked against the")
+    print("  reviewed list. Name the host literally, or add the site to")
+    print("  DYNAMIC_HOSTS in this script with the reason it is not the developer's.")
+    raise SystemExit(1)
 
 if unknown:
     print(f"check_no_developer_endpoint: {len(unknown)} unreviewed host(s).\n")

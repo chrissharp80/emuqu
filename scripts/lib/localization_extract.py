@@ -179,10 +179,12 @@ def first_argument_literals(text, i):
 # `.navigationTitle`, `.alert`, `.accessibilityLabel`, `Toggle`, `TextField`,
 # `Picker`, `Label`, Swift Charts' `.value`, and Foundation's
 # `NSLocalizedString(`.
-SWIFTUI_IMPLICIT = ("Text", "Button", "Label", "Toggle", "TextField", "Picker", "Section")
+SWIFTUI_IMPLICIT = ("Text", "Button", "Label", "Toggle", "TextField", "Picker", "Section",
+                    "NavigationLink", "Link", "Menu", "Stepper", "DatePicker", "ProgressView",
+                    "LabeledContent", "GroupBox", "DisclosureGroup", "ContentUnavailableView")
 SWIFTUI_MODIFIERS = ("navigationTitle", "navigationBarTitle", "alert",
                      "confirmationDialog", "accessibilityLabel", "accessibilityHint",
-                     "value")
+                     "value", "accessibilityValue", "help", "navigationSubtitle", "badge")
 CALL = re.compile(
     r"String\(\s*localized:\s*"
     r"|AttributedString\(\s*localized:\s*"
@@ -193,13 +195,46 @@ CALL = re.compile(
 )
 
 
+def mask_comments(text):
+    """`text` with every // and /* */ comment blanked, index- and line-preserving.
+
+    A commented-out `Text("Old copy")` is not a request: counting it hides the
+    orphan it left behind, and resolving it fails on code that never runs.
+    """
+    out, i, n = [], 0, len(text)
+    while i < n:
+        if text[i] == QUOTE:
+            _, j = scan_literal(text, i)
+            out.append(text[i:j])
+            i = j
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" " * (j - i))
+            i = j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            out.append("".join(c if c == "\n" else " " for c in text[i:j]))
+            i = j
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
 def localized_literals(text):
     """Yield (line, body) for every literal `text` looks up in the catalogue."""
+    text = mask_comments(text)
     for match in CALL.finditer(text):
         i = match.end()
         # Text(verbatim:) is the explicit opt OUT of localization; it has no
         # catalogue key, and is neither a request nor something to resolve.
         if text.startswith("verbatim:", i):
+            continue
+        # A labelled first argument is never the LocalizedStringKey (SwiftUI
+        # takes the key unlabelled): `.value(forKey: "k")` is KVC, not copy.
+        if re.match(r"\w+\s*:(?!:)", text[i:i + 64]):
             continue
         if i < len(text) and text[i] == QUOTE:
             bodies = [scan_literal(text, i)[0]]

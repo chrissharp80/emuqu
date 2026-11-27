@@ -46,7 +46,7 @@ cd "$(dirname "$0")/.."
 # only — and the catalogue was not even in the Watch target's Resources, which
 # meant every one of them fell back to its English key in all sixteen locales
 # while three localization gates reported perfect scores.
-SCAN_DIRS=("Emuqu/Sources" "EmuquWatch Watch App")
+SCAN_DIRS=("Emuqu" "EmuquWatch Watch App")
 CATALOGUE="Emuqu/Localizable.xcstrings"
 
 for dir in "${SCAN_DIRS[@]}"; do
@@ -140,7 +140,7 @@ for path in sorted(p for d in scan_dirs for p in pathlib.Path(d).rglob("*.swift"
     for line, body in localized_literals(text):
         # A literal with no letters in it is punctuation or a format shell
         # ("%@ · %@", "—"), never a translatable phrase.
-        if not re.search(r"[A-Za-z]{2,}", body.replace(INTERP, "")):
+        if not re.search(r"[A-Za-z]", body.replace(INTERP, "")):
             continue
         literals.append((str(path), line, body))
 

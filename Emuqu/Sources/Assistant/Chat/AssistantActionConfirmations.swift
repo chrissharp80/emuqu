@@ -9,13 +9,19 @@ import Foundation
 // of the user's message, so a quote proves nothing about intent. The first
 // call only records the request here, with a question the app wrote. When
 // the reply ends, the app shows that question under it itself
-// (`showPending`, `ChatTurn.confirmationPrompt`): the model's own wording is
+// (`showPending`, `ChatTurn.confirmationPrompt`), and voice chat speaks it
+// after the reply in the app's language: the model's own wording is
 // not what the user agrees to, since a steered model could ask about
 // something else and collect the "yes". The action runs when the model
 // repeats the same call AND the user's very next message, which only the
 // user can write, is a short, explicit "yes" sent directly under the app's
-// question. A different reply, a later turn, a question that was never
-// shown, or `lifetime` passing, and the request lapses. One request is
+// question, and the repeated call would ask that same question. The question
+// names every field the action stores, so a repeat that changes any of them
+// (another note, a different count, an add turned into a replace) asks again
+// instead of riding on a yes given to something else. A different reply, a later turn, a question that was never
+// shown, a voice reply whose question was not spoken to the end
+// (`markSpoken`), a message sent while the reply was still arriving
+// (`lapseUnshown`), or `lifetime` passing, and the request lapses. One request is
 // pending at a time; a new one replaces it.
 // Writes whose content the model supplies (a memory fact, a contact, an
 // address, a route name, a saved artifact) take the same step every time.
@@ -33,6 +39,12 @@ struct PendingAssistantAction: Equatable, Sendable {
     let question: String
     /// The reply the app showed `question` under; nil until it has.
     var promptTurnID: UUID?
+    /// Whether the user has been given `question`: as soon as it is shown
+    /// under a typed reply, and under a voice reply only once it has been
+    /// spoken to the end (`markSpoken`). A voice user may see no chat bubble
+    /// (the workout screens show none), and a workout alert can cut the
+    /// reply off before its question plays.
+    var delivered = false
 }
 
 @MainActor
@@ -63,7 +75,7 @@ final class AssistantActionConfirmations {
             return .noUserMessage
         }
         let key = target.lowercased()
-        if confirms(action: action, target: key, turns: turns, now: now) {
+        if confirms(action: action, target: key, question: question, turns: turns, now: now) {
             pending = nil
             return .confirmed
         }
@@ -71,12 +83,13 @@ final class AssistantActionConfirmations {
         return .awaitingConfirmation
     }
 
-    /// The pending request matches and has not expired, the app showed its
-    /// question under the reply just before the latest user message, that
-    /// reply answered the message the request was made during, and the
+    /// The pending request matches, asks the same question this call would,
+    /// and has not expired, the app showed its question under the reply just
+    /// before the latest user message and gave it to the user (`delivered`),
+    /// that reply answered the message the request was made during, and the
     /// latest message says yes.
-    private func confirms(action: String, target: String, turns: [ChatTurn], now: Date) -> Bool {
-        guard let pending, pending.action == action, pending.target == target,
+    private func confirms(action: String, target: String, question: String, turns: [ChatTurn], now: Date) -> Bool {
+        guard let pending, pending.action == action, pending.target == target, pending.question == question, pending.delivered,
               now.timeIntervalSince(pending.requestedAt) <= Self.lifetime,
               let replyIndex = turns.lastIndex(where: { $0.role == .user }), replyIndex >= 2
         else { return false }
@@ -88,18 +101,53 @@ final class AssistantActionConfirmations {
     /// When a reply ends: shows the question of a request made during this
     /// turn under the reply, the last turn when it answers the latest user
     /// message. Nothing is shown when the reply is missing (a failed or
-    /// stopped stream); the request then cannot be confirmed. Returns
-    /// whether a question was shown.
+    /// stopped stream); the request then cannot be confirmed. Under a
+    /// `spokenReply` (voice chat) the question is not yet delivered: voice
+    /// speaks it after the reply and reports when it has played
+    /// (`markSpoken`). Returns whether a question was shown.
     @discardableResult
-    func showPending(in turns: inout [ChatTurn]) -> Bool {
+    func showPending(in turns: inout [ChatTurn], spokenReply: Bool) -> Bool {
         guard var request = pending, request.promptTurnID == nil,
               let replyIndex = turns.indices.last, turns[replyIndex].role == .assistant,
               turns.last(where: { $0.role == .user })?.id == request.requestTurnID
         else { return false }
         turns[replyIndex].confirmationPrompt = request.question
         request.promptTurnID = turns[replyIndex].id
+        request.delivered = !spokenReply
         pending = request
         return true
+    }
+
+    /// Voice chat has spoken the question shown under `promptTurnID` to the
+    /// end, so a "yes" to it now answers a question the user heard.
+    func markSpoken(promptTurnID: UUID) {
+        guard pending?.promptTurnID == promptTurnID else { return }
+        pending?.delivered = true
+    }
+
+    /// When a reply ends while a message the user sent during it is queued
+    /// behind the stream: the request made during the reply lapses unshown.
+    /// The queued message was written before the app's question existed, so
+    /// it answers nothing; sent next, directly under the question, a queued
+    /// "yes" would otherwise confirm a question the user never saw or heard.
+    /// The model learns the request is still unconfirmed when it repeats the
+    /// call, and the app asks again under that reply.
+    func lapseUnshown() {
+        guard pending?.promptTurnID == nil else { return }
+        pending = nil
+    }
+
+    /// What happens to a request when a reply ends: its question is shown
+    /// (`showPending`), unless a message the user sent during the reply is
+    /// queued to go next (`replyQueued`), in which case it lapses
+    /// (`lapseUnshown`). Returns whether a question was shown.
+    @discardableResult
+    func settleAtReplyEnd(in turns: inout [ChatTurn], replyQueued: Bool, spokenReply: Bool) -> Bool {
+        guard !replyQueued else {
+            lapseUnshown()
+            return false
+        }
+        return showPending(in: &turns, spokenReply: spokenReply)
     }
 }
 

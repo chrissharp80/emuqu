@@ -66,9 +66,10 @@ extension EmuquApp {
     /// for users who change their mind.
     private func presentInterruptedSessionAlertIfNeeded() {
         guard let state = collector.recordingStore.load() else { return }
-        // Only alert if the session isn't already archived (e.g. auto-archived on background)
-        guard !collector.archive.store.exists(state.sessionId) else {
-            collector.recordingStore.clear()
+        // Only alert if the session isn't already archived (e.g. auto-archived
+        // on background), under its own id or folded into a night already held.
+        guard !collector.archive.holdsNight(state.sessionId) else {
+            collector.recordingStore.clear(ifItIs: state.sessionId)
             return
         }
         guard !PersistedRecordingState.isDismissed(state.sessionId) else {
@@ -150,7 +151,7 @@ extension EmuquApp {
             savedRouteStore: launchServices.savedRouteStore(),
             settingsManager: settingsManager
         )
-        collector.recordingStore.clear()
+        collector.recordingStore.clear(ifItIs: info.sessionId)
         guard let outcome else {
             return String(localized: "Could not recover the workout. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
@@ -206,7 +207,7 @@ extension EmuquApp {
     private func savedByAutoRecovery(_ sessionId: UUID, waitingAtMost limit: TimeInterval) async -> String? {
         await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId, limit: limit)
         guard collector.archive.store.exists(sessionId) else { return nil }
-        collector.recordingStore.clear()
+        collector.recordingStore.clear(ifItIs: sessionId)
         return String(localized: "Saved to your archive.", bundle: languageManager.bundle)
     }
 
@@ -215,7 +216,7 @@ extension EmuquApp {
     /// (`SessionRecoveryService.recoveredSessionType`).
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
         let recovered = await collector.recovery.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
-        collector.recordingStore.clear()
+        collector.recordingStore.clear(ifItIs: info.sessionId)
         guard let recovered else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }

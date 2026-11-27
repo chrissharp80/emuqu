@@ -117,10 +117,12 @@ enum MedicalTermLexicon {
             "hj[äa]rtrytmrubbning(?:ar)?",            // sv
             "(?<!sinus)rytmih[äa]iri[öo]",            // fi
             "hjartsl[áa]ttartruflun(?:ir|um|ar)?",          // is
-            "(?<!синусовая\\s)(?<!синусовой\\s)аритми[яи]"  // ru
+            // Russian also calls it "дыхательная аритмия" without the word sinus.
+            "(?<!синусовая\\s)(?<!синусовой\\s)(?<!дыхательная\\s)(?<!дыхательной\\s)аритми[яи]"  // ru
         ],
         unbounded: [
-            "(?<!洞性)不整脈",                          // ja
+            // 呼吸性不整脈 is the everyday Japanese name for the same physiology.
+            "(?<!洞性)(?<!呼吸性)不整脈",                          // ja
             "(?<!窦性)心律失常",                        // zh-Hans
             "(?<!동성)(?<!동성 )부정맥",                 // ko
             "عدم انتظام ضربات القلب(?! التنفسي| الجيبي)"  // ar
@@ -156,8 +158,9 @@ enum MedicalTermLexicon {
             "eteislepatus", "sydänkatkos", "bradykardia", "takykardia",
             "syd[äa]ninfarkti", "syd[äa]npys[äa]hdys",                              // fi
             "hjartaáfall", "hjartastopp",                                           // is
-            "трепетание\\s+предсердий", "брадикардия", "тахикардия",
-            "инфаркт", "остановка\\s+сердца", "гипертония"                        // ru
+            // Case endings spelled out: a bare stem never matches "инфаркта" inside `\\b`.
+            "трепетание\\s+предсердий", "брадикарди[яиюей]", "тахикарди[яиюей]",
+            "инфаркт(?:а|е|у|ом|ы)?", "остановк[аиуе]\\s+сердца", "гипертони[яиюей]" // ru
         ],
         unbounded: [
             "心房粗動", "心房扑动", "심방조동",
@@ -194,7 +197,7 @@ enum MedicalTermLexicon {
             "hj[äa]rtinfarkt", "hj[äa]rtstopp",                   // sv
             "syd[äa]ninfarkti", "syd[äa]npys[äa]hdys",            // fi
             "hjartaáfall", "hjartastopp",                         // is
-            "инфаркт", "остановка\\s+сердца"                      // ru
+            "инфаркт(?:а|е|у|ом|ы)?", "остановк[аиуе]\\s+сердца" // ru
         ],
         unbounded: [
             "心筋梗塞", "心停止", "心肌梗死", "心脏骤停",
@@ -222,10 +225,8 @@ enum MedicalTermLexicon {
     static let neurovascularEvent = Concept(
         id: "neurovascular-event",
         latin: [
-            // The lookahead keeps "a stroke of luck" / "a stroke of genius" out.
-            // Idiom is the other half of this word's polysemy problem, after the
-            // swimming metric.
-            "(?:having|had|have)\\s+a\\s+stroke(?!\\s+of\\s)", "stroke\\s+(?:symptoms|victim)",
+            // Not "a stroke of luck", nor the swim metric ("you had a stroke rate of 34").
+            "(?:having|had|have)\\s+a\\s+stroke(?!\\s+(?:of\\s|rate|count|length|cycle|index|technique|drill|rhythm|plan))", "stroke\\s+(?:symptoms|victim)",
             "mini[- ]stroke", "transient\\s+ischemic\\s+attack",
             "cerebrovascular", "pulmonary\\s+embolism", "blood\\s+clot",
             "deep\\s+vein\\s+thrombosis",
@@ -240,11 +241,12 @@ enum MedicalTermLexicon {
             "hj[äa]rnbl[öo]dning", "slaganfall", "blodpropp", "lungemboli", // sv
             "aivohalvaus", "aivoinfarkti", "keuhkoembolia", "verihyytym[äa]",  // fi
             "heilabl[óo][ðd]fall", "bl[óo][ðd]tappi",             // is
-            "инсульт", "тромбоэмболия", "тромб"                   // ru
+            "инсульт(?:а|е|у|ом|ы)?", "тромбоэмболи[яиюей]", "тромб(?:а|е|у|ом|ы)?" // ru
         ],
         unbounded: [
             "脳卒中", "脳梗塞", "肺塞栓", "血栓",
-            "脑卒中", "中风", "脑梗死", "肺栓塞",
+            // 中风险 is "medium risk", not a stroke.
+            "脑卒中", "中风(?!险)", "脑梗死", "肺栓塞",
             "뇌졸중", "뇌경색", "폐색전", "혈전",
             "سكتة دماغية", "جلطة", "انسداد رئوي"
         ]
@@ -255,20 +257,24 @@ enum MedicalTermLexicon {
         latin: [
             "irregular\\s+(?:heart\\s*)?(?:beat|rhythm|pulse)",
             "heart\\s+(?:is\\s+)?beating\\s+irregularly?",
-            "skipped?\\s+beats?", "palpitations?",
-            "battements?\\s+irr[ée]guliers?", "rythme\\s+cardiaque\\s+irr[ée]gulier", // fr
-            "palpitaciones", "latidos?\\s+irregulares?",       // es
-            "palpita[çc][õo]es", "batimentos?\\s+irregulares?", // pt-BR
-            "palpitazioni", "battito\\s+irregolare",           // it
-            "herzklopfen", "unregelm[äa][ßs]iger\\s+herzschlag", // de
+            "(?:skipped|skipping|skip)\\s+beats?", "palpitations?",
+            // Not the app's own beat-cleaning copy ("un battement irrégulier ou mal
+            // détecté", "trop de battements irréguliers à proximité"): an artefact.
+            "(?<!trop\\sde\\s)battements?\\s+irr[ée]guliers?(?!\\s+(?:ou|o|or|e|et)\\s+(?:mal|mis|rilevat\\w*)|\\s+(?:[àa]\\s+proximit[ée]|cerca|por\\s+perto|nelle\\s+vicinanze))", "rythme\\s+cardiaque\\s+irr[ée]gulier", // fr
+            "palpitaciones", "(?<!demasiados\\s)latidos?\\s+irregulares?(?!\\s+(?:ou|o|or|e|et)\\s+(?:mal|mis|rilevat\\w*)|\\s+(?:[àa]\\s+proximit[ée]|cerca|por\\s+perto|nelle\\s+vicinanze))", // es
+            "palpita[çc][õo]es", "batimentos?\\s+irregulares?(?!\\s+demais)(?!\\s+(?:ou|o|or|e|et)\\s+(?:mal|mis|rilevat\\w*)|\\s+(?:[àa]\\s+proximit[ée]|cerca|por\\s+perto|nelle\\s+vicinanze))", // pt-BR
+            "palpitazioni", "(?<!troppi\\s)battit[oi]\\s+irregolar[ei](?!\\s+(?:ou|o|or|e|et)\\s+(?:mal|mis|rilevat\\w*)|\\s+(?:[àa]\\s+proximit[ée]|cerca|por\\s+perto|nelle\\s+vicinanze))", // it
+            // Not bare Herzklopfen, hjertebanken, hjärtklappning or 두근거림: each is
+            // also the pounding heart of a climb, which is exertion (see the Spoken file).
+            "unregelm[äa][ßs]iger\\s+herzschlag",              // de
             "hartkloppingen", "onregelmatige\\s+hartslag",     // nl
-            "hjertebanken", "uregelm[æa]ssig\\s+hjerterytme",  // da, nb
-            "hj[äa]rtklappning", "oregelbunden\\s+hj[äa]rtrytm", // sv
+            "uregelm[æa]ssig\\s+hjerterytme",                  // da, nb
+            "oregelbunden\\s+hj[äa]rtrytm",                    // sv
             "syd[äa]mentykytys", "eps[äa]s[äa][äa]nn[öo]llinen\\s+syke", // fi
             "hjartsl[áa]ttar[óo]regla",                        // is
             "учащ[её]нное\\s+сердцебиение", "перебои\\s+в\\s+сердце" // ru
-        ],
-        unbounded: ["動悸", "心悸", "心跳不规律", "심계항진", "두근거림", "خفقان"]
+        ] + spokenIrregularHeartbeat,
+        unbounded: ["動悸", "心悸", "心跳不规律", "심계항진", "خفقان"] + spokenIrregularHeartbeatUnbounded
     )
 
     // MARK: - Diagnosis, treatment, regulatory claims
@@ -284,14 +290,15 @@ enum MedicalTermLexicon {
             "diagnos(?:e|is|es|ed|ing)(?!\\w)(?!\\s+(?:log|logs|data|tool|tools|bundle))",
             "undiagnosed",
             "diagnostiqu(?:er|é|ée)",
-            "diagnostic(?!s?\\s+(?:log|logs|data|tool|tools|bundle))",   // fr
-            "diagn[óo]stic[oa]s?(?!\\s+(?:del\\s+archivo|do\\s+arquivo|de\\s+sistema))",
+            // Romance word order puts the software noun first ("journal de diagnostic").
+            "(?<!\\sde\\s)diagnostic(?!s?\\s+(?:log|logs|data|tool|tools|bundle|from|depuis|avanc[ée]|syst[èe]me|d['’]archive|complet))", // fr
+            "(?<!\\sde\\s)(?<!log\\s)(?<!registro\\s)(?<!dato\\s)diagn[óo]stic[oa]s?(?!\\s+(?:del\\s+archivo|do\\s+arquivo|de\\s+sistema|del\\s+sistema|do\\s+sistema|di\\s+sistema|archivio|avanzad[oa]|avan[çc]ad[oa]|desde|em\\s+configura|da\\s+impostazioni))",
             "diagnosticar",                           // es, pt-BR
             "diagnosi", "diagnosticare",              // it
             // Same software-sense lookahead as the English pattern above, or
             // this bare form re-matches "diagnose log" and undoes it.
             "diagnose(?!\\s+(?:log|logs|data|tool|tools|bundle))", "diagnostizier(?:en|t)", // de, nl, da, nb
-            "diagnos(?:er)?",                         // sv
+            "diagnos(?:er)?(?!\\s+fr[åa]n\\s+inst[äa]llningar)", // sv
             "diagnoosi",                              // fi
             // Icelandic `greining` means ANALYSIS as much as diagnosis, and the
             // app's own Icelandic UI uses it that way ("Greining" = Analysis,
@@ -301,7 +308,13 @@ enum MedicalTermLexicon {
             "sj[úu]kd[óo]msgreining\\w*", "l[æa]knisgreining\\w*",   // is
             "диагноз", "диагностир"                   // ru
         ],
-        unbounded: ["診断", "진단", "诊断", "تشخيص"]
+        // Not the software sense: the app's own "診断ログ", "系统诊断", "진단 도구", "سجل التشخيص".
+        unbounded: [
+            "(?<!システム)(?<!アーカイブ)(?<!詳細な)診断(?!ログ|ツール|情報|データ)",
+            "(?<!고급 )(?<!아카이브 )(?<!시스템 )진단(?! ?(?:로그|도구|정보|데이터))",
+            "(?<!高级)(?<!存档)(?<!系统)诊断(?!日志|工具|信息|数据)",
+            "(?<!سجل ال)(?<!سجلات ال)(?<!أدوات ال)تشخيص(?!ي|ات| النظام)"
+        ]
     )
 
     static let cure = Concept(
@@ -315,8 +328,11 @@ enum MedicalTermLexicon {
             "curar",                                  // es, pt-BR
             "(?:la|una|a|uma)\\s+cura\\s+(?:para|per|de|di|contro|contra)",
             "cura\\s+(?:definitiva|milagrosa|miracolosa)", // es, pt-BR, it
-            "heilen", "heilung",                      // de
-            "genezen", "genezing",                    // nl
+            // Not bare "heilen" / "genezen", which also mean "heal": the cure names a disease.
+            "(?:krankheit|erkrankung)\\w*\\s+(?:zu\\s+)?heilen", "heilt\\s+(?:deine|ihre|die)\\s+(?:krankheit|erkrankung)\\w*",
+            "heilung\\s+(?:von|der|deiner|ihrer)\\s+(?:krankheit|erkrankung)\\w*", "heilmittel\\w*", // de
+            "(?:ziekte|aandoening)\\s+(?:te\\s+)?genezen", "geneest\\s+(?:je|jouw|uw|de)\\s+(?:ziekte|aandoening)",
+            "genezing\\s+van\\s+(?:je\\s+|de\\s+|uw\\s+)?(?:ziekte|aandoening)", // nl
             // Not a bare `"bota"` (Spanish/Portuguese "boot", Portuguese "puts").
             "helbrede", "helbredelse", "botemedel",   // da/nb, sv
             "bota\\s+(?:din\\s+|en\\s+)?\\w*sjukdom\\w*", // sv
@@ -362,7 +378,9 @@ enum MedicalTermLexicon {
     static let prescription = Concept(
         id: "prescription",
         latin: [
-            "prescriptions?", "prescrib(?:e|es|ed|ing)",
+            // Not a coach's "prescribed pace" or "session prescription is 5x1k".
+            "(?<!training\\s)(?<!workout\\s)(?<!session\\s)prescriptions?(?!\\s+(?:for\\s+(?:this|the|your|today['’]s)\\s+(?:week|session|workout|run|ride|day|intervals?)|is\\s+\\d))",
+            "prescrib(?:e|es|ed|ing)(?!\\s+(?:pace|workout|session|intensity|zone|effort|load|volume|reps|sets|intervals?|training|distance|duration|recovery\\s+(?:run|ride|day))\\b)",
             "ordonnance", "prescrire",                // fr
             "receta\\s+m[ée]dica", "prescripci[óo]n", // es
             "prescri[çc][ãa]o", "receita\\s+m[ée]dica", // pt-BR
@@ -373,7 +391,8 @@ enum MedicalTermLexicon {
             // Only the prescription-only shapes are matched.
             "verschreibung", "rezeptpflichtig\\w*",   // de
             "[äa]rztliche[sn]?\\s+rezept\\w*", "rezept\\s+vom\\s+arzt", // de
-            "voorschrift", "receptplichtig\\w*", "op\\s+recept", // nl
+            // Not bare "voorschrift": any instruction ("het voorschrift van de fabrikant").
+            "(?:arts|dokter|huisarts)s?voorschrift\\w*", "op\\s+(?:medisch\\s+)?voorschrift", "receptplichtig\\w*", "op\\s+recept", // nl
             "receptbelagd\\w*", "receptpligtig\\w*", "p[åa]\\s+recept", // sv, da
             "reseptbelagt\\w*", "p[åa]\\s+resept",   // nb
             "reseptil[äa][äa]k\\w*", "l[äa][äa]k[äa]rin\\s+resepti\\w*", // fi
@@ -531,8 +550,8 @@ extension MedicalTermLexicon {
             "rintakipu",                                        // fi
             "brj[óo]stverk(?:ur|i|s)?",                         // is
             "боль\\s+в\\s+груди"                                // ru
-        ],
-        unbounded: ["胸痛", "胸口疼", "흉통", "가슴 통증", "ألم في الصدر"]
+        ] + spokenChestPain,
+        unbounded: ["胸痛", "胸口疼", "흉통", "가슴 통증", "ألم في الصدر"] + spokenChestPainUnbounded
     )
 
     static let breathlessness = Concept(
@@ -543,16 +562,18 @@ extension MedicalTermLexicon {
             "essoufflement", "difficult[ée]\\s+[àa]\\s+respirer",  // fr
             "dificultad\\s+para\\s+respirar", "falta\\s+de\\s+aire", // es
             "falta\\s+de\\s+ar", "dificuldade\\s+para\\s+respirar",  // pt-BR
-            "affanno", "difficolt[àa]\\s+a\\s+respirare",            // it
+            // Not "in affanno" (winded on a climb), nor muggy weather ("het was
+            // benauwd"), nor having been winded ("jeg var tungpustet").
+            "(?<!in\\s)affanno", "difficolt[àa]\\s+a\\s+respirare", // it
             "atemnot", "kurzatmigkeit",                              // de
-            "kortademigheid", "benauwd(?:heid)?",                    // nl
-            "[åa]nden[øo]d", "tungpustet", "andpustenhet",           // da, nb
+            "kortademigheid", "benauwdheid", "(?:ik\\s+ben|voel\\s+me|voel\\s+mij)\\s+(?:\\w+\\s+)?benauwd", // nl
+            "[åa]nden[øo]d", "(?:er|blir|bliver)\\s+(?:\\w+\\s+)?tungpustet", "andpustenhet", // da, nb
             "andn[öo]d",                                             // sv
             "hengenahdistus",                                        // fi
             "andn[æa][ðd](?:i)?", "m[æa][ðd]i",                      // is
             "одышка"                                                 // ru
-        ],
-        unbounded: ["息切れ", "呼吸困難", "呼吸困难", "气短", "호흡곤란", "숨가쁨", "ضيق التنفس"]
+        ] + spokenBreathlessness,
+        unbounded: ["息切れ", "呼吸困難", "呼吸困难", "气短", "호흡곤란", "숨가쁨", "ضيق التنفس"] + spokenBreathlessnessUnbounded
     )
 
     static let syncope = Concept(
@@ -561,12 +582,15 @@ extension MedicalTermLexicon {
             // Not `"fainting"` only: "I fainted" and "I feel faint" are the
             // two ways anyone actually reports this, and must not go straight
             // to a cloud provider. Bare "faint" is also an adjective ("a faint
-            // HR trace"), so the adjective only counts after a feeling verb.
+            // HR trace", "a faint twinge"), so the adjective only counts after a
+            // feeling or modal verb, with no article and no sensation noun after it.
             "faint(?:s|ed|ing|ness)",
-            "(?:feel|feels|feeling|felt|going\\s+to|about\\s+to)\\s+(?:\\w+\\s+){0,2}faint",
+            "(?:feel|feels|feeling|felt|going\\s+to|about\\s+to|might|may|could|will)\\s+(?:(?!an?\\b)\\w+\\s+){0,2}faint(?![-\\w])(?!\\s+(?:twinge|ache|pain|soreness|praise|memory|trace|hint|sense|burn\\w*))",
             // Every tense: "I'm going to pass out" and "I might black out"
-            // are the warning, not only "I passed out".
-            "syncope", "pass(?:ed|es|ing)?\\s+out", "black(?:ed|s|ing)?\\s+out",
+            // are the warning, not only "I passed out". Not a handout ("passed out
+            // the water bottles") or a screen ("my watch screen blacked out").
+            "syncope", "pass(?:ed|es|ing)?\\s+out(?!\\s+(?:the|some|flyers|water|bottles|gels|snacks|medals)\\b)",
+            "(?<!screen\\s)(?<!watch\\s)(?<!display\\s)(?<!phone\\s)black(?:ed|s|ing)?\\s+out",
             "[ée]vanouissement",                       // fr
             "desmay(?:o|os|arse|é|ó)",                  // es
             "desmai(?:o|os|ei|ou)",                     // pt-BR
@@ -578,8 +602,8 @@ extension MedicalTermLexicon {
             "py[öo]rtyminen",                          // fi
             "y[fi]irli[ðd]",                           // is
             "обморок"                                  // ru
-        ],
-        unbounded: ["失神", "昏厥", "晕倒", "실신", "إغماء"]
+        ] + spokenSyncope,
+        unbounded: ["失神", "昏厥", "晕倒", "실신", "إغماء"] + spokenSyncopeUnbounded
     )
 
     static let severeSymptom = Concept(
@@ -630,40 +654,6 @@ extension MedicalTermLexicon {
         unbounded: ["危険ですか", "命に関わ", "心配すべき", "危险吗", "有生命危险", "该担心", "위험한가요", "위험합니까", "걱정해야", "خطير", "هل يجب أن أقلق"]
     )
 
-    static let selfHarm = Concept(
-        id: "self-harm",
-        latin: [
-            // "Suicide sprints" (and runs, drills, shuttles, lines) are a
-            // common conditioning drill, so that shape is excluded; the plural
-            // "suicides" never matches inside `\b…\b`. The lookahead lives on
-            // the one pattern that matches English, French and Dutch alike.
-            "suicidal", "su[ïi]cide(?!\\s+(?:sprints?|runs?|drills?|shuttles?|lines?)\\b)",
-            "kill\\s+myself", "end\\s+my\\s+life", "want\\s+to\\s+die",
-            "self[-\\s]?harm(?:ing)?",
-            // Not "hurt myself" or "cut myself": in a training app those are
-            // mostly injuries and kitchen accidents, not a crisis.
-            "(?:harm|harming|cutting)\\s+myself",
-            // iOS types a curly apostrophe by default.
-            "(?:don['’]?t|do\\s+not)\\s+want\\s+to\\s+(?:live|be\\s+alive|be\\s+here\\s+anymore)",
-            "(?:take|taking|took)\\s+an?\\s+overdose",
-            "overdos(?:e|ing)\\s+on\\s+(?:pills|meds|medication|tablets)",
-            // Stems end in `\\w*` so inflections ("suicidas", "самоубийство")
-            // and compounds ("Selbstmordgedanken") match inside `\\b…\\b`.
-            // `(?!e)` leaves English "suicide(s)" to the drill-aware pattern.
-            "me\\s+suicider",                          // fr
-            "su[ïi]c[íi]d(?!e)\\w*",                    // es, it, pt-BR, fr, nl
-            "selbstmord\\w*", "suizid\\w*",            // de
-            "zelfmoord\\w*",                           // nl
-            "selvmord\\w*",                            // da, nb
-            "sj[äa]lvmord\\w*",                        // sv
-            "itsemurh\\w*",                            // fi
-            "sj[áa]lfsv[íi]g\\w*",                     // is
-            "суицид\\w*", "самоубийств\\w*",          // ru
-            "покончить\\s+с\\s+собой"                  // ru
-        ],
-        unbounded: ["自殺", "自杀", "자살", "انتحار"]
-    )
-
     // MARK: - Medical referral (output side — we redirect, we do not prescribe)
 
     static let medicalReferral = Concept(
@@ -712,18 +702,22 @@ extension MedicalTermLexicon {
     static let speculativeDiagnosis = Concept(
         id: "speculative-diagnosis",
         latin: [
-            "you\\s+(?:may|might|could|likely)\\s+(?:have|be\\s+developing)\\s+\\w+",
+            // The claim is "you may HAVE <something>", never a past participle ("you
+            // may have gone out too fast") or a coach's offer ("du könntest heute locker
+            // laufen", "puedes tener un día libre", "du kan ha en lätt dag").
+            "you\\s+(?:may|might|could|likely)\\s+(?:have|be\\s+developing)\\s+(?!(?:been|gone|run|done|had|got|gotten|made|taken|felt|slept|held|kept|left|overdone|\\w+ed)\\b)\\w+",
             "vous\\s+(?:avez\\s+peut-[êe]tre|pourriez\\s+avoir)",   // fr
-            "puede(?:s)?\\s+(?:que\\s+)?tener(?:\\s+\\w+)?", "podr[íi]as?\\s+tener", // es
-            "voc[êe]\\s+pode\\s+(?:ter|estar\\s+com)",              // pt-BR
-            "potresti\\s+avere", "potrebbe\\s+avere",               // it
-            "sie\\s+(?:k[öo]nnten|haben\\s+m[öo]glicherweise)", "du\\s+k[öo]nntest",  // de
+            "puede\\s+que\\s+tengas(?:\\s+\\w+)?",
+            "podr[íi]as?\\s+tener\\s+(?:una?|algo\\s+de)\\s+(?!d[íi]a|sesi[óo]n|semana|entreno|entrenamiento|descanso|rodaje|carrera)\\w+", // es
+            "voc[êe]\\s+pode\\s+(?:estar\\s+com|ter\\s+(?:uma?)\\s+(?!dia|sess[ãa]o|semana|treino|descanso|folga|corrida)\\w+)", // pt-BR
+            "potre(?:sti|bbe)\\s+avere\\s+(?:(?:una?|la|il|lo)\\s+|(?:un|l)['’]\\s*)(?!giorn|session|settiman|allenament|riposo|bisogno|recupero)\\w+", // it
+            "(?:sie\\s+k[öo]nnten|du\\s+k[öo]nntest)\\s+(?!(?:\\w+\\s+){0,2}(?:ruhetag|pause|tag|einheit|lauf|training|zeit|lust)\\w*\\b)(?:\\w+\\s+){1,3}haben",
+            "(?:sie\\s+haben|du\\s+hast)\\s+m[öo]glicherweise",  // de
             "je\\s+(?:hebt\\s+mogelijk|zou\\s+kunnen\\s+hebben)",   // nl
-            "du\\s+(?:har\\s+m[åa]ske|kan\\s+have)",                // da
-            "du\\s+(?:kan\\s+ha|har\\s+kanskje)",                   // nb
-            "du\\s+(?:kan\\s+ha|har\\s+kanske)",                    // sv
+            "du\\s+har\\s+(?:m[åa]ske|kanskje|kanske)",          // da, nb, sv
+            "du\\s+kan\\s+ha(?:ve)?\\s+(?!(?:en|et|ett)\\s+(?:\\w+\\s+)?\\w*(?:dag|økt|pass|tur|uke|vecka)\\b)\\w+", // da, nb, sv
             "sinulla\\s+(?:saattaa|voi)\\s+olla",                   // fi
-            "у\\s+вас\\s+(?:возможно|может\\s+быть)"                // ru
+            "у\\s+вас\\s+(?:возможно|может\\s+быть)(?!\\s+(?:л[её]гк|отдых|выходн|тренировк|день|больше|меньше))" // ru
         ],
         // The Japanese and Korean forms must not be bare
         // `の可能性があります` ("there is a possibility of …") or
@@ -945,11 +939,13 @@ extension MedicalTermLexicon {
             "det\\s+p[åa]g[åa]r\\s+n[åa]got\\s+viktigt",
             "du\\s+[äa]r\\s+(?:tydligt|definitivt|helt\\s+klart)",                           // sv
             "jotain\\s+merkitt[äa]v[äa][äa]\\s+on\\s+(?:meneill[äa][äa]n|tekeill[äa])",
-            "olet\\s+(?:selv[äa]sti|ehdottomasti|varmasti)",                                 // fi
+            // Not the app's own score copy "olet selvästi OMAN normaalisi yläpuolella".
+            "olet\\s+(?:selv[äa]sti|ehdottomasti|varmasti)(?!\\s+(?:\\w+\\s+){0,2}\\w*(?:yl[äa]|ala)puolella)", // fi
             "eitthva[ðd]\\s+markt[æa]kt\\s+er\\s+a[ðd]\\s+gerast",
             "þ[úu]\\s+ert\\s+(?:greinilega|[óo]tv[íi]r[æa]tt)",                              // is
             "происходит\\s+что-то\\s+(?:серьёзное|серьезное|значимое)",
-            "вы\\s+(?:явно|определённо|определенно|несомненно)"                              // ru
+            // Not "вы явно сохранили" (you explicitly saved): a past-tense verb is an action.
+            "вы\\s+(?:явно|определённо|определенно|несомненно)(?!\\s+\\w+(?:ли|л|ла)\\b)" // ru
         ],
         unbounded: [
             // Not bare 明らかに / 間違いなく / 확실히: they are everyday

@@ -33,7 +33,11 @@ enum ScoringVersion {
     /// own `version` is not stored on a score; re-binding
     /// `defaultScoringParameters` is a scoring change, so it bumps this
     /// version, and the stored version then tells which table produced a score.
-    static let current = "v3.4.nov2026"
+    /// `check_scoring_governance.sh` holds that: it hashes the scoring code
+    /// token by token, with every constant it reaches wherever declared, the
+    /// band tables and the table this binding names among them, and fails
+    /// while the hash moves and this version does not.
+    static let current = "v3.5.nov2026"
 
     /// What a score decoded without a version is called.
     ///

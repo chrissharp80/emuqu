@@ -115,7 +115,7 @@ During an overnight session the app streams RR over Bluetooth and, where the str
 
 #### 3.1.2 Strap rescue before clear
 
-Starting a strap recording requires clearing its memory, which is destructive. The start sequence is fixed as `[rescueExisting, clearExisting, beginRecording]`. The rescue step downloads any stored recording that a download ledger says the app does not already hold and hands it to the backup. If that download fails, the start is aborted instead of clearing. A test asserts the invariant "rescue precedes clear" for every strap type.
+Starting a strap recording requires clearing its memory, which is destructive. The start sequence is fixed as `[rescueExisting, clearExisting, beginRecording]`. The rescue step downloads any stored recording that a download ledger says the app does not already hold and hands it to the backup. A recording goes on that ledger as held only once its beats are on disk (a backup or an archived session), not when the download returns, so an app killed or a backup write that fails in between leaves the strap's copy recoverable. If that download fails, the start is aborted instead of clearing. A test asserts the invariant "rescue precedes clear" for every strap type.
 
 #### 3.1.3 Source selection
 
@@ -327,7 +327,7 @@ Take the 60 most recent stored *nights* (a count, not calendar days). Require â‰
 
 #### 3.6.4 Leave-current-out
 
-To score a night, only points whose night key is strictly earlier than the scored night's key are used. Re-scoring an old night therefore never reads later nights. On the live morning path this means every stored night except tonight. The same statistics feed window ranking (Section 3.5.5) and the final score.
+To score a night, only points whose night key is strictly earlier than the scored night's key are used. Re-scoring an old night therefore never reads later nights. On the live morning path this means every stored night except tonight. Only the newest 90 nights are stored, so a night older than the stored nights reach is re-scored against its window rebuilt from the archive by the same admission, one-per-night and 60-night rules; when no baseline can be built for it (fewer than 3 earlier nights), its stored score and breakdown are kept rather than replaced by an absolute-band score. The same statistics feed window ranking (Section 3.5.5) and the final score.
 
 *Why it works.* A night compared with a baseline that contains it is partly compared with itself, which pulls its z-score toward zero; comparing with earlier measurements only follows Kiviniemi et al. [5]. Restricting to earlier keys also makes a historical rescore reproduce what the user would have seen that morning.
 

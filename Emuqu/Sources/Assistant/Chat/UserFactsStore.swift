@@ -163,7 +163,8 @@ final class UserFactsStore {
     /// who it came from; there is no default, so no caller can file model
     /// output as the user's by leaving it out.
     ///
-    /// Capped at `maxFacts` (FIFO prune of the oldest). Every fact rides
+    /// Capped at `maxFacts` (`overCap`: the oldest fact not set by the user
+    /// goes first, then the user's own oldest). Every fact rides
     /// in the system prompt of every AI turn, so unbounded growth
     /// silently inflates prompt token cost over time. 25 fits ~250
     /// tokens — enough to remember a useful profile without dominating
@@ -186,9 +187,12 @@ final class UserFactsStore {
         // ("…right now" vs "…right now.") collapse to one fact instead of both
         // riding in every prompt.
         guard !facts.contains(where: { Self.normalizedKey($0.text) == key }) else { return .alreadySaved }
-        var next = facts + [Fact(text: trimmed, origin: origin)]
-        let evicted = Array(next.prefix(max(0, next.count - Self.maxFacts)))
-        next.removeFirst(evicted.count)
+        let incoming = Fact(text: trimmed, origin: origin)
+        let evicted = Self.overCap(facts + [incoming])
+        // Only an auto-memory fact, with nothing but the user's own to push
+        // out, is its own eviction (`overCap`).
+        guard !evicted.contains(incoming) else { return .noRoom }
+        let next = (facts + [incoming]).filter { !evicted.contains($0) }
         guard writeKeepingSetAsideCopies(next) else { return .notSaved }
         facts = next
         return .added(evicted: evicted)
@@ -204,6 +208,21 @@ final class UserFactsStore {
         case nothingToSave
         /// The facts could not be read or written, so nothing changed.
         case notSaved
+        /// A fact auto-memory took from a model's output, refused because the
+        /// only facts it could push out are the user's own.
+        case noRoom
+    }
+
+    /// The facts that do not fit in `maxFacts`, to drop: the oldest not set
+    /// by the user first (auto-memory's, and those saved before origins were
+    /// recorded), then the user's own oldest. An automatic save never pushes
+    /// out what the user saved while anything else can go.
+    nonisolated static func overCap(_ facts: [Fact]) -> [Fact] {
+        let excess = facts.count - maxFacts
+        guard excess > 0 else { return [] }
+        let others = facts.filter { !$0.isFromUser }.prefix(excess)
+        let users = facts.filter(\.isFromUser).prefix(excess - others.count)
+        return Array(others) + Array(users)
     }
 
     nonisolated static let maxFacts = 25
@@ -216,7 +235,8 @@ final class UserFactsStore {
         return s.lowercased().trimmingCharacters(in: trimSet)
     }
 
-    /// Dedup (newest phrasing of a duplicate wins) + cap to `maxFacts`.
+    /// Dedup (newest phrasing of a duplicate wins) + cap to `maxFacts`
+    /// (`overCap`).
     /// Applied on LOAD so a file bloated by an older build gets cleaned on the
     /// next launch, not only when the next `add` happens to prune it.
     nonisolated static func dedupedAndCapped(_ input: [Fact]) -> [Fact] {
@@ -228,8 +248,8 @@ final class UserFactsStore {
             result.append(fact)
         }
         result.reverse()
-        if result.count > maxFacts { result.removeFirst(result.count - maxFacts) }
-        return result
+        let dropped = Set(overCap(result).map(\.id))
+        return result.filter { !dropped.contains($0.id) }
     }
 
     /// Removes the fact with `id` and writes the rest at once, dropping every

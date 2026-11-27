@@ -66,7 +66,7 @@ extension OvernightStreamingCoordinator {
         overnightRun.usesDeviceBackup = useDeviceInternalBackup
         try strapStream.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
-        services.systemDiagnosticsManager.startSamplingDuringRecording()
+        services.systemDiagnosticsManager.startSamplingDuringRecording(for: .recordScreen)
         if useDeviceInternalBackup, strapLinkControl.state.connectedDeviceType != .veritySense {
             launchDeviceRecordingLoop()  // H10-only internal-recording backup
         }
@@ -343,9 +343,12 @@ extension OvernightStreamingCoordinator {
     /// A Verity Sense night is scored from the stream alone (the morning never
     /// downloads from it), so nothing is left to pull and the sensor is
     /// released once the night is scored, or has failed for too short a stream.
-    /// A night started on it since the stop let go of the ending keeps it.
-    private func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
-        guard isVeritySense, !streamingLifecycle.isOvernightStreaming else { return }
+    /// A night started on it since the stop let go of the ending keeps it,
+    /// and so does any other session buffering on it or a transfer using it
+    /// (`StrapStreamSession.mayReleaseLink`).
+    func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
+        guard isVeritySense, !streamingLifecycle.isOvernightStreaming,
+              strapStream.mayReleaseLink(after: nil, recording: strapRecorder.device) else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after overnight session")
         strapDiscovery.disconnect()
     }
@@ -364,7 +367,7 @@ extension OvernightStreamingCoordinator {
         let (finalPoints, dataSource, finalDeviceBeats) = selectBestDataSource(
             streamingPoints: streamingPoints, devicePoints: fetched.devicePoints, baseSession: baseSession
         )
-        await morning.backUpDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
+        await keepDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
         return await analyzeAndFinalizeOvernight(
             finalPoints: finalPoints, baseSession: baseSession,
             streamingBeats: streamingPoints.count, deviceBeats: finalDeviceBeats,
@@ -519,8 +522,20 @@ extension OvernightStreamingCoordinator {
     /// would clear the strap's only copy. The night uses the stream.
     private func keepDownloadSkipped(_ recording: StrapRecording?, baseSession: HRVSession) async {
         debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
-        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)
+        if let recording, morning.rescueDownloadedBeats(recording.points(onClockOf: baseSession.startDate), baseSession: baseSession) {
+            strapRecorder.device.noteSaved(recording)
+        }
         await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+    }
+
+    /// Backs up the strap beats the night downloaded
+    /// (`MorningSessionPipeline.backUpDownloadedNight`) and, only once they
+    /// are on disk, puts the night's recording on the saved record. An app
+    /// that dies before, or a backup that fails, leaves the strap's copy
+    /// recoverable, never cleared by the next arming.
+    func keepDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
+        guard await morning.backUpDownloadedNight(devicePoints, chosen: chosen, usedDevice: usedDevice, baseSession: baseSession) else { return }
+        strapRecorder.device.noteDownloadsSaved(recordedSince: baseSession.startDate)
     }
 
     /// The night's Skip and its arming are read once, by the gate: both are
@@ -644,7 +659,7 @@ extension OvernightStreamingCoordinator {
     /// The morning stop and the pause's gather both stop through here.
     func stopStreamingInfrastructure() async -> (HRVSession, [RRPoint], Int) {
         streamingLifecycle.stopStreamingTimer()
-        services.systemDiagnosticsManager.stopSamplingAfterRecording()
+        services.systemDiagnosticsManager.stopSamplingAfterRecording(for: .recordScreen)
         streamingLifecycle.isStreamingMode = false
         let baseSession = sessionState.currentSession ?? HRVSession()
         let reconnectCount = strapStream.streamingReconnectCount
@@ -717,11 +732,12 @@ extension OvernightStreamingCoordinator {
         return finalSession
     }
 
-    /// The recording marker goes once the night is saved. A scored night
-    /// whose pre-archive failed keeps it until Accept saves the night, so a
-    /// crash on the review card still offers the night at launch.
+    /// The recording marker goes once the night is saved: under its own id,
+    /// or folded into a night the archive already held (`holdsNight`). A
+    /// scored night whose pre-archive failed keeps it until Accept saves the
+    /// night, so a crash on the review card still offers the night at launch.
     private func clearPersistedStateIfSaved(_ finalSession: HRVSession) {
-        guard finalSession.state != .complete || archive.store.exists(finalSession.id) else {
+        guard finalSession.state != .complete || archive.holdsNight(finalSession.id) else {
             debugLog("[RRCollector] Night \(finalSession.id.uuidString.prefix(8)) is not in the archive — keeping its recording marker until Accept", level: .warning)
             return
         }
@@ -739,12 +755,15 @@ extension OvernightStreamingCoordinator {
     }
 
     /// Show the finished status for a beat, clear it, and fold the night into
-    /// the rolling baselines.
+    /// the rolling baselines. A recording the archive folded into a night it
+    /// already held goes in as that night (`SessionArchive.archivedId(of:)`):
+    /// the recording's own reading, under an id the archive does not hold,
+    /// would stand in the baseline for the merged night.
     private func settleMorningStatus(complete: RRCollector.MorningProcessingStatus, finalSession: HRVSession) async {
         await MainActor.run { morningCoordination.morningStatus = complete }
         await Self.holdCompleteStatusBriefly()
         await MainActor.run { morningCoordination.morningStatus = nil }
-        baselineTracker.update(with: finalSession, sleepSchedule: settingsManager.settings.sleepSchedule)
+        baselineTracker.update(with: archive.night(holding: finalSession), sleepSchedule: settingsManager.settings.sleepSchedule)
     }
 
     /// Let the "complete" morning status sit on screen for a beat before it's
@@ -793,6 +812,7 @@ extension OvernightStreamingCoordinator {
         let (points, source, _) = selectBestDataSource(
             streamingPoints: streamingPoints, devicePoints: devicePoints, baseSession: baseSession
         )
+        await keepDownloadedNight(devicePoints, chosen: points, usedDevice: true, baseSession: baseSession)
         return await finalizeFallbackSession(data: OvernightDataResult(
             points: points, baseSession: baseSession,
             streamingBeats: streamingPoints.count, deviceBeats: devicePoints.count,

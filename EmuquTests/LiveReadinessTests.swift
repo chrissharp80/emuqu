@@ -56,9 +56,36 @@ final class LiveReadinessTests: XCTestCase {
             liveMetrics: metrics,
             now: Date()
         )
-        XCTAssertEqual(r.score, 75, accuracy: 12,
-                       "Rest day with stable load should land near morning recovery")
+        let expected = ReadinessScoring.calculateReadiness(
+            recoveryScore: 75, todayTrimp: 0, ctl: 35, atl: 30, morningATL: 30, acuteChronicRatio: 30.0 / 35.0
+        )
+        XCTAssertEqual(r.score, expected, accuracy: 0.01,
+                       "A session without a training snapshot reads the stable live load from the morning on")
+        XCTAssertEqual(r.score, r.morningReadiness, accuracy: 0.01, "a rest day at a stable load has not drifted")
+        XCTAssertFalse(r.liftedByRecovery)
         XCTAssertEqual(r.todayTrimp, 0)
+    }
+
+    /// A morning session whose training snapshot did not persist anchors on
+    /// the live load, as a snapshot at that load would. A zero anchor read a
+    /// trained athlete (CTL 80, ATL 70) as untrained in the morning and
+    /// ramped the load up from nothing, so a run after waking read Fatigued.
+    func testAMissingMorningLoadAnchorsOnTheLiveLoad() {
+        let now = noonToday
+        let workout = makeWorkout(hoursAgo: 1, durationMinutes: 60, avgHR: 160, now: now)
+        let metrics = makeMetrics(atl: 70, ctl: 80, todayTrimp: 100, recentWorkouts: [workout])
+        let withoutSnapshot = LiveReadiness.compute(
+            recoveryScore: 75, morningSession: makeSession(recoveryScore: 7.5, sessionEndAgoHours: 4, now: now),
+            liveMetrics: metrics, now: now
+        )
+        let withSnapshotAtLiveLoad = LiveReadiness.compute(
+            recoveryScore: 75,
+            morningSession: makeSession(recoveryScore: 7.5, sessionEndAgoHours: 4, trainingSnapshot: makeContext(atl: 70, ctl: 80), now: now),
+            liveMetrics: metrics, now: now
+        )
+        XCTAssertEqual(withoutSnapshot.score, withSnapshotAtLiveLoad.score, accuracy: 0.01)
+        XCTAssertEqual(withoutSnapshot.morningReadiness, withSnapshotAtLiveLoad.morningReadiness, accuracy: 0.01)
+        XCTAssertEqual(withoutSnapshot.acuteChronicRatio ?? 0, 70.0 / 80.0, accuracy: 0.001)
     }
 
     // MARK: - Drift flags

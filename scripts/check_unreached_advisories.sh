@@ -28,7 +28,19 @@ for root in "${ROOTS[@]}"; do
 done
 
 # Any of these in the app's own Swift reaches Zip's unzip.
-PATTERN='^[[:space:]]*import[[:space:]]+Zip\b|\bZip\.(unzipFile|unzip|quickUnzipFile)\b|\.updateFirmware\(|\bPolarFirmwareUpdateApi\b|\bunzipFirmwarePackage\b'
+# Any import form (attributes, `import struct Zip.X`), and the firmware entry
+# point however it is reached: called with a space, or taken as a reference.
+PATTERN='^[[:space:]]*(@[A-Za-z_]+[[:space:]]+)*import[[:space:]]+([a-z]+[[:space:]]+)?Zip\b|\bZip\.(unzipFile|unzip|quickUnzipFile)\b|\bupdateFirmware\b|\bPolarFirmwareUpdateApi\b|\bunzipFirmwarePackage\b'
+
+# Each allowance in security.yml needs its reachability proof here. This gate
+# proves GHSA-g454-wj9r-jpg4 only; a second allowance has none.
+PROVEN_GHSAS="GHSA-g454-wj9r-jpg4"
+allowed="$(grep -hoE 'allow-ghsas:.*' .github/workflows/*.yml | sed 's/allow-ghsas://' | tr ', ' '\n\n' | grep -E '^GHSA-' | sort -u | tr '\n' ' ' | sed 's/ $//')"
+if [[ "$allowed" != "$PROVEN_GHSAS" ]]; then
+    echo "check_unreached_advisories: workflows allow [$allowed]; this gate proves only [$PROVEN_GHSAS] unreachable." >&2
+    echo "Add the reachability check for the new advisory here, or drop the allowance." >&2
+    exit 1
+fi
 
 hits="$(grep -rnE --include='*.swift' "$PATTERN" "${ROOTS[@]}" || true)"
 if [[ -n "$hits" ]]; then

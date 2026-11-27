@@ -63,7 +63,11 @@ extension SessionReanalysisCoordinator {
     /// delta can be detected and surfaced as a "score changed while you were
     /// away" banner. A session the archive cannot read is skipped, as one it
     /// does not hold is; the read failure is logged at `.error`.
-    private func handleRescoreRequest(sessionId: UUID, reason: String) async {
+    ///
+    /// A window the user picked is kept: the full reanalysis skips that night
+    /// (`preserveManualWindow`), and the score-only recompute then scores the
+    /// picked window from the changed sleep or training inputs.
+    func handleRescoreRequest(sessionId: UUID, reason: String) async {
         let stored = ArchivedSessionRead.read(sessionId, from: archive, caller: "Auto-rescore").session
         let priorScore = stored?.recoveryScore
         if reason == "training" {
@@ -75,7 +79,7 @@ extension SessionReanalysisCoordinator {
             return
         }
         debugLog("[Auto-rescore] reanalyzing session — prior score=\(session.recoveryScore ?? -1)")
-        if let updated = await reanalyzeSession(session) {
+        if let updated = await reanalyzeSession(session, preserveManualWindow: true) {
             debugLog("[Auto-rescore] complete — new score=\(updated.recoveryScore ?? -1)")
             finishRescore(sessionId: sessionId, prior: priorScore, updated: updated, reason: reason)
             return
@@ -83,7 +87,7 @@ extension SessionReanalysisCoordinator {
         await scoreOnlyFallback(sessionId: sessionId, priorScore: priorScore, reason: reason)
     }
 
-    /// Full reanalyze refused (no rrSeries, etc). Score-only
+    /// Full reanalyze refused (no rrSeries, a window the user picked, etc). Score-only
     /// recompute is the safety net — at minimum it heals a
     /// corrupted training snapshot and rebuilds the breakdown
     /// from the existing analysisResult. Better than leaving
@@ -282,7 +286,9 @@ extension SessionReanalysisCoordinator {
     /// the UI on every morning foreground). The refresh is applied to the
     /// archived copy as it is now, not to the one read before the HealthKit
     /// fetch, so an edit saved meanwhile (a feeling, tags, a reanalysis) is
-    /// kept. Returns the session as written; nil when the write failed.
+    /// kept, and a sleep the user edited meanwhile is not refreshed at all
+    /// (`applyAutoRefreshIfAllowed`). Returns the session as written; nil
+    /// when nothing was written or the write failed.
     private func persistRefreshedSleep(_ fresh: SleepData, sessionId: UUID) async -> HRVSession? {
         let archiveRef = archive
         return await Task.detached { Self.applyRefreshedSleep(fresh, sessionId: sessionId, in: archiveRef) }.value
@@ -292,7 +298,10 @@ extension SessionReanalysisCoordinator {
         _ fresh: SleepData, sessionId: UUID, in archive: SessionArchive
     ) -> HRVSession? {
         do {
-            try archive.update(sessionId, requestingReupload: false) { SleepRefreshPolicy.applyAutoRefresh(fresh, to: &$0) }
+            let written = try archive.updateIfChanged(sessionId, requestingReupload: false) {
+                SleepRefreshPolicy.applyAutoRefreshIfAllowed(fresh, to: &$0)
+            }
+            guard written else { return nil }
             return archive.retrieveOrLog(sessionId, caller: "AutoRescore.sleep")
         } catch {
             debugLog("[AutoRescore.sleep] archive write failed: \(error.localizedDescription)", level: .warning)
@@ -380,8 +389,7 @@ extension SessionReanalysisCoordinator {
     /// Strap nocturnal HR in place of Apple's daytime resting HR, as the
     /// acceptance path stores it.
     private func pulledSessionVitals(session: HRVSession, sessionEnd: Date) async -> RecoveryVitals {
-        await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd)
-            .withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
+        session.withSleepHeartRate(await healthKit.fetchRecoveryVitals(relativeTo: sessionEnd))
     }
 
     /// HK queries run on HealthKit's own background queues; each

@@ -258,22 +258,29 @@ enum MetricsVerifier {
     private static func trainingLoadDiscrepancies(in text: String, state: AppState) -> [Discrepancy] {
         guard !TrainingLoadVisibility.isPaused(state.settings),
               let load = TrainingLoadRegistry.live(from: state.trainingMetricsCache) else { return [] }
+        return trainingLoadClaims(in: text, tsb: load.tsb, atl: load.atl, ctl: load.ctl, acwr: load.acwr)
+    }
+
+    /// TSB, ATL, CTL and ACWR claims in `text` that disagree with the given
+    /// values.
+    static func trainingLoadClaims(in text: String, tsb: Double, atl: Double, ctl: Double, acwr: Double?) -> [Discrepancy] {
         var found = claimsMatching(
             in: text,
-            pattern: #"\bTSB(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?:negative\s+)?(?<value>-?\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
-            check: ClaimCheck(actual: load.tsb, tolerance: 2.0, metric: "TSB", negateOnSpelled: true) { String(format: "%+.1f", $0) }
+            pattern: #"\bTSB(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)"#
+                + #"(?<claim>(?:(?:negative|minus)\s+)?(?<value>[-−]?\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: tsb, tolerance: 2.0, metric: "TSB", negateOnSpelled: true) { String(format: "%+.1f", $0) }
         )
         found += claimsMatching(
             in: text,
             pattern: #"\bATL(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
-            check: ClaimCheck(actual: load.atl, tolerance: 3.0, metric: "ATL") { String(format: "%.1f", $0) }
+            check: ClaimCheck(actual: atl, tolerance: 3.0, metric: "ATL") { String(format: "%.1f", $0) }
         )
         found += claimsMatching(
             in: text,
             pattern: #"\bCTL(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
-            check: ClaimCheck(actual: load.ctl, tolerance: 3.0, metric: "CTL") { String(format: "%.1f", $0) }
+            check: ClaimCheck(actual: ctl, tolerance: 3.0, metric: "CTL") { String(format: "%.1f", $0) }
         )
-        return found + acwrDiscrepancies(in: text, acwr: load.acwr)
+        return found + acwrDiscrepancies(in: text, acwr: acwr)
     }
 
     /// ACWR, when the registry has one.
@@ -307,12 +314,14 @@ enum MetricsVerifier {
         return found
     }
 
-    /// "RMSSD 68 ms" / "RMSSD 76" / "RMSSD of 68" / "RMSSD is 48".
-    private static func rmssdClaims(in text: String, rmssd: Double) -> [Discrepancy] {
+    /// "RMSSD 68 ms" / "RMSSD 76" / "RMSSD of 68" / "RMSSD is 48". A log
+    /// RMSSD ("ln RMSSD 3.9") is another scale and is not checked.
+    static func rmssdClaims(in text: String, rmssd: Double) -> [Discrepancy] {
         claimsMatching(
             in: text,
-            pattern: #"\bRMSSD(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?)(?:\s*ms\b)?)(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
-            check: ClaimCheck(actual: rmssd, tolerance: 8.0, metric: "RMSSD") { String(format: "%.0f ms", $0) }
+            pattern: #"(?<!\bln\s)(?<!\blog\s)\bRMSSD(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)"#
+                + #"(?<claim>(?<value>\d+(?:\.\d+)?)(?:\s*ms\b)?)(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            check: ClaimCheck(actual: rmssd, tolerance: 8.0, metric: "RMSSD", isOvernight: true) { String(format: "%.0f ms", $0) }
         )
     }
 
@@ -322,12 +331,19 @@ enum MetricsVerifier {
     /// different scale, not a lie. "Recovery 48 hours" is a duration, not a
     /// score. A 0–100 correction is the integer the dashboard shows
     /// (`RecoveryScoreCalculator.displayScore`), not the raw score × 10.
-    private static func recoveryScoreClaims(in text: String, score10: Double) -> [Discrepancy] {
+    ///
+    /// In a workout prescription "recovery" is the rest between reps: "a
+    /// recovery of 200 m jog", "recovery of 90 s", "recovery at 130 bpm". A
+    /// number with a distance, time, heart-rate, power or rep unit after it is
+    /// that, not a score, and is left alone.
+    static func recoveryScoreClaims(in text: String, score10: Double) -> [Discrepancy] {
         claimsMatching(
             in: text,
-            pattern: #"\brecovery(?:\s+score)?(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))\b(?!\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
+            pattern: #"\brecovery(?:\s+score)?(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))"#
+                + #"\b(?!\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?|m|meters?|metres?|km|kilometers?|kilometres?|k|mi|miles?|yd|yards?|ft|feet|s|secs?|seconds?|bpm|beats?|w|watts?|laps?|reps?|x|sets?|rounds?|strides?|steps?|times)\b)"#,
             check: ClaimCheck(
-                actual: Double(RecoveryScoreCalculator.displayScore(score10 * 10)), tolerance: 4.0, metric: "recovery_score"
+                actual: Double(RecoveryScoreCalculator.displayScore(score10 * 10)), tolerance: 4.0, metric: "recovery_score",
+                isOvernight: true
             ) { // assume 0-100 form first
                 $0.rounded() == $0 ? String(format: "%.0f", $0) : String(format: "%.1f", $0)
             }
@@ -337,9 +353,11 @@ enum MetricsVerifier {
     /// A claim within tolerance on the 0–10 scale is the same score, so it is
     /// dropped. A wrong claim of 10 or under is a 0–10 claim and is corrected
     /// on that scale: "Recovery 5 out of 10" must become "9.1 out of 10", not
-    /// "91 out of 10".
+    /// "91 out of 10". A number above 100 is on neither scale ("recovery at
+    /// 140" is a heart rate), so it is not a score claim.
     private static func onTheClaimsScale(_ d: Discrepancy, score10: Double) -> Discrepancy? {
         guard let claimed = Double(d.claimed) else { return d }
+        guard claimed <= 100 else { return nil }
         let delta10 = abs(claimed - score10)
         guard delta10 > 1.0 else { return nil }
         guard claimed <= 10 else { return d }
@@ -422,7 +440,8 @@ enum MetricsVerifier {
         let claimRange = match.range(withName: "claim")
         guard claimRange.location != NSNotFound,
               let claimed = claimedSleepMinutes(match, in: ns),
-              isAboutTheCurrentValue(match.range, in: ns),
+              isAboutTheCurrentValue(match.range, in: ns, overnight: true),
+              !isRangeOrDelta(after: claimRange, in: ns),
               let range = Range(claimRange, in: text) else { return nil }
         let delta = abs(claimed.minutes - Double(nightMinutes))
         guard delta > (claimed.isPrecise ? 5 : 30) else { return nil }
@@ -461,7 +480,7 @@ enum MetricsVerifier {
     /// efficiency", "95% efficient". The bare forms count only in a sentence
     /// about sleep. Held to 1 point: the screen shows whole percents.
     private static func sleepEfficiencyDiscrepancies(in text: String, efficiency: Double) -> [Discrepancy] {
-        let check = ClaimCheck(actual: efficiency, tolerance: 1.0, metric: "sleep_efficiency") { "\(Int($0.rounded()))%" }
+        let check = ClaimCheck(actual: efficiency, tolerance: 1.0, metric: "sleep_efficiency", isOvernight: true) { "\(Int($0.rounded()))%" }
         let found = claimsMatching(
             in: text,
             pattern: #"\b(?:sleep\s+)?efficiency(?:\s+(?:of|was|is|at|came\s+in\s+at|reached|hit))*\s*:?\s+(?:(?:about|around|roughly|nearly|almost|just)\s+)?(?<claim>(?<value>\d{1,3}(?:\.\d+)?)\s*%)"#,
@@ -526,9 +545,13 @@ enum MetricsVerifier {
         let actual: Double
         let tolerance: Double
         let metric: String
-        /// True when the regex can match a spelled-out "negative N" form, in
-        /// which case the captured magnitude has to be negated by hand.
+        /// True when the regex can match a spelled-out "negative N" or
+        /// "minus N" form, in which case the captured magnitude has to be
+        /// negated by hand.
         var negateOnSpelled = false
+        /// True for a value measured overnight (RMSSD, recovery, sleep), for
+        /// which "last night" is the current value rather than another time.
+        var isOvernight = false
         let formatter: (Double) -> String
     }
 
@@ -553,14 +576,10 @@ enum MetricsVerifier {
         ns: NSString,
         check: ClaimCheck
     ) -> Discrepancy? {
-        let valueRange = match.range(withName: "value")
         let claimRange = match.range(withName: "claim")
-        guard valueRange.location != NSNotFound, claimRange.location != NSNotFound,
-              var claimed = Double(ns.substring(with: valueRange)),
-              isAboutTheCurrentValue(match.range, in: ns) else { return nil }
-        if check.negateOnSpelled, ns.substring(with: claimRange).lowercased().contains("negative") {
-            claimed = -abs(claimed)
-        }
+        guard let claimed = claimedValue(match, ns: ns, check: check),
+              isAboutTheCurrentValue(match.range, in: ns, overnight: check.isOvernight),
+              !isRangeOrDelta(after: claimRange, in: ns) else { return nil }
         let delta = abs(claimed - check.actual)
         guard delta > check.tolerance, let r = Range(claimRange, in: text) else { return nil }
         return Discrepancy(
@@ -568,6 +587,42 @@ enum MetricsVerifier {
             actual: check.formatter(check.actual), absoluteDelta: delta, range: r
         )
     }
+
+    /// The number a match claims: the `value` group, with a typographic minus
+    /// read as a minus and a spelled "negative" or "minus" applied. Nil when a
+    /// group is missing or does not parse.
+    private static func claimedValue(_ match: NSTextCheckingResult, ns: NSString, check: ClaimCheck) -> Double? {
+        let valueRange = match.range(withName: "value")
+        let claimRange = match.range(withName: "claim")
+        guard valueRange.location != NSNotFound, claimRange.location != NSNotFound,
+              let value = Double(ns.substring(with: valueRange).replacingOccurrences(of: "\u{2212}", with: "-")) else { return nil }
+        let spelledSign = ns.substring(with: claimRange).range(
+            of: #"\b(?:negative|minus)\b"#, options: [.regularExpression, .caseInsensitive]
+        ) != nil
+        return check.negateOnSpelled && spelledSign ? -abs(value) : value
+    }
+
+    /// True when the words right after a claim make its number one end of a
+    /// range, a clock time, a minute mark or a difference rather than a
+    /// reading: "TSB -10 to -30", "ACWR 0.8-1.3", "recovery of 2:00",
+    /// "recovery 2' jog", "your HR is 12 bpm higher", "your power is 20 W
+    /// down on the first rep", "you slept 1 hour longer". Correcting such a
+    /// number to the live value would make the sentence false.
+    private static func isRangeOrDelta(after claim: NSRange, in ns: NSString) -> Bool {
+        let tail = NSRange(location: NSMaxRange(claim), length: ns.length - NSMaxRange(claim))
+        return DebugLogger.compiledPattern(notAReadingAfter, options: [.caseInsensitive])?
+            .firstMatch(in: ns as String, options: [.anchored], range: tail) != nil
+    }
+
+    private static let notAReadingAfter = "(?:" + [
+        #"\s*(?:[-–—/]|to|or)\s*[-−+]?\d"#,
+        #"\s*:\d"#,
+        #"\s*['’′″"]"#,
+        #"(?:\s*(?:points?|pts?|bpm|beats?|ms|w|watts?|%|percent|h|hrs?|hours?|m|mins?|minutes?))?"#
+            + #"\s+(?:higher|lower|more|less|fewer|better|worse|faster|slower|longer|shorter|above|below|ahead|behind|times)\b"#,
+        #"(?:\s*(?:points?|pts?|bpm|beats?|ms|w|watts?|%|percent|h|hrs?|hours?|m|mins?|minutes?))?"#
+            + #"\s+(?:up|down)(?=\s+(?:from|on|over|vs|versus|compared|since|by)\b|\s*[.,;!?]|\s*$)"#
+    ].joined(separator: "|") + ")"
 
     /// False when the sentence holding the claim places it in the past, in a
     /// comparison, or in a target: "recovery 3 days ago was 55", "your
@@ -580,10 +635,15 @@ enum MetricsVerifier {
     /// headline "Recovery 72, slightly down from 76 yesterday" states today's
     /// value first and must still be checked. A marker before the claim
     /// ("Yesterday, recovery was 55") still applies to it.
-    private static func isAboutTheCurrentValue(_ range: NSRange, in ns: NSString) -> Bool {
+    ///
+    /// For an overnight value "last night" is now: "your RMSSD last night was
+    /// 48 ms" and "last night you slept 6 hours" are claims about the night
+    /// the check reads.
+    private static func isAboutTheCurrentValue(_ range: NSRange, in ns: NSString, overnight: Bool = false) -> Bool {
         let sentence = sentenceRange(containing: range, in: ns)
         let scope = NSRange(location: sentence.location, length: clauseEnd(after: range, in: sentence, ns: ns) - sentence.location)
-        return ![timeMarkers, targetMarkers].contains { pattern in
+        let markers = overnight ? [earlierTimeMarkers, targetMarkers] : [earlierTimeMarkers, lastNightMarker, targetMarkers]
+        return !markers.contains { pattern in
             DebugLogger.compiledPattern(pattern, options: [.caseInsensitive])?
                 .firstMatch(in: ns as String, range: scope) != nil
         }
@@ -603,14 +663,35 @@ enum MetricsVerifier {
     private static let clauseSeparators =
         #"[,;(—–]|\s-\s|\b(?:vs\.?|versus|compared|but|while|whereas|from)\b"#
 
-    /// Another time than now: "3 days ago", "yesterday", "last week".
-    private static let timeMarkers =
-        #"\b(?:ago|yesterday|last\s+(?:week|month|year|time|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|previous(?:ly)?|earlier|before|on\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b"#
+    /// Another time than now: "3 days ago", "yesterday", "last week", and a
+    /// day named by date or weekday, as in a list of past nights ("Nov 24:
+    /// recovery 55", "11/24 recovery 55", "Monday: recovery 61"), or a span
+    /// ("this week", "over the past 7 days"). A number placed on another day
+    /// is not checked: leaving one unchecked is harmless, while correcting a
+    /// past value to today's writes a false history.
+    /// Each part is a complete pattern so the compile check that reads this
+    /// file's raw literals can compile every one of them.
+    private static let earlierTimeMarkers = "\\b(?:" + [
+        #"ago|yesterday|last\s+(?:week|month|year|time)|previous(?:ly)?|earlier|before"#,
+        #"(?:this|past|each|every|per)\s+(?:week|month|year|day|night)s?|over\s+the\s+(?:last|past)"#,
+        "(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?",
+        #"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?"#,
+        #"\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*"#,
+        #"\d{1,4}[/-]\d{1,2}(?:[/-]\d{2,4})?"#
+    ].joined(separator: "|") + ")\\b"
 
-    /// A summary, target, hypothetical or comparison rather than the value
-    /// now: "average", "keep it", "if", "higher than".
-    private static let targetMarkers =
-        #"\b(?:average|avg|mean|baseline|typical(?:ly)?|usual(?:ly)?|normally|target|goal|aim|keep|stay|peak|max(?:imum)?|min(?:imum)?|lowest|highest|best|worst|trend|would|could|if|should|threshold|under|below|above|over|between|range|higher|lower|than)\b"#
+    /// "Last night" is another time for a live or training-load value.
+    private static let lastNightMarker = #"\blast\s+night\b"#
+
+    /// A summary, target, hypothetical, plan, negation or comparison rather
+    /// than the value now: "average", "keep it", "if", "higher than",
+    /// "tonight you'll want 8 hours of sleep", "you didn't get 8 hours".
+    private static let targetMarkers = "\\b(?:" + [
+        #"average|avg|mean|baseline|typical(?:ly)?|usual(?:ly)?|normally|target|goal|aim|keep|stay"#,
+        #"peak|max(?:imum)?|min(?:imum)?|lowest|highest|best|worst|trend|would|could|if|should|threshold"#,
+        #"under|below|above|over|between|range|higher|lower|than"#,
+        #"will|tonight|tomorrow|next|plan(?:ned)?|try|want|expect(?:ed)?|predict(?:ed)?|project(?:ed)?|not|never|without"#
+    ].joined(separator: "|") + ")\\b" + #"|[’']ll\b|n[’']t\b"#
 
     /// The sentence that holds `range`, by Foundation's sentence rules (which
     /// do not split "17.2"). Falls back to the match itself.

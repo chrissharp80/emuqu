@@ -315,7 +315,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
         else { return Self.refusalReply(.unknownMessage) }
         if Self.plainControls.contains(type) {
             debugLog("[WatchBridge] received \(typeRaw)")
-            return controlReply(controlHandler(for: type))
+            return controlReply(controlHandler(for: type, message: message))
         }
         switch type {
         case .startWorkoutFromWatch:
@@ -337,16 +337,34 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     ]
 
     /// The four plain stop/pause/resume/acknowledge controls, which differ only
-    /// in which callback they invoke. Nil for everything else, and for a
+    /// in which callback they invoke; a stop and a pause are handed the time
+    /// they were tapped (`tapDate`). A resume is applied when it arrives (see
+    /// `WorkoutRecorder.pauseFromWatch`). Nil for everything else, and for a
     /// control whose callback is not wired yet.
-    private func controlHandler(for type: MessageType) -> (() -> WatchControlRefusal?)? {
+    private func controlHandler(for type: MessageType, message: [String: Any]) -> (() -> WatchControlRefusal?)? {
         switch type {
-        case .stopWorkoutFromWatch: return onStopWorkoutFromWatch
-        case .pauseWorkoutFromWatch: return onPauseWorkoutFromWatch
+        case .stopWorkoutFromWatch: return tappedHandler(onStopWorkoutFromWatch, tappedAt: Self.tapDate(message))
+        case .pauseWorkoutFromWatch: return tappedHandler(onPauseWorkoutFromWatch, tappedAt: Self.tapDate(message))
         case .resumeWorkoutFromWatch: return onResumeWorkoutFromWatch
         case .acknowledgeFinishedFromWatch: return onAcknowledgeFinishedFromWatch
         default: return nil
         }
+    }
+
+    /// A stop or pause callback bound to the tap's time; nil while it is not wired.
+    private func tappedHandler(
+        _ handler: ((Date?) -> WatchControlRefusal?)?, tappedAt: Date?
+    ) -> (() -> WatchControlRefusal?)? {
+        guard let handler else { return nil }
+        return { handler(tappedAt) }
+    }
+
+    /// When the Watch control was tapped: its `ts`, seconds since 1970, which
+    /// the Watch stamps on every control it sends live or queues. Nil when it
+    /// is missing or not a positive number.
+    nonisolated static func tapDate(_ message: [String: Any]) -> Date? {
+        guard let ts = message["ts"] as? Double, ts.isFinite, ts > 0 else { return nil }
+        return Date(timeIntervalSince1970: ts)
     }
 
     /// The Watch wires a reply handler on the voice-chat tap

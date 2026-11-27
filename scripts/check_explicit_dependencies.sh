@@ -94,7 +94,11 @@ code_hits() {
 
 # `XServices(.current)` builds a service list from the container in force, so
 # it is the same lookup spelled shorter.
-lookups="$(code_hits 'AppDependencies\.current\b|Services\(\.current\)' "${explicit[@]}")"
+# Also the shorter spellings of the same read: a parameter or property
+# defaulted from it (`deps: AppDependencies = .current`), `AppDependencies.self`,
+# and an alias of the container type (`typealias D = AppDependencies`), which
+# every spelling above would otherwise miss.
+lookups="$(code_hits 'AppDependencies([[:space:]]*\.[[:space:]]*self)?[[:space:]]*\.[[:space:]]*current\b|Services\([[:space:]]*\.current[[:space:]]*\)|:[[:space:]]*AppDependencies[[:space:]]*[!?]?[[:space:]]*=[[:space:]]*\.current\b|typealias[[:space:]]+[A-Za-z0-9_]+[[:space:]]*=[[:space:]]*AppDependencies\b' "${explicit[@]}")"
 if [[ -n "$lookups" ]]; then
     echo "$lookups"
     echo "check_explicit_dependencies: \`AppDependencies.current\` is read in a file handed its dependencies (above)." >&2
@@ -108,7 +112,7 @@ for dir in "${APP_DIRS[@]}"; do
         exit 2
     fi
 done
-installs="$(grep -rnE 'AppDependencies\.install\(' "${APP_DIRS[@]}" --include='*.swift' 2>/dev/null \
+installs="$(grep -rnE 'AppDependencies([[:space:]]*\.[[:space:]]*self)?[[:space:]]*\.[[:space:]]*install[[:space:]]*\(|typealias[[:space:]]+[A-Za-z0-9_]+[[:space:]]*=[[:space:]]*AppDependencies\b' "${APP_DIRS[@]}" --include='*.swift' 2>/dev/null \
     | grep -vE '^[^:]+:[0-9]+:\s*(///|//|\*)' || true)"
 if [[ -n "$installs" ]]; then
     echo "$installs"

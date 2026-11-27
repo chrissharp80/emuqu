@@ -54,24 +54,45 @@ extension SessionDataMigrations {
     /// and reanalysis paths. The gate reads the night as loaded; the rescore
     /// is applied to the archived copy as it is at the write, so a change
     /// saved since the load (sleep or vitals refresh, a feeling, a pull) is
-    /// kept rather than overwritten by the loaded copy.
+    /// kept rather than overwritten by the loaded copy. A copy whose inputs
+    /// changed since the load (a window picked by hand, a sleep edit) is left
+    /// as it is: the gate decided on what it no longer holds.
     private func rescoreIfInsufficient(_ session: HRVSession) -> Bool {
         guard let result = session.analysisResult,
               let baseline = reanalysisService.scoringBaseline(for: session),
               ReanalysisService.hasInsufficientData(
                   session: session, analysisResult: result, baselineRmssd: exp(baseline.lnRmssdMean)
               ) else { return false }
+        // Read before the write: the baseline can read the archive's index,
+        // which the update holds locked while its closure runs.
+        let context = reanalysisService.rescoreContext(for: session)
         do {
-            try archive.update(session.id, requestingReupload: false) { stored in
-                stored.hrvDataQuality = .insufficient
-                applyBaselineRescore(&stored)
+            let written = try archive.updateIfChanged(session.id, requestingReupload: false) {
+                Self.flagInsufficient(&$0, decidedOn: session, context: context)
             }
+            guard written else { return false }
             debugLog("[InsufficientDataMigration] Rescored session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery vs baseline")
             return true
         } catch {
             debugLog("[InsufficientDataMigration] Failed to archive rescored session \(session.id.uuidString.prefix(8)): \(error)")
             return false
         }
+    }
+
+    /// Marks `stored` `.insufficient`, moves its snapshot's sleep HR off the
+    /// strap (`HRVSession.refreshSleepHeartRate`: an unusable recording's
+    /// heart rate is not a sleep HR), and rescores it against the baseline,
+    /// when its inputs are still those of `decided`, the copy the gate read
+    /// (`RescoreWrite.inputsMatch`). False, with `stored` unchanged, when they
+    /// are not: a window picked or a sleep edited since is the user's, and
+    /// the gate's verdict was about the copy before it.
+    static func flagInsufficient(_ stored: inout HRVSession, decidedOn decided: HRVSession, context: RescoreContext) -> Bool {
+        guard RescoreWrite.inputsMatch(stored, decided, kind: .scoreOnly(healedTraining: false)) else { return false }
+        let classifiedBefore = stored
+        stored.hrvDataQuality = .insufficient
+        stored.refreshSleepHeartRate(replacing: classifiedBefore)
+        applyBaselineRescore(&stored, context: context)
+        return true
     }
 
     /// Rescore against the baseline instead of the session's own HRV, through
@@ -81,12 +102,12 @@ extension SessionDataMigrations {
     /// replaces a daytime resting HR, the acceptance-time ANS-balance term is
     /// kept, and the staleness penalty is measured at the night, not today —
     /// so an old night is not marked down for the time since.
-    private func applyBaselineRescore(_ updated: inout HRVSession) {
+    private static func applyBaselineRescore(_ updated: inout HRVSession, context: RescoreContext) {
         guard let result = updated.analysisResult else { return }
         let bestTraining = updated.trainingSnapshot ?? result.trainingContext
-        let newBreakdown = reanalysisService.rescoredBreakdown(
+        let newBreakdown = ReanalysisService.rescoredBreakdown(
             of: updated, result: result, training: bestTraining,
-            referenceDate: updated.endDate ?? updated.startDate
+            referenceDate: updated.endDate ?? updated.startDate, context: context
         )
         updated.recoveryScore = RecoveryScoreCalculator.toTenScale(newBreakdown.compositeScore)
         updated.scoreBreakdown = newBreakdown

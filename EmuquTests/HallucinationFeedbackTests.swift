@@ -188,6 +188,36 @@ final class LiveClaimVerificationTests: XCTestCase {
         }
     }
 
+    /// A difference, a range or a spoken number is not read as the value
+    /// now, except where it is one.
+    func testDifferencesAndRangesAreNotClaims() {
+        let notClaims = [
+            "Your HR is 12 bpm higher than on the first rep.",
+            "Your HR is 15 beats faster than last lap.",
+            "Your HR is 140 to 150 bpm on this climb.",
+            "Your power is 20 W down on the first rep.",
+            "Your power is 30 watts lower now.",
+            "Tomorrow your HR will be 140 on the easy run."
+        ]
+        let snapshot = context(hr: 162, alpha1: 1.1, watts: 260)
+        for text in notClaims {
+            XCTAssertTrue(MetricsVerifier.verify(text, against: snapshot).isEmpty, "Rewrote a non-claim: \(text)")
+        }
+    }
+
+    func testCurrentClaimsAreStillCheckedAroundTheNewRules() {
+        let snapshot = context(hr: 162, alpha1: 1.1, watts: 260)
+        let claims = [
+            "Your HR is 145 bpm up this hill.",
+            "Your HR is 145 bpm, up from 140.",
+            "Your heart rate is one forty-five right now.",
+            "Your power is two twenty watts."
+        ]
+        for text in claims {
+            XCTAssertEqual(MetricsVerifier.verify(text, against: snapshot).count, 1, "Missed a claim: \(text)")
+        }
+    }
+
     func testCurrentAlphaAndPowerClaimsAreStillChecked() {
         let snapshot = context(hr: nil, alpha1: 1.1, watts: 260)
         XCTAssertEqual(MetricsVerifier.verify("Your α1 is 0.62 right now.", against: snapshot).first?.metric, "alpha1")
@@ -335,6 +365,30 @@ final class SleepClaimVerificationTests: XCTestCase {
         XCTAssertEqual(found.first?.actual, "6 hours and 55 minutes")
     }
 
+    /// Last night is the night these checks read.
+    func testLastNightClaimsAreChecked() {
+        let text = "Last night you slept 5 hours and 10 minutes."
+        let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: efficiency)
+        XCTAssertEqual(found.first?.actual, "6 hours and 55 minutes")
+    }
+
+    /// Plans, negations, differences, ranges and norms about sleep.
+    func testPlansNegationsDifferencesAndNormsAreNotClaims() {
+        let notClaims = [
+            "Tonight you'll want 8 hours of sleep.",
+            "Try to get 8 hours of sleep before the race.",
+            "You didn't get 8 hours of sleep.",
+            "You did not get 8 hours of sleep.",
+            "You slept 1 hour longer.",
+            "You slept 7 to 8 hours, which is solid.",
+            "An 85% sleep efficiency is the usual cut-off."
+        ]
+        for text in notClaims {
+            let found = MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: efficiency)
+            XCTAssertTrue(found.isEmpty, "Rewrote a non-claim: \(text)")
+        }
+    }
+
     func testUnmeasuredEfficiencyIsNotChecked() {
         let text = "Your sleep efficiency was 70%."
         XCTAssertTrue(MetricsVerifier.sleepDiscrepancies(in: text, nightMinutes: nightMinutes, efficiency: nil).isEmpty)
@@ -346,6 +400,57 @@ final class SleepClaimVerificationTests: XCTestCase {
         XCTAssertEqual(MetricsVerifier.sleepDurationText(420, longForm: true), "7 hours")
         XCTAssertEqual(MetricsVerifier.sleepDurationText(420, longForm: false), "7h")
         XCTAssertEqual(MetricsVerifier.sleepDurationText(415, longForm: false), "6h 55m")
+    }
+}
+
+// MARK: - Training load and RMSSD
+
+/// Coaching explains ranges ("TSB -10 to -30 is productive", "ACWR
+/// 0.8-1.3"), log-scaled HRV and differences; none of them is today's value.
+final class TrainingLoadClaimTests: XCTestCase {
+    private func load(_ text: String) -> [MetricsVerifier.Discrepancy] {
+        MetricsVerifier.trainingLoadClaims(in: text, tsb: 5, atl: 40, ctl: 42, acwr: 0.95)
+    }
+
+    func testRangesAndDifferencesAreNotClaims() {
+        let notClaims = [
+            "A TSB -10 to -30 means productive training.",
+            "TSB -10–-30 is where fitness is built.",
+            "An ACWR of 0.8-1.3 is the sweet spot.",
+            "ACWR 0.8 to 1.3 keeps injury risk low.",
+            "Your CTL is 5 points up on last month.",
+            "Your ATL is 10 points higher than your CTL.",
+            "Tomorrow your TSB will be 12."
+        ]
+        for text in notClaims {
+            XCTAssertTrue(load(text).isEmpty, "Rewrote a non-claim: \(text)")
+        }
+    }
+
+    func testWrongValuesAreCorrectedInEverySignForm() {
+        let claims = [
+            ("TSB is −17.2 today.", "TSB"),
+            ("TSB minus 12 right now.", "TSB"),
+            ("TSB is -8.8.", "TSB"),
+            ("CTL 60.", "CTL"),
+            ("ACWR is 1.6.", "ACWR")
+        ]
+        for (text, metric) in claims {
+            XCTAssertEqual(load(text).map(\.metric), [metric], "Missed a claim: \(text)")
+        }
+        XCTAssertTrue(load("TSB is +5.0.").isEmpty && load("TSB is 5.").isEmpty)
+    }
+
+    func testLogRMSSDIsAnotherScale() {
+        XCTAssertTrue(MetricsVerifier.rmssdClaims(in: "Your ln RMSSD is 3.9 today.", rmssd: 48).isEmpty)
+        XCTAssertTrue(MetricsVerifier.rmssdClaims(in: "RMSSD 40-60 ms is common at your age.", rmssd: 48).isEmpty)
+        XCTAssertEqual(MetricsVerifier.rmssdClaims(in: "Last night: RMSSD 30 ms.", rmssd: 48).first?.actual, "48 ms")
+    }
+
+    func testSpokenMinusAndSpacedHundredsAreNormalised() {
+        XCTAssertEqual(MetricsVerifier.normalizeSpelledNumbers("TSB minus twelve"), "TSB -12")
+        XCTAssertEqual(MetricsVerifier.normalizeSpelledNumbers("one forty-five bpm"), "145 bpm")
+        XCTAssertEqual(MetricsVerifier.normalizeSpelledNumbers("one-sixty"), "160")
     }
 }
 

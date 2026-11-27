@@ -171,23 +171,38 @@ extension SnapshotTesting {
     static let settleInterval: TimeInterval = 1.0
 
     /// After `settleInterval` the window is captured every `stableInterval`
-    /// until two captures in a row match, and at most `settleChecks` times:
-    /// the capture kept is a frame that has stopped changing.
+    /// until two captures in a row match with no spinner on screen, and at
+    /// most `settleChecks + loadingChecks` times: the capture kept is a frame
+    /// that has stopped changing.
     static let stableInterval: TimeInterval = 0.25
     static let settleChecks = 8
+
+    /// Further checks allowed on a slow host. A view computing off the main
+    /// actor ("Preparing charts...") draws the same frame twice with
+    /// animations off, which is not a settled screen, and under Thread
+    /// Sanitizer a screen's own reveal can still be moving after
+    /// `settleChecks`; a frame still moving is not compared.
+    static let loadingChecks = 40
 
     @MainActor
     private static func settle(_ window: UIWindow) -> CGImage? {
         window.layoutIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(settleInterval))
         var previous = restingCapture(window)
-        for _ in 0 ..< settleChecks {
+        for _ in 0 ..< settleChecks + loadingChecks {
             RunLoop.main.run(until: Date().addingTimeInterval(stableInterval))
             let next = restingCapture(window)
-            if let next, let previous, sameBytes(next, previous) { return next }
+            if !showsSpinner(window), let next, let previous, sameBytes(next, previous) { return next }
             previous = next
         }
         return previous
+    }
+
+    /// Whether a progress spinner is visible anywhere under `view`.
+    @MainActor
+    static func showsSpinner(_ view: UIView) -> Bool {
+        if view is UIActivityIndicatorView, !view.isHidden, view.alpha > 0 { return true }
+        return view.subviews.contains { showsSpinner($0) }
     }
 
     /// The window as a screen opens: every vertically scrolling view at its

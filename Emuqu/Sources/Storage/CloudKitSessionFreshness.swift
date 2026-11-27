@@ -5,7 +5,7 @@ import os
 /// Last-writer-wins for a session that more than one device holds.
 ///
 /// An edit uploaded from one device (a feeling, tags or notes, a trim, a
-/// reanalysis) has to reach a device that already holds that session. A sleep
+/// picked window) has to reach a device that already holds that session. A sleep
 /// edit does not travel: sleep comes from HealthKit and stays on each device
 /// (`CloudSessionPayload`).
 /// Each edit stamps `HRVSession.modifiedAt`; the stamp travels inside the
@@ -124,8 +124,9 @@ enum CloudKitSessionFreshness {
     }
 
     /// Stamp an edit that reaches the archive without `requestingReupload`
-    /// (a reanalysis, a repair, a restore) but is then force-uploaded, so a
-    /// device holding the older copy takes it. Off the main actor: the write
+    /// (a restore from the Trash) but is then force-uploaded, so a device
+    /// holding the older copy takes it. A rescore or a repair is not stamped
+    /// (`CloudKitSyncManager.forceReuploadSession`). Off the main actor: the write
     /// re-encodes the whole session.
     static func stampEdit(of sessionId: UUID, in archive: SessionArchive) async {
         await Task.detached(priority: .utility) {
@@ -149,6 +150,7 @@ enum CloudKitSessionFreshness {
         if let sessionId {
             debugLog("[CloudKit] Upload failed for \(sessionId.uuidString.prefix(8)): \(text)")
         }
+        TrashRestoreCoordinator.noteRejection(ofFieldIn: text, isSchemaRejection: isSchemaRejection(error))
         guard text.contains(modifiedAtField), text.contains("production schema") || isSchemaRejection(error) else { return }
         fieldRejected.withLock { $0 = true }
         debugLog("[CloudKit] Session record field \(modifiedAtField) is not in the production schema — uploading without it; edits will not propagate until it is deployed", level: .error)
@@ -173,15 +175,19 @@ enum CloudKitSessionFreshness {
     /// overrides a server tombstone whatever its stamp: a restore does not
     /// stamp an edit, and yielding to the tombstone would leave it in iCloud
     /// with nothing for the pull to import. A server record already carrying
-    /// the restore marker keeps it, since every upload writes `isDeleted = 0`:
-    /// losing it would let a device that deleted the session earlier delete
-    /// it again.
-    /// Server fields this build does not write (older builds wrote plaintext
-    /// health values) are cleared, so the record holds only what `local` holds.
+    /// the restore marker keeps it and the restore's time
+    /// (`TrashRestoreCoordinator.carryRestore`), since every upload writes
+    /// `isDeleted = 0` and no time: losing the marker would let a device that
+    /// deleted the session earlier delete it again, and a time moved to this
+    /// upload would let a restore undo a deletion made after it.
+    /// Other server fields this build does not write (older builds wrote
+    /// plaintext health values) are cleared, so the record holds only what
+    /// `local` holds.
     static func overwrite(
         _ server: CKRecord, with local: CKRecord, restoring: Bool = false, yieldingIn state: inout CloudKitSyncState
     ) -> Bool {
         let serverDeleted = server["isDeleted"] as? Int64
+        let serverRestoredAt = TrashRestoreCoordinator.restoredAt(of: server)
         let sessionId = UUID(uuidString: server.recordID.recordName)
         let tie = onTie(serverVersion: server.recordChangeTag, heldVersion: sessionId.flatMap { state.recordVersions[$0] })
         let decision = decide(localModifiedAt: modifiedAt(of: local), remoteModifiedAt: modifiedAt(of: server), onTie: tie)
@@ -196,9 +202,9 @@ enum CloudKitSessionFreshness {
         for key in local.allKeys() {
             server[key] = local[key]
         }
-        if serverDeleted == TrashRestoreCoordinator.restoredMarker {
-            server["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
-        }
+        TrashRestoreCoordinator.carryRestore(
+            onto: server, serverDeleted: serverDeleted, restoredAt: serverRestoredAt, modifiedAt: server.modificationDate
+        )
         return true
     }
 
@@ -212,13 +218,14 @@ enum CloudKitSessionFreshness {
     /// snapshot — when the iCloud copy carries no sleep window. A record
     /// written before sleep was stripped does carry one: its window wins, and
     /// the local snapshot is kept only while the window is the one it was
-    /// derived for; otherwise the pulled-session backfill re-derives it. A
-    /// HealthKit export recorded here is kept, so the workout is not written
-    /// to Health twice.
+    /// derived for; otherwise the pulled-session backfill re-derives it. Not
+    /// over a sleep the user adjusted here, unless the user adjusted it there
+    /// too (`takesRemoteSleep`). A HealthKit export recorded here is kept, so
+    /// the workout is not written to Health twice.
     static func replacing(_ local: HRVSession, with remote: HRVSession) -> HRVSession {
         var merged = remote
         CloudSessionPayload.restoringLocalOnlyFields(into: &merged, from: local)
-        if remote.sleepStartMs == nil, remote.sleepEndMs == nil, remote.sleepSegments == nil {
+        if !takesRemoteSleep(local: local, remote: remote) {
             keepSleep(of: local, in: &merged)
         } else if sameSleepWindow(local, remote) {
             merged.sleepSnapshot = remote.sleepSnapshot ?? local.sleepSnapshot
@@ -266,9 +273,11 @@ enum CloudKitSessionFreshness {
     /// beats to the session; another device that edits the session (a tag, a
     /// feeling) before it pulls the fold uploads a copy without them, and
     /// last-writer-wins alone would drop those beats on every device. The
-    /// other device's edit is kept: tags, notes and imported metrics stay as
-    /// that copy has them, so a tag removed there is not added back. True
-    /// when beats were put back.
+    /// other device's edit is kept: the user's content (tags, notes, the
+    /// morning feeling, the perceived readiness) and imported metrics stay as
+    /// that copy has them, so a tag removed there is not added back, and a
+    /// window picked there keeps its analysis and score
+    /// (`SessionMerger.shouldAdoptImportedAnalysis`). True when beats were put back.
     ///
     /// Only when the other copy keeps every segment this one links: an
     /// unlink there (`ReanalysisService` unlinking a segment) removed that
@@ -278,13 +287,29 @@ enum CloudKitSessionFreshness {
         guard (local.rrSeries?.points.count ?? 0) > (merged.rrSeries?.points.count ?? 0),
               Set(local.linkedSessionIds ?? []).isSubset(of: Set(merged.linkedSessionIds ?? []))
         else { return false }
-        let edits = (tags: merged.tags, notes: merged.notes, importedMetrics: merged.importedMetrics)
+        let edits = merged
         guard SessionMerger.mergeSessionData(from: local, into: &merged) else { return false }
-        merged.tags = edits.tags
-        merged.notes = edits.notes
-        merged.importedMetrics = edits.importedMetrics
+        keepUserContent(of: edits, in: &merged)
         debugLog("[CloudKit] Pull: kept the beats only this device holds in the newer iCloud copy", level: .info)
         return true
+    }
+
+    /// The user's content and imported metrics as `edited` has them.
+    private static func keepUserContent(of edited: HRVSession, in merged: inout HRVSession) {
+        merged.tags = edited.tags
+        merged.notes = edited.notes
+        merged.morningFeeling = edited.morningFeeling
+        merged.morningFeelingTags = edited.morningFeelingTags
+        merged.perceivedReadiness = edited.perceivedReadiness
+        merged.importedMetrics = edited.importedMetrics
+    }
+
+    /// Whether the iCloud copy's sleep replaces this device's: only a copy
+    /// that carries a sleep window, and never one the user did not adjust
+    /// over a sleep the user adjusted here.
+    static func takesRemoteSleep(local: HRVSession, remote: HRVSession) -> Bool {
+        guard remote.sleepStartMs != nil || remote.sleepEndMs != nil || remote.sleepSegments != nil else { return false }
+        return local.sleepUserAdjusted != true || remote.sleepUserAdjusted == true
     }
 
     private static func keepSleep(of local: HRVSession, in merged: inout HRVSession) {
@@ -292,7 +317,8 @@ enum CloudKitSessionFreshness {
         merged.sleepEndMs = local.sleepEndMs
         merged.sleepSegments = local.sleepSegments
         merged.sleepUserAdjusted = local.sleepUserAdjusted
-        merged.sleepSnapshot = merged.sleepSnapshot ?? local.sleepSnapshot
+        let adjustedHere = local.sleepUserAdjusted == true ? local.sleepSnapshot : nil
+        merged.sleepSnapshot = adjustedHere ?? merged.sleepSnapshot ?? local.sleepSnapshot
     }
 
     private static func sameSleepWindow(_ lhs: HRVSession, _ rhs: HRVSession) -> Bool {

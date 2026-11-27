@@ -178,7 +178,9 @@ struct WorkoutNamespace: FactNamespaceResolver {
             pattern: "workout.by_date($date)",
             paramExample: "2026-04-21",
             description: """
-                Full workout record for a given date (yyyy-MM-dd, local); the latest workout started that day when there are several. Includes sport, duration, mean/max HR, load and TRIMP, distance, estimated calories (when the workout's \
+                Full workout record for a given date (yyyy-MM-dd, local); the latest workout started that day when there are several. \
+                Includes sport, duration (duration_sec: active time with pauses left out, as the workout card shows it; elapsed_sec: \
+                start to stop), mean/max HR, load and TRIMP, distance, estimated calories (when the workout's \
                 analysis computed them), HRR, power, recognized route, feeling.
                 """,
             availability: { self.workoutAvailability() },

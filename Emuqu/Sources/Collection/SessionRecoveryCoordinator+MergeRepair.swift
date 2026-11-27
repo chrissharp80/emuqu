@@ -187,7 +187,7 @@ extension SessionRecoveryCoordinator {
     /// anchored to the PARENT's start; only the beat series differs. A child
     /// with no end ends at its last beat, not at the time the repair runs.
     nonisolated private func rebuildAndArchive(session: HRVSession, parent: HRVSession, mergedPoints: [RRPoint]) async -> Bool {
-        let lastBeatEnd = mergedPoints.last.map { parent.startDate.addingTimeInterval(Double($0.endMs) / 1000) }
+        let lastBeatEnd = mergedPoints.lastBeatEnd(after: parent.startDate)
         let baseSession = HRVSession(
             id: session.id, startDate: parent.startDate, endDate: session.endDate ?? lastBeatEnd ?? parent.startDate,
             state: .analyzing, sessionType: .overnight,
@@ -206,25 +206,10 @@ extension SessionRecoveryCoordinator {
         return await archiveRepaired(repaired, originalId: session.id, beatCount: mergedPoints.count)
     }
 
-    /// Tags, notes, the morning feeling, the readiness rating and a sleep the
-    /// user set by hand are the user's own work — the rebuilt session must
-    /// not lose them. Vitals carry over only when the rebuild produced none.
-    nonisolated private static func carryUserEdits(from session: HRVSession, to repaired: inout HRVSession) {
-        repaired.tags = session.tags
-        repaired.notes = session.notes
-        repaired.morningFeeling = session.morningFeeling
-        repaired.morningFeelingTags = session.morningFeelingTags
-        repaired.perceivedReadiness = session.perceivedReadiness
-        repaired.sleepUserAdjusted = session.sleepUserAdjusted
-        if session.sleepUserAdjusted == true {
-            repaired.sleepSnapshot = session.sleepSnapshot
-            repaired.sleepStartMs = session.sleepStartMs
-            repaired.sleepEndMs = session.sleepEndMs
-            repaired.sleepSegments = session.sleepSegments
-        }
-        if repaired.vitalsSnapshot == nil, let oldVitals = session.vitalsSnapshot {
-            repaired.vitalsSnapshot = oldVitals
-        }
+    /// Whether carrying the user's edits onto the rebuilt night changed what
+    /// its score is computed from (`RescoreWrite.inputsMatch`).
+    nonisolated static func carriedEditsChangeScoringInputs(rebuilt: HRVSession, carried: HRVSession) -> Bool {
+        !RescoreWrite.inputsMatch(carried, rebuilt, kind: .scoreOnly(healedTraining: false))
     }
 
     /// Upload immediately instead of accumulating — keeps peak memory low.
@@ -238,7 +223,7 @@ extension SessionRecoveryCoordinator {
             // The sync manager is read on the main actor, so the upload Task
             // holds only it.
             let cloudSync = await MainActor.run { cloudSyncManager }
-            Task { await cloudSync.forceReuploadSession(written) }
+            Task { await cloudSync.reuploadRewrite(written) }
             debugLog("[Recovery] Repaired session \(originalId.uuidString.prefix(8)): \(beatCount) beats, score \(written.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil")")
             return true
         } catch {
@@ -248,16 +233,30 @@ extension SessionRecoveryCoordinator {
     }
 
     /// Writes the rebuilt night with the user's edits from the copy stored
-    /// now, read and written in one step on the main actor: the rebuild ran a
-    /// whole overnight analysis, and an edit or an iCloud pull made meanwhile
-    /// is in the archive, not in the copy read before it. A night no longer
-    /// in the archive (deleted, or Delete All My Data) is not written back;
-    /// nil then.
+    /// now (`SessionArchive.rewriteKeepingUserEdits`): the rebuild ran a whole
+    /// overnight analysis, and an edit or an iCloud pull made meanwhile is in
+    /// the archive, not in the copy read before it. Vitals carry over only
+    /// when the rebuild produced none. A night no longer in the archive
+    /// (deleted, or Delete All My Data) is not written back; nil then.
+    ///
+    /// The rebuild scored the night against its own sleep, with no readiness
+    /// rating and its own vitals. When the kept edits changed any of those
+    /// inputs (a sleep set by hand, a rating, the stored vitals), the score,
+    /// quality and window describe other inputs than the night now holds, so
+    /// the night is analysed again from what it holds
+    /// (`.flowRecoveryRescoreNeeded`).
     private func writeRepaired(_ rebuilt: HRVSession) throws -> HRVSession? {
-        guard let current = archive.retrieveOrLog(rebuilt.id) else { return nil }
         var toArchive = rebuilt
-        Self.carryUserEdits(from: current, to: &toArchive)
-        try archive.archive(toArchive)
-        return toArchive
+        if toArchive.vitalsSnapshot == nil {
+            toArchive.vitalsSnapshot = archive.retrieveOrLog(rebuilt.id)?.vitalsSnapshot
+        }
+        guard let written = try archive.rewriteKeepingUserEdits(toArchive) else { return nil }
+        if Self.carriedEditsChangeScoringInputs(rebuilt: rebuilt, carried: written) {
+            NotificationCenter.default.post(
+                name: .flowRecoveryRescoreNeeded, object: written.id,
+                userInfo: ["reason": "sleep", "detail": "a repaired night kept the user's sleep, rating or vitals"]
+            )
+        }
+        return written
     }
 }

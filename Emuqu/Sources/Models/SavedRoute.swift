@@ -164,8 +164,7 @@ final class SavedRouteStore {
         }
     }
 
-    /// Reload the library that was unreadable while locked, keep any route
-    /// added in memory since (it could not be saved then), and save the merge.
+    /// Reload the library that was unreadable while locked, and save it.
     private func retryLoadAfterUnlock() {
         guard recoverBlockedLoad() else { return }
         save()
@@ -217,9 +216,16 @@ final class SavedRouteStore {
     /// the user might genuinely have "Loop A" twice if they reuse the
     /// name. We store by ID, render by name; collision is the user's
     /// problem to spot.
-    func add(_ route: SavedRoute) {
+    ///
+    /// False, adding nothing, while the library cannot be read
+    /// (`isLibraryReadable`): the route could not be saved, and a route kept
+    /// only in memory would show as saved until the app next starts.
+    @discardableResult
+    func add(_ route: SavedRoute) -> Bool {
+        guard isLibraryReadable() else { return false }
         routes.append(route)
         save()
+        return true
     }
 
     /// False, changing nothing, while the library cannot be read

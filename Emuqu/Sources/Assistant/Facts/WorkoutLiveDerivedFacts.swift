@@ -241,7 +241,7 @@ extension WorkoutLiveNamespace {
         var totals = RouteHistoryTotals()
         for session in candidates {
             if let dist = session.workoutMetadata?.distanceMeters, dist > 100,
-               let dur = session.duration, dur > 60 {
+               let dur = WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration), dur > 60 {
                 totals.dist += dist
                 totals.dur += dur
             }

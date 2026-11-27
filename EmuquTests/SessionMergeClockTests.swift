@@ -102,6 +102,40 @@ final class SessionMergeClockTests: XCTestCase {
         XCTAssertEqual(SessionMerger.relation(of: within, to: early, mergeGap: 3600), .separate, "a custom 1 h gap")
     }
 
+    // MARK: - What goes with an adopted analysis
+
+    /// A full night folded into a 20-minute fragment the archive held as
+    /// `.insufficient` takes the full night's analysis, and with it the full
+    /// night's quality class: re-scoring never revisits a quality once set, so
+    /// a fragment's `.insufficient` left behind would keep a valid night out
+    /// of the dashboard and the baseline.
+    func testAFullNightFoldedIntoAnInsufficientFragmentTakesItsQuality() {
+        var fragment = MergeClockFixture.session(start: night, minutes: 20, meanRR: 1000, withAnalysis: true)
+        fragment.hrvDataQuality = .insufficient
+        var full = MergeClockFixture.session(start: night.addingTimeInterval(30 * 60), minutes: 420, meanRR: 950, withAnalysis: true)
+        full.hrvDataQuality = .good
+        let fragmentId = fragment.id
+
+        XCTAssertTrue(SessionMerger.mergeSessionData(from: full, into: &fragment))
+
+        XCTAssertEqual(fragment.id, fragmentId, "the fold keeps the fragment's id")
+        XCTAssertEqual(fragment.analysisResult?.timeDomain.rmssd, full.analysisResult?.timeDomain.rmssd, "the fuller analysis is adopted")
+        XCTAssertEqual(fragment.hrvDataQuality, .good)
+    }
+
+    /// A fragment that keeps its own analysis (the import is the smaller
+    /// side) keeps its own quality class.
+    func testAKeptAnalysisKeepsItsQuality() {
+        var full = MergeClockFixture.session(start: night, minutes: 420, meanRR: 950, withAnalysis: true)
+        full.hrvDataQuality = .good
+        var fragment = MergeClockFixture.session(start: night.addingTimeInterval(430 * 60), minutes: 20, meanRR: 1000, withAnalysis: true)
+        fragment.hrvDataQuality = .insufficient
+
+        XCTAssertTrue(SessionMerger.mergeSessionData(from: fragment, into: &full))
+
+        XCTAssertEqual(full.hrvDataQuality, .good)
+    }
+
     /// `copy(of:startDate:)` lists every stored field of `HRVSession` by
     /// hand. A field added to the session must be added there too, or a
     /// merge that moves a session's start would drop it.

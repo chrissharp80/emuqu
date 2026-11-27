@@ -48,7 +48,7 @@ set -euo pipefail
 # in every locale while three localization gates reported perfect scores. That
 # is `check_localization_resolution.sh`'s job, and it now scans both targets.
 cd "$(dirname "$0")/.."
-SOURCE_ROOT="${1:-Emuqu/Sources}"
+SOURCE_ROOT="${1:-Emuqu}"
 # A missing root walks nothing and would report clean.
 if [[ ! -d "$SOURCE_ROOT" ]]; then
     echo "check_localization_bundle: source root not found: $SOURCE_ROOT" >&2
@@ -82,9 +82,9 @@ root = sys.argv[1]
 # lookup reads. Any other bundle passes: `LanguageManager.appBundle`, or a
 # bundle derived from it and passed in (`bundle: bundle`, the narrative
 # language's `NarrativeLanguage.bundle`).
-call = re.compile(r'(String\(localized:|NSLocalizedString\()')
+call = re.compile(r'(String\(\s*localized:|NSLocalizedString\()')
 bundle = re.compile(r'\bbundle:')
-main_bundle = re.compile(r'\bbundle:\s*(?:Bundle)?\.main\b')
+main_bundle = re.compile(r'\bbundle:\s*(?:(?:Bundle)?\.main\b|nil\b)')
 
 
 def mask_literals(text):

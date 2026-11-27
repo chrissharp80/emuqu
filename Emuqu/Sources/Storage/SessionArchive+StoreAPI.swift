@@ -7,9 +7,11 @@ extension SessionArchive {
     /// is announced (`.flowRecoveryArchiveChanged`), so every observer of the
     /// archive refreshes without the caller having to. Returns false, having
     /// done nothing, for an id the archive does not hold.
+    /// `deletedAt` is when the deletion was made, for one applied from
+    /// another device (nil: now).
     @discardableResult
-    func delete(_ id: UUID) throws -> Bool {
-        let removed = try store.delete(id)
+    func delete(_ id: UUID, deletedAt: Date? = nil) throws -> Bool {
+        let removed = try store.delete(id, deletedAt: deletedAt)
         if removed { NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id) }
         return removed
     }
@@ -32,10 +34,10 @@ extension SessionArchive {
         debugLog("[Archive] \(session.id.uuidString.prefix(8)) was restored on another device — this device's deletion dropped", level: .info)
     }
 
-    /// A deletion made on another device; announced like `delete`.
+    /// A deletion made on another device at `deletedAt`; announced like `delete`.
     @discardableResult
-    func deleteWithoutTrash(_ id: UUID) throws -> Bool {
-        let removed = try store.deleteWithoutTrash(id)
+    func deleteWithoutTrash(_ id: UUID, deletedAt: Date? = nil) throws -> Bool {
+        let removed = try store.deleteWithoutTrash(id, deletedAt: deletedAt)
         if removed { NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id) }
         return removed
     }
@@ -55,6 +57,18 @@ extension SessionArchive {
     @discardableResult
     func sessionExists(for date: Date) -> Bool { store.sessionExists(for: date) }
     func linkedSegments(for session: HRVSession) -> [LinkedSegmentInfo]? { store.linkedSegments(for: session) }
+
+    /// Archive `session` and return the night that now holds it: `session`
+    /// itself, or the night already archived that the archive folded it into
+    /// (a second recording of the same night), read whole. That night is what
+    /// the baseline, Apple Health and iCloud then take; the recording under
+    /// its own id would put a second copy of the night there. `session` when
+    /// that night cannot be read (logged).
+    func archiveReturningNight(_ session: HRVSession) throws -> HRVSession {
+        let entry = try archive(session)
+        guard entry.sessionId != session.id else { return session }
+        return retrieveOrLog(entry.sessionId, caller: "SessionArchive.archiveReturningNight") ?? session
+    }
 
     /// Replace a session's tags and notes. `notes` is the whole new value:
     /// every caller passes nil for an empty field, so nil clears the note.

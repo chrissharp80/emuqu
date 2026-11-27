@@ -15,14 +15,18 @@ extension CapabilityMarkers {
         #"メール|메일|이메일|邮件|郵件|ナビ|道案内|길 ?안내|导航|带我去|覚えて|忘れて|기억해|잊어|记住|忘记|بريد|تذكر"#
     ]
 
+    /// Words that are also everyday words elsewhere are matched only in the
+    /// weather or search sense: Norwegian "vær" is also "be" ("vær så snill",
+    /// please), Italian "cerca di" is "try to", Korean "비가" ends "준비가"
+    /// (ready).
     static let otherLanguageWeb: [String] = [
         #"\b(?:qué tiempo|que tiempo|clima|llov\w*|lluvia|nieve|nevar\w*|pronóstico|wetter|regnet|regen|schnee|quel temps|météo|meteo|pluie|pleut|pleuvoir|neige)\b"#,
-        #"\b(?:che tempo|pioggia|piove|previsão do tempo|chuva|chover|weerbericht|wat voor weer|väder\w*|vädret|vejr\w*|været|vær|sää|sään|sataa|sade)\b"#,
+        #"\b(?:che tempo|pioggia|piove|previsão do tempo|chuva|chover|weerbericht|wat voor weer|väder\w*|vädret|vejr\w*|været|værmelding\w*|sää|sään|sataa|sade)\b"#,
         #"\b(?:veður\w*|rigning|regn|погод\w*|дожд\w*|снег\w*)\b"#,
-        #"\b(?:busca\w*|en internet|en línea|im internet|im netz|suche im|such nach|suche nach|cherche\w*|en ligne|sur internet|cerca|cercami|pesquis\w*|na internet|zoek\w*|op internet|sök\w*|på nätet|søg\w*|søk\w*|etsi\w*|leita|интернет\w*|найди)\b"#,
+        #"\b(?:busca\w*|en internet|en línea|im internet|im netz|suche im|such nach|suche nach|cherche\w*|en ligne|sur internet|cercami|cerca (?:online|su internet|in rete|sul web)|pesquis\w*|na internet|zoek\w*|op internet|sök\w*|på nätet|søg\w*|søk\w*|etsi\w*|leita|интернет\w*|найди)\b"#,
         #"\b(?:zapatillas|schuhe|chaussures|scarpe|tênis|schoenen|skor|sko|kengät|кроссовк\w*)\b"#,
         #"\b(?:inscripción|anmeldung|inscription|iscrizione|inscrição|inschrijving|anmälan|tilmelding|påmelding|ilmoittautu\w*|регистрац\w*)\b"#,
-        #"天気|雨|雪|気温|날씨|비가|눈이|기온|天气|下雨|下雪|气温|طقس|مطر|أمطار|ネット|検索|검색|인터넷|搜索|查一下|网上|报名|エントリー|접수|ابحث|الإنترنت"#
+        #"天気|雨|雪|気温|날씨|(?<!준)비가|눈이|기온|天气|下雨|下雪|气温|طقس|مطر|أمطار|ネット|検索|검색|인터넷|搜索|查一下|网上|报名|エントリー|접수|ابحث|الإنترنت"#
     ]
 
     static let otherLanguageDepth: [String] = [

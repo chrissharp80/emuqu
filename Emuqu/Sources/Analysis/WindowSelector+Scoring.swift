@@ -893,20 +893,20 @@ extension WindowSelector {
     }
 
     /// Map a wall-clock offset (ms from session start) onto the recording's
-    /// cumulative-RR (`t_ms`) timeline, as a `t_ms` position. Uses each beat's
-    /// `wallClockMs` — milliseconds since the stream (session) started, the
-    /// same clock as the offset — and returns the `t_ms` of the first beat
-    /// received at or after that moment (the last beat when none is). Beats
-    /// without a wall clock are skipped. When the series carries no wall
-    /// clock (H10 internal recording — gapless, its `t_ms` already counts
-    /// from session start), the offset itself is the position, so this is a
-    /// no-op on that path.
+    /// cumulative-RR (`t_ms`) timeline, as a `t_ms` position: the `t_ms` of
+    /// the first beat received at or after that moment (the last beat when
+    /// none is). A beat's moment is its `wallClockMs` (milliseconds since the
+    /// stream, i.e. the session, started: the offset's clock), or, for a beat
+    /// without one, its `t_ms`: an H10 internal-recording beat is gapless and
+    /// counts from session start, which is how `DataSourceSelector` aligns
+    /// the two in a strap and stream composite night. Each beat is read on its
+    /// own, so a night mixing the two maps correctly whichever comes first.
+    /// When no beat carries a wall clock (internal recording alone), the
+    /// offset itself is the position, so this is a no-op on that path.
     func tMsPosition(forWallElapsed wallElapsedMs: Int64, in points: [RRPoint]) -> Int64 {
-        guard let first = points.first, first.wallClockMs != nil else { return wallElapsedMs }
-        if let match = points.first(where: { ($0.wallClockMs ?? Int64.min) >= wallElapsedMs }) {
-            return match.t_ms
-        }
-        return points.last?.t_ms ?? first.t_ms
+        guard let last = points.last, points.contains(where: { $0.wallClockMs != nil }) else { return wallElapsedMs }
+        let match = points.first { ($0.wallClockMs ?? $0.t_ms) >= wallElapsedMs }
+        return match?.t_ms ?? last.t_ms
     }
 
     /// Find the index range for the 30-70% sleep band, clamped to recording boundaries.

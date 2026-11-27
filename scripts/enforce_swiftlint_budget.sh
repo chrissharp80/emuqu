@@ -16,6 +16,13 @@ if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
     exit 65
 fi
 
+# A `swiftlint:disable` comment removes a violation from the report this budget
+# counts, error-tier rules included. The code that ships waives nothing.
+if grep -rn 'swiftlint:disable' --include='*.swift' Emuqu "EmuquWatch Watch App" >&2; then
+    echo "SwiftLint is disabled in shipping code above; fix the violation instead." >&2
+    exit 1
+fi
+
 mkdir -p "$(dirname "$REPORT_PATH")"
 stderr_path="${REPORT_PATH%.json}.stderr"
 swiftlint lint --config "$CONFIG_FILE" --reporter json > "$REPORT_PATH" 2> "$stderr_path"
@@ -49,6 +56,11 @@ else:
     print("Top rules:\n- none")
 
 if count > budget:
+    sys.exit(1)
+# Slack fails too, as in enforce_tech_debt_budgets.sh: a budget left above the
+# count lets that many new violations in unseen.
+if count < budget:
+    print(f"FAIL (slack): lower the budget to {count} in this change to lock the gain in")
     sys.exit(1)
 PY
 )"

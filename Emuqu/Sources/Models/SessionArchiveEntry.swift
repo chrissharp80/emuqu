@@ -25,7 +25,7 @@ struct SessionArchiveEntry: Codable, Sendable {
     /// When the recording ended (for overnight sessions, this is the meaningful "reading time")
     let endDate: Date?
     let fileHash: String
-    let filePath: String
+    var filePath: String
     /// Composite recovery score (0-10 scale). See HRVSession.recoveryScore for details.
     let recoveryScore: Double?
     let meanRMSSD: Double?

@@ -462,6 +462,35 @@ final class MorningResultsReadinessTests: XCTestCase {
         XCTAssertEqual(try archive.retrieve(session.id)?.perceivedReadiness, 0.4)
     }
 
+    /// A night folded into one already archived is rated on the night the
+    /// archive kept, and the screen shows that copy.
+    func testRatingAFoldedNightStoresItOnTheNightTheArchiveKept() async throws {
+        let kept = try foldTarget()
+        var second = night(quality: .preSleep)
+        second.rrSeries = RRSeries(points: Self.beats(), sessionId: second.id, startDate: second.startDate)
+        let entry = try archive.archive(second)
+        XCTAssertEqual(entry.sessionId, kept.id, "the second recording was not folded")
+        let vm = viewModel(for: second)
+
+        vm.updatePerceivedReadiness(0.4)
+        await vm.perceivedReadinessSaved()
+
+        XCTAssertEqual(try archive.retrieve(kept.id)?.perceivedReadiness, 0.4)
+        XCTAssertEqual(vm.displaySession.id, kept.id, "the screen shows a copy the archive does not hold")
+    }
+
+    /// An archived night with beats from the same start as `night(quality:)`.
+    private func foldTarget() throws -> HRVSession {
+        var kept = night(quality: .preSleep)
+        kept.rrSeries = RRSeries(points: Self.beats(), sessionId: kept.id, startDate: kept.startDate)
+        _ = try archive.archive(kept, skipSameNightMerge: true)
+        return kept
+    }
+
+    private static func beats() -> [RRPoint] {
+        (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 990 : 1010) }
+    }
+
     func testAReliableNightKeepsItsScore() async throws {
         let session = night(quality: .good, score: 7.0)
         _ = try archive.archive(session)

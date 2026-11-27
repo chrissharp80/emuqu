@@ -355,6 +355,11 @@ extension FitnessSummaryCards {
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if routeSaveFailed {
+                Text(String(localized: "Your change couldn't be saved. Try again.", bundle: LanguageManager.appBundle))
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.alert)
+            }
             addToLibraryButton
         }
     }
@@ -403,12 +408,14 @@ extension FitnessSummaryCards {
     }
 
     /// A name left blank saves under the default "<sport> N" name rather than
-    /// closing the alert with nothing saved.
+    /// closing the alert with nothing saved. A library that cannot be written
+    /// keeps the Add button, with the failure said under it.
     func commitSavedRoute() {
         let trimmed = newRouteName.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = trimmed.isEmpty ? defaultSavedRouteName() : trimmed
         guard let saved = SavedRoute.from(session: session, name: name) else { return }
-        savedRouteStore.add(saved)
+        routeSaveFailed = !savedRouteStore.add(saved)
+        guard !routeSaveFailed else { return }
         savedRouteIDForThisSession = saved.id
         // Kick off the road-name enrichment in the background. The user
         // doesn't wait on this — the route is immediately usable; road

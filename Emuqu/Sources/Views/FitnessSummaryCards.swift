@@ -41,6 +41,8 @@ struct FitnessSummaryCards {
     @Binding var showSaveRouteSheet: Bool
     @Binding var newRouteName: String
     @Binding var savedRouteIDForThisSession: UUID?
+    /// The last Add to my route library could not be written.
+    @Binding var routeSaveFailed: Bool
     @Binding var reanalyzing: Bool
     @Binding var reanalyzeError: String?
     @Binding var elevResmoothing: Bool

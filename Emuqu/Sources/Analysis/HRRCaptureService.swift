@@ -22,13 +22,22 @@ import HealthKit
 final class HRRCaptureService {
     private let strapLink: StrapLinkState
     private let strapStream: StrapStreamSession
+    /// The start of the finished workout's own stream; nil when the workout
+    /// did not run on the strap. Tier 1 reads the stream only while it is
+    /// still this one: a stream started since (the next workout, a quick
+    /// reading, an overnight) carries another session's heart rate.
+    private let ownStreamStart: Date?
     private let access: HealthKitAccess
     private let heartRate: HeartRateHealthQueries
     private let captureWindowSec: Int
 
-    init(strapLink: StrapLinkState, strapStream: StrapStreamSession, access: HealthKitAccess, heartRate: HeartRateHealthQueries, captureWindowSec: Int = 120) {
+    init(
+        strapLink: StrapLinkState, strapStream: StrapStreamSession, ownStreamStart: Date?,
+        access: HealthKitAccess, heartRate: HeartRateHealthQueries, captureWindowSec: Int = 120
+    ) {
         self.strapLink = strapLink
         self.strapStream = strapStream
+        self.ownStreamStart = ownStreamStart
         self.access = access
         self.heartRate = heartRate
         self.captureWindowSec = captureWindowSec
@@ -259,13 +268,13 @@ final class HRRCaptureService {
     /// is often expected (user dismissed the summary and Polar disconnected;
     /// user wasn't wearing the strap). HRR capture failing because there's no
     /// data source isn't an app malfunction, so they log at `.info`.
-    private func strapHR(at target: Int) -> Int? {
+    func strapHR(at target: Int) -> Int? {
         guard strapLink.connectionState == .connected else {
             debugLog("[HRRCaptureService] tier 1 — strap not connected at +\(target)s (state=\(strapLink.connectionState)), breaking")
             return nil
         }
-        guard strapStream.isStreaming else {
-            debugLog("[HRRCaptureService] tier 1 — strap connected but not streaming at +\(target)s, breaking")
+        guard strapStream.isBuffering(startedAt: ownStreamStart) else {
+            debugLog("[HRRCaptureService] tier 1: the workout's own strap stream is not running at +\(target)s, breaking")
             return nil
         }
 

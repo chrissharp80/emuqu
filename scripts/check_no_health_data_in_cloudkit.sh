@@ -29,7 +29,7 @@ cd "$(dirname "$0")/.."
 # snake_case words, and it is a health field when any word is on this list, so
 # `avgHR`, `hrvScore` and `resting_heart_rate_bpm` are caught as well as the
 # exact names, not only a fixed set of spellings.
-HEALTH_WORDS='hr|hrv|rmssd|sdnn|pnn50|heart|pulse|bpm|spo2|oxygen|respiratory|respiration|sleep|recovery|readiness|score|vo2|resting|temperature|alpha1|strain|stress|calories'
+HEALTH_WORDS='hr|hrv|rmssd|sdnn|pnn50|heart|pulse|bpm|spo2|oxygen|respiratory|respiration|sleep|recovery|readiness|score|vo2|resting|temperature|alpha1|strain|stress|calories|rr|ibi|beat|beats|interval|intervals|dfa|hrr|ecg|weight|mass|bmi|glucose|blood|pressure|cadence|power|energy|steps|workout|route|location|latitude|longitude|altitude|elevation|distance|pace|speed'
 bad=0
 
 # function_body <name> <file>: prints `func <name>` through the closing brace at
@@ -60,7 +60,15 @@ fi
 # is recognised as a string literal (`record["rmssd"] = ...`), through a
 # string constant declared in the scanned files (`record[payloadField] = ...`
 # where `payloadField = "settingsJSON"`), or through `setValue(_:forKey:)` /
-# `setObject(_:forKey:)`.
+# `setObject(_:forKey:)`. The record is any variable named `*record` or
+# `*Record`, any name a file binds to one (`let ck = record`, `ck: CKRecord`,
+# `= CKRecord(`), and its `encryptedValues`, which are still stored in iCloud.
+# `setValuesForKeys` hides its keys from a line scan, so it is refused outright
+# on a record: write the fields one by one.
+#
+# This is the fast first line. CloudUploadRecordTests builds the real session
+# and live-backup records and reads their keys and asset bytes, which catches
+# what no source pattern can.
 #
 #   * A health scalar may never be written.
 #   * The settings record's plaintext fields — `settingsJSON` held birthday,
@@ -89,7 +97,11 @@ if not files:
     sys.exit(2)
 
 CONSTANT = re.compile(r"\blet\s+(\w+)\s*(?::\s*String\s*)?=\s*\"([^\"]+)\"")
-SUBSCRIPT = re.compile(r"\b\w*[rR]ecord\s*\[\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\]\s*=(?!=)\s*(.*)$")
+SUBSCRIPT = re.compile(r"\b(\w+)(?:\.encryptedValues)?\s*\[\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\]\s*=(?!=)\s*(.*)$")
+ALIAS = re.compile(r"\b(?:let|var)\s+(\w+)\s*(?::\s*CKRecord\b[^=]*)?=\s*(?:\w*[rR]ecord\b|CKRecord\s*\()"
+                   r"|\b(\w+)\s*:\s*CKRecord\b(?!\s*\.)"
+                   r"|\b(?:let|var)\s+(\w+)\s*=\s*\w*[rR]ecords\b|\bfor\s+(\w+)\s+in\s+\w*[rR]ecords\b")
+BULK = re.compile(r"\.setValuesForKeys\s*\(")
 SETTER = re.compile(r"\.set(?:Value|Object)\s*\((.*),\s*forKey:\s*(?:\"([^\"]+)\"|([A-Za-z_][\w.]*))\s*\)")
 
 texts = {p: p.read_text(encoding="utf-8", errors="ignore") for p in files}
@@ -107,13 +119,23 @@ def keys_of(literal, name):
     return constants.get((name or "").split(".")[-1], set())
 
 
+def is_record(name, aliases):
+    return name.lower().endswith("record") or name in aliases
+
+
 for path, text in texts.items():
+    aliases = {next(g for g in groups if g) for groups in ALIAS.findall(text)}
     for n, line in enumerate(text.split("\n"), 1):
         code = line.split("//")[0]
-        writes = [(k, m.group(3)) for m in SUBSCRIPT.finditer(code) for k in keys_of(m.group(1), m.group(2))]
+        if BULK.search(code):
+            print(f"{path}:{n}: {line.strip()}: setValuesForKeys on a record; its keys cannot be checked")
+        writes = [(k, m.group(4)) for m in SUBSCRIPT.finditer(code) if is_record(m.group(1), aliases)
+                  for k in keys_of(m.group(2), m.group(3))]
         writes += [(k, m.group(1)) for m in SETTER.finditer(code) for k in keys_of(m.group(2), m.group(3))]
         for key, value in writes:
-            if is_health(key):
+            # Clearing a field writes nothing; the bytes of an asset are held to
+            # the sealing checks on its writer below.
+            if is_health(key) and value.strip() != "nil" and not value.strip().startswith("CKAsset("):
                 print(f"{path}:{n}: {line.strip()} — plaintext health field written to a CKRecord")
             elif legacy.match(key) and value.strip() != "nil":
                 print(f"{path}:{n}: {line.strip()} — legacy plaintext settings field written with a value")
@@ -144,6 +166,13 @@ for fn in compressedPayload compressedPoints sealedLocalSettings scrubStoredReco
     fi
     if ! grep -qF "CloudPayloadCodec.sealForUpload(" <<<"$body"; then
         echo "ERROR: ${file#Emuqu/Sources/Storage/}: $fn does not seal through CloudPayloadCodec.sealForUpload" >&2
+        bad=$((bad + 1))
+    fi
+    # Sealing and then returning something else uploads the plaintext: the
+    # sealed bytes are what a writer hands back, never a bare variable.
+    if grep -qE "^[[:space:]]*return[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*$" <<<"$body" \
+        || grep -qE "^[[:space:]]*_[[:space:]]*=[[:space:]]*try[[:space:]]+CloudPayloadCodec\.sealForUpload" <<<"$body"; then
+        echo "ERROR: ${file#Emuqu/Sources/Storage/}: $fn seals and then hands back something other than the sealed bytes" >&2
         bad=$((bad + 1))
     fi
 done

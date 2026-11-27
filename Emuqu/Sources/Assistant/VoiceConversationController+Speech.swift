@@ -47,7 +47,10 @@ extension VoiceConversationController {
     /// line that is what restores the pre-trigger state, so it is settled
     /// here instead (`settleUnspokenTriggerLine`). A coach line (in
     /// `.triggerSpeaking`) claims the cue audio session first (`coachCue`).
-    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) {
+    /// Returns the utterance queued on the synthesizer, or nil when the line
+    /// went to the coach cue or failed to queue.
+    @discardableResult
+    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) -> AVSpeechUtterance? {
         let chosenVoice = voice ?? bestVoice
         let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
         let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
@@ -57,12 +60,14 @@ extension VoiceConversationController {
         let attributed = TTSTextNormalizer.normalize(isScripted ? guarded : announced(guarded), english: english)
         let utterance = Self.makeUtterance(attributed, voice: chosenVoice)
         guard state != .triggerSpeaking else {
-            return coachCue.speak(utterance) { [weak self] in self?.settleUnspokenTriggerLine() }
+            coachCue.speak(utterance) { [weak self] in self?.settleUnspokenTriggerLine() }
+            return nil
         }
         var speakErr: NSError?
-        guard !FRSafeSpeak(synthesizer, utterance, &speakErr) else { return }
+        guard !FRSafeSpeak(synthesizer, utterance, &speakErr) else { return utterance }
         debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
         settleUnspokenTriggerLine()
+        return nil
     }
 
     /// A scripted trigger line (`playSpokenTriggerNow`) that failed to queue
@@ -115,9 +120,22 @@ extension VoiceConversationController {
     }
 
     /// Stops the speech and ends every coach line's audio-session hold.
+    /// A confirmation question still queued or playing is cut off, so it
+    /// was not asked (`confirmationLineEnded`).
     func stopSynthesizer() {
+        spokenConfirmation = nil
         _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
         coachCue.stopAll()
+    }
+
+    /// The app's confirmation question (`speakConfirmationQuestionIfShown`)
+    /// counts as asked only once its line has played to the end: then a
+    /// "yes" answers a question the user heard. A line cancelled or cut off
+    /// by a stop leaves the request undelivered, so no yes can confirm it.
+    func confirmationLineEnded(_ line: ObjectIdentifier, finished: Bool) {
+        guard let spoken = spokenConfirmation, ObjectIdentifier(spoken.utterance) == line else { return }
+        spokenConfirmation = nil
+        if finished { assistantViewModel.actionConfirmations.markSpoken(promptTurnID: spoken.turnID) }
     }
 
     /// Short audible
@@ -302,6 +320,7 @@ extension VoiceConversationController {
         let line = ObjectIdentifier(utterance)
         Task { @MainActor in
             self.coachCue.lineEnded(line)
+            self.confirmationLineEnded(line, finished: true)
             // If the synthesizer queue drained and we're still in speaking state,
             // transition back to idle. During trigger preemption, restore the
             // prior state. The check is made after the hop, on the controller's
@@ -319,7 +338,10 @@ extension VoiceConversationController {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         let line = ObjectIdentifier(utterance)
-        Task { @MainActor in self.coachCue.lineEnded(line) }
+        Task { @MainActor in
+            self.coachCue.lineEnded(line)
+            self.confirmationLineEnded(line, finished: false)
+        }
     }
 
     /// Chain pending triggers before restoring the prior state.

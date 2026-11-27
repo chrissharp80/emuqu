@@ -349,7 +349,7 @@ struct DeviceInfoPanelView: View {
         if deviceType == .veritySense, !isBatteryReadingStale, let battery = batteryLevel, let spec = specRecordingHours {
             infoRow(
                 label: String(localized: "Est. Battery Life", bundle: LanguageManager.appBundle),
-                value: String(format: String(localized: "~%.0f hours", bundle: LanguageManager.appBundle),
+                value: String(format: String(localized: "~%.0f hours", bundle: LanguageManager.appBundle), locale: .current,
                               spec * Double(battery) / 100.0),
                 icon: "clock"
             )

@@ -219,7 +219,7 @@ struct RecoveryScoreDetailView: View {
     /// bpm higher than nocturnal mean), so we override at display time
     /// regardless of whether the refresh has loaded.
     var effectiveVitals: RecoveryVitals? {
-        let stored = session.vitalsSnapshot
+        let stored = session.vitalsWithSleepHeartRate
         let fresh = refreshedVitals
         // Strap analysis-window mean wins for Sleep HR. Falls back to
         // stored / fresh only when the analysis didn't run.
@@ -231,9 +231,10 @@ struct RecoveryScoreDetailView: View {
     }
 
     /// The strap's analysis-window mean HR; nil when the analysis did not
-    /// run (a 0 there is no heart rate).
+    /// run (a 0 there is no heart rate) or the recording is unusable for HRV
+    /// (`HRVSession.strapSleepHeartRate`).
     var strapSleepHR: Double? {
-        result.timeDomain.meanHR > 0 ? result.timeDomain.meanHR : nil
+        session.strapSleepHeartRate(in: result)
     }
 
     var deltaText: String? {
@@ -437,7 +438,7 @@ struct RecoveryScoreDetailView: View {
         guard let series = effectiveRRSeries else { return }
         let flags = session.artifactFlags ?? []
         let sleepStartMs = session.sleepStartMs ?? 0
-        let sleepEndMs = session.sleepEndMs ?? series.points.last?.t_ms ?? 0
+        let sleepEndMs = session.sleepEndMs ?? MillisecondOffset.between(series.actualEndDate, and: session.startDate, fallback: 0)
         let (sessionId, cache) = (session.id, dependencies.app.organizedZonesCache)
         let zones = await Task.detached(priority: .userInitiated) {
             OvernightStatsComputer.computeOrganizedZonesOnDemand(
@@ -460,12 +461,11 @@ struct RecoveryScoreDetailView: View {
     func rebuildChartSeries() async {
         let series = effectiveRRSeries
         let flags = session.artifactFlags
-        let startDate = session.startDate
         let fallback = fallbackHRSamples
         let (rmssd, hr) = await Task.detached(priority: .userInitiated) {
             (
-                Self.buildRMSSDSeries(series: series, flags: flags, sessionStartDate: startDate),
-                Self.buildHRSeries(series: series, flags: flags, sessionStartDate: startDate, fallbackHRSamples: fallback)
+                Self.buildRMSSDSeries(series: series, flags: flags),
+                Self.buildHRSeries(series: series, flags: flags, fallbackHRSamples: fallback)
             )
         }.value
         rmssdChartSeries = rmssd
@@ -486,10 +486,11 @@ struct RecoveryScoreDetailView: View {
 /// and the archived copy is updated only when that adds a field.
 enum RecoveryVitalsBackfill {
     /// No re-upload request: iCloud payloads leave `vitalsSnapshot` out, so
-    /// a re-upload would carry none of this change.
+    /// a re-upload would carry none of this change. A night folded into one
+    /// already archived is filled there (`SessionArchive.archivedId(of:)`).
     static func store(_ fresh: RecoveryVitals, id: UUID, archive: SessionArchive) {
         do {
-            try archive.update(id, requestingReupload: false) { fill(fresh, in: &$0) }
+            try archive.update(archive.archivedId(of: id), requestingReupload: false) { fill(fresh, in: &$0) }
         } catch {
             debugLog("[RecoveryScoreDetail] Merged vitals not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
         }

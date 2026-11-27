@@ -44,8 +44,8 @@ enum HRSleepEstimator {
         let sleepOnsetMs = rawOnsetMs.map { plausibleOnsetMs($0, in: rrPoints) }
         let stageResult = HRVSleepStageClassifier.classify(
             rrPoints: rrPoints,
-            sleepStartMs: sleepOnsetMs ?? 0,
-            sleepEndMs: wakeMs ?? (rrPoints.last?.t_ms ?? 0),
+            sleepStartMs: sleepOnsetMs.map { wallClockMs(forBeatSumMs: $0, in: rrPoints) } ?? 0,
+            sleepEndMs: wakeMs.map { wallClockMs(forBeatSumMs: $0, in: rrPoints) } ?? (rrPoints.map(\.exportTimeMs).max() ?? 0),
             recordingStart: recordingStart
         )
         return hrEstimatedSleepData(
@@ -74,10 +74,11 @@ enum HRSleepEstimator {
     /// staged counts as none), falling back to the raw onset→wake duration. Efficiency is that same total over time in
     /// bed, so the two figures on screen agree.
     ///
-    /// Onset and wake are found on the beat-sum clock (`t_ms`), which the
-    /// stage classifier also uses; they are moved to the wall clock
-    /// (`exportTimeMs`) before becoming dates or durations, so a streamed
-    /// night that lost packets keeps its real wake time and length.
+    /// Onset and wake are found on the beat-sum clock (`t_ms`); they are
+    /// moved to the wall clock (`exportTimeMs`) before becoming dates or
+    /// durations, and before they bound the stage classifier, which places
+    /// its windows on the wall clock, so a streamed night that lost packets
+    /// keeps its real wake time, length and stages.
     nonisolated static func hrEstimatedSleepData(
         rrPoints: [RRPoint],
         recordingStart: Date,

@@ -284,6 +284,10 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// Index into `assistantViewModel.turns` of the assistant turn currently
     /// being streamed (set after calling `send(text:)`).
     var activeAssistantIndex: Int?
+    /// The app's confirmation question being spoken, and the reply it was
+    /// shown under, until its line ends (`confirmationLineEnded`). Holding
+    /// the utterance keeps its identity from being reused by a later line.
+    @ObservationIgnored var spokenConfirmation: (utterance: AVSpeechUtterance, turnID: UUID)?
     /// Character count of the active assistant turn the last time we fed TTS,
     /// used to slice out the delta as new tokens arrive.
     var spokenCharCursor: Int = 0

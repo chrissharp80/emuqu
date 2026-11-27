@@ -54,8 +54,12 @@ ceiling that rises, a `min_*` floor that falls, or a budget that is deleted or
 no longer a number. Values may be whole or decimal (`min_coverage_views.txt` is
 43.5). A file that was not a number at the baseline (`scoring_constants_hash.txt`)
 is not a budget and is listed as not compared. Every debt gate is a
-`count > budget` comparison and every budget sits at its measured value, so the
-cheapest way to turn CI green is to edit the number rather than pay the debt.
+`count > budget` comparison, so the cheapest way to turn CI green is to edit
+the number rather than pay the debt. A value with a leading zero (`08`) is a
+loosening too: bash reads it as octal and the comparison errors to false. The
+limits the counts are measured against are compared the same way:
+`.swiftlint.yml`, the refactor spec's `MAX_BODY` / `MAX_DEPTH` and the
+large-file threshold.
 This is the pawl on the ratchet. A legitimate loosening needs a commit trailer:
 
 ```
@@ -74,8 +78,11 @@ tests red against the wrong screen.
 
 ### `check_test_skip_budget.sh`
 
-Counts `XCTSkip` / `XCTSkipUnless` call sites against
-`.ci/test_skip_budget.txt`. A skipped test passes without asserting anything,
+Counts skip calls (`XCTSkip`, `XCTSkipIf`, `XCTSkipUnless`, `XCTSkip.init`,
+Swift Testing's `.disabled` and `withKnownIssue`; every call, comments
+excluded), plus each test-plan `skippedTests` entry, disabled target and
+`selectedTests` list, against `.ci/test_skip_budget.txt`; a scheme's
+`SkippedTests` fails outright. A skipped test passes without asserting anything,
 and a stale selector has already turned a whole class into silent skips here
 once. Ratchets toward zero.
 
@@ -83,8 +90,9 @@ once. Ratchets toward zero.
 
 Counts three kinds of coupling, each against its own budget:
 hub back-references (stored properties typed as `RRCollector`,
-`WorkoutRecorder`, `HealthKitManager` or `PolarManager` outside the views and
-the composition root, `.ci/hub_back_reference_budget.txt`),
+`WorkoutRecorder`, `HealthKitManager` or `PolarManager`, directly or inside an
+array or generic such as `Optional<…>`, outside the views and the four
+composition-root files, `.ci/hub_back_reference_budget.txt`),
 `AppDependencies.current` reads outside the composition root
 (`.ci/locator_read_budget.txt`), and pass-through forwarders, a function whose
 whole body calls the same-named function on another value
@@ -119,7 +127,9 @@ flags correctly-scaling call sites.
 ### `check_strict_concurrency_enabled.sh`
 
 Proves every build configuration is in Swift 6 language mode with
-`SWIFT_STRICT_CONCURRENCY = complete` and that warnings are errors. The
+`SWIFT_STRICT_CONCURRENCY = complete`, and that warnings are errors in every
+shipping configuration (Debug and Release of the app and the watch app, the
+target's setting or else the project's). The
 compiler is the gate for isolation hazards; this only makes sure nobody
 switches it off. No build, seconds on Ubuntu (ADR 006).
 

@@ -122,13 +122,30 @@ for phase_id, kind in isa.items():
         compiled.add(path)
 
 synced_roots = sorted(full_path(k) for k, v in isa.items() if v == "PBXFileSystemSynchronizedRootGroup")
+# A file named in a synchronised group's `membershipExceptions` is taken OUT of
+# that target: on disk under the root, compiled by nothing. Those are not
+# covered by the root; they must be compiled by some Sources phase.
+excepted = set()
+for gid, kind in isa.items():
+    if kind != "PBXFileSystemSynchronizedRootGroup":
+        continue
+    root = full_path(gid)
+    for exception in ids(objs[gid], "exceptions"):
+        m = re.search(r"\bmembershipExceptions = \((.*?)\);", objs.get(exception, ""), re.S)
+        for entry in (m.group(1).split(",") if m else []):
+            entry = entry.strip().strip('"')
+            if entry:
+                excepted.add(f"{root}/{entry}")
 
 missing, scanned, synced = [], 0, 0
 for root in roots:
     for file in sorted(pathlib.Path(root).rglob("*.swift")):
         scanned += 1
         rel = file.as_posix()
-        if any(rel.startswith(r + "/") for r in synced_roots):
+        if rel in excepted:
+            if rel not in compiled:
+                missing.append(rel)
+        elif any(rel.startswith(r + "/") for r in synced_roots):
             synced += 1
         elif rel not in compiled:
             missing.append(rel)

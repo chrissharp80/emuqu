@@ -243,6 +243,11 @@ while IFS= read -r file; do
     # Debt ceilings are counts, and the gates that read them accept only a
     # whole number. `83` -> `83.0` compares equal here but is a value those
     # gates refuse, so a ceiling that stops being whole is a change to justify.
+    # `08` equals 8 to awk, but bash reads a leading zero as octal and every
+    # `(( count > budget ))` gate turns into an error that `if` reads as false.
+    if [[ "$current" =~ ^0[0-9] ]]; then
+        report_loosened "$file" "${previous} -> ${current} (leading zero: bash reads it as octal)"; continue
+    fi
     if ! is_floor "$file" && [[ "$previous" =~ ^[0-9]+$ && ! "$current" =~ ^[0-9]+$ ]]; then
         report_loosened "$file" "${previous} -> ${current} (no longer a whole number)"; continue
     fi
@@ -253,6 +258,25 @@ while IFS= read -r file; do
         echo "  ratcheted: $file ${previous} -> ${current}"
     fi
 done < <(budget_files)
+
+# The limits the budgets are counted AGAINST live outside `.ci/`: SwiftLint's
+# thresholds and rule lists, and the spec and large-file limits in the gate
+# scripts. Raising one lowers every count at once, so the budgets above never
+# move and the ratchet never sees it. Any change to them needs the same trailer.
+threshold_lines() {
+    case "$1" in
+        .swiftlint.yml) cat ;;
+        scripts/check_refactor_spec_conformance.sh) grep -E '^MAX_(BODY|DEPTH) = ' || true ;;
+        scripts/enforce_tech_debt_budgets.sh) grep -E 'LARGE_FILE_THRESHOLD:-' || true ;;
+    esac
+}
+for file in .swiftlint.yml scripts/check_refactor_spec_conformance.sh scripts/enforce_tech_debt_budgets.sh; do
+    before="$(git show "${BASE_REF}:${file}" 2>/dev/null | threshold_lines "$file")"
+    after="$(threshold_lines "$file" < "$file" 2>/dev/null || true)"
+    if [[ "$before" != "$after" ]]; then
+        report_loosened "$file" "(gate thresholds changed)"
+    fi
+done
 
 if (( ${#not_budgets[@]} > 0 )); then
     echo "  not compared (not a number at ${BASE_REF}): ${not_budgets[*]}"

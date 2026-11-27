@@ -114,6 +114,26 @@ enum VoiceEchoHeuristics {
     /// See `isEchoOfInFlightResponse`.
     static let inFlightEchoThreshold = 0.65
 
+    /// Whether a transcript is the user's plain yes or no to the app's
+    /// confirmation `question`. A reply that asks for a yes often contains
+    /// the word itself ("just say yes to confirm"), so the short-transcript
+    /// rule would score a spoken "yes" as echo of it every time. While a
+    /// question the user has heard is waiting, such an answer is theirs.
+    /// A no only lapses the request, so taking an echoed "no" for one is the
+    /// safe mistake.
+    static func answersConfirmation(_ transcript: String, question: String) -> Bool {
+        if AffirmationReply.isExplicitYes(transcript, question: question) { return true }
+        let words = AffirmationReply.tokens(transcript)
+        guard let first = words.first, words.count <= AffirmationReply.maxWords else { return false }
+        return refusalOpeners.contains(first)
+    }
+
+    /// First words of a plain no in the app's languages.
+    static let refusalOpeners: Set<String> = [
+        "no", "nope", "nah", "cancel", "nein", "nee", "nej", "nei", "non", "não", "nao", "ei",
+        "нет", "لا", "いいえ", "아니", "아니요", "아뇨", "不", "不要", "别"
+    ]
+
     static func threshold(forTokenCount count: Int) -> Double {
         count <= shortTranscriptTokenCount ? shortTranscriptEchoThreshold : longTranscriptEchoThreshold
     }

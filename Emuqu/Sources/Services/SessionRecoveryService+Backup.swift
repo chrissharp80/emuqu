@@ -53,8 +53,7 @@ extension SessionRecoveryService {
 
         supersedeSameNight(&session)
         await stampFrozenScore(on: &session, computeRecoveryScore: computeRecoveryScore)
-        guard archiveRecovered(session, sessionId: sessionId) else { return nil }
-        return session
+        return archiveRecovered(session, sessionId: sessionId)
     }
 
     /// Two-tier classification for a recovered backup.
@@ -157,24 +156,42 @@ extension SessionRecoveryService {
     /// Archive, mark the raw backup consumed, mirror the night to Apple Health
     /// (when the export is on), and kick off the cloud upload. The baseline
     /// takes the night in from the archive change (`BaselineArchiveSync`).
+    /// Returns the night that now holds the recording: the recording itself,
+    /// or the night already archived that the archive folded it into, which
+    /// is then what Apple Health and iCloud get, as on acceptance. Exporting
+    /// the recording under its own id put a second copy of the night's
+    /// samples in Apple Health.
     ///
     /// Reports failure honestly. Returning the session on an archive failure
     /// would count it as recovered and let the UI announce "Recovered N of N"
     /// while nothing was persisted.
-    /// Returning false keeps the raw backup un-archived and eligible for the
+    /// Returning nil keeps the raw backup un-archived and eligible for the
     /// next recovery attempt.
-    private func archiveRecovered(_ session: HRVSession, sessionId: UUID) -> Bool {
+    ///
+    /// A night the archive already holds under this id (a backup recovered
+    /// again) keeps what the user set on it (`SessionArchive.archiveRebuilt`).
+    private func archiveRecovered(_ session: HRVSession, sessionId: UUID) -> HRVSession? {
         do {
-            try archive.archive(session)
+            let entry = try archive.archiveRebuilt(session)
+            let night = archive.retrieveOrLog(entry.sessionId, caller: "SessionRecoveryService.archiveRecovered") ?? session
             rawBackup.markAsArchived(sessionId)
-            exportToHealth(session)
-            Task { await cloudSyncManager.uploadSession(session) }
-            debugLog("[SessionRecoveryService] Successfully recovered and archived session \(sessionId) — frozenScore=\(session.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")")
-            return true
+            exportToHealth(night)
+            Task { await cloudSyncManager.uploadSession(night) }
+            debugLog("[SessionRecoveryService] Successfully recovered and archived session \(sessionId) as \(night.id.uuidString.prefix(8)), frozenScore=\(night.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")")
+            return night
         } catch {
             debugLog("[SessionRecoveryService] Failed to archive recovered session \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
-            return false
+            return nil
         }
+    }
+
+    /// When an interrupted recording paused: where its beats ran out, never
+    /// later than `now`; `now` when nothing dates it. The app is relaunched
+    /// after the recording stopped, often hours after; dated by the relaunch,
+    /// the pause would show as moments ago on the Record tab and in the
+    /// resume check.
+    nonisolated static func interruptedPauseDate(lastBeatEnd: Date?, now: Date) -> Date {
+        min(lastBeatEnd ?? now, now)
     }
 
     /// Recover a session from backup into a paused state (for interrupted recordings),
@@ -204,7 +221,7 @@ extension SessionRecoveryService {
             analyze: analyze, analyzeWithCapacity: analyzeWithCapacity
         )
         session.state = .paused
-        session.pausedDate = Date()
+        session.pausedDate = Self.interruptedPauseDate(lastBeatEnd: data.endDate, now: Date())
         // Never folded into another same-night entry: the merge would keep
         // that entry's id and drop this one, and the Resume the Record tab
         // offers for this id would find nothing to resume. The night is

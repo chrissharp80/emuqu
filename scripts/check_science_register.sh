@@ -127,16 +127,18 @@ if retracted:
                 scan(f"{entry.get('id', '<missing id>')}.{field}", value)
             elif isinstance(value, list):
                 scan(f"{entry.get('id', '<missing id>')}.{field}", " ".join(map(str, value)))
-    roots = [pathlib.Path("Emuqu/Sources"), pathlib.Path("docs")]
+    # Help copy ships from the string catalogues, not from Swift.
+    roots = [pathlib.Path("Emuqu/Sources"), pathlib.Path("docs"),
+             pathlib.Path("Emuqu/Help.xcstrings"), pathlib.Path("Emuqu/Localizable.xcstrings")]
     for root in roots:
-        for path in sorted(root.rglob("*")):
-            if path.suffix not in (".swift", ".md") or not path.is_file():
+        for path in (sorted(root.rglob("*")) if root.is_dir() else [root]):
+            if path.suffix not in (".swift", ".md", ".xcstrings") or not path.is_file():
                 continue
             scan(str(path), path.read_text(encoding="utf-8", errors="ignore"))
 
 # --- Discovery: score-adjusting functions must be claimed or waived. --------
 SYMBOL_RE = re.compile(
-    r"func\s+([a-zA-Z]+(?:Adjustment|Penalty|Bonus|Modifier|Damper|Fraction))\b"
+    r"func\s+([a-zA-Z][a-zA-Z0-9]*(?:Adjustment|Penalty|Bonus|Modifier|Damper|Fraction))\b"
 )
 SKIP = ("CauseDetection/",)  # ordering keys, not score inputs
 discovered = set()

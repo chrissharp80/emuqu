@@ -27,15 +27,23 @@ extension WorkoutSessionLifecycle {
     /// It does not need the strap connected yet: the arming waits on the link
     /// for as long as the workout is recording, and arms once the strap's
     /// recording feature is usable — which on a cold connect can be well past
-    /// the workout's first minute.
-    func startDeviceInternalBackupIfPossible(workoutId: UUID) {
+    /// the workout's first minute. `streamStart` names the workout's own
+    /// stream, so a recording armed too late is stopped only while no session
+    /// started since holds the strap.
+    func startDeviceInternalBackupIfPossible(workoutId: UUID, streamStart: Date?) {
         guard core.strapLink.connectedDeviceType != .veritySense else {
             debugLog("[Recorder.start] device-internal backup skipped — Verity Sense can't record + stream simultaneously")
             return
         }
         Task { [weak self] in
-            await self?.armDeviceInternalBackup(for: workoutId)
+            await self?.armDeviceInternalBackup(for: ArmingOwner(workoutId: workoutId, streamStart: streamStart))
         }
+    }
+
+    /// The workout an arming is for, and the stream it started.
+    struct ArmingOwner {
+        let workoutId: UUID
+        let streamStart: Date?
     }
 
     /// A stale recording from an earlier session is stopped (and rescued)
@@ -49,13 +57,14 @@ extension WorkoutSessionLifecycle {
     /// saw no recording and skipped the stop, leaving the strap recording
     /// off-body and blocking the next session. The arming is tied to the
     /// workout that asked for it, and a recording that started after that
-    /// workout ended is stopped at once.
-    private func armDeviceInternalBackup(for workoutId: UUID) async {
+    /// workout ended is stopped at once, unless a session started since
+    /// holds the strap: its stream is live, or a transfer is using it.
+    private func armDeviceInternalBackup(for owner: ArmingOwner) async {
         let recorder = core.strapRecorder
         do {
             try await recorder.link.whenFeatureUsable(
-                .h10Recording, until: nil, while: { [weak self] in self?.isRecording(workoutId) == true },
-                perform: { [weak self] in try await self?.armBackup(for: workoutId, recorder: recorder) }
+                .h10Recording, until: nil, while: { [weak self] in self?.isRecording(owner.workoutId) == true },
+                perform: { [weak self] in try await self?.armBackup(for: owner, recorder: recorder) }
             )
         } catch {
             guard lifecycle.phase == .recording else { return }
@@ -68,20 +77,33 @@ extension WorkoutSessionLifecycle {
         lifecycle.phase == .recording && lifecycle.currentSession?.id == workoutId
     }
 
-    private func keepOrStopArmedBackup(for workoutId: UUID, recorder: StrapRecordingCoordinator) async {
-        guard isRecording(workoutId) else {
-            debugLog("[Recorder.start] device-internal backup armed after its workout ended — stopping it", level: .warning)
-            await recorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+    private func keepOrStopArmedBackup(for owner: ArmingOwner, recorder: StrapRecordingCoordinator) async {
+        guard isRecording(owner.workoutId) else {
+            await stopLateArmedBackup(of: owner, recorder: recorder)
             return
         }
         lifecycle.deviceBackupArmedAt = Date()
     }
 
+    /// A session started since the workout ended (its stream is live, or a
+    /// transfer is using the strap) owns what the strap records now: its own
+    /// arming sets the late recording aside, and stopping here could end that
+    /// session's recording instead.
+    func stopLateArmedBackup(of owner: ArmingOwner, recorder: StrapRecordingCoordinator) async {
+        guard !core.strapStream.isBufferingForAnotherSession(than: owner.streamStart),
+              recorder.device.transfersInFlight == 0 else {
+            debugLog("[Recorder.start] device-internal backup armed after its workout ended, with another session on the strap, leaving it to that session", level: .warning)
+            return
+        }
+        debugLog("[Recorder.start] device-internal backup armed after its workout ended — stopping it", level: .warning)
+        await recorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+    }
+
     /// `stillWanted` is asked before each destructive step, so a workout
     /// that ended meanwhile never has the strap cleared or started.
-    private func armBackup(for workoutId: UUID, recorder: StrapRecordingCoordinator) async throws {
-        try await Self.startH10Backup(recorder, while: { isRecording(workoutId) })
-        await keepOrStopArmedBackup(for: workoutId, recorder: recorder)
+    private func armBackup(for owner: ArmingOwner, recorder: StrapRecordingCoordinator) async throws {
+        try await Self.startH10Backup(recorder, while: { isRecording(owner.workoutId) })
+        await keepOrStopArmedBackup(for: owner, recorder: recorder)
     }
 
     private static func startH10Backup(_ recorder: StrapRecordingCoordinator, while stillWanted: () -> Bool) async throws {

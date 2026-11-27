@@ -137,4 +137,71 @@ final class BaselineArchiveSyncTests: XCTestCase {
         sync.settle()
         XCTAssertEqual(rebuilds, 1)
     }
+
+    /// A night both sides hold, unchanged, is in step: an ordinary save does
+    /// not rebuild the baseline.
+    func testAHeldNightTheArchiveStillReadsTheSameIsInStep() throws {
+        let night = scoredNight(rmssd: 40)
+        _ = try archive.archive(night, skipSameNightMerge: true)
+        tracker.rebuildFromSessions([night], sleepSchedule: schedule)
+        XCTAssertTrue(tracker.holdsReading(of: night.id), "the fixture should be admitted")
+
+        XCTAssertFalse(BaselineArchiveSync(archive: archive, baseline: tracker) {}.isOutOfStep(night.id))
+    }
+
+    /// A reanalysis synced from another device replaces the night under the
+    /// same id. The baseline still holds the old reading, so it is out of step
+    /// and the burst rebuilds it, rather than scoring on against 40 ms while
+    /// History shows 80.
+    func testANightReanalysedElsewhereToADifferentRMSSDRebuilds() throws {
+        let night = scoredNight(rmssd: 40)
+        _ = try archive.archive(night, skipSameNightMerge: true)
+        tracker.rebuildFromSessions([night], sleepSchedule: schedule)
+        _ = try archive.archive(scoredNight(rmssd: 80, id: night.id, start: night.startDate), skipSameNightMerge: true)
+        var rebuilds = 0
+        let sync = BaselineArchiveSync(archive: archive, baseline: tracker) { rebuilds += 1 }
+
+        XCTAssertTrue(sync.isOutOfStep(night.id))
+        sync.note(night.id)
+        sync.settle()
+        XCTAssertEqual(rebuilds, 1)
+    }
+
+    /// A night reclassified elsewhere as unreliable leaves the baseline: the
+    /// held reading is out of step even though its RMSSD did not change.
+    func testANightReclassifiedAsUnreliableElsewhereIsOutOfStep() throws {
+        let night = scoredNight(rmssd: 40)
+        _ = try archive.archive(night, skipSameNightMerge: true)
+        tracker.rebuildFromSessions([night], sleepSchedule: schedule)
+        var reclassified = night
+        reclassified.hrvDataQuality = .insufficient
+        _ = try archive.archive(reclassified, skipSameNightMerge: true)
+
+        XCTAssertTrue(BaselineArchiveSync(archive: archive, baseline: tracker) {}.isOutOfStep(night.id))
+    }
+
+    private let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
+
+    private func scoredNight(rmssd: Double, id: UUID = UUID(), start: Date? = nil) -> HRVSession {
+        let startDate = start ?? Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        let result = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 500,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 60_000.0 / 58, sdnn: 55, rmssd: rmssd, pnn50: 20,
+                sdsd: rmssd * 0.9, meanHR: 58, sdHR: 5, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 30, sd2: 60, sd1Sd2Ratio: 0.5, sampleEntropy: 1.5,
+                approxEntropy: 1.3, dfaAlpha1: 0.9, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 2, cleanBeatCount: 500, analysisDate: startDate
+        )
+        return HRVSession(
+            id: id, startDate: startDate, endDate: startDate.addingTimeInterval(28_800), state: .complete,
+            sessionType: .overnight, rrSeries: nil, analysisResult: result,
+            artifactFlags: nil, recoveryScore: 7, tags: [], notes: nil,
+            importedMetrics: nil, deviceProvenance: nil, sleepStartMs: nil, sleepEndMs: nil
+        )
+    }
 }

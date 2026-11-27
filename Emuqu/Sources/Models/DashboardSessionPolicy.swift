@@ -165,6 +165,22 @@ enum DashboardSessionPolicy {
         return nightSessions.max(by: { duration(of: $0) < duration(of: $1) })
     }
 
+    /// `latestOvernightComplete` on the archive index, for paths that read
+    /// `SessionArchiveEntry` (the voice shortcuts, the prompt's score line,
+    /// the metrics verifier) so they name the same night's recording as the
+    /// dashboard: the most recent wake day's longest reliable overnight. The
+    /// index's `meanRMSSD` is present exactly when the session had an
+    /// analysis result.
+    static func latestOvernightComplete(inEntries entries: [SessionArchiveEntry], calendar: Calendar) -> SessionArchiveEntry? {
+        let candidates = entries.filter {
+            $0.sessionType == .overnight && $0.meanRMSSD != nil && $0.isReliableForHRVAggregates
+        }
+        let byNight = Dictionary(grouping: candidates) { calendar.startOfDay(for: SessionDay.date(of: $0)) }
+        return byNight.keys.max().flatMap { night in
+            byNight[night]?.max(by: { entryDuration($0) < entryDuration($1) })
+        }
+    }
+
     /// Most recent session with a sleep snapshot attached.
     ///
     /// Deliberately NOT gated on `isReliableForHRVAggregates`: sleep minutes are

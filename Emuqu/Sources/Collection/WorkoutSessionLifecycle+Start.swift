@@ -250,10 +250,20 @@ extension WorkoutSessionLifecycle {
     /// `acknowledgeFinished` (the Watch's Start, or Start before the summary
     /// has rendered). Any other stream refuses the start with `strapBusy`
     /// rather than discard that session's buffered beats.
+    ///
+    /// So does a night the Record screen is still ending: its stream has
+    /// stopped, but it has yet to stop and download the strap's recording and,
+    /// on a Verity Sense, release the link. A workout started then had its
+    /// backup stopped by the night's gate, its recording downloaded as the
+    /// night, or its strap disconnected under it.
     private func stopOwnStaleStreamOrRefuse() throws {
+        guard !core.recordScreenLifecycle.isEndingOvernight else {
+            debugLog("[Recorder.start] BAIL: a night's ending still holds the strap", level: .warning)
+            throw WorkoutRecorderError.strapBusy
+        }
         let stream = core.strapStream
         guard stream.isStreaming else { return }
-        guard let ownStart = lifecycle.ownedStrapStreamStart, stream.streamingStartTime == ownStart else {
+        guard stream.isBuffering(startedAt: lifecycle.ownedStrapStreamStart) else {
             debugLog("[Recorder.start] BAIL — the strap is buffering for another session", level: .warning)
             throw WorkoutRecorderError.strapBusy
         }
@@ -305,7 +315,7 @@ extension WorkoutSessionLifecycle {
         try core.strapStream.startStreaming()
         lifecycle.ownedStrapStreamStart = core.strapStream.streamingStartTime
         debugLog("[Recorder.start] step=polar.startStreaming done")
-        startDeviceInternalBackupIfPossible(workoutId: workoutId)
+        startDeviceInternalBackupIfPossible(workoutId: workoutId, streamStart: lifecycle.ownedStrapStreamStart)
     }
 
     /// start() — per-workout state resets (sync-breakdown `resets+providers` span).
@@ -322,6 +332,7 @@ extension WorkoutSessionLifecycle {
         signals.livePace.reset()
         sensors.footPodOdometer = FootPodOdometer()
         capture.power = WorkoutPowerTally()
+        capture.distanceAtEarlyStop = nil
         motion.powerWatts = nil
         motion.footPodActive = false
         signals.lastStrapHRAt = nil
@@ -698,7 +709,7 @@ extension WorkoutSessionLifecycle {
             guard let self else { return }
             guard case .recording = lifecycle.phase else { return }
             var stamps = StartStamps()
-            services.systemDiagnosticsManager.startSamplingDuringRecording()
+            services.systemDiagnosticsManager.startSamplingDuringRecording(for: .workout)
             stamps.mark("diag")
             // Kick the paired Watch into its own HKWorkoutSession so the wrist
             // HR is dense (1 Hz) and forwarded back here if the strap drops.

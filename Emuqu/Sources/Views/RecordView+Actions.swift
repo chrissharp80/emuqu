@@ -247,9 +247,11 @@ extension RecordView {
         }
     }
 
+    /// A night that could not be discarded keeps its review, with the
+    /// collector's error shown, and the selection stays with it.
     func rejectSession() {
         Task {
-            await collector.rejectSession()
+            guard await collector.rejectSession() else { return }
             await MainActor.run {
                 selectedTags.removeAll()
                 sessionNotes = ""

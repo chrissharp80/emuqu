@@ -141,14 +141,21 @@ final class SessionRecoveryService {
     /// Backups with no archive entry. `live` are the recordings still in
     /// progress: they have a backup and no entry yet, and are left out before
     /// anything is discarded, or a recording under two minutes old lost its
-    /// crash-safety backup here.
+    /// crash-safety backup here. A recording the archive folded into another
+    /// night (`SessionArchive.foldedRecordingIds`) has no entry of its own
+    /// either, but its beats are in that night: it is not lost, and
+    /// recovering it would merge the same beats in again.
     func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await pullCloudBackupsToLocalIfDue(excluding: live)
-        let archivedIds = Set(archive.store.entries.map(\.sessionId))
-        let deletedIds = archive.store.deletedIds
-        let orphans = rawBackup.allBackups().filter {
-            !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
-        }
+        await checkForLostSessions(excludingLive: { live })
+    }
+
+    /// `liveIds` is read after the iCloud pull, which can wait on the network
+    /// for seconds: a recording started meanwhile writes its first backup at
+    /// once, and with the set read before the wait that backup was short of
+    /// the recovery floor, discarded here, and its iCloud copy retired.
+    func checkForLostSessions(excludingLive liveIds: () -> Set<UUID>) async -> [(id: UUID, date: Date, beatCount: Int)] {
+        await pullCloudBackupsToLocalIfDue(excludingLive: liveIds)
+        let orphans = unarchivedBackups(excluding: liveIds())
         let counts = beatCounts(of: orphans)
         // Backups too short to analyze, counted after a fuller file of them
         // is adopted, are discarded permanently so they stop showing up on
@@ -163,6 +170,15 @@ final class SessionRecoveryService {
         }
         if !lost.isEmpty { debugLog("[SessionRecoveryService] Found \(lost.count) lost sessions with backups") }
         return lost
+    }
+
+    /// Backups with no archived or deleted session, other than the live ones.
+    private func unarchivedBackups(excluding live: Set<UUID>) -> [RawRRBackup.BackupEntry] {
+        let archivedIds = Set(archive.store.entries.map(\.sessionId)).union(archive.foldedRecordingIds)
+        let deletedIds = archive.store.deletedIds
+        return rawBackup.allBackups().filter {
+            !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
+        }
     }
 
     /// Each lost backup's beat count. One below `minRecoverableBeatCount` is
@@ -220,14 +236,14 @@ final class SessionRecoveryService {
     /// Only a pull that read iCloud starts the wait: one that failed (offline,
     /// iCloud busy) or was not made (sync off) is tried again at the next
     /// scan, not five minutes later with the user's backups unseen.
-    private func pullCloudBackupsToLocalIfDue(excluding live: Set<UUID>) async {
+    private func pullCloudBackupsToLocalIfDue(excludingLive liveIds: () -> Set<UUID>) async {
         let defaults = UserDefaults.standard
         let last = defaults.double(forKey: Self.cloudPullKey)
         let now = Date().timeIntervalSince1970
         if last > 0, now - last < Self.cloudPullMinInterval {
             return
         }
-        if await pullCloudBackupsToLocal(excluding: live) {
+        if await pullCloudBackupsToLocal(excludingLive: liveIds) {
             defaults.set(now, forKey: Self.cloudPullKey)
         }
     }
@@ -249,6 +265,13 @@ final class SessionRecoveryService {
     /// failed (logged), which is not the same as iCloud holding no backups.
     @discardableResult
     func pullCloudBackupsToLocal(excluding live: Set<UUID>) async -> Bool {
+        await pullCloudBackupsToLocal(excludingLive: { live })
+    }
+
+    /// `liveIds` is read once iCloud has answered, so a recording started
+    /// during the read is left alone too.
+    @discardableResult
+    func pullCloudBackupsToLocal(excludingLive liveIds: () -> Set<UUID>) async -> Bool {
         let cloudBackups: [LiveBackupSummary]
         do {
             guard let fetched = try await cloudSyncManager.fetchLiveBackups() else { return false }
@@ -257,21 +280,63 @@ final class SessionRecoveryService {
             debugLog("[SessionRecoveryService] iCloud backups could not be read: \(error.localizedDescription) — tried again at the next scan", level: .warning)
             return false
         }
-        seed(cloudBackups, excluding: live)
+        seed(cloudBackups, excluding: liveIds())
         return true
     }
 
     /// Saves each pulled backup this device does not hold, and retires the
-    /// cloud copy of each it holds or the user deleted.
+    /// cloud copy of each whose night is over or that this device uploaded
+    /// (`cloudBackupDisposition`).
     private func seed(_ cloudBackups: [LiveBackupSummary], excluding live: Set<UUID>) {
         guard !cloudBackups.isEmpty else { return }
-        let retired = Set(archive.store.entries.map(\.sessionId))
-            .union(rawBackup.allBackups().map(\.id))
-            .union(archive.store.deletedIds)
-            .union(ForgottenSessions.ids)
+        let holdings = CloudBackupHoldings(
+            finished: Set(archive.store.entries.map(\.sessionId))
+                .union(archive.foldedRecordingIds)
+                .union(archive.store.deletedIds)
+                .union(ForgottenSessions.ids),
+            heldLocally: Set(rawBackup.allBackups().map(\.id)),
+            uploadedHere: cloudSyncManager.liveBackupsUploadedHere
+        )
         for backup in cloudBackups where !live.contains(backup.sessionId) {
-            if retired.contains(backup.sessionId) { retireCloudBackup(backup.sessionId) } else { savePulledBackup(backup) }
+            switch Self.cloudBackupDisposition(of: backup.sessionId, holdings: holdings) {
+            case .retire: retireCloudBackup(backup.sessionId)
+            case .save: savePulledBackup(backup)
+            case .keep: continue
+            }
         }
+    }
+
+    /// What this device knows of the sessions behind iCloud's live backups.
+    struct CloudBackupHoldings {
+        /// Archived (under its own id or folded into another night), deleted,
+        /// or deleted forever here.
+        let finished: Set<UUID>
+        /// Sessions with a local raw backup, this device's own or pulled.
+        let heldLocally: Set<UUID>
+        /// Sessions whose iCloud backup this device uploaded.
+        let uploadedHere: Set<UUID>
+    }
+
+    /// What a scan does with one iCloud live backup.
+    enum CloudBackupDisposition: Equatable {
+        /// Delete the iCloud copy.
+        case retire
+        /// Save it as a local raw backup.
+        case save
+        /// Leave both copies as they are.
+        case keep
+    }
+
+    /// A backup whose night is over here, or that this device uploaded and
+    /// holds locally, is retired. One held locally only because a scan here
+    /// pulled it belongs to another device, which may still be recording
+    /// that night: its iCloud copy is that recording's crash-safety backup
+    /// and stays until the night is archived or deleted. Anything else is
+    /// saved for recovery.
+    static func cloudBackupDisposition(of id: UUID, holdings: CloudBackupHoldings) -> CloudBackupDisposition {
+        if holdings.finished.contains(id) { return .retire }
+        guard holdings.heldLocally.contains(id) else { return .save }
+        return holdings.uploadedHere.contains(id) ? .retire : .keep
     }
 
     /// Already have it locally — retire the cloud copy.
@@ -392,9 +457,23 @@ final class SessionRecoveryService {
                 outcome.kept += 1
                 continue
             }
-            if let span, !(await removeHealthSamples(id, span)) { outcome.healthSamplesKept += 1 }
+            if let span, !(await removeExports(of: id, over: span, with: removeHealthSamples)) { outcome.healthSamplesKept += 1 }
         }
         return outcome
+    }
+
+    /// What the session exported to Apple Health, and what each recording
+    /// kept under it (`SessionArchive.idsKept(under:)`) exported under its
+    /// own id before it was folded in. True when all of it went.
+    private func removeExports(
+        of id: UUID, over span: ClosedRange<Date>, with remove: (UUID, ClosedRange<Date>) async -> Bool
+    ) async -> Bool {
+        var removed = await remove(id, span)
+        for kept in archive.idsKept(under: id) {
+            let keptRemoved = await remove(kept, span)
+            removed = removed && keptRemoved
+        }
+        return removed
     }
 
     /// The breadcrumb route, the trashed file and the raw backup, in that
@@ -407,10 +486,21 @@ final class SessionRecoveryService {
         guard archive.store.discardTrashed(sessionId) else { return false }
         do {
             try rawBackup.discardBackup(sessionId)
+            try discardBackupsKept(under: sessionId)
             return true
         } catch {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard the backup of \(sessionId.uuidString.prefix(8)): \(error) — keeping it in the Trash", level: .error)
             return false
+        }
+    }
+
+    /// The backups of the recordings folded into the session, and of the
+    /// copies retired into it (`SessionArchive.idsKept(under:)`): their beats
+    /// are the session's, so deleting it forever deletes them too, and none
+    /// is left on the device under its old id.
+    private func discardBackupsKept(under sessionId: UUID) throws {
+        for id in archive.idsKept(under: sessionId) {
+            try rawBackup.discardBackup(id)
         }
     }
 
@@ -532,9 +622,12 @@ final class SessionRecoveryService {
         }
     }
 
-    /// Where the backup's own beats run out, relative to its capture date.
+    /// Where the backup's own beats run out, relative to its capture date,
+    /// on the real clock (`[RRPoint].lastBeatEnd(after:)`): a streamed
+    /// backup's `t_ms` stops at every dropout, and the span a deleted
+    /// session's Apple Health export is searched in ended that early.
     static func backupEndDate(_ backup: RawRRBackup.BackupEntry) -> Date? {
-        backup.points.last.map { backup.captureDate.addingTimeInterval(Double($0.t_ms) / 1000.0) }
+        backup.points.lastBeatEnd(after: backup.captureDate)
     }
 
     /// Run windowed analysis on a session, updating its analysisResult in place.

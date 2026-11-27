@@ -39,10 +39,28 @@ if ! find Emuqu "EmuquWatch Watch App" -name '*.swift' -print -quit | grep -q .;
     echo "check_no_shared_outside_root: no Swift sources found under Emuqu or the Watch target." >&2
     exit 2
 fi
-hits="$(grep -rnE '(^|[^A-Za-z0-9_.])\.shared\b|\b[A-Z][A-Za-z0-9]+\.shared\b' Emuqu "EmuquWatch Watch App" --include='*.swift' 2>/dev/null \
-    | grep -vE '^[^:]+:[0-9]+:\s*(///|//)' \
-    | grep -vE "\b(${SYSTEM})\.shared\b" \
-    | grep -vE 'static (let|var) shared\b' || true)"
+# Matched per occurrence, not per line: a line is excused only for the reads
+# on it that are system types or the singleton's own declaration, so
+# `let a = URLSession.shared; let b = Store.shared` and
+# `static let shared = Store(dep: Other.shared)` still report the app read.
+# Any `.shared` member counts (`S.shared` through a one-letter alias,
+# `Store.self.shared`, a metatype held in a variable).
+raw="$(grep -rnE '\.shared\b' Emuqu "EmuquWatch Watch App" --include='*.swift' 2>/dev/null \
+    | grep -vE '^[^:]+:[0-9]+:\s*(///|//)' || true)"
+# The filter runs outside any `|| true`: a filter that fails must fail the
+# gate, not hand it an empty list to call clean.
+hits="$(printf '%s\n' "$raw" | SYSTEM="$SYSTEM" python3 -I -c '
+import os, re, sys
+system = re.compile(r"\b(?:" + os.environ["SYSTEM"] + r")\s*\.\s*shared\b")
+declaration = re.compile(r"\bstatic\s+(?:let|var)\s+shared\b")
+for line in sys.stdin:
+    if line.count(":") < 2:
+        continue
+    code = line.split(":", 2)[2].split("//")[0]
+    code = declaration.sub("", system.sub("", code))
+    if re.search(r"\.\s*shared\b", code):
+        sys.stdout.write(line)
+')" || { echo "check_no_shared_outside_root: the .shared filter failed." >&2; exit 2; }
 status=0
 if [[ -n "$hits" ]]; then
     while IFS= read -r line; do

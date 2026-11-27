@@ -6,10 +6,14 @@ import Foundation
 extension RRCollector {
     /// The review card's Discard: the night saved for review leaves the
     /// archive and the baseline first, while `currentSession` still names it,
-    /// then the review state is cleared.
-    func rejectSession() async {
-        morning.discardReviewArchivedSession()
+    /// then the review state is cleared. When the night could not leave the
+    /// archive the review stays as it was, with the error shown, and this
+    /// returns false.
+    @discardableResult
+    func rejectSession() async -> Bool {
+        guard morning.discardReviewArchivedSession() else { return false }
         await morning.rejectSession()
+        return true
     }
 
     /// Whether morning processing fetches the strap's own recording.

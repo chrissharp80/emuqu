@@ -11,6 +11,13 @@ import Foundation
 /// corrupted series: out-of-order intervals turn into enormous successive
 /// differences, which is exactly what RMSSD squares.
 enum WorkoutRRMerge {
+    /// The strap buffer as a live workout may read it: its own only when the
+    /// workout runs on the strap. Any other source never started a stream, so
+    /// the buffer there may hold a previous session's points.
+    static func liveStrapBuffer(source: WorkoutRecorder.HRSource, streaming: [RRPoint]) -> [RRPoint] {
+        source == .strap ? streaming : []
+    }
+
     /// The RR series for a finishing workout.
     ///
     /// - Parameters:
@@ -41,7 +48,7 @@ enum WorkoutRRMerge {
         streaming: [RRPoint],
         watchRouted: [RRPoint]
     ) -> [RRPoint] {
-        var points: [RRPoint] = source == .strap ? streaming : []
+        var points = liveStrapBuffer(source: source, streaming: streaming)
         guard !watchRouted.isEmpty else { return points }
         guard (points + watchRouted).allSatisfy({ $0.wallClockMs != nil }) else {
             points.append(contentsOf: watchRouted)

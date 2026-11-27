@@ -55,4 +55,30 @@ final class PauseTimelineTests: XCTestCase {
         timeline.resume(now: start)
         XCTAssertTrue(timeline.spans.isEmpty)
     }
+
+    /// A stop dated earlier than it arrived (a Watch End queued out of range)
+    /// ends the timeline there: a pause running across it is cut at it, a
+    /// later one is dropped, and one still open after it leaves nothing.
+    func testEndingAtAnEarlierStopLeavesNoPausePastIt() {
+        var timeline = PauseTimeline()
+        timeline.pause(atElapsed: 600, now: start.addingTimeInterval(600))
+        timeline.resume(now: start.addingTimeInterval(900))
+        timeline.pause(atElapsed: 1_100, now: start.addingTimeInterval(1_400))
+        timeline.resume(now: start.addingTimeInterval(1_700))
+        timeline.pause(atElapsed: 1_500, now: start.addingTimeInterval(2_100))
+        timeline.end(at: start.addingTimeInterval(1_500), sessionStart: start)
+        XCTAssertEqual(timeline.spans, [
+            PauseTimeline.Span(atElapsed: 600, seconds: 300),
+            PauseTimeline.Span(atElapsed: 1_100, seconds: 100)
+        ])
+        XCTAssertEqual(timeline.activeSeconds(sessionStart: start, now: start.addingTimeInterval(1_500)), 1_100)
+    }
+
+    /// A pause still open at an earlier stop that began before it closes at it.
+    func testEndingAtAnEarlierStopClosesAnOpenPauseThere() {
+        var timeline = PauseTimeline()
+        timeline.pause(atElapsed: 600, now: start.addingTimeInterval(600))
+        timeline.end(at: start.addingTimeInterval(700), sessionStart: start)
+        XCTAssertEqual(timeline.spans, [PauseTimeline.Span(atElapsed: 600, seconds: 100)])
+    }
 }

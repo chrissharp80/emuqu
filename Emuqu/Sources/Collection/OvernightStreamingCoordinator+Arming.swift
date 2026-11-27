@@ -164,11 +164,14 @@ extension OvernightStreamingCoordinator {
     /// no night streaming and no transfer using the strap, it is stopped, so
     /// the strap does not record into the day and the recorder does not show
     /// it as a recording. It is not marked downloaded, so the next start's
-    /// rescue still keeps whatever it holds. A transfer using the strap, or a
-    /// night started since, owns the strap and is left to it.
-    private func settleLateArmedRecording() async {
+    /// rescue still keeps whatever it holds. A transfer using the strap, a
+    /// night started since, or any session buffering on the strap now (the
+    /// night's own stream stopped before its ending let go) owns the strap and
+    /// is left to it: a workout's arming sets the late recording aside itself.
+    func settleLateArmedRecording() async {
         debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
-        guard !streamingLifecycle.isOvernightStreaming, strapRecorder.device.transfersInFlight == 0 else { return }
+        guard !streamingLifecycle.isOvernightStreaming, !strapStream.isStreaming,
+              strapRecorder.device.transfersInFlight == 0 else { return }
         await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 

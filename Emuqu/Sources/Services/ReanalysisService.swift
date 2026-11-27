@@ -79,6 +79,9 @@ final class ReanalysisService {
     private let windowSelector: WindowSelector
     private let artifactDetector: ArtifactDetector
     let baselineTracker: BaselineTracker
+    /// Archive-rebuilt baselines of nights older than the tracker's stored
+    /// window (`scoringBaseline(for:)`).
+    var archivedBaselineMemo = ArchivedBaselineMemo()
 
     /// Closure returning the current user settings snapshot.
     let settingsProvider: () -> UserSettings
@@ -104,17 +107,30 @@ final class ReanalysisService {
     /// Notifies that the archive has changed (the app bumps its `ArchiveSignal`).
     let onArchiveChanged: () -> Void
 
-    /// Uploads a session via CloudKit sync.
+    /// Uploads a session via CloudKit sync, with the edit stamp the archive
+    /// gave it. A pass here that writes a user's own edit stamps it through
+    /// the archive (`requestingReupload`); a rescore does not, so it never
+    /// counts as newer than an edit made on another device.
     let onSessionUploaded: (HRVSession) -> Void
 
     /// Drops a rewritten session's cached chart zones (`OrganizedZonesCache`).
     let onZonesStale: (UUID) -> Void
+
+    /// Whether the session is the night on the review card, not yet
+    /// accepted: acceptance exports it to Apple Health, and a discarded one
+    /// must leave nothing there, so a rewrite does not export it first.
+    let isAwaitingReview: @MainActor (UUID) -> Bool
 
     // MARK: - State
 
     /// The last sleep-boundary edit started, which the next one waits for
     /// (`updateSessionSleepBoundaries`). Set only there.
     var pendingSleepEdit: Task<Bool, Never>?
+
+    /// The last Apple Health export started (`reexportIfReadingsChanged`),
+    /// which the next one waits for, so exports land in the order the
+    /// rewrites were made and a batch reanalysis writes one at a time.
+    var pendingHealthExport: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -133,7 +149,8 @@ final class ReanalysisService {
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
         onArchiveChanged: @escaping () -> Void,
         onSessionUploaded: @escaping (HRVSession) -> Void,
-        onZonesStale: @escaping (UUID) -> Void
+        onZonesStale: @escaping (UUID) -> Void,
+        isAwaitingReview: @escaping @MainActor (UUID) -> Bool = { _ in false }
     ) {
         self.archive = archive
         self.healthKit = healthKit
@@ -150,6 +167,7 @@ final class ReanalysisService {
         self.onArchiveChanged = onArchiveChanged
         self.onSessionUploaded = onSessionUploaded
         self.onZonesStale = onZonesStale
+        self.isAwaitingReview = isAwaitingReview
     }
 
     // MARK: - Re-Analysis
@@ -215,27 +233,6 @@ final class ReanalysisService {
             )
             return (flags, windowResult)
         }.value
-    }
-
-    /// Reanalyze selects the recovery window with the
-    /// SAME rule as the initial ("morning") analyze: ranked against the
-    /// rolling baseline (calculateTier1), exactly like MorningProcessingService.
-    /// Passing `baselineStats: nil` here makes reanalyze rank by raw RMSSD
-    /// (highest HRV wins) while morning ranks baseline-relative, so reanalyze
-    /// systematically chooses a higher-HRV window and produces a higher score
-    /// than the accepted morning score — which trains the user to reanalyze
-    /// every day.
-    /// Read on the actor so the all-value struct can be captured into the
-    /// detached task. Peak-metric methods (.peakRMSSD etc.) still select their
-    /// window via selectWindowByMethod, which is baseline-agnostic by
-    /// definition — the baseline here only feeds the companion capacity scan,
-    /// matching the morning path.
-    /// Like the scorer, it leaves out the session's own night: a reading is
-    /// compared with the nights before it, never with itself.
-    func scoringBaseline(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
-        baselineTracker.recoveryBaselineStats(
-            excludingNightOf: session, sleepSchedule: settingsProvider().sleepSchedule
-        )
     }
 
     /// The consolidated-recovery path ranks candidate windows; every other
@@ -311,6 +308,7 @@ final class ReanalysisService {
         _ session: HRVSession, series: RRSeries, method: WindowSelectionMethod
     ) async -> (session: HRVSession, healedTraining: Bool)? {
         debugLog("[ReanalysisService] Re-analyzing session \(session.id) with \(series.points.count) points")
+        await prepareScoringBaseline(for: session)
         // Copy the original session and update only what reanalysis changes.
         let sessionEndDate = session.endDate ?? session.startDate.addingTimeInterval(12 * 60 * 60)
         let bounds = Self.analysisBounds(for: session, sessionEndDate: sessionEndDate)
@@ -326,7 +324,7 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] Analysis failed during re-analysis")
             return nil
         }
-        applyAnalysis(analysisResult, to: &updatedSession)
+        applyAnalysis(analysisResult, to: &updatedSession, replacing: session)
         let healed = await rescore(&updatedSession, analysisResult: analysisResult, original: session, sessionEndDate: sessionEndDate)
         return (updatedSession, healed)
     }
@@ -369,11 +367,15 @@ final class ReanalysisService {
     /// The new window's result is classified again, so the dashboard shows
     /// SubjectiveReadinessCard instead of a misleading score when the data is
     /// insufficient, and a mark that no longer applies clears.
-    private func applyAnalysis(_ analysisResult: HRVAnalysisResult, to session: inout HRVSession) {
+    ///
+    /// The vitals snapshot's sleep HR then follows the new window and quality,
+    /// moved from `previous`'s (`HRVSession.refreshSleepHeartRate`).
+    private func applyAnalysis(_ analysisResult: HRVAnalysisResult, to session: inout HRVSession, replacing previous: HRVSession) {
         session.analysisResult = analysisResult
         session.analysisResult?.isReanalysis = true
         session.windowUserAdjusted = nil
         reclassifyHRVQuality(of: &session, result: analysisResult)
+        session.refreshSleepHeartRate(replacing: previous)
     }
 
     /// Runs the acceptance classifier (`SessionAcceptanceService
@@ -432,10 +434,12 @@ final class ReanalysisService {
     /// live (includes-today) value — it snaps back to wake on the next
     /// reanalyze. Only used when training-load integration is on and
     /// it returns real values; otherwise the existing frozen snapshot
-    /// stands (nil is intentional when integration is off).
+    /// stands (nil is intentional when integration is off). So it does when
+    /// HealthKit did not answer the workout query (`calculateTrainingLoadIfAnswered`):
+    /// read as no workouts, the load would be the archive's workouts alone.
     private func wakeTimeTraining(candidate: TrainingContext?, sessionEndDate: Date) async -> TrainingContext? {
-        guard settingsProvider().enableTrainingLoadIntegration else { return candidate }
-        let wakeLoad = await healthKit.calculateTrainingLoad(relativeTo: sessionEndDate)
+        guard settingsProvider().enableTrainingLoadIntegration,
+              let wakeLoad = await healthKit.calculateTrainingLoadIfAnswered(relativeTo: sessionEndDate) else { return candidate }
         guard let wakeContext = TrainingContext(from: wakeLoad, relativeTo: sessionEndDate),
               wakeContext.atl > 0 || wakeContext.ctl > 0 else { return candidate }
         return wakeContext
@@ -473,22 +477,26 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] Failed to save re-analyzed session: \(error)")
             return nil
         }
-        if case .written(let written) = outcome { finishReanalysisWrite(written) }
+        if case .written(let written) = outcome { finishReanalysisWrite(written, readFrom: read) }
         return outcome
     }
 
     /// After a reanalysis was written: cached on-demand zones computed by the
     /// chart view are stale (the window has changed), so they are dropped and
     /// the next chart render recomputes against the new window; the baseline,
-    /// the archive signal and iCloud see the session as written.
-    private func finishReanalysisWrite(_ written: HRVSession) {
+    /// the archive signal, iCloud and Apple Health see the session as written.
+    private func finishReanalysisWrite(_ written: HRVSession, readFrom read: HRVSession) {
         onZonesStale(written.id)
         baselineTracker.update(with: written, sleepSchedule: settingsProvider().sleepSchedule)
         onArchiveChanged()
         Task { onSessionUploaded(written) }
+        reexportIfReadingsChanged(from: read, to: written)
         debugLog("[ReanalysisService] Re-analysis complete")
     }
 
+    /// The score, breakdown and frozen readiness against the nights before
+    /// the session; the stored ones stay when no baseline can be built for
+    /// it (`keepsStoredScore`).
     private func applyRecoveryScore(
         to session: inout HRVSession,
         analysisResult: HRVAnalysisResult,
@@ -497,6 +505,12 @@ final class ReanalysisService {
     ) {
         if let frozen = frozenTraining {
             session.analysisResult?.trainingContext = frozen
+        }
+        guard !Self.keepsStoredScore(originalSession, baseline: scoringBaseline(for: session)) else {
+            session.recoveryScore = originalSession.recoveryScore
+            session.scoreBreakdown = originalSession.scoreBreakdown
+            session.frozenReadiness = originalSession.frozenReadiness
+            return
         }
         let scored = deterministicRecoveryScore(for: session, result: analysisResult)
         session.recoveryScore = scored.score
@@ -534,9 +548,9 @@ final class ReanalysisService {
         guard let windowStartMs = analysisResult.windowStartMs,
               let segments = originalSession.sleepSegments,
               segments.count > 1 else { return }
-
+        let windowClockMs = Self.sessionClockMs(ofTMs: windowStartMs, in: originalSession)
         for (i, seg) in segments.enumerated() {
-            if windowStartMs >= seg.startMs, windowStartMs <= seg.endMs {
+            if windowClockMs >= seg.startMs, windowClockMs <= seg.endMs {
                 let startDate = originalSession.startDate.addingTimeInterval(TimeInterval(seg.startMs) / 1000)
                 let endDate = originalSession.startDate.addingTimeInterval(TimeInterval(seg.endMs) / 1000)
                 let timeStyle = Date.FormatStyle(date: .omitted, time: .shortened).locale(LanguageManager.appLocale)
@@ -546,6 +560,16 @@ final class ReanalysisService {
                 break
             }
         }
+    }
+
+    /// A `t_ms` position (where the analysis window sits on the beats) as ms
+    /// after the session start, the clock the stored sleep segments are on:
+    /// the beats' own clock time (`RRSeries.clockTime(forTMs:)`), so on a
+    /// streamed night with a dropout the window is matched to the segment it
+    /// is in, not to one earlier. Unchanged without beats.
+    nonisolated static func sessionClockMs(ofTMs tMs: Int64, in session: HRVSession) -> Int64 {
+        guard let series = session.rrSeries else { return tMs }
+        return MillisecondOffset.between(series.clockTime(forTMs: tMs), and: session.startDate, fallback: tMs)
     }
 
     /// Score-only rebuild — no HRV reanalysis. Use when the existing
@@ -582,8 +606,9 @@ final class ReanalysisService {
 
     /// One score-only pass from the archived copy. Nil when the session or
     /// its analysis is missing, the archived copy cannot be read (logged at
-    /// `.error` by `ArchivedSessionRead`), the composite is NaN/Inf, or the
-    /// write fails.
+    /// `.error` by `ArchivedSessionRead`), no baseline can be built for a
+    /// night that has a stored score (`keepsStoredScore`), the composite is
+    /// NaN/Inf, or the write fails.
     private func scoreOnlyRun(sessionId: UUID) async -> RescoreWrite.Outcome? {
         let read = ArchivedSessionRead.read(sessionId, from: archive, caller: "recomputeScoreOnly")
         guard let session = read.session else {
@@ -596,10 +621,25 @@ final class ReanalysisService {
             debugLog("[ReanalysisService] recomputeScoreOnly: session has no analysisResult — nothing to score from")
             return nil
         }
+        await prepareScoringBaseline(for: session)
+        guard !Self.keepsStoredScore(session, baseline: scoringBaseline(for: session)) else { return nil }
         let healedTraining = await healedTrainingContext(for: session, result: result)
-        guard let updated = rescored(session, result: result, training: healedTraining) else { return nil }
+        let classified = classifiedAgainstCurrentSleep(session, result: result)
+        guard let updated = rescored(classified, result: result, training: healedTraining) else { return nil }
         let healed = healedTraining.map { RescoreWrite.heals($0, over: session.trainingSnapshot ?? result.trainingContext) } ?? false
         return persistRescore(updated, readFrom: session, kind: .scoreOnly(healedTraining: healed), previous: Self.scoreFingerprint(of: session))
+    }
+
+    /// `session` classified again against the sleep it holds now, with its
+    /// snapshot's sleep HR following the quality. A score-only pass is what
+    /// a sleep change on a night whose window the user picked falls back to,
+    /// and the quality decided on the earlier sleep (`.preSleep` from no
+    /// overlap) would otherwise still drive the score.
+    func classifiedAgainstCurrentSleep(_ session: HRVSession, result: HRVAnalysisResult) -> HRVSession {
+        var classified = session
+        reclassifyHRVQuality(of: &classified, result: result)
+        classified.refreshSleepHeartRate(replacing: session)
+        return classified
     }
 
     /// `session` with the healed training context stamped on and the score,
@@ -659,8 +699,10 @@ final class ReanalysisService {
     /// the same night scored differently on each device. Applying the swap
     /// here makes every re-score read the same physiology whichever path
     /// wrote the snapshot; on a snapshot that already has it, it is a no-op.
+    /// A recording unusable for HRV keeps HealthKit's value
+    /// (`HRVSession.withSleepHeartRate`).
     nonisolated static func scoringVitals(of session: HRVSession, result: HRVAnalysisResult) -> RecoveryVitals? {
-        session.vitalsSnapshot?.withStrapNocturnalRHR(result.timeDomain.meanHR)
+        session.vitalsSnapshot.map { session.withSleepHeartRate($0, from: result) }
     }
 
     /// The one re-score every reanalysis path runs: `result`'s metrics, the

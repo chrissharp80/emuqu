@@ -66,7 +66,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v3.4.nov2026`), the version is stored with every score and shown on the
+  (`v3.5.nov2026`), the version is stored with every score and shown on the
   score-detail screen, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).
@@ -86,7 +86,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
 
 The repository is set up so that a regression cannot land quietly.
 
-- **Fifty scripted gates** run in `make ci`: copy perimeter, science
+- **More than forty scripted gates** run in `make ci`: copy perimeter, science
   register, scoring governance (the constants hash is tied to the version
   string), localization coverage, orphans and resolution, SBOM drift,
   declaration length and type size limits, `try?` on write paths, singleton
@@ -95,14 +95,16 @@ The repository is set up so that a regression cannot land quietly.
 - **The gates are tested.** One script plants a violation for each gate and
   proves it goes red. Another proves each gate fails closed on a missing
   input. A third proves each is wired into CI.
-- **Tests.** Over 4,000 unit tests and 100 UI tests, including snapshot tests for
+- **Tests.** Over 4,000 unit tests and over 100 UI tests, including snapshot tests for
   the score views, characterization tests for the collector's observable
   surface, and negative tests for the gates. Coverage floors are measured and
   ratcheted, and are never restated in prose, so they cannot drift.
-- **Strict build.** Warnings are errors. The project builds in Swift 6
+- **Strict build.** Warnings are errors in every Debug and Release build of
+  the app and the watch app. The project builds in Swift 6
   language mode with complete strict concurrency. There is no `try!`, `as!`,
-  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's 220,000 lines;
-  three `preconditionFailure` calls guard hard-coded literals.
+  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's code,
+  and SwiftLint fails CI on the first `fatalError` or force-unwrap;
+  four `preconditionFailure` calls guard hard-coded literals.
 - **Ship hygiene.** Privacy manifest, purpose strings for every entitlement,
   API keys in the Keychain and never in iCloud, GitHub Actions pinned to
   commit SHAs, an SBOM for the eleven Swift packages, CodeQL, and a costed CI
@@ -227,7 +229,7 @@ routine step.
 Emuqu is developed by one person, pushing to `main`. Five workflows live in
 `.github/workflows/`:
 
-- **`gates.yml`** runs on every push, on a Linux runner, in about a minute:
+- **`gates.yml`** runs on every pull request and push to `main`, on a Linux runner, in about a minute:
   every gate in `make ci` that needs only bash and python, plus the two
   meta-gates that prove the others are wired and fail closed.
 - **`ci.yml`** runs on every pull request and push to `main` at scope `unit`,
@@ -236,7 +238,7 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
   strict-concurrency check and Thread Sanitizer, which runs the suite serially
   after a deliberately racing canary test proves that a race fails the run. Coverage is enforced against
   ratcheted floors read from `.ci/` at run time: overall, logic and views, and one per
-  critical area (each source folder, the archive, the assistant's confirmation
+  critical area (each source folder but `Protocols/`, the archive, the assistant's confirmation
   step and the log scrubber).
 - **`performance.yml`** runs the analysis performance tests on demand.
 - **`security.yml`** runs on every pull request, every push to `main` and

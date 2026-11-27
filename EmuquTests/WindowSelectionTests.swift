@@ -14,6 +14,23 @@ final class WindowSelectionTests: XCTestCase {
         XCTAssertEqual(WindowSelector.RecoveryWindow.unstableCVThreshold, 0.08, accuracy: 0.0001)
     }
 
+    /// A strap and stream composite night (`DataSourceSelector.mergePoints`):
+    /// the first hour streamed (wall clock on each beat, `t_ms` rebased to it),
+    /// then two hours from the strap's internal recording (no wall clock,
+    /// `t_ms` counting from session start), then streaming again. A sleep
+    /// start 90 minutes in falls inside the internal stretch and must map to
+    /// the beat there, not to the first streamed beat after it.
+    func testAWallClockOffsetMapsOntoTheInternalStretchOfACompositeNight() {
+        let hour: Int64 = 3_600_000
+        let streamed = { (t: Int64) in RRPoint(t_ms: t, rr_ms: 1000, wallClockMs: t, hr: 60) }
+        let points = stride(from: 0, to: hour, by: 1000).map(streamed)
+            + stride(from: hour, to: 3 * hour, by: 1000).map { RRPoint(t_ms: $0, rr_ms: 1000) }
+            + stride(from: 3 * hour, to: 4 * hour, by: 1000).map(streamed)
+        XCTAssertEqual(windowSelector.tMsPosition(forWallElapsed: hour * 3 / 2, in: points), hour * 3 / 2)
+        XCTAssertEqual(windowSelector.tMsPosition(forWallElapsed: hour / 2, in: points), hour / 2)
+        XCTAssertEqual(windowSelector.tMsPosition(forWallElapsed: hour * 7 / 2, in: points), hour * 7 / 2)
+    }
+
     func testScienceContract_DefaultWindowConfigMatchesArchitecture() {
         let config = WindowSelector.Config.default
         XCTAssertEqual(config.beatsPerWindow, 400)

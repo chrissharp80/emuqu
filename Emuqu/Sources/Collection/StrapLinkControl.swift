@@ -150,7 +150,7 @@ struct StrapLinkControl {
         releaseStandardHeartRate()
         state.readiness.linkLost()
         state.feedStatus = .waitingForStrap
-        state.currentHeartRate = nil
+        state.clearHeartRate()
         runtime.signal.fire()
     }
 

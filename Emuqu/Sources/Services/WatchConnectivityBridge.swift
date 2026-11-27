@@ -11,13 +11,15 @@ extension Notification.Name {
     /// this (double-start would be a UX bug).
     static let watchRequestedWorkoutStart = Notification.Name("FlowRecoveryWatchRequestedWorkoutStart")
 
-    /// Posted when the Watch requests a stop. No userInfo. `AppLaunchTasks`
-    /// listens and calls `recorder.stop()`. We use a notification rather
+    /// Posted when the Watch requests a stop, with the tap's time under
+    /// `WatchConnectivityBridge.stopTappedAtKey` when the Watch stamped one.
+    /// `AppLaunchTasks` listens and calls `recorder.stop(requestedStop:)`. We use a notification rather
     /// than a direct recorder hook so the single owner of the recorder
     /// (the app's `RecorderBox`) stays the only stop path.
     static let watchRequestedWorkoutStop = Notification.Name("FlowRecoveryWatchRequestedWorkoutStop")
 
-    /// Posted when the Watch requests pause (either user-driven).
+    /// Posted when the Watch requests pause, with the tap's time under
+    /// `WatchConnectivityBridge.stopTappedAtKey` when the Watch stamped one.
     static let watchRequestedWorkoutPause = Notification.Name("FlowRecoveryWatchRequestedWorkoutPause")
 
     /// Posted when the Watch requests resume.
@@ -166,14 +168,23 @@ final class WatchConnectivityBridge: NSObject {
     /// the phone, not sent back.
     var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> WatchControlRefusal?)?
 
+    /// The `watchRequestedWorkoutStop` and `watchRequestedWorkoutPause`
+    /// userInfo key for the `Date` the End or Pause was tapped on the wrist.
+    nonisolated static let stopTappedAtKey = "tappedAt"
+
     /// Called on the main actor when the Watch asks us to stop the active
-    /// workout. Same reply-contract as start; the wiring only posts a
-    /// notification, so it always returns nil.
-    var onStopWorkoutFromWatch: (() -> WatchControlRefusal?)?
+    /// workout, with when the End was tapped on the wrist (the message's
+    /// `ts`; nil when it carries none). A queued End reaches the phone long
+    /// after the tap, and the workout ends at the tap. Same reply-contract as
+    /// start; the wiring only posts a notification, so it always returns nil.
+    var onStopWorkoutFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to pause the
-    /// active workout. Reply-contract matches start/stop.
-    var onPauseWorkoutFromWatch: (() -> WatchControlRefusal?)?
+    /// active workout, with when the Pause was tapped (the message's `ts`;
+    /// nil when it carries none): a live send that failed is queued and
+    /// arrives after the tap, and the workout pauses at the tap.
+    /// Reply-contract matches start/stop.
+    var onPauseWorkoutFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to resume the
     /// active workout. Reply-contract matches the others.

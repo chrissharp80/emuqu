@@ -46,22 +46,49 @@ final class AnalysisSummaryCache: Sendable {
     /// whether the caller runs inside `NarrativeLanguage.english` (the
     /// assistant). A summary cached before a language switch, or one cached
     /// for the screen, is never handed to a reader expecting the other.
+    ///
+    /// Every session field the generator reads is part of it: the score and
+    /// its breakdown's composite (the title), the morning feeling and its tags
+    /// (the feel-bad steps), the end date (the reference date), the quality
+    /// class, the window and the frozen training load. A field left out lets
+    /// an edit to it hand back the summary written before the edit.
     static func fingerprint(for session: HRVSession) -> Int {
         var hasher = Hasher()
         hasher.combine(NarrativeLanguage.isEnglish)
         hasher.combine(LanguageManager.appLocale.identifier)
-        hasher.combine(session.recoveryScore)
-        hasher.combine(session.frozenReadiness)
+        combineScore(of: session, into: &hasher)
+        combineAnalysis(of: session, into: &hasher)
         hasher.combine(session.tags)
-        hasher.combine(session.analysisResult?.analysisDate)
-        hasher.combine(session.analysisResult?.timeDomain.rmssd)
-        hasher.combine(session.analysisResult?.timeDomain.meanHR)
+        hasher.combine(session.morningFeeling)
+        hasher.combine(session.morningFeelingTags)
+        hasher.combine(session.endDate)
         hasher.combine(session.sleepStartMs)
         hasher.combine(session.sleepEndMs)
         hasher.combine(session.sleepSnapshot?.nightSleepMinutes)
         hasher.combine(session.vitalsSnapshot?.respiratoryRate)
         hasher.combine(session.vitalsSnapshot?.oxygenSaturation)
         return hasher.finalize()
+    }
+
+    /// The frozen score, its breakdown's composite, the training readiness
+    /// and the training load the score was frozen with.
+    private static func combineScore(of session: HRVSession, into hasher: inout Hasher) {
+        hasher.combine(session.recoveryScore)
+        hasher.combine(session.scoreBreakdown?.compositeScore)
+        hasher.combine(session.frozenReadiness)
+        hasher.combine(session.trainingSnapshot?.atl)
+        hasher.combine(session.trainingSnapshot?.ctl)
+        hasher.combine(session.trainingSnapshot?.tsb)
+    }
+
+    /// The analysis the summary reads and how far it is trusted.
+    private static func combineAnalysis(of session: HRVSession, into hasher: inout Hasher) {
+        hasher.combine(session.hrvDataQuality)
+        hasher.combine(session.analysisResult?.analysisDate)
+        hasher.combine(session.analysisResult?.windowStartMs)
+        hasher.combine(session.analysisResult?.windowEndMs)
+        hasher.combine(session.analysisResult?.timeDomain.rmssd)
+        hasher.combine(session.analysisResult?.timeDomain.meanHR)
     }
 
     /// `fingerprint(for:)` combined with a hash of the generator inputs that do

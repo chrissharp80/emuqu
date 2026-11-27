@@ -55,11 +55,17 @@ except (OSError, json.JSONDecodeError) as exc:
 resolved = {}
 for pin in pins:
     identity = pin.get("identity", "")
-    version = (pin.get("state") or {}).get("version", "")
+    state = pin.get("state") or {}
+    # A branch or revision pin has no version; the screen must then name the
+    # revision, or a "8.3.0" there goes unchecked.
+    version = state.get("version") or state.get("revision", "")[:12] or "<unpinned>"
     if identity:
         resolved[identity.lower()] = version
 
 source = open(ack_path, encoding="utf-8").read()
+# A commented-out entry is not on the screen.
+source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+source = re.sub(r"(?m)^\s*//.*$", "", source)
 
 # Pull the `packages` array entries: Pkg(name: "x", version: "y", ...)
 entry_re = re.compile(
@@ -80,7 +86,7 @@ extra = sorted(set(declared) - set(resolved))
 mismatched = sorted(
     (name, resolved[name], declared[name])
     for name in set(resolved) & set(declared)
-    if resolved[name] and resolved[name] != declared[name]
+    if resolved[name] != declared[name]
 )
 
 failed = False

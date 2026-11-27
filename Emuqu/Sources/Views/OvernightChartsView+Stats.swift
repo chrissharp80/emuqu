@@ -74,7 +74,7 @@ struct OvernightStatsComputer: Sendable {
     private func makeStats(_ inputs: StatsInputs) -> OvernightStats {
         let band = Self.peakSearchBand(sleepStartMs: inputs.sleepStartMs, sleepEndMs: inputs.sleepEndMs)
         let (peakHRV, avgRMSSD) = findPeakHRV(rollingRMSSD: inputs.rollingRMSSD, band: band)
-        let (window, sleep) = (windowFields(inputs), sleepFields(inputs, durationMs: inputs.lastPoint.t_ms - inputs.firstPoint.t_ms))
+        let (window, sleep) = (windowFields(inputs), sleepFields(inputs, durationMs: inputs.series.clockSpanMs))
         let (rolling, nadir) = (inputs.rollingRMSSD.map { ($0.index, $0.rmssd) }, inputs.nadirPoint ?? (index: 0, hr: 0, timeMs: 0))
         return OvernightStats(
             nadirHR: nadir.hr, nadirIndex: nadir.index, nadirTimeMs: nadir.timeMs,
@@ -89,7 +89,7 @@ struct OvernightStatsComputer: Sendable {
             deepSleepMinutes: sleep.deepMinutes, awakeningsCount: sleep.awakenings, sleepEfficiency: sleep.efficiency,
             isHealthKitData: sleep.isFromHealthKit, sleepSegmentRanges: inputs.segmentRanges, chartStartMs: Self.chartStart(firstPoint: inputs.firstPoint, segmentRanges: inputs.segmentRanges),
             chartEndMs: Self.chartEnd(lastPoint: inputs.lastPoint, segmentRanges: inputs.segmentRanges), healthKitHR: [],
-            organizedRecoveryZones: organizedZones(series: inputs.series, flags: inputs.flags, sleepStartMs: inputs.sleepStartMs, sleepEndMs: inputs.sleepEndMs),
+            organizedRecoveryZones: organizedZones(series: inputs.series, flags: inputs.flags),
             peakSearchBandMs: hasKnownSleepBoundaries ? band : nil
         )
     }
@@ -226,16 +226,29 @@ struct OvernightStatsComputer: Sendable {
     /// Prefer pre-computed zones from the analysis result; fall back to
     /// an on-demand scan (cached + disk-backfilled) so sessions stored
     /// without zones still get the green overlay.
-    private func organizedZones(
-        series: RRSeries,
-        flags: [ArtifactFlags],
-        sleepStartMs: Int64,
-        sleepEndMs: Int64
-    ) -> [HRVAnalysisResult.TimeRange] {
-        result.organizedRecoveryZones ?? Self.computeOrganizedZonesOnDemand(
+    private func organizedZones(series: RRSeries, flags: [ArtifactFlags]) -> [HRVAnalysisResult.TimeRange] {
+        if let stored = result.organizedRecoveryZones { return stored }
+        let window = zoneScanSleepWindow(series: series)
+        return Self.computeOrganizedZonesOnDemand(
             sessionId: session.id, series: series, flags: flags,
-            sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs, cache: zonesCache
+            sleepStartMs: window.start, sleepEndMs: window.end, cache: zonesCache
         )
+    }
+
+    /// The sleep window the organized-zone scan reads, on the session clock
+    /// (ms after the session start): the clock `WindowSelector.findBestWindow`
+    /// maps onto the beats itself, and the one the analysis pipeline hands it.
+    /// HealthKit's envelope, else the stored sleep fields, else the recording
+    /// to its last beat. The `t_ms` window the stats use
+    /// (`resolveSleepBoundaries`) would be mapped onto the beats a second
+    /// time and land early on a streamed night with a dropout.
+    private func zoneScanSleepWindow(series: RRSeries) -> (start: Int64, end: Int64) {
+        let start = session.startDate
+        if let hk = OvernightPeakHRV.envelope(start: healthKitSleep?.sleepStart, end: healthKitSleep?.sleepEnd) {
+            return (MillisecondOffset.between(hk.start, and: start, fallback: 0), MillisecondOffset.between(hk.end, and: start, fallback: 0))
+        }
+        let recordingEnd = MillisecondOffset.between(series.actualEndDate, and: start, fallback: 0)
+        return (session.sleepStartMs ?? 0, session.sleepEndMs ?? recordingEnd)
     }
 
     // MARK: - Overnight Stats Helpers
@@ -285,8 +298,8 @@ struct OvernightStatsComputer: Sendable {
     /// backfill fires only after a scan that actually ran.
     func willScanOrganizedZones() -> Bool {
         guard result.organizedRecoveryZones == nil, let series = session.rrSeries, !series.points.isEmpty else { return false }
-        let (start, end) = resolveSleepBoundaries(series: series)
-        return zonesCache.get(session.id, sleepStartMs: start, sleepEndMs: end) == nil
+        let window = zoneScanSleepWindow(series: series)
+        return zonesCache.get(session.id, sleepStartMs: window.start, sleepEndMs: window.end) == nil
     }
 
     /// Persist computed zones back to the session's analysisResult so future

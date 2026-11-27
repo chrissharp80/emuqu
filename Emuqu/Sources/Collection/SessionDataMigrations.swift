@@ -16,7 +16,10 @@ import Foundation
 /// recalibration and the TRIMP repair both rewrite a night's training
 /// snapshot (and the readiness derived from it), each with its own anchor,
 /// and the TRIMP repair runs second, so its context is the one the archive
-/// keeps. Neither moves the recovery score, which does not read training. The
+/// keeps. Both leave a night HealthKit did not answer for as stored and run
+/// again on a later launch (`finishTrainingMigration`); the TRIMP repair is
+/// not marked done before the recalibration is, so it still runs last.
+/// Neither moves the recovery score, which does not read training. The
 /// stagger spreads the archive reads past the dashboard's first render so the
 /// user sees a populated screen before the disk work starts; a cancelled
 /// launch stops the chain, and the rest run on a later launch.
@@ -91,5 +94,33 @@ final class SessionDataMigrations {
             (500_000_000, { await self.runNapRepairMigrationIfNeeded() }),
             (500_000_000, { await self.runTimeInBedRepairIfNeeded() })
         ]
+    }
+}
+
+// MARK: - One-shot training migrations that HealthKit has to answer
+
+extension SessionDataMigrations {
+    /// Launches a training migration retries while HealthKit leaves some of
+    /// its nights unanswered (the store locked before first unlock, a
+    /// timeout). Those nights are left as stored on every pass, so giving up
+    /// after this many only stops the retries; nothing is rewritten from an
+    /// unanswered query.
+    nonisolated static let maxTrainingMigrationAttempts = 5
+
+    /// Ends a pass of the one-shot training migration under `key`. Its flag
+    /// is set when every candidate was answered (`complete`), or once it has
+    /// run `maxTrainingMigrationAttempts` times; otherwise it runs again on a
+    /// later launch. True when the flag was set.
+    @discardableResult
+    nonisolated static func finishTrainingMigration(key: String, complete: Bool, defaults: UserDefaults = .standard) -> Bool {
+        let attemptsKey = key + "_attempts"
+        let attempts = defaults.integer(forKey: attemptsKey) + 1
+        guard complete || attempts >= maxTrainingMigrationAttempts else {
+            defaults.set(attempts, forKey: attemptsKey)
+            return false
+        }
+        defaults.set(true, forKey: key)
+        defaults.removeObject(forKey: attemptsKey)
+        return true
     }
 }

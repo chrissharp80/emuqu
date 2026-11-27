@@ -2,13 +2,13 @@
 
 **Constants-hash version locks, a machine-checked science register, gates that must prove they fail, and one-way budget ratchets**
 
-Technical White Paper • v1.4 • 22 November 2026
+Technical White Paper • v1.6 • 27 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 44a11ce (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) as of 2026-11-27, scoring version v3.5.nov2026. The counts in Section 6 and Appendix A, and the observed history in Section 3.6.4, were measured at source revision 44a11ce (2026-11-21) and are labelled with it. Emuqu is a consumer wellness app, not a medical device.
 
-Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
+Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.6, 27 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
 
 ---
 
@@ -18,7 +18,7 @@ Emuqu is an iOS app that turns overnight beat-to-beat (RR) intervals from a ches
 
 Emuqu answers each with build-time checks, shell and Python scripts that almost all run in continuous integration (CI); the test-mutation harness runs by hand on an iOS simulator.
 
-- **A constants-hash version lock.** The 188 numeric constants of two designated scoring files and two scoring enums are hashed with SHA-256 (Secure Hash Algorithm, 256-bit). The build fails if the digest moves while the scoring version stays the same, or if the recorded version and digest are not the code's. Every stored score carries its version; older records decode to an explicit `unversioned` sentinel.
+- **A constants-hash version lock.** Every numeric literal in the recovery score's source, named constants and the numbers written inline in the scoring code alike, is hashed with SHA-256 (Secure Hash Algorithm, 256-bit), keyed by the declaration it sits in. The build fails if the digest moves while the scoring version stays the same, or if the recorded version and digest are not the code's. Every stored score carries its version; older records decode to an explicit `unversioned` sentinel.
 - **A machine-checked science register.** A JSON (JavaScript Object Notation) inventory classifies 19 heuristics into a closed status vocabulary defined in the register itself: 3 `validated` (the register's label for a use backed by a peer-reviewed result or checked against reference data on every build), 4 `supported-transfer` and 12 `awaiting-validation`. Each entry states the wording copy may and may not use, and every score-adjusting function found by a name scan must be claimed or waived.
 - **Gates that test the gates.** Every gate but the coverage-floor gate must go red on a planted violation (86 plants), every gate must fail closed on temp-file errors, and every gate must run in the CI workflows. A separate harness applies 125 targeted mutations that named test suites must catch.
 - **One-way budget ratchets.** Each numeric CI budget file may move only in the tightening direction its filename declares, unless a commit trailer acknowledges the loosening; deleting a budget, or making it non-numeric, counts as a loosening (Section 3.6.2).
@@ -72,7 +72,7 @@ The governance layer is a set of scripts in the repository, run by two CI workfl
 | Phase | Operation | Purpose |
 |---|---|---|
 | Author time | Change a scoring constant | — |
-| Gate: scoring governance | Hash numeric constants; compare with the recorded version and hash line | Force a version bump when the numbers move |
+| Gate: scoring governance | Hash the code that decides a score, token by token; compare with the recorded version, hash and scheme line, and with the base's sources under the same scheme | Force a version bump when the scoring code moves |
 | Gate: scoring governance | Scan app sources for the ranking-weight identifier outside one module | Keep a hand-set ordering key from being displayed as a confidence |
 | Runtime | Stamp every new score breakdown with the current version; decode unstamped history as `unversioned` | Keep each stored score attributable to its algorithm |
 | Gate: science register | Register version must equal code version | Force an edit of the register on every version bump |
@@ -112,31 +112,31 @@ constant edited ──► hash moves ──► [gate] version must change
 
 **Inputs.**
 
-- Two designated scoring-constant source files: the recovery-score constants file (91 numeric declarations) and the HRV thresholds file (63 numeric declarations).
-- Two enums of the general constants file, the score bounds (4) and the composite weights (30). That file also holds non-scoring constants (unit conversions, settings keys), so only these two enums are read from it. 188 constants in all at this revision.
+- The source of the recovery score, read whole: the recovery-score constants file, the HRV thresholds file (including the age and sex norms), the score detail builder, the vitals and sleep scorers, and every recovery-score calculator file (matched by the glob `RecoveryScoreCalculator*.swift`, so a new extension file is read without a change to the gate). These hold the scoring functions, the named constants and the numbers written inline: the z-score band tables and the binding that selects one, clamps and caps.
+- Named roots in files that also hold other code, read declaration by declaration: the score-bounds and composite-weights enums of the general constants file; the baseline statistics the z-score divides by (`BaselineTracker.recoveryBaselineStats`, `stats`, the `RecoveryBaselineStats` type and the stored-night cap `maxHistoricalPoints`); and the array mean and sample standard deviation those statistics use.
+- Every declaration the scoring files and the roots reach by name, wherever it is declared: a constant or static function written `Type.name`, `Self.name` or bare inside its own type, and every member of a type named as `Type.self`. This brings in, among others, the baseline SD floors and the fragmentation weights declared with the display constants, the 60-night window and the minimum night count, and the night-replacement rules that decide which nights the baseline holds. References into types that only put a score into words (the breakdown copy, the narrative language, PDF layout) are not followed. A value read through an instance (a field of the baseline stats, a session property) is followed only from a listed root.
 - The scoring-version source file, which declares `current` and `unversioned`.
-- A one-line baseline file in the CI directory containing `<recorded_version> <recorded_hash>`. At this revision it reads `v3.4.nov2026 f07c58c40ce20acc`.
+- A one-line baseline file in the CI directory, `.ci/scoring_constants_hash.txt`, containing `<recorded_version> <recorded_hash> <scheme>`. The scheme names how the hash was computed; a line with two fields was written under the first scheme, `static-lets`.
+- The hashing schemes, in `scripts/lib/scoring_hash.py`: the current one, `decl-tokens`, and every earlier one a baseline in the history can name (`static-lets`, `decl-literals`, which hashed numeric literals only).
 
 **Steps.**
 
-1. Visit the two constant files in a fixed order, recovery-score constants first and HRV thresholds second, then the two enums of the general constants file, score bounds first. If a file or an enum is missing, exit 2 (configuration error).
-2. Read each file and delete every `//` line comment (the regex `//[^\n]*`, replaced with nothing). Rewording a rationale comment therefore never changes the hash. Block comments are not stripped; none of the hashed sources contains one. An enum is the text from its `enum <Name>` line to the first line that is a bare `}`.
-3. Extract all matches of
-   `static let\s+(\w+)\s*:?\s*[\w<>\[\], .]*=\s*([-\d.]+)`
-   giving `(symbol, value)` pairs. `value` is the literal text of the number as written, so `60` and `60.0` are different values. A declaration whose right-hand side is not a bare numeric literal is not matched. A file or enum that yields no pair exits 2, so a refactor the pattern no longer matches (`static var`, computed values) cannot hash nothing and never move.
-4. Sort the pairs of each file or enum lexicographically by `(symbol, value)`. Moving a declaration within a file, or renaming an enclosing namespace inside a hashed file, does not change the hash. Renaming a symbol or changing its value does. Symbols repeated under different nested namespaces are all included.
-5. For each pair, in source order and then sorted order, feed the UTF-8 bytes of `"<file path>:<symbol>=<value>\n"` into one running SHA-256 digest; an enum's lines read `"<file path>:<enum>.<symbol>=<value>\n"`.
+1. If a source file or an enum is missing, or the calculator glob matches nothing, exit 2 (configuration error).
+2. Read each file, delete every `//` line comment and `/* */` block comment, and empty every string literal (including multi-line and raw strings, and the code inside their interpolations). Rewording a comment, a log message or user copy therefore never changes the hash.
+3. Tokenize what remains and walk it with a stack of enclosing declarations: types and extensions, and functions, initializers and computed properties. Every token (number, operator, identifier, keyword) is recorded under a key, the dotted path of the declarations enclosing it (`RecoveryScoreCalculator.interpolate`, `BaselineTracker.stats`); at type level a stored property, enum case or type alias records under `<type>#<name>`. Access modifiers, `static`, `override`, attributes and imports are skipped, so they never move the hash. Numbers are normalized to their decimal value, so `60`, `60.0` and `6_0` are one value. A flipped comparison, a swapped operand or a re-bound band table moves the hash as surely as an edited number.
+4. Walk every Swift file of the app sources the same way, select the named roots, and follow references by name from the scoring files and the roots until nothing new is reached (Inputs). A missing root, file or enum exits 2, and each fixed source file, and the calculator glob as a whole, must yield at least one number, or exit 2, so a source that moves away or empties cannot hash nothing and never move.
+5. Merge the keys of everything selected, then feed `"<key>=<tokens joined by spaces>\n"` for each key, in sorted key order, into one SHA-256 digest. Tokens keep their source order within a key.
 6. Take the first 16 hexadecimal characters of the digest (64 bits) as `current_hash`.
 7. Read `current` from the version file with `static let current\s*=\s*"([^"]+)"`. If the pattern finds no version, exit 2.
-8. If the baseline file is missing, or does not split on whitespace into exactly two fields, exit 2. Otherwise read them as `recorded_version` and `recorded_hash`.
-9. Print the number of constants hashed, the hash and the version, whatever the result.
-10. **Violation rules:** if `current_hash != recorded_hash` **and** `version == recorded_version`, report "scoring constants changed while the version stayed the same" and exit 1. Otherwise, if `(version, current_hash)` differs from the recorded pair, report that the baseline must be rewritten to the code's pair in the same change as the version bump, and exit 1.
+8. If the baseline file is missing, or does not split into two or three fields, exit 2. An unknown scheme exits 2.
+9. Print the number of values hashed, the hash, the scheme and the version, whatever the result.
+10. **Violation rules:** if the baseline's scheme is not the current one, report that it must be rewritten as `<version> <hash> <scheme>` and exit 1. Otherwise, if `current_hash != recorded_hash` **and** `version == recorded_version`, report "scoring literals changed while the version stayed the same" and exit 1. Otherwise, if `(version, current_hash)` differs from the recorded pair, report that the baseline must be rewritten to the code's pair in the same change as the version bump, and exit 1.
 
-11. **Base comparison:** the baseline file is edited in the same change as the constants, so it is also read as the base the change is measured from records it, at the merge base with that base. If the current hash differs from the base's hash while the version still equals the base's version, exit 1, however the baseline was edited. The base is, in order: `SCORING_BASE_REF` when set; on a pull request, the target branch; on a push, the tip before the push (`PUSH_BEFORE`, or `before` in the event payload), measured from `origin/main` for a branch's first push; otherwise `origin/main`. After a push `origin/main` is the pushed tip itself, so it would compare the change with itself. On a push, a base that cannot be resolved, or a merge base that is the pushed commit, exits 2. Outside CI a missing base is reported and the comparison skipped. A planted case commits a constant change with the baseline rewritten to match, moves `origin/main` to that commit as a push does, and requires the gate to go red.
+11. **Base comparison:** the baseline file is edited in the same change as the constants, so it is also read as the base the change is measured from records it, at the merge base with that base. The tree is hashed under the base's scheme (the current hash when the schemes match, otherwise the base's scheme recomputed from the current sources). If that hash differs from the base's hash while the version still equals the base's version, exit 1, however the baseline was edited. The base's own sources, read from the merge base, are also hashed under the current scheme; if that differs from the tree's hash while the version equals the base's, exit 1. A new scheme that measures more (an operator, a constant outside the scoring files) therefore cannot carry a change only it can see. A base the current scheme cannot read (a root it lacks) leaves the first comparison to stand alone. The base is, in order: `SCORING_BASE_REF` when set; on a pull request, the target branch; on a push, the tip before the push (`PUSH_BEFORE`, or `before` in the event payload), measured from `origin/main` for a branch's first push; otherwise `origin/main`. After a push `origin/main` is the pushed tip itself, so it would compare the change with itself. On a push, a base that cannot be resolved, or a merge base that is the pushed commit, exits 2. Outside CI a missing base is reported and the comparison skipped. Planted cases commit a constant change with the baseline rewritten to match and move `origin/main` to that commit as a push does, rewrite the baseline under the current scheme over a base recorded under an older one, both for an edited constant and for a flipped operator that only the current scheme sees, and edit the baseline SD floor, the baseline night window, the minimum night count, a fragmentation weight and a comparison in the band interpolation; the gate must go red on each.
 
-The second rule closes a gap the first leaves on its own: accepting any version other than the recorded one would let one bump that left the baseline alone switch the lock off for every later constant change. With both rules, a change to a hashed constant forces a version change, and the version change forces the new (version, hash) pair to be recorded beside it.
+The second rule closes a gap the first leaves on its own: accepting any version other than the recorded one would let one bump that left the baseline alone switch the lock off for every later constant change. With both rules, a change to a hashed number forces a version change, and the version change forces the new (version, hash) pair to be recorded beside it.
 
-**Why it works.** A score's meaning is the set of numbers that produced it, so the version should change exactly when those numbers change. The hash captures the numbers and nothing else. Stripping comments means the rationale written beside a constant can be improved freely without a version bump. Sorting per file means reorganizing code is free too, while a renamed or retuned constant is not. Hashing the literal text rather than a parsed value is the conservative choice: `60` becoming `60.0` is treated as a change, so the gate never has to decide whether two spellings are equal. The gate does not bump the version itself. A version is a name stamped on users' data, and requiring a person to choose the new name makes each algorithm change a deliberate, reviewable act. Sixteen hexadecimal characters keep the baseline on one human-readable line while leaving accidental collisions out of practical reach. Exit code 2 for a missing input separates "cannot measure" from "measured a violation", so neither is ever reported as clean.
+**Why it works.** A score's meaning is the code and numbers that produced it, so the version should change exactly when they change. Hashing every token of the scoring code, not only its numbers, means a flipped comparison or a swapped operand moves the hash as surely as a retuned constant, and following references by name means a constant that reaches the score is measured wherever it is declared. Selecting declarations rather than whole files keeps unrelated code in a large file (the baseline tracker's storage and logging) out, so editing it needs no bump. Keying each token by its declaration rather than by file and position means moving declarations within or between files, or reordering them, leaves the hash alone; renaming a scoring declaration or a parameter also moves the hash, which errs toward a version bump. Stripping comments and strings means rationale and copy can be improved freely. Recording the scheme lets the hashing itself be improved without a scoring change: a change of scheme rehashes every number, and comparing the base under its own scheme keeps that rehash from hiding a constant edited in the same change. The gate does not bump the version itself. A version is a name stamped on users' data, and requiring a person to choose the new name makes each algorithm change a deliberate, reviewable act. Sixteen hexadecimal characters keep the baseline on one human-readable line while leaving accidental collisions out of practical reach. Exit code 2 for a missing input separates "cannot measure" from "measured a violation", so neither is ever reported as clean.
 
 #### 3.1.2 Ranking-weight confinement
 
@@ -153,7 +153,7 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | Construction | A new `ScoreBreakdown` defaults its `scoringVersion` field to the current version |
 | Decoding | A stored breakdown with no `scoringVersion` key decodes to the literal string `unversioned`, never to the current version. Scores from before the stamp may come from the v1 algorithm (which preceded v2.may2026) or from v2.may2026, because the app offered a v1-to-v2 history recompute the user may or may not have run. |
 | Derived copies | Code that rebuilds a breakdown copies the version field forward. This covers the vitals refresh after scoring and the stripped copy prepared for iCloud sync. |
-| Display | The recovery-score detail screen shows "Scored by v3.3.nov2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. A legacy session with a stored score but no stored breakdown also shows "Scored before score versions were recorded": the breakdown on screen is recomputed on display, and its version is not the one that produced the score. When that recompute differs from the stored score, the breakdown is pinned to the stored score and marked `unversioned`. Beneath the version line is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
+| Display | The recovery-score detail screen shows "Scored by v3.5.nov2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. A legacy session with a stored score but no stored breakdown also shows "Scored before score versions were recorded": the breakdown on screen is recomputed on display, and its version is not the one that produced the score. When that recompute differs from the stored score, the breakdown is pinned to the stored score and marked `unversioned`. Beneath the version line is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
 | Assistant | The in-app assistant's fact catalog (key `score.algorithm.version`) and its context block report the current version string and describe the v1 weighting older history may carry. |
 
 **Why it works.** Freezing and versioning each stored score keeps history attributable: a user comparing this month with last month can see whether the same algorithm produced both. The `unversioned` sentinel is the honest default for old records. Their true version is unknowable, because a recompute may or may not have run, and labeling them with the current version would assert something false. Carrying the stamp through every derived copy matters because a stamp dropped on sync or refresh would quietly relabel old scores as new. Placing the stamp next to the fixed "calibrated, not outcome-validated" line puts the version and the evidence status in front of the user together.
@@ -167,6 +167,8 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | v3.1.oct2026 | 2026-10-04 |
 | v3.2.oct2026 | 2026-10-13 |
 | v3.3.nov2026 | 2026-11-21 |
+| v3.4.nov2026 | 2026-11-23 |
+| v3.5.nov2026 | 2026-11-27 |
 
 ### 3.2 The science register
 
@@ -363,7 +365,7 @@ This gate runs on every push to main and every pull request.
 
 #### 3.6.1 Policy and counting
 
-**Decision record.** The repository's architecture decision record (ADR) on ratcheted budgets, ADR 004, states the policy. Every quality rule has a measured numeric ceiling, never an aspirational one. A ceiling may only move down, and a floor only up. There is no per-site escape hatch: the app sources contain no SwiftLint disable directives. The record reasons that a gate nobody can satisfy gets routed around, while a measured ceiling blocks regression immediately.
+**Decision record.** The repository's architecture decision record (ADR) on ratcheted budgets, ADR 004, states the policy. Every quality rule has a measured numeric ceiling, never an aspirational one. A ceiling may only move down, and a floor only up. No SwiftLint directive escapes a rule: the SwiftLint budget gate fails on any disable directive in the app or watch sources, and the refactor-spec gate's per-site waivers count against budgets of their own. The record reasons that a gate nobody can satisfy gets routed around, while a measured ceiling blocks regression immediately.
 
 **Measured means measured.** The tech-debt budget gate fails not only when a count exceeds its ceiling but also when the ceiling sits above the count: a change that removes debt must lower the budget file in the same commit, or every later addition up to the old ceiling would pass unseen. Several other count gates only print a reminder to lower a budget that sits above its count. A ceiling must be a whole number, because a comparison against a decimal ceiling is a shell syntax error that an `if` reads as false. The Watch target is counted the same five ways as the app and held to one combined ceiling of its own.
 
@@ -423,9 +425,9 @@ The **evidence report** script prints, in seconds and without building, live cou
 
 ### 3.8 How the parts form one chain
 
-Figure 2.1 shows the sequence. A developer who edits a numeric threshold in a designated scoring-constant file fails scoring governance until the version changes and the new (version, hash) pair is recorded (Section 3.1.1); the new version fails the science register until its `scoring_version` and the affected entries' status, evidence and `allowed_language` are revisited; new or removed score-adjusting functions fail discovery or the stale-claim check; and new user-facing copy passes through the regulated-claim perimeter. Every gate involved is proven to go red, to fail closed and to run in CI.
+Figure 2.1 shows the sequence. A developer who edits a number in the scoring code, a named threshold or a band written inline, fails scoring governance until the version changes and the new (version, hash) pair is recorded (Section 3.1.1); the new version fails the science register until its `scoring_version` and the affected entries' status, evidence and `allowed_language` are revisited; new or removed score-adjusting functions fail discovery or the stale-claim check; and new user-facing copy passes through the regulated-claim perimeter. Every gate involved is proven to go red, to fail closed and to run in CI.
 
-**Why it works.** Each gate is small and cheap. Their value is the coupling: the event that changes what a score means, a change to a hashed scoring constant, triggers in order a new name for the algorithm, a stamp on the user's data, and a forced review of what may be said about it.
+**Why it works.** Each gate is small and cheap. Their value is the coupling: the event that changes what a score means, a change to a hashed scoring number, triggers in order a new name for the algorithm, a stamp on the user's data, and a forced review of what may be said about it.
 
 ---
 
@@ -462,9 +464,9 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 
 Each statement gives only the part not found in a prior-art search made on 2026-10-08 (PyPI, npm, NuGet and GitHub; vendor, lint-rule, requirements-tool and documentation-lint tool documentation; and the literature cited in the references). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
-**N1 (Section 3.1.1). A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files and enums and fails the build when that digest moves while the scoring version stays the same, or when the recorded version and digest are not the code's.** The digest is SHA-256 over a per-file sorted list of `path:symbol=value` lines, truncated to 16 hexadecimal characters; the version compared is the same string stamped on every stored score (N2), checked against the version recorded beside the digest.
+**N1 (Section 3.1.1). A build gate that hashes every numeric literal of designated scoring source files and enums, each recorded under the declaration it sits in, and fails the build when that digest moves while the scoring version stays the same, or when the recorded version and digest are not the code's.** The digest is SHA-256 over sorted `path:declaration=value` lines (comments stripped, string literals emptied, numbers normalized, and at type level the identifiers a declaration is bound to), truncated to 16 hexadecimal characters, under a named hashing scheme recorded beside it so a change of scheme is told apart from a change of constant; the version compared is the same string stamped on every stored score (N2), checked against the version recorded beside the digest.
 
-*Builds on:* hashing configuration or lockfiles to detect change, which is general practice; CI checks that fail when hashed content changes without a semantic-version bump were later proposed in maiconsouza89/agents-skills issue 130 (2026-09-17) [22] and pandas-studio/agent-team-plugins pull request 165 (2026-09-27) [23], both after Emuqu's public commit; adds selection of numeric declarations only, comment stripping, and a tie to the version stamped on stored user data.
+*Builds on:* hashing configuration or lockfiles to detect change, which is general practice; CI checks that fail when hashed content changes without a semantic-version bump were later proposed in maiconsouza89/agents-skills issue 130 (2026-09-17) [22] and pandas-studio/agent-team-plugins pull request 165 (2026-09-27) [23], both after Emuqu's public commit; adds hashing of every number that shapes the score under the declaration that holds it, comment stripping, a recorded hashing scheme, and a tie to the version stamped on stored user data.
 
 *Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (first form, a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change); emuqu-dev f2e6ed1, 2026-09-03 (the hash gate); emuqu 0c715df, 2026-11-21 (current form: the recorded pair must be the code's). Intermediate: the scoring enums of the general constants file hashed, emuqu 8bb4252, 2026-10-11.
 
@@ -584,7 +586,7 @@ The analysis methods that the register classifies were also checked by a separat
 
 **Recorded baseline, not history.** The hash lock compares the code with one recorded line, which keeps the gate stateless and readable; the recorded line itself is trusted, so edits to it are left to review.
 
-**Two files and two enums, literal declarations.** The lock covers the numeric `static let` literals of two designated files and of the score-bounds and composite-weights enums of the general constants file; inline literals, expression-valued constants and scoring numbers elsewhere are outside it, and are governed through their register entries.
+**Named sources, literals and bindings.** The lock covers the numeric literals of the files that compute the recovery score and of the score-bounds and composite-weights enums of the general constants file, and the names a type-level declaration binds to. An operator changed with every number left as it is (`<` for `<=`, `-` for `+` inside a function) does not move the hash, and scoring code outside the listed files is outside it; both are governed through review and their register entries.
 
 **Truncated digest.** Sixteen hexadecimal characters detect accidental change; they are not meant to resist deliberate collision.
 
@@ -643,7 +645,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.3 described source revision b87eb64 (2026-10-07). v1.4, published 2026-11-22, brings the whole paper to source revision 44a11ce (2026-11-21) and scoring version v3.3.nov2026. Changed: the hashed sources (two scoring enums added, 188 constants), the rule that the recorded (version, hash) pair must be the code's, and the empty-match check (Section 3.1.1, B.1); the display of a legacy score without a stored breakdown (Section 3.1.3); scoring versions v3.2.oct2026 and v3.3.nov2026 (Table 3.2); every-spelling expansion in perimeter sync (Section 3.3); 48 gates and 86 plants, the Thread Sanitizer gate planted against a stand-in with its canary, the one-entry build exemption, plants that must be run, and skips that fail (Section 3.4.1, B.3); the explicit directory template (Section 3.4.2); the wiring gate's reading of executed steps through make targets in both workflows (Section 3.4.3, B.4); classification of the mutated run and invalid mutations (Section 3.5.1, B.5); the lock's PID wait (Section 3.5.2); slack and whole-number rules and the Watch budget (Section 3.6.1); decimal values, deletions and the push baseline in the ratchet (Section 3.6.2, B.6); the observed history (Section 3.6.4); the CI posture (Section 3.7); N1, N2, N7, N9, N10 and N12 and their records (Section 5); the counts (Section 6, Appendix A); the source map (Appendix C).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.3 described source revision b87eb64 (2026-10-07). v1.4, published 2026-11-22, brings the whole paper to source revision 44a11ce (2026-11-21) and scoring version v3.3.nov2026. Changed: the hashed sources (two scoring enums added, 188 constants), the rule that the recorded (version, hash) pair must be the code's, and the empty-match check (Section 3.1.1, B.1); the display of a legacy score without a stored breakdown (Section 3.1.3); scoring versions v3.2.oct2026 and v3.3.nov2026 (Table 3.2); every-spelling expansion in perimeter sync (Section 3.3); 48 gates and 86 plants, the Thread Sanitizer gate planted against a stand-in with its canary, the one-entry build exemption, plants that must be run, and skips that fail (Section 3.4.1, B.3); the explicit directory template (Section 3.4.2); the wiring gate's reading of executed steps through make targets in both workflows (Section 3.4.3, B.4); classification of the mutated run and invalid mutations (Section 3.5.1, B.5); the lock's PID wait (Section 3.5.2); slack and whole-number rules and the Watch budget (Section 3.6.1); decimal values, deletions and the push baseline in the ratchet (Section 3.6.2, B.6); the observed history (Section 3.6.4); the CI posture (Section 3.7); N1, N2, N7, N9, N10 and N12 and their records (Section 5); the counts (Section 6, Appendix A); the source map (Appendix C). v1.5, published 2026-11-27, describes scoring version v3.4.nov2026 and the gates as they now stand: the scoring hash covers every number in the designated scoring sources under a recorded hashing scheme, and the base comparison measures a push from the tip before it (Section 3.1.1, B.1, N1); the mutation harness credits only a recorded assertion failure (Section 3.5.1, B.5); the wiring section no longer describes a removed preflight gate (B.4). v1.6, published 2026-11-27, describes scoring version v3.5.nov2026: the scoring hash covers the scoring code token by token, operators included, and every declaration it reaches by name, wherever declared, under the `decl-tokens` scheme; the base's sources are also hashed under the current scheme (Section 3.1.1, B.1); scoring versions v3.4.nov2026 and v3.5.nov2026 (Table 3.2). The counts in Section 6 and Appendix A and the observed history in Section 3.6.4 remain as measured at 44a11ce.
 
 ---
 
@@ -740,32 +742,37 @@ function scoring_governance():
         if file not under CAUSE_DETECTION_DIR:
             for (n, line) in lines(file):
                 if "rankingWeight" in line: problems.add(file, n)
-    h = sha256()
-    count = 0
-    for path in [RECOVERY_CONSTANTS, HRV_THRESHOLDS]:           # fixed order
-        if not exists(path): exit 2
-        src = regex_replace(read(path), "//[^\n]*", "")
-        pairs = sorted(regex_findall(src, CONST_RE))           # (symbol, value)
-        if pairs empty: exit 2
-        for (sym, val) in pairs:
-            h.update(utf8(path + ":" + sym + "=" + val + "\n"))
-            count += 1
-    src = regex_replace(read(GENERAL_CONSTANTS) or exit 2, "//[^\n]*", "")
-    for enum in ["ScoringBounds", "ScoringWeights"]:
-        block = text from "enum <enum>" to the next line "}" in src or exit 2
-        pairs = sorted(regex_findall(block, CONST_RE)); if pairs empty: exit 2
-        for (sym, val) in pairs:
-            h.update(utf8(GENERAL_CONSTANTS + ":" + enum + "." + sym + "=" + val + "\n"))
-            count += 1
+    index = {}                                                 # file -> key -> (decl, type, [token, ...])
+    for path in all_swift_files(APP_SOURCES):
+        index[path] = walk_declarations(strip_comments_and_empty_strings(read(path)))  # tokens, modifiers skipped
+    chosen = every key of SCORING_FILES + glob("RecoveryScoreCalculator*.swift")
+    if a scoring file (or the glob as a whole) is missing or gave no number: exit 2
+    work = chosen + keys of ROOTS (exit 2 if a root is not found)
+    while work not empty:
+        key = work.pop(); chosen.add(key)
+        for chain in identifier_chains(tokens(key)):            # Type.name, Self.name, bare, Type.self
+            for decl in resolve(chain, enclosing_type(key)) not in TEXT_ONLY_TYPES:
+                work.add(keys of decl not in chosen)
+    h = sha256(); count = 0
+    for key in sorted(chosen):
+        h.update(utf8(key + "=" + join(" ", tokens(key)) + "\n")); count += len(tokens(key))
     current_hash = hex(h)[0:16]
     version = regex_group(read(VERSION_FILE), 'static let current\s*=\s*"([^"]+)"') or exit 2
     if not exists(BASELINE): exit 2
-    fields = split_whitespace(read(BASELINE)); if len(fields) != 2: exit 2
-    (rec_version, rec_hash) = fields
-    if current_hash != rec_hash and version == rec_version:
+    fields = split_whitespace(read(BASELINE)); if len(fields) not in (2, 3): exit 2
+    (rec_version, rec_hash) = fields[0:2]
+    rec_scheme = fields[2] if len(fields) == 3 else "static-lets"
+    if rec_scheme != CURRENT_SCHEME:
+        problems.add("rewrite the baseline under the current scheme")
+    elif current_hash != rec_hash and version == rec_version:
         problems.add("constants changed without a version change")
     elif (version, current_hash) != (rec_version, rec_hash):
         problems.add("record the new version and hash in the baseline")
+    (base_version, base_hash, base_scheme) = baseline at the merge base with BASE_REF
+    if hash_under(base_scheme) != base_hash and version == base_version:
+        problems.add("numbers differ from the base under its scheme")
+    if hash_of(sources at merge base, CURRENT_SCHEME) != current_hash and version == base_version:
+        problems.add("scoring code differs from the base under the current scheme")
     print(count, current_hash, version)
     exit 1 if problems else 0
 
@@ -912,7 +919,7 @@ count_for_budget(src):
 
 | Method | Repository paths |
 |---|---|
-| Constants-hash lock, ranking-weight containment | `scripts/check_scoring_governance.sh`, `.ci/scoring_constants_hash.txt` (baseline), `Emuqu/Sources/Utilities/RecoveryScoreConstants.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift` |
+| Constants-hash lock, ranking-weight containment | `scripts/check_scoring_governance.sh`, `scripts/lib/scoring_hash.py` (hashing schemes), `.ci/scoring_constants_hash.txt` (baseline), `Emuqu/Sources/Utilities/RecoveryScoreConstants.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift` |
 | Version string and sentinel | `Emuqu/Sources/Analysis/ScoringVersion.swift` |
 | Version persisted on breakdowns | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Storage/CloudSessionPayload.swift` |
 | Version shown | `Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift`; legacy breakdown pinned as `unversioned` in `Emuqu/Sources/ViewModels/MorningResultsViewModel.swift` |

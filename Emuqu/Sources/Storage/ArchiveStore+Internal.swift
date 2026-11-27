@@ -707,7 +707,7 @@ extension ArchiveStore {
     /// caller tells the user the delete did not happen. Returns false, having
     /// done nothing, for an id the archive does not hold.
     @discardableResult
-    func delete(_ id: UUID) throws -> Bool {
+    func delete(_ id: UUID, deletedAt: Date? = nil) throws -> Bool {
         state.archiveLock.lock()
         defer { state.archiveLock.unlock() }
         guard let entry = entryById(id) else {
@@ -715,7 +715,7 @@ extension ArchiveStore {
         }
         let scoreStr = entry.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil"
         debugLog("[Archive] delete: \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue) score=\(scoreStr)", level: .warning)
-        try dropFromIndex(entry)
+        try dropFromIndex(entry, deletedAt: deletedAt ?? Date())
         do {
             try moveToTrash(state.resolveFileURL(for: entry), id: id)
         } catch {
@@ -738,13 +738,17 @@ extension ArchiveStore {
     /// the device while the deletion counted as done, and the orphan scan would
     /// adopt it back once its tombstone is forgotten. The caller retries.
     /// Returns false, having done nothing, for an id the archive does not hold.
+    ///
+    /// `deletedAt` is when the other device made the deletion, kept as its
+    /// time here (nil: now): a Trash restore made there after it must still
+    /// read as newer than this deletion (`TrashRestoreCoordinator.restoreIsNewer`).
     @discardableResult
-    func deleteWithoutTrash(_ id: UUID) throws -> Bool {
+    func deleteWithoutTrash(_ id: UUID, deletedAt: Date? = nil) throws -> Bool {
         state.archiveLock.lock()
         defer { state.archiveLock.unlock() }
         guard let entry = entryById(id) else { return false }
         debugLog("[Archive] delete (deleted on another device): \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue)", level: .warning)
-        try dropFromIndex(entry)
+        try dropFromIndex(entry, deletedAt: deletedAt ?? Date())
         let fileURL = state.resolveFileURL(for: entry)
         guard state.fileManager.fileExists(atPath: fileURL.path),
               attempt("Archive.deleteWithoutTrash.removeFile", { try state.fileManager.removeItem(at: fileURL) }) == nil
@@ -769,10 +773,10 @@ extension ArchiveStore {
     /// `state.saveIndex()` nils the derived caches before persisting; drop them on
     /// the rollback path too so a stale state.sortedEntriesCache/state.sessionIdLookup
     /// can't keep serving (or hiding) the rolled-back entry.
-    private func dropFromIndex(_ entry: SessionArchiveEntry) throws {
+    private func dropFromIndex(_ entry: SessionArchiveEntry, deletedAt: Date) throws {
         state.index.removeAll { $0.sessionId == entry.sessionId }
         state.deletedSessionIds.insert(entry.sessionId)
-        Self.recordDeletionTime(entry.sessionId)
+        Self.recordDeletionTime(entry.sessionId, at: deletedAt)
         do {
             try state.saveDeletedIndex()
             try state.saveIndex()
@@ -919,7 +923,13 @@ extension ArchiveStore {
     private static let unsavedDeletionTimes = OSAllocatedUnfairLock<[UUID: UnsavedDeletionTime]>(initialState: [:])
 
     static func recordDeletionTime(_ id: UUID) {
-        stageDeletionTime(.recorded(Date().timeIntervalSince1970), for: id)
+        recordDeletionTime(id, at: Date())
+    }
+
+    /// `date` as the session's deletion time: for a deletion applied from
+    /// another device, when it was made there, not when it reached here.
+    static func recordDeletionTime(_ id: UUID, at date: Date) {
+        stageDeletionTime(.recorded(date.timeIntervalSince1970), for: id)
     }
 
     private static func forgetDeletionTime(_ id: UUID) {

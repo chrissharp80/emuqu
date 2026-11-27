@@ -404,7 +404,7 @@ GetMeBackView UI:
 **Score-architecture facts** — let the AI answer
 questions about the v3.oct2026 score change without inferring from
 indirect signals. Live-evaluated, no caching:
-- `score.algorithm.version` — `"v3.4.nov2026"`. Carries the description
+- `score.algorithm.version` — `"v3.5.nov2026"`. Carries the description
   of what changed and the citation behind it (Impellizzeri 2020/2021)
   so the AI has full context when the user asks.
 - `score.history.recomputed_under_v2` — Bool. False when an upgrading
@@ -601,8 +601,16 @@ but the contract is stricter:
    `assistant.contacts.remove` change nothing on the first call: it records a
    pending request (`AssistantActionConfirmations`) and returns
    `status=confirmation_required` with an app-written `ask_user` question.
+   When the reply ends, the app shows that question under it and, in voice
+   chat (workout voice included), speaks it after the reply in the app's
+   language, word for word. Under a voice reply the question counts as
+   asked only once that line has played to the end (`markSpoken`): a
+   reply a workout alert cut off never speaks it, so no yes confirms it.
+   A message sent while the reply was still
+   arriving (queued behind the stream) was written before the question
+   existed, so the request lapses and the app asks again.
    The same call made again runs only when the user's message directly after
-   the request is a short, explicit yes (`AffirmationReply`: at most five
+   the question is a short, explicit yes (`AffirmationReply`: at most five
    words, opening with an affirmation in a shipped language, no negation,
    and every other word an affirmation, a polite filler or a word of the
    app's question, so "yes, maybe later" does not confirm). Another
@@ -610,13 +618,22 @@ but the contract is stricter:
    check alone is not authorization: an instruction in a web result or a
    pasted email can make the model quote any span of the user's message.
    `assistant.memory.restore` undoes the last confirmed wipe until the app
-   quits.
+   quits, and asks the same way first: a restore the model was steered into
+   would put the facts the user wiped back into every later prompt.
 7. **What the model would save is confirmed first.** `assistant.memory.add`,
    `assistant.contacts.add`, `assistant.artifacts.add`,
-   `assistant.artifacts.update_status`, `location.set_address` and
-   `routes.library.rename` change nothing on the first call, and answer
-   `confirmation_required` the same way, every time
-   (`DestructiveActionContext.gate`). Finding the value in the user's
+   `assistant.artifacts.update_status`, `location.set_address`,
+   `routes.library.rename`, `routes.library.save_workout` and
+   `directions.routeTo` to a typed address change nothing on the first
+   call, and answer `confirmation_required` the same way, every time
+   (`DestructiveActionContext.gate`). The question names every field that
+   will be stored (a contact's notes, an artifact's kind, the text a replace
+   overwrites), and the request is bound to all of them and to the question
+   itself, so a call with other content, or one whose question would read
+   differently (a memory wipe whose count changed), needs a new yes.
+   Free text the model fills in is bounded: memory facts 160 characters,
+   contact fields 80, 254 and 120, route names 80, artifacts 2000 and
+   addresses 200. Finding the value in the user's
    message is not consent: "don't remember that I had knee surgery"
    contains the fact it refuses. A value the model took from a web page,
    an email or a tool result is shown to the user before it is saved. `assistant.email.compose` stages a draft only when

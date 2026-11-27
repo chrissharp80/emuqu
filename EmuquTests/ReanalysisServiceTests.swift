@@ -329,9 +329,10 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(stored.aiContext, ["coaching": "easy day"])
     }
 
-    /// A score-only pass sets the score and nothing it does not compute: the
-    /// window mark, the artifact flags and the quality class stay as stored.
-    func testAScoreOnlyWriteLeavesTheWindowFlagsAndQualityAlone() throws {
+    /// A score-only pass sets the score and what it scored with, the quality
+    /// class it classified against the night's current sleep, and nothing it
+    /// does not compute: the window mark and the artifact flags stay as stored.
+    func testAScoreOnlyWriteKeepsTheWindowAndFlagsAndStoresTheQualityItScoredWith() throws {
         var read = overnight()
         read.recoveryScore = 6.1
         read.windowUserAdjusted = true
@@ -348,7 +349,7 @@ final class ReanalysisServiceTests: XCTestCase {
         let stored = try XCTUnwrap(try archive.retrieve(read.id))
         XCTAssertEqual(stored.recoveryScore, 7.4)
         XCTAssertEqual(stored.windowUserAdjusted, true)
-        XCTAssertEqual(stored.hrvDataQuality, .insufficient)
+        XCTAssertEqual(stored.hrvDataQuality, .preSleep)
         XCTAssertNil(stored.artifactFlags)
     }
 
@@ -574,5 +575,157 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(vitals?.respiratoryRate, 14, "Only the heart rate is swapped")
         session.vitalsSnapshot = vitals
         XCTAssertEqual(ReanalysisService.scoringVitals(of: session, result: result), vitals)
+    }
+
+    // MARK: - The baseline of a night older than the stored ones
+
+    /// Ten nights at RMSSD 60 ms before a night at 40 ms; the tracker holds
+    /// only nights after it, as it does once newer nights have trimmed the
+    /// older ones away. The re-score compares the night with the nights
+    /// before it, rebuilt from the archive, not with the absolute RMSSD bands.
+    func testRescoringANightOlderThanTheStoredNightsKeepsABaselineRelativeScore() async throws {
+        let schedule = UserSettings().sleepSchedule
+        let earlier = (1 ... 10).map { scoredNight(daysAfterStart: $0 - 11, rmssd: 60) }
+        for night in earlier { try archive.archive(night) }
+        let target = try storedScoredNight(daysAfterStart: 0, rmssd: 40)
+        BaselineTracker(baselineFile: baselineFile).rebuildFromSessions(
+            (1 ... 5).map { scoredNight(daysAfterStart: $0, rmssd: 55) }, sleepSchedule: schedule
+        )
+        let service = makeService()
+        let rebuilt = try XCTUnwrap(
+            BaselineTracker.recoveryBaselineStats(rebuiltFrom: earlier, beforeNightOf: target, sleepSchedule: schedule)
+        )
+
+        let rescored = await service.recomputeScoreOnly(sessionId: target.id)
+        let written = try XCTUnwrap(rescored)
+
+        XCTAssertEqual(service.scoringBaseline(for: target)?.daysInWindow, 10)
+        XCTAssertEqual(written.recoveryScore, try score(of: target, against: rebuilt), "not scored against the nights before it")
+        XCTAssertNotEqual(written.recoveryScore, try score(of: target, against: nil), "scored with no baseline")
+    }
+
+    /// A night with no nights before it whose stored score was scored against
+    /// a baseline (one that can no longer be rebuilt) keeps its stored score
+    /// and breakdown: a no-baseline score would replace it.
+    func testRescoringANightWithNoNightsBeforeItKeepsAStoredBaselineScore() async throws {
+        let stats = BaselineTracker.RecoveryBaselineStats(
+            lnRmssdMean: log(50.0), lnRmssdSD: 0.2, lnRmssdCV7Day: nil, meanHRBaseline: 58, meanHRSD: 3, daysInWindow: 20
+        )
+        let target = try storedScoredNight(daysAfterStart: 0, rmssd: 40, scoredAgainst: stats)
+        let service = makeService()
+
+        let written = await service.recomputeScoreOnly(sessionId: target.id)
+
+        XCTAssertNil(written, "a no-baseline score was written")
+        let stored = try XCTUnwrap(try archive.retrieve(target.id))
+        XCTAssertEqual(stored.recoveryScore, 5.0)
+        XCTAssertEqual(stored.scoreBreakdown?.compositeScore, target.scoreBreakdown?.compositeScore)
+    }
+
+    /// A night with no nights before it that was itself scored with no
+    /// baseline (a user's first night) is re-scored: the new score is the
+    /// same kind, read from the night as it now stands.
+    func testRescoringANightFirstScoredWithNoBaselineWritesTheNewScore() async throws {
+        let target = try storedScoredNight(daysAfterStart: 0, rmssd: 40)
+        let service = makeService()
+
+        let rescored = await service.recomputeScoreOnly(sessionId: target.id)
+        let written = try XCTUnwrap(rescored)
+
+        XCTAssertEqual(written.recoveryScore, try score(of: target, against: nil))
+    }
+
+    /// A scored, reliable night `days` days after `nightStart`, analysed over
+    /// a 20-minute organized-recovery window: one the baseline admits.
+    private func scoredNight(daysAfterStart days: Int, rmssd: Double) -> HRVSession {
+        let start = nightStart.addingTimeInterval(Double(days) * 86_400)
+        var night = HRVSession(
+            id: UUID(), startDate: start, endDate: start.addingTimeInterval(8 * 3600),
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        var result = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 1200,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 1000, sdnn: 50, rmssd: rmssd, pnn50: 10, sdsd: rmssd, meanHR: 60, sdHR: 4, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 20, sd2: 50, sd1Sd2Ratio: 0.4, sampleEntropy: 1.5, approxEntropy: 1.3,
+                dfaAlpha1: 0.9, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 1, cleanBeatCount: 1200, analysisDate: start
+        )
+        result.windowStartMs = 0
+        result.windowEndMs = 1_200_000
+        result.isOrganizedRecovery = true
+        night.analysisResult = result
+        night.hrvDataQuality = .good
+        return night
+    }
+
+    /// `scoredNight` archived with a stored score of 5.0 and a breakdown
+    /// scored against `baseline`.
+    private func storedScoredNight(
+        daysAfterStart days: Int, rmssd: Double, scoredAgainst baseline: BaselineTracker.RecoveryBaselineStats? = nil
+    ) throws -> HRVSession {
+        var night = scoredNight(daysAfterStart: days, rmssd: rmssd)
+        night.recoveryScore = 5.0
+        night.scoreBreakdown = try breakdown(of: night, against: baseline)
+        try archive.archive(night)
+        return night
+    }
+
+    private func breakdown(
+        of night: HRVSession, against baseline: BaselineTracker.RecoveryBaselineStats?
+    ) throws -> RecoveryScoreCalculator.ScoreBreakdown {
+        let settings = UserSettings()
+        return ReanalysisService.rescoredBreakdown(
+            of: night, result: try XCTUnwrap(night.analysisResult), training: nil, referenceDate: night.endDate ?? night.startDate,
+            context: RescoreContext(baselineStats: baseline, typicalSleepHours: settings.typicalSleepHours, scoringConfig: .init(from: settings))
+        )
+    }
+
+    private func score(of night: HRVSession, against baseline: BaselineTracker.RecoveryBaselineStats?) throws -> Double {
+        RecoveryScoreCalculator.toTenScale(try breakdown(of: night, against: baseline).compositeScore)
+    }
+}
+
+// MARK: - Edits on a recording folded into another night
+
+extension ReanalysisServiceTests {
+    /// A window picked on the report of a recording the archive folded into
+    /// another night is applied to that night, which holds the recording's
+    /// beats. Archiving the report's copy instead merged it in again, which
+    /// kept the night's own window and dropped the pick; with merging off it
+    /// became a second night.
+    func testAManualWindowOnAFoldedRecordingLandsOnTheNightItWentInto() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        try archive.archive(night)
+        var recording = overnight()
+        recording.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: recording.id, startDate: nightStart)
+        archive.archiveLock.withLock { archive.state.recordFold(of: recording.id, into: night.id) }
+
+        let written = await makeService().applyManualAnalysis(recording, result: Self.analysis(at: nightStart))
+
+        XCTAssertEqual(written?.id, night.id)
+        XCTAssertEqual(try archive.retrieve(night.id)?.windowUserAdjusted, true, "the pick missed the night that holds the recording")
+        XCTAssertFalse(archive.store.exists(recording.id), "the report's copy was saved as a night of its own")
+    }
+
+    /// A sleep edit made on the report of a folded recording is saved on the
+    /// night it went into, instead of failing as not archived.
+    func testASleepEditOnAFoldedRecordingLandsOnTheNightItWentInto() async throws {
+        let night = overnight()
+        try archive.archive(night)
+        let recordingId = UUID()
+        archive.archiveLock.withLock { archive.state.recordFold(of: recordingId, into: night.id) }
+
+        let saved = await makeService().updateSessionSleepBoundaries(
+            sessionId: recordingId, sleepData: watchNight(minutes: 420), isUserAdjustment: true
+        ).value
+
+        XCTAssertTrue(saved, "the edit was reported as not saved")
+        XCTAssertEqual(try archive.retrieve(night.id)?.sleepSnapshot?.nightSleepMinutes, 420)
     }
 }

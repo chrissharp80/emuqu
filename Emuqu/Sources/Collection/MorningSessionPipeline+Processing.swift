@@ -35,7 +35,7 @@ extension MorningSessionPipeline {
         // Fetch training load before delegating (updates cachedTrainingLoad on self)
         await fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
-        let freshContext = await scoring.createTrainingContextEnsuringFresh()
+        let freshContext = await scoring.createTrainingContextEnsuringFresh(relativeTo: Self.trainingAsOf(baseSession, now: Date()))
         let result = await morningProcessingService.processOvernightData(
             MorningProcessingService.OvernightRequest(
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
@@ -97,6 +97,15 @@ extension MorningSessionPipeline {
         )
     }
 
+    /// The moment a night's training load is read as of: its own end, as the
+    /// strap-recovery path reads it (`DeviceRecordingSession`), never later
+    /// than `now`. A night stopped this morning reads today's load;
+    /// one rebuilt on a later day (the linked-night repair) is scored against
+    /// the load of its own morning, not the processing day's.
+    nonisolated static func trainingAsOf(_ session: HRVSession, now: Date) -> Date {
+        min(session.endDate ?? now, now)
+    }
+
     /// Freeze the training snapshot once — never overwrite an existing one.
     /// Background refinement rebuilds the session from scratch (via
     /// `buildFinalSession`), so `trainingSnapshot` is always nil on the new
@@ -114,7 +123,7 @@ extension MorningSessionPipeline {
             finalSession.trainingSnapshot = existing.trainingSnapshot
         }
         if finalSession.trainingSnapshot == nil {
-            finalSession.trainingSnapshot = freshContext ?? scoring.createTrainingContext()
+            finalSession.trainingSnapshot = freshContext ?? scoring.createTrainingContext(relativeTo: Self.trainingAsOf(finalSession, now: Date()))
         }
         if let frozen = finalSession.trainingSnapshot {
             finalSession.analysisResult?.trainingContext = frozen
@@ -141,6 +150,12 @@ extension MorningSessionPipeline {
         streamingLifecycle.sessionStartTime = nil
     }
 
+    /// The id the night on the review card is archived under: its own, or
+    /// that of the night the archive folded it into (`reviewFoldedIntoSessionId`).
+    nonisolated static func archivedId(of session: HRVSession, foldedInto foldedId: UUID?) -> UUID {
+        foldedId ?? session.id
+    }
+
     /// Save the night before the user reviews it, so a crash on the review
     /// card never loses it. A night that was not in the archive before is
     /// remembered so "Discard" can take it back out; one the archive folded
@@ -150,13 +165,16 @@ extension MorningSessionPipeline {
     /// A failed save is reported to the user, and the night is then not in
     /// the archive: the morning keeps its recording marker for it
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
+    /// A night processed again under an id the archive holds keeps what the
+    /// user set on the stored copy (`SessionArchive.archiveRebuilt`).
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
         let isNewEntry = !archive.store.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
-            let entry = try archive.archive(finalSession)
+            let entry = try archive.archiveRebuilt(finalSession)
             retireRawBackupIfSafe(finalSession)
+            retireNightRescue(of: finalSession)
             if entry.sessionId != finalSession.id {
                 sessionState.reviewFoldedIntoSessionId = entry.sessionId
             } else if isNewEntry {
@@ -191,19 +209,27 @@ extension MorningSessionPipeline {
     /// saved for this review is touched (`SessionState.reviewArchivedSessionId`):
     /// a night newly pre-archived for it, or a paused night finalized for
     /// review with Done. Any other night already in the archive is not.
-    func discardReviewArchivedSession() {
+    ///
+    /// False when the night could not be moved to Trash: it is still archived
+    /// and still under review, the error is shown, and Discard can be tapped
+    /// again. True otherwise, including when there was nothing to move.
+    @discardableResult
+    func discardReviewArchivedSession() -> Bool {
         let reviewId = sessionState.reviewArchivedSessionId
         sessionState.reviewArchivedSessionId = nil
-        guard let reviewId, reviewId == sessionState.currentSession?.id else { return }
+        guard let reviewId, reviewId == sessionState.currentSession?.id else { return true }
         do {
-            guard try archive.delete(reviewId) else { return }
+            guard try archive.delete(reviewId) else { return true }
         } catch {
             debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
-            return
+            sessionState.reviewArchivedSessionId = reviewId
+            sessionState.lastError = error
+            return false
         }
         baselineRebuild.rebuildFromArchive()
         let cloudSync = cloudSyncManager
         Task { await cloudSync.uploadDeletion(reviewId) }
+        return true
     }
 
     /// Supersede same-night overnight sessions.
@@ -262,17 +288,47 @@ extension MorningSessionPipeline {
     }
 
     /// The strap's beats are on this device before anything else can fail.
-    /// The download is on record as soon as the beats arrive, and the stream's
-    /// own backup, dated by the night's start, would then count as holding the
-    /// strap's recording (`RRCollector.isStrapRecordingSaved`) and let the
-    /// next arming clear it. So the night's backup is replaced by the merged
-    /// beats it will be scored on. When the strap's beats were not used, or
-    /// that backup cannot be written (it would replace a larger one), they get
-    /// their own backup in Lost Sessions (`rescueDownloadedBeats`).
-    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
-        guard let devicePoints, !devicePoints.isEmpty else { return }
-        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return }
-        rescueDownloadedBeats(devicePoints, baseSession: baseSession)
+    /// The night's backup is replaced by the merged beats it will be scored
+    /// on. When the strap's beats were not used, or that backup cannot be
+    /// written (it would replace a larger one), they get their own backup in
+    /// Lost Sessions (`rescueDownloadedBeats`). A night scored on them is
+    /// then remembered (`nightRescue`): once it is archived it holds those
+    /// beats, and their own backup goes, or Lost Sessions would offer a
+    /// second copy of a saved night.
+    ///
+    /// True only once a backup holding the strap's beats is on disk: the
+    /// caller then puts the recording on the saved record
+    /// (`StrapRecordingCoordinator.noteDownloadsSaved`), and until it does the
+    /// next arming keeps the strap's copy. False with nothing downloaded.
+    @discardableResult
+    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async -> Bool {
+        guard let devicePoints, !devicePoints.isEmpty else { return false }
+        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return true }
+        guard let rescueId = writeRescueBackup(devicePoints, baseSession: baseSession) else { return false }
+        if usedDevice { nightRescue = NightRescue(sessionId: baseSession.id, backupId: rescueId, beats: devicePoints.count) }
+        return true
+    }
+
+    /// The strap beats a night was scored on, backed up under an id of their
+    /// own because the night's backup held more beats.
+    struct NightRescue {
+        let sessionId: UUID
+        let backupId: UUID
+        let beats: Int
+    }
+
+    /// Once `session` is archived with at least the beats its rescue holds,
+    /// the rescue backup is a copy of what the archive holds and is
+    /// discarded. A night archived with fewer keeps it in Lost Sessions.
+    private func retireNightRescue(of session: HRVSession) {
+        guard let rescue = nightRescue, rescue.sessionId == session.id else { return }
+        nightRescue = nil
+        guard (session.rrSeries?.points.count ?? 0) >= rescue.beats else { return }
+        do {
+            try rawBackup.discardBackup(rescue.backupId)
+        } catch {
+            debugLog("[RRCollector] The strap beats' own backup of a saved night could not be removed: \(error)", level: .warning)
+        }
     }
 
     /// Replaces the night's backup with `points`; false when it was not written.
@@ -306,17 +362,30 @@ extension MorningSessionPipeline {
 
     /// Downloaded strap beats go to their own backup, dated by the night's
     /// start, so Lost Sessions can recover them. A pause the archive would not
-    /// take rescues the strap's beats it holds the same way.
-    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) {
-        guard let internalPoints, !internalPoints.isEmpty else { return }
+    /// take rescues the strap's beats it holds the same way. True when the
+    /// backup is on disk. A failed one is shown to the user, and the strap's
+    /// copy, never put on the saved record, stays recoverable from the Record
+    /// screen and is not cleared by the next arming.
+    @discardableResult
+    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) -> Bool {
+        guard let internalPoints, !internalPoints.isEmpty else { return false }
+        return writeRescueBackup(internalPoints, baseSession: baseSession) != nil
+    }
+
+    /// The id of the backup `rescueDownloadedBeats` wrote, or nil when it failed.
+    private func writeRescueBackup(_ internalPoints: [RRPoint], baseSession: HRVSession) -> UUID? {
+        let rescueId = UUID()
         do {
             try rawBackup.backup(
-                points: internalPoints, sessionId: UUID(),
+                points: internalPoints, sessionId: rescueId,
                 deviceId: strapLink.connectedDeviceId, captureDate: baseSession.startDate
             )
-            debugLog("[RRCollector] Backed up \(internalPoints.count) downloaded strap beats the night could not use (recoverable via Lost Sessions)")
+            debugLog("[RRCollector] Backed up \(internalPoints.count) downloaded strap beats apart from the night's backup (recoverable via Lost Sessions)")
+            return rescueId
         } catch {
             debugLog("[RRCollector] Failed to back up \(internalPoints.count) downloaded strap beats: \(error)", level: .error)
+            sessionState.lastError = error
+            return nil
         }
     }
 

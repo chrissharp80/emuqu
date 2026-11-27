@@ -73,17 +73,16 @@ final class AssistantContextSource: Sendable {
     /// TrendAnalyzer ignores non-overnight sessions internally. Each night's
     /// summary is generated against the baseline that night was scored with
     /// (the nights before it), as Morning Results does, so Flo's title and
-    /// causes cannot contradict the screen. The latest overnight session is
-    /// the "today" anchor, falling back to the most recent of any type.
+    /// causes cannot contradict the screen. The "today" anchor is the night
+    /// the dashboard headlines (`anchorSessions`), falling back to the most
+    /// recent session of any type.
     private func build(
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?,
         baselineTracker: BaselineTracker?
     ) -> AssistantContext {
         let settings = services.settingsManager.settingsSnapshot
         let (recentSessions, unreadable) = recentLightweightSessions()
-        let overnightSessions = recentSessions.filter { $0.sessionType == .overnight }
-        let latestSession = overnightSessions.first ?? recentSessions.first
-        let yesterdaySession = previousOvernight(after: latestSession, in: overnightSessions)
+        let (latestSession, yesterdaySession) = Self.anchorSessions(in: recentSessions, calendar: .current)
         let scoringBaseline = { (session: HRVSession?) in
             session.flatMap { baselineTracker?.recoveryBaselineStats(excludingNightOf: $0, sleepSchedule: settings.sleepSchedule) }
         }
@@ -122,9 +121,21 @@ final class AssistantContextSource: Sendable {
     /// Yesterday = the next overnight session before today's anchor. Skipping
     /// the latest and taking the next means day-over-day questions get a real
     /// comparison rather than the model inventing values.
-    private func previousOvernight(after latest: HRVSession?, in overnight: [HRVSession]) -> HRVSession? {
-        guard let latest else { return nil }
-        return overnight.first { $0.id != latest.id && $0.startDate < latest.startDate }
+    /// Today's and the previous night's sessions, picked as the dashboard
+    /// picks its headline night (`DashboardSessionPolicy.latestOvernightComplete`):
+    /// the latest wake day's longest reliable overnight, so on a night split
+    /// by a strap restart the model and the dashboard quote the same half,
+    /// and an unreliable partial never anchors "today". The previous night is
+    /// the same pick among earlier nights, never the other half of tonight.
+    /// With no reliable overnight, today falls back to the most recent
+    /// session of any type. `sessions` is newest first.
+    static func anchorSessions(in sessions: [HRVSession], calendar: Calendar) -> (latest: HRVSession?, yesterday: HRVSession?) {
+        guard let tonight = DashboardSessionPolicy.latestOvernightComplete(in: sessions, calendar: calendar) else {
+            return (sessions.first, nil)
+        }
+        let night = DashboardSessionPolicy.nightDay(of: tonight, calendar: calendar)
+        let earlier = sessions.filter { DashboardSessionPolicy.nightDay(of: $0, calendar: calendar) < night }
+        return (tonight, DashboardSessionPolicy.latestOvernightComplete(in: earlier, calendar: calendar))
     }
 }
 

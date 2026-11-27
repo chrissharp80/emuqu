@@ -27,4 +27,13 @@ extension HRVSession {
         guard let endMs = sleepEndMs, endMs > 0 else { return nil }
         return startDate.addingTimeInterval(TimeInterval(endMs) / 1000)
     }
+
+    /// The clock time of a `t_ms` position (an analysis window, the nadir, a
+    /// chart point): the beats' own clock (`RRSeries.clockTime(forTMs:)`)
+    /// when `series` holds them, so a streamed night with a dropout shows
+    /// when they happened; the start plus the offset when the beats are not
+    /// loaded (a lightweight session).
+    func clockTime(forTMs tMs: Int64, series: RRSeries?) -> Date {
+        series?.clockTime(forTMs: tMs) ?? startDate.addingTimeInterval(TimeInterval(tMs) / 1000)
+    }
 }

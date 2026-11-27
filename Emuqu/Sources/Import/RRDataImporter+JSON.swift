@@ -50,9 +50,20 @@ extension RRDataImporter {
     private func rrMilliseconds(in item: [String: Any]) -> Int? {
         if let rr = item["rr"] as? Double { return Self.storableRR(convertToMilliseconds(rr)) }
         if let rr = item["RR"] as? Double { return Self.storableRR(convertToMilliseconds(rr)) }
-        if let rr = item["rr_ms"] as? Int { return Self.storableRR(rr) }
+        if let rr = item["rr_ms"] as? Double { return Self.storableRR(roundedMilliseconds: rr) }
         if let rr = item["rrInterval"] as? Double { return Self.storableRR(convertToMilliseconds(rr)) }
         return nil
+    }
+
+    /// An interval already in milliseconds ("rr_ms": 812.5), rounded to the
+    /// whole millisecond, or nil outside `storableRRRange`. The range is
+    /// checked on the Double, so `Int(_:)` never sees a non-finite or huge
+    /// value.
+    static func storableRR(roundedMilliseconds value: Double) -> Int? {
+        let ms = value.rounded()
+        let range = Double(storableRRRange.lowerBound) ... Double(storableRRRange.upperBound)
+        guard ms.isFinite, range.contains(ms) else { return nil }
+        return Int(ms)
     }
 
     func parseStructuredJSON(_ dict: [String: Any]) throws -> ([Int], [String: String], Date?) {
@@ -69,7 +80,8 @@ extension RRDataImporter {
         }
         var recordingDate: Date?
         if let date = dict["date"] as? String ?? dict["timestamp"] as? String ?? dict["recordingDate"] as? String {
-            recordingDate = parseDate(date)
+            // The file holds one date, so that date decides its order.
+            recordingDate = parseDate(date, slashOrder: Self.slashDateOrder(of: [date]))
         }
         return (rrValues, metadata, recordingDate)
     }

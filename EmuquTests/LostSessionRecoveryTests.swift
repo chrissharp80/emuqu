@@ -94,6 +94,31 @@ final class LostSessionRecoveryTests: XCTestCase {
         XCTAssertEqual(lost.first?.beatCount, 300)
     }
 
+    /// A second recording of a night the archive already held is folded into
+    /// it and has no entry of its own. Its backup is not lost: the night
+    /// holds its beats, and recovering it would merge them in again.
+    func testARecordingFoldedIntoANightIsNotLost() async throws {
+        let lastNight = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-3600)
+        func recording(from start: Date, hours: Double) -> HRVSession {
+            let id = UUID()
+            return HRVSession(
+                id: id, startDate: start, endDate: start.addingTimeInterval(hours * 3600), state: .complete,
+                sessionType: .overnight, rrSeries: RRSeries(points: beats(300), sessionId: id, startDate: start),
+                analysisResult: nil, artifactFlags: nil
+            )
+        }
+        let night = recording(from: lastNight, hours: 7)
+        _ = try archive.archive(night, skipSameNightMerge: true)
+        let second = recording(from: lastNight.addingTimeInterval(3600), hours: 5)
+        XCTAssertEqual(try archive.archive(second).sessionId, night.id, "the fixture expects the second recording folded")
+        try backup(second.id)
+        collector.rawBackup.markAsArchived(second.id)
+
+        let lost = await collector.recovery.checkForLostSessions()
+
+        XCTAssertFalse(lost.contains { $0.id == second.id }, "a recording saved inside another night was offered as lost")
+    }
+
     /// The backup of a paused night is not lost either: the night resumes.
     func testAPausedNightIsNotLost() async throws {
         let paused = HRVSession(sessionType: .overnight)
@@ -193,5 +218,27 @@ final class LostSessionRecoveryTests: XCTestCase {
         XCTAssertEqual(collector.recordingStore.load()?.sessionId, workout.id)
         XCTAssertTrue(InterruptedWorkoutAutoRecovery.isRunning(workout.id), "launch recovery released the alert's claim")
         XCTAssertNil(UserDefaults.standard.dictionary(forKey: Self.attemptsKey), "an attempt was counted")
+    }
+
+    // MARK: - iCloud live backups
+
+    /// Another device's live backup that a scan here pulled is not deleted
+    /// from iCloud on the next scan: that device may still be recording the
+    /// night, and the iCloud copy is its crash-safety backup.
+    func testABackupPulledFromAnotherDeviceKeepsItsICloudCopy() {
+        let night = UUID()
+        let holdings = SessionRecoveryService.CloudBackupHoldings(finished: [], heldLocally: [night], uploadedHere: [])
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: night, holdings: holdings), .keep)
+    }
+
+    /// A backup this device uploaded and still holds is retired from iCloud,
+    /// a finished night's is retired whoever uploaded it, and one not held
+    /// here is saved for recovery.
+    func testOwnAndFinishedBackupsAreRetiredAndNewOnesSaved() {
+        let own = UUID(), finished = UUID(), unseen = UUID()
+        let holdings = SessionRecoveryService.CloudBackupHoldings(finished: [finished], heldLocally: [own], uploadedHere: [own])
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: own, holdings: holdings), .retire)
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: finished, holdings: holdings), .retire)
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: unseen, holdings: holdings), .save)
     }
 }

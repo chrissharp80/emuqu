@@ -137,15 +137,17 @@ extension WorkoutFinalizer {
     /// foot pod or the pedometer still measures). The track runs through any
     /// pause so the map stays whole; the analyzer leaves the paused stretch
     /// out of the GPS distance, and the pedometer and foot-pod readings drop
-    /// what accrued while paused.
+    /// what accrued while paused. For a stop dated earlier than it arrived,
+    /// the counters that ran on past it are capped at the distance shown then.
     private func finalDistanceMeters(sport: Sport, computed: WorkoutMetadata) -> Double {
+        let cap = recording.distanceCapMeters ?? .infinity
         if sport == .row, let ergDistance = services.concept2Manager.distanceMeters {
-            return ergDistance
+            return min(ergDistance, cap)
         }
         let paused = recording.pausedMotion
         let gpsDistance = computed.distanceMeters ?? recording.location?.distanceMeters ?? 0
-        let pedometerDistance = paused.pedometerDistance(recording.pedometerDistanceMeters)
-        let footPodDistance = paused.footPodDistance(recording.footPodDistanceMeters)
+        let pedometerDistance = min(paused.pedometerDistance(recording.pedometerDistanceMeters), cap)
+        let footPodDistance = min(paused.footPodDistance(recording.footPodDistanceMeters), cap)
         return max(gpsDistance, pedometerDistance, footPodDistance)
     }
 
@@ -342,7 +344,8 @@ extension WorkoutFinalizer {
             metadata.strokeCount = erg.strokeCount
             metadata.dragFactor = erg.dragFactor
             metadata.averageSplitSecPer500m = Self.averageSplitSecPer500m(
-                movingSeconds: recording.elapsedSeconds, distanceMeters: recording.motionDistanceMeters
+                movingSeconds: recording.elapsedSeconds,
+                distanceMeters: min(recording.motionDistanceMeters, recording.distanceCapMeters ?? .infinity)
             )
         }
     }

@@ -454,3 +454,85 @@ final class DashboardSessionPolicyTests: XCTestCase {
         XCTAssertEqual(days.last?.verdict, .good)
     }
 }
+
+// MARK: - The assistant's "today" night
+
+/// The dashboard, the voice shortcut and the model's context name the same
+/// recording as "today", and the same pace as the workout card.
+@MainActor
+final class AssistantTodayNightTests: XCTestCase {
+    private let calendar = Calendar.current
+
+    private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        TestDate.from(DateComponents(year: 2026, month: 11, day: day, hour: hour, minute: minute), calendar: calendar)
+    }
+
+    private func night(start: Date, hours: Double) -> HRVSession {
+        var session = HRVSession(startDate: start, tags: [], sessionType: .overnight)
+        session.endDate = start.addingTimeInterval(hours * 3600)
+        session.state = .complete
+        session.recoveryScore = 7
+        session.analysisResult = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 400,
+            timeDomain: TimeDomainMetrics(meanRR: 1000, sdnn: 55, rmssd: 45, pnn50: 20, sdsd: 40, meanHR: 60, sdHR: 5, triangularIndex: nil),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(sd1: 30, sd2: 60, sd1Sd2Ratio: 0.5, sampleEntropy: 1.5, approxEntropy: 1.3, dfaAlpha1: 0.9, dfaAlpha2: nil, dfaAlpha1R2: 0.95),
+            ansMetrics: nil, artifactPercentage: 1, cleanBeatCount: 400, analysisDate: start
+        )
+        return session
+    }
+
+    private func entry(for session: HRVSession) -> SessionArchiveEntry {
+        SessionArchiveEntry(
+            sessionId: session.id, date: session.startDate, endDate: session.endDate, fileHash: "", filePath: "",
+            recoveryScore: session.recoveryScore, meanRMSSD: 45, sessionType: .overnight
+        )
+    }
+
+    /// A night split by a strap restart: the long first half, then a short
+    /// second half that is newer. The dashboard headlines the long half; the
+    /// voice answer and the model's "today" must too, and the model's
+    /// "yesterday" is the night before, not the other half of tonight.
+    func testASplitNightIsTheSameNightOnTheDashboardAndInTheAssistant() throws {
+        let previous = night(start: date(24, 22), hours: 8)
+        let longHalf = night(start: date(25, 22), hours: 6)
+        let shortHalf = night(start: date(26, 4, 30), hours: 2.5)
+        let newestFirst = [shortHalf, longHalf, previous]
+
+        let dashboard = try XCTUnwrap(DashboardSessionPolicy.latestOvernightComplete(in: newestFirst, calendar: calendar))
+        let assistant = AssistantContextSource.anchorSessions(in: newestFirst, calendar: calendar)
+        let voice = DeterministicIntent.todaysOvernightEntry(now: date(26, 9), entries: newestFirst.map(entry(for:)), calendar: calendar)
+
+        XCTAssertEqual(dashboard.id, longHalf.id)
+        XCTAssertEqual(assistant.latest?.id, dashboard.id, "the model's today is not the dashboard's")
+        XCTAssertEqual(voice?.sessionId, dashboard.id, "the voice answer's today is not the dashboard's")
+        XCTAssertEqual(assistant.yesterday?.id, previous.id, "yesterday is the other half of tonight")
+    }
+
+    /// A paused run: 50 minutes start to stop, 40 of them running. The
+    /// workout record the model reads gives the card's active time, so the
+    /// pace worked out from it is the card's pace.
+    func testAPausedWorkoutsRecordGivesTheCardsTimeAndPace() throws {
+        let start = date(26, 7)
+        var run = HRVSession(startDate: start, tags: [], sessionType: .workout)
+        run.endDate = start.addingTimeInterval(50 * 60)
+        run.state = .complete
+        var meta = WorkoutMetadata(sport: .run)
+        meta.distanceMeters = 8_000
+        meta.samples = stride(from: 0, through: 2_400, by: 60).map {
+            WorkoutSample(offsetSec: $0, heartRate: 150, distanceMeters: Double($0) * 8_000 / 2_400, mets: nil)
+        }
+        run.workoutMetadata = meta
+        let card = WorkoutStatsCards(session: run, settingsManager: SettingsManager.shared, track: [])
+
+        guard case let .record(record) = SessionNamespace.fullRecord(for: run, ftp: .none),
+              case let .integer(durationSec)? = record["duration_sec"] else {
+            return XCTFail("the workout record has no duration")
+        }
+
+        XCTAssertEqual(durationSec, Int(try XCTUnwrap(card.activeDuration)), "the record's duration is not the card's active time")
+        XCTAssertEqual(card.units.formatPace(elapsedSec: durationSec, distanceMeters: 8_000), card.avgPaceDisplay)
+        guard case let .integer(elapsedSec)? = record["elapsed_sec"] else { return XCTFail("the workout record has no elapsed time") }
+        XCTAssertEqual(elapsedSec, 3_000)
+    }
+}

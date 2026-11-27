@@ -99,25 +99,45 @@ final class SessionReanalysisCoordinator {
     /// trailing pass over the freshly written session, since it may carry
     /// newer inputs (sleep that landed after the running pass read HealthKit),
     /// as `autoRefreshTodaysSleepIfImproved` does.
-    func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery) async -> HRVSession? {
+    ///
+    /// `preserveManualWindow: true` is for an automatic pass: a night whose
+    /// window the user picked (`windowUserAdjusted`, read from the archived
+    /// copy) is left alone and nil is returned, as the bulk pass does.
+    func reanalyzeSession(
+        _ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery, preserveManualWindow: Bool = false
+    ) async -> HRVSession? {
         if inFlightReanalyses.contains(session.id) {
             pendingReanalyses.insert(session.id)
             return await coalescedInFlightSession(session)
         }
         inFlightReanalyses.insert(session.id)
         defer { inFlightReanalyses.remove(session.id) }
-        var result = await reanalyzeOnce(session, method: method)
+        var result = await reanalyzeOnce(session, method: method, preserveManualWindow: preserveManualWindow)
         while pendingReanalyses.remove(session.id) != nil {
             debugLog("[Reanalyze] trailing pass for \(session.id.uuidString.prefix(8)) — requested while in flight")
-            result = await reanalyzeOnce(session, method: method) ?? result
+            result = await reanalyzeOnce(session, method: method, preserveManualWindow: preserveManualWindow) ?? result
         }
         return result
     }
 
+    /// `reanalyzeSession` for a pass the user did not ask for on this night
+    /// (a bulk pass, a launch rescore): a window picked by hand on the copy
+    /// the pass reads is kept, whatever the copy it was handed says.
+    func reanalyzeKeepingPickedWindow(_ session: HRVSession) async -> HRVSession? {
+        await reanalyzeSession(session, preserveManualWindow: true)
+    }
+
     /// One pass over the session as it is on disk now, with the training load
-    /// as of the session's day held for the pass.
-    private func reanalyzeOnce(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
+    /// as of the session's day held for the pass. A window picked by hand on
+    /// that copy ends the pass first when `preserveManualWindow` is set.
+    private func reanalyzeOnce(
+        _ session: HRVSession, method: WindowSelectionMethod, preserveManualWindow: Bool
+    ) async -> HRVSession? {
         let fullSession = await fullSessionFromDisk(session)
+        if preserveManualWindow, fullSession.windowUserAdjusted == true {
+            debugLog("[Reanalyze] \(session.id.uuidString.prefix(8)) keeps the window picked by hand, not reanalysed")
+            return nil
+        }
         let sessionDate = fullSession.endDate ?? fullSession.startDate
         let pastDay = await scoring.holdPastDayTrainingLoad(asOf: sessionDate)
         defer { if let pastDay { scoring.releasePastDayTrainingLoad(pastDay) } }
@@ -142,12 +162,14 @@ final class SessionReanalysisCoordinator {
     /// dashboard's `retrieveLightweightOrLog` copies), and
     /// `ReanalysisService.reanalyzeSession` refuses one with no rrSeries. The
     /// full session is re-read from disk, off the main actor, so that gate
-    /// sees what is stored.
+    /// sees what is stored. A recording folded into another night is read as
+    /// that night (`SessionArchive.archivedId(of:)`), the copy a rescore can
+    /// be written to.
     private func fullSessionFromDisk(_ session: HRVSession) async -> HRVSession {
         let archive = self.archive
         let sessionId = session.id
         return await Task.detached(priority: .userInitiated) {
-            archive.retrieveOrLog(sessionId, caller: "SessionReanalysis.reanalyzeSession") ?? session
+            archive.retrieveOrLog(archive.archivedId(of: sessionId), caller: "SessionReanalysis.reanalyzeSession") ?? session
         }.value
     }
 
@@ -168,7 +190,9 @@ final class SessionReanalysisCoordinator {
 
     /// Re-analyze all sessions with current algorithms. Each session runs
     /// through `reanalyzeSession`, so it gets the same past-day training load,
-    /// warm cache and in-flight guard as a single Reanalyze. Returns
+    /// warm cache and in-flight guard as a single Reanalyze, and a window
+    /// picked by hand since the list was read is kept, as one picked before
+    /// is (`preserveManualWindow`). Returns
     /// (updated, skipped) where skipped counts sessions with manual window
     /// overrides.
     func reanalyzeAllSessions(
@@ -176,7 +200,7 @@ final class SessionReanalysisCoordinator {
     ) async -> (updated: Int, skipped: Int) {
         await service.reanalyzeAllSessions(
             sessions: archivedSessions, from: from, to: to,
-            reanalyzeOne: { await self.reanalyzeSession($0) },
+            reanalyzeOne: { await self.reanalyzeKeepingPickedWindow($0) },
             progress: progress
         )
     }

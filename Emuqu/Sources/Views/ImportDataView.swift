@@ -35,6 +35,9 @@ struct ImportDataView: View {
     /// unsaved imported reading. Kept here, not written to the archive (the
     /// reading is not there yet), and applied to the reading Done saves.
     @State var importedSleep: SleepData?
+    /// Done was tapped: the reading is saved once the results screen has
+    /// closed and handed its Tags & Notes edits over (`saveAfterResultsClose`).
+    @State var saveOnResultsClose = false
 
     let importer = RRDataImporter()
 
@@ -55,7 +58,7 @@ struct ImportDataView: View {
             ) { result in
                 handleFileSelection(result)
             }
-            .fullScreenCover(isPresented: $showingResults) { importedResultsCover }
+            .fullScreenCover(isPresented: $showingResults, onDismiss: saveAfterResultsClose) { importedResultsCover }
         }
     }
 
@@ -147,7 +150,8 @@ struct ImportDataView: View {
 
     private var saveImportButton: some View {
         Button(String(localized: "Done", bundle: LanguageManager.appBundle)) {
-            Task { await saveImportedSession() }
+            saveOnResultsClose = true
+            showingResults = false
         }
     }
 }

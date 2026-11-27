@@ -598,7 +598,10 @@ struct DiscoverTrailsView: View {
               !savedRouteStore.routes.contains(where: { $0.encodedPolyline == polyline }),
               let saved = makeSavedRoute(name: trail.name, sport: trail.activity.workoutSport, polyline: polyline, route: route)
         else { return }
-        savedRouteStore.add(saved)
+        guard savedRouteStore.add(saved) else {
+            debugLog("[DiscoverTrails] Trail not added to the route library: the library can't be read right now", level: .warning)
+            return
+        }
         savedRouteStore.enrichWithRoadNames(routeID: saved.id, geocoder: dependencies.location.roadGeocodingService)
     }
 

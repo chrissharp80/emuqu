@@ -20,6 +20,9 @@ extension RRDataImporter {
         var type: Int?
         var sdnn: Int?
         var pnn50: Int?
+        /// The order the file writes slash dates in, decided once for the
+        /// whole file (`RRDataImporter.slashDateOrder(of:)`).
+        var slashDateOrder: SlashDateOrder = .monthFirst
     }
 
     /// Parse Elite HRV summary CSV format
@@ -33,7 +36,8 @@ extension RRDataImporter {
         }
         // Quote-aware, like the rows, so a quoted header lines up with them.
         let headers = parseCSVLine(headerLine.lowercased())
-        let indices = resolveEliteHRVColumns(headers: headers)
+        var indices = resolveEliteHRVColumns(headers: headers)
+        indices.slashDateOrder = eliteSlashDateOrder(rows: lines.dropFirst(), dateIdx: indices.date)
         guard let rmssdIdx = indices.rmssd else {
             let found = headers.joined(separator: ", ")
             throw ImportError.invalidFormat(String(localized: "Elite HRV format requires an RMSSD column (found headers: \(found))", bundle: LanguageManager.appBundle))
@@ -159,10 +163,19 @@ extension RRDataImporter {
         return Self.eliteNumber(columns[rawIdx], in: 0.1 ... 1_000)
     }
 
-    /// Row timestamp, or nil for a row with no parseable date.
+    /// Row timestamp, or nil for a row with no parseable date. Slash dates
+    /// are read in the file's order.
     private func eliteDate(columns: [String], indices: EliteHRVColumnIndices) -> Date? {
         guard let dateIdx = indices.date, dateIdx < columns.count else { return nil }
-        return parseDate(columns[dateIdx])
+        return parseDate(columns[dateIdx], slashOrder: indices.slashDateOrder)
+    }
+
+    /// The slash-date order of the file, from every row's date cell
+    /// (`slashDateOrder(of:)`); month/day when it has no date column.
+    private func eliteSlashDateOrder(rows: some Sequence<String>, dateIdx: Int?) -> SlashDateOrder {
+        guard let dateIdx else { return .monthFirst }
+        let dates = rows.lazy.prefix(Self.maxEliteSummaryRows).map { self.parseCSVLine($0) }.filter { $0.count > dateIdx }.map { $0[dateIdx] }
+        return Self.slashDateOrder(of: dates)
     }
 
     /// Beat count, derived from duration (seconds) × HR when the file doesn't

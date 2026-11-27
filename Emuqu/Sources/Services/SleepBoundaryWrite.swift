@@ -103,7 +103,17 @@ enum SleepBoundaryWrite {
 
     /// Set the clamped boundaries, segments and snapshot on `session`, then
     /// classify and score it again.
+    ///
+    /// An automatic update of a night whose sleep the user adjusted (reached
+    /// only while it has no snapshot, `shouldApplyAutomaticUpdate`) fills the
+    /// snapshot and keeps the boundaries and segments the user set, as the
+    /// automatic refresh does (`SleepRefreshPolicy.applyAutoRefresh`); its
+    /// scoring window did not move, so it is not scored again.
     static func apply(_ edit: Edit, to session: inout HRVSession, inputs: Inputs) {
+        guard edit.isUserAdjustment || session.sleepUserAdjusted != true else {
+            SleepRefreshPolicy.applyPulledSleep(edit.sleepData, to: &session)
+            return
+        }
         applyBoundaries(edit, offsets: clampedOffsets(of: edit, on: session), to: &session)
         rescore(&session, sessionEnd: session.endDate ?? session.startDate, inputs: inputs)
     }
@@ -179,14 +189,19 @@ enum SleepBoundaryWrite {
     /// changed (a sleep edit, an automatic update or a retro-apply), so the
     /// score reflects excluded/adjusted segments. The session is classified
     /// again first: whether the recording overlaps sleep is decided from the
-    /// sleep, so an edit can set or clear `.preSleep`. The score is
+    /// sleep, so an edit can set or clear `.preSleep`, and the snapshot's
+    /// sleep HR follows the new quality. The score is
     /// `ReanalysisService.rescoredBreakdown` against the frozen training
     /// context (the session's, else its analysis's, else
     /// `inputs.fallbackTraining`), anchored to `sessionEnd`. A session with
-    /// no analysis is left as it is.
+    /// no analysis is left as it is, and so is the score of one no baseline
+    /// can be built for (`ReanalysisService.keepsStoredScore`).
     static func rescore(_ session: inout HRVSession, sessionEnd: Date, inputs: Inputs) {
         guard let result = session.analysisResult else { return }
+        let beforeClassifying = session
         ReanalysisService.reclassifyHRVQuality(of: &session, result: result, baselineStats: inputs.context.baselineStats)
+        session.refreshSleepHeartRate(replacing: beforeClassifying)
+        guard !ReanalysisService.keepsStoredScore(session, baseline: inputs.context.baselineStats) else { return }
         let trainingContext = session.trainingSnapshot ?? result.trainingContext ?? inputs.fallbackTraining
         let breakdown = ReanalysisService.rescoredBreakdown(
             of: session, result: result, training: trainingContext, referenceDate: sessionEnd, context: inputs.context

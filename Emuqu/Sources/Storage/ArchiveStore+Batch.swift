@@ -115,7 +115,9 @@ extension ArchiveStore {
     /// Load the existing copy or same-sleep segment and fold the incoming one
     /// into it. A read or write failure ends the batch with that error, as a
     /// failed write of a new session does: the incoming session is not written
-    /// as a near-duplicate, and the caller learns it was not saved.
+    /// as a near-duplicate, and the caller learns it was not saved. Once
+    /// merged, the incoming id is kept under the existing one (`recordFold`),
+    /// as `SessionArchive.archive` keeps a recording it folds.
     private func mergeIntoExisting(
         _ session: HRVSession, entry: SessionArchiveEntry, outcome: inout BatchOutcome
     ) throws {
@@ -125,10 +127,12 @@ extension ArchiveStore {
             }
             // Update with any new/better data from import: an edit made here,
             // stamped and queued to upload again (`postBatchChangeNotifications`).
-            guard SessionMerger.mergeSessionData(from: session, into: &existingSession) else { return }
-            existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
-            try _archive(existingSession)
-            outcome.updatedIds.append(existingSession.id)
+            if SessionMerger.mergeSessionData(from: session, into: &existingSession) {
+                existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
+                try _archive(existingSession)
+                outcome.updatedIds.append(existingSession.id)
+            }
+            state.recordFold(of: session.id, into: entry.sessionId)
         } catch {
             debugLog("[Archive] archiveBatch: could not merge \(session.id.uuidString.prefix(8)) into \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
             throw error

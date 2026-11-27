@@ -573,6 +573,7 @@ struct TroubleshootingPage: View {
     private static func trainingRepairSummary(_ r: ReanalysisService.TrainingRepairResult) -> String {
         var msg = "\(r.totalSessions) sessions, \(r.candidates) eligible, \(r.repaired) updated"
         if r.nilContext > 0 { msg += ", \(r.nilContext) no metrics" }
+        if r.unanswered > 0 { msg += ", \(r.unanswered) left as stored (Health did not answer)" }
         if r.errors > 0 { msg += ", \(r.errors) errors" }
         if !r.sampleLog.isEmpty { msg += "\n\n\(r.sampleLog)" }
         return msg

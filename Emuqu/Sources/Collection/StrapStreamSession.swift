@@ -178,7 +178,7 @@ final class StrapStreamSession {
     func ingestHeartRate(_ samples: [StrapHRSample], receivedAt: Date = Date()) {
         link.noteSample(at: receivedAt)
         if let reading = samples.last(where: { $0.hr > 0 }) {
-            link.state.currentHeartRate = reading.hr
+            link.state.noteHeartRate(reading.hr, at: receivedAt)
         }
         guard isStreaming else { return }
         let wallClockMs = elapsedStreamingMs(at: receivedAt)
@@ -194,7 +194,7 @@ final class StrapStreamSession {
     func ingestPpi(_ readings: [StrapPPIReading], receivedAt: Date = Date()) {
         link.noteSample(at: receivedAt)
         if let last = readings.last, last.hr > 0 {
-            link.state.currentHeartRate = last.hr
+            link.state.noteHeartRate(last.hr, at: receivedAt)
         }
         guard isStreaming else { return }
         let wallClockMs = elapsedStreamingMs(at: receivedAt)

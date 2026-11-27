@@ -166,16 +166,25 @@ extension WorkoutRecorder {
     /// holding any samples it captured before this point, so the data
     /// in the archive is whatever was recoverable in the time window
     /// the user gave us.
+    ///
+    /// Only this recorder's own stream is stopped (its start matches
+    /// `ownedStrapStreamStart`). The summary can be dismissed long after the
+    /// HRR window closed, from the Watch, while an overnight or quick reading
+    /// started since is buffering on the same manager; stopping that stream
+    /// would drop the rest of its beats.
     func acknowledgeFinished() {
-        if lifecycle.phase == .finished {
-            lifecycle.finishedSession = nil
-            lifecycle.saveOutcome = nil
-            lifecycle.phase = .idle
-            if core.strapStream.isStreaming {
-                _ = core.strapStream.stopStreaming()
-                debugLog("[WorkoutRecorder] acknowledgeFinished — stopped lingering Polar stream")
-            }
+        guard lifecycle.phase == .finished else { return }
+        lifecycle.finishedSession = nil
+        lifecycle.saveOutcome = nil
+        lifecycle.phase = .idle
+        let stream = core.strapStream
+        guard stream.isStreaming else { return }
+        guard let ownStart = lifecycle.ownedStrapStreamStart, stream.streamingStartTime == ownStart else {
+            debugLog("[WorkoutRecorder] acknowledgeFinished — the strap is buffering for another session; leaving it running")
+            return
         }
+        _ = stream.stopStreaming()
+        debugLog("[WorkoutRecorder] acknowledgeFinished — stopped lingering Polar stream")
     }
 }
 

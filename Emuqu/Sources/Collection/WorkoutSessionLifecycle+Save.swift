@@ -64,28 +64,48 @@ extension WorkoutSessionLifecycle {
     /// suspension between a write and its bookkeeping, so triggers that land
     /// together (an unlock and the activation after it, a tap on Try Again)
     /// save each workout once and run its post-save steps once.
+    /// The heart-rate-recovery samples a saved workout's archive write did
+    /// not take are retried with them (`unsavedHRR`).
     func retryUnsavedWorkouts() {
-        guard !lifecycle.unsavedSessions.isEmpty else { return }
+        guard !lifecycle.unsavedSessions.isEmpty || !lifecycle.unsavedHRR.isEmpty else { return }
         for session in lifecycle.unsavedSessions {
             retrySave(session)
         }
-        if lifecycle.unsavedSessions.isEmpty { stopObservingSaveRetryTriggers() }
+        for (id, samples) in lifecycle.unsavedHRR {
+            storeHRR(samples, for: id)
+        }
+        if lifecycle.unsavedSessions.isEmpty, lifecycle.unsavedHRR.isEmpty { stopObservingSaveRetryTriggers() }
     }
 
     /// HRR samples that arrive while the workout is not saved go into the
-    /// kept copy, so the retry saves them with it. When a retry saved the
-    /// workout after the HRR write-back found it missing from the archive,
-    /// they are written to the archived copy instead.
+    /// kept copy, so the retry saves them with it. A workout the archive
+    /// holds (saved by a retry, or whose first HRR write failed) gets them on
+    /// its archived copy; when that write fails too they are kept and retried
+    /// with the unsaved workouts (`unsavedHRR`), as the summary shows them.
     func keepHRRSamples(_ samples: [HRRSample], for id: UUID) {
         if let index = lifecycle.unsavedSessions.firstIndex(where: { $0.id == id }) {
             lifecycle.unsavedSessions[index].workoutMetadata?.hrrSamples = samples
             return
         }
         guard core.archive.store.exists(id) else { return }
+        lifecycle.unsavedHRR[id] = samples
+        storeHRR(samples, for: id)
+        if lifecycle.unsavedHRR[id] != nil { observeSaveRetryTriggers() }
+    }
+
+    /// Writes kept HRR samples to the archived copy and lets them go once
+    /// stored, or once the workout has left the archive; a failed write keeps
+    /// them for the next retry.
+    private func storeHRR(_ samples: [HRRSample], for id: UUID) {
+        guard core.archive.store.exists(id) else {
+            lifecycle.unsavedHRR[id] = nil
+            return
+        }
         do {
             try core.archive.update(id) { $0.workoutMetadata?.hrrSamples = samples }
+            lifecycle.unsavedHRR[id] = nil
         } catch {
-            debugLog("[WorkoutRecorder] HRR update after a retried save failed: \(error)", level: .warning)
+            debugLog("[WorkoutRecorder] HRR update failed, kept for a retry: \(error)", level: .warning)
         }
     }
 

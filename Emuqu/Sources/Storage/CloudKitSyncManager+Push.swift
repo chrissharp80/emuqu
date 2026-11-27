@@ -299,7 +299,7 @@ extension CloudKitSyncManager {
         CloudKitSessionFreshness.noteSeen(CloudKitSessionFreshness.modifiedAt(of: serverRecord))
         let serverFlag = serverRecord["isDeleted"] as? Int64 ?? 0
         if serverFlag == 1, !trashRestore.isRestored(sessionId) {
-            pull.applyDeletionMetDuringUpload(sessionId)
+            pull.applyDeletionMetDuringUpload(sessionId, deletedAt: serverRecord.modificationDate)
             return false
         }
         guard overwrites(serverRecord, with: prepared, sessionId: sessionId) else { return false }
@@ -612,6 +612,12 @@ extension CloudKitSyncManager {
         await liveBackup.delete(sessionId: sessionId)
     }
 
+    /// Sessions whose live backup in iCloud this device uploaded
+    /// (`CloudKitLiveBackupManager.uploadedHereIds`).
+    var liveBackupsUploadedHere: Set<UUID> {
+        liveBackup.uploadedHereIds
+    }
+
     /// iCloud's live backups; nil when sync is off, throws when iCloud
     /// could not be read (`CloudKitLiveBackupManager.fetchAll`).
     func fetchLiveBackups() async throws -> [LiveBackupSummary]? {
@@ -625,7 +631,7 @@ extension CloudKitSyncManager {
             try FileManager.default.removeItem(at: url)
         } catch let nsError as NSError where nsError.domain == NSCocoaErrorDomain &&
                                             nsError.code == NSFileNoSuchFileError {
-            // Already gone; no action needed.
+            // swallow-ok: the file is already gone
         } catch {
             debugLog("[CloudKit] Failed \(context): \(error)")
         }

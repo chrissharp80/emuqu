@@ -124,12 +124,13 @@ MODS = (r'(?:@[\w()., *:"\-]+\s+)*'
         r'|override|nonisolated|mutating|nonmutating|required|convenience|dynamic)'
         r'(?:\([\w ]+\))?\s+)*')
 
-FUNC = re.compile(r'^\s*' + MODS + r'func\s+(?P<name>\w+)')
+FUNC = re.compile(r'^\s*' + MODS + r'(?:prefix\s+|postfix\s+|infix\s+)?func\s+(?P<name>\w+|[^\s\w(<]+)')
 # A computed property is colon-typed and opens a brace with no `=` before it.
 # `var x = 0 { didSet {...} }` is a STORED property with an observer and is not
 # a unit of logic; requiring the type annotation and forbidding `=` excludes it.
-PROP = re.compile(r'^\s*' + MODS + r'var\s+(?P<name>\w+)\s*:\s*[^={]+\{\s*$')
-INIT = re.compile(r'^\s*' + MODS + r'(?P<name>init|subscript)\b')
+PROP = re.compile(r'^\s*' + MODS + r'var\s+(?P<name>\w+)\s*:\s*[^={]+\{')
+INIT = re.compile(r'^\s*' + MODS + r'(?P<name>deinit|init|subscript)\b')
+OBSERVER = re.compile(r'^\s*(?P<name>didSet|willSet)\b\s*(?:\(\w+\))?\s*\{')
 # A stored property initialised by an immediately-invoked closure matches none
 # of the three patterns above. `FUNC` needs `func`; `PROP` forbids `=`
 # (deliberately, to exclude `var x = 0 { didSet { … } }`); `INIT` needs
@@ -146,7 +147,7 @@ INIT = re.compile(r'^\s*' + MODS + r'(?P<name>init|subscript)\b')
 # which keyword introduced it.
 CLOSURE_PROP = re.compile(
     r'^\s*' + MODS + r'(?:lazy\s+)?(?:let|var)\s+(?P<name>\w+)\s*'
-    r'(?::\s*[^={]+?)?\s*=\s*\{\s*$'
+    r'(?::\s*[^={]+?)?\s*=\s*\{'
 )
 
 # Commented-out CODE, not prose that happens to start with a keyword.
@@ -187,7 +188,7 @@ COMMENT_LINE = re.compile(r'^\s*//')
 #     }
 #
 # A reason is required. A bare marker is reported as malformed.
-CATCH_BLOCK = re.compile(r'catch\s*(?:\w[\w\s,.()]*?\s*)?\{')
+CATCH_BLOCK = re.compile(r'\bcatch\b[^{};]*\{')
 SWALLOW_OK = re.compile(r'//\s*swallow-ok:\s*\S')
 SWALLOW_MARKER_ONLY = re.compile(r'//\s*swallow-ok:?\s*$')
 
@@ -400,7 +401,8 @@ for f in sorted(pathlib.Path(sys.argv[1]).rglob('*.swift')):
         m = FUNC.match(lines[i])
         kind = 'func'
         if not m:
-            m = PROP.match(lines[i]) or INIT.match(lines[i]) or CLOSURE_PROP.match(lines[i])
+            m = (PROP.match(lines[i]) or INIT.match(lines[i]) or CLOSURE_PROP.match(lines[i])
+                 or OBSERVER.match(lines[i]))
             kind = 'prop'
         if not m:
             i += 1
@@ -542,9 +544,14 @@ if [[ ! "$watch_budget" =~ ^[0-9]+$ ]]; then
     exit 2
 fi
 WATCH_MEASURED="$(measure_spec "$WATCH_SCAN_DIR")"
-read -r W_LONG W_NEST _ _ _ _ _ W_LONG_P W_NEST_P \
+if [[ ! "$(printf '%s\n' "$WATCH_MEASURED" | head -n1)" =~ ^[0-9]+(\ [0-9]+){8}$ ]]; then
+    echo "check_refactor_spec_conformance: watch measurement produced no usable numbers." >&2
+    exit 2
+fi
+read -r W_LONG W_NEST W_COMMENTED W_EMPTY W_JUST_LONG W_JUST_NEST W_BAD W_LONG_P W_NEST_P \
     <<<"$(printf '%s\n' "$WATCH_MEASURED" | head -n1)"
-watch_total=$(( W_LONG + W_NEST + W_LONG_P + W_NEST_P ))
+# Every axis the app is held to, waivers included: the watch has no waiver budget.
+watch_total=$(( W_LONG + W_NEST + W_LONG_P + W_NEST_P + W_COMMENTED + W_EMPTY + W_JUST_LONG + W_JUST_NEST + W_BAD ))
 echo "- ${WATCH_SCAN_DIR}: ${watch_total} declarations over the spec limits (budget: ${watch_budget}; ratchet toward 0)"
 echo "    long functions ${W_LONG}, deep nesting ${W_NEST}, long properties ${W_LONG_P}, deep properties ${W_NEST_P}"
 if (( watch_total > watch_budget )); then

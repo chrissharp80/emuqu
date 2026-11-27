@@ -45,34 +45,53 @@ SOURCE_ROOT="${SOURCE_ROOTS[0]}"
 # people — including it produced only false positives. Person-names are
 # reached through the contact-specific properties below.
 PII_PATTERN='\\\(([^)]*\.)?(email|emailAddress|recipientEmail|fullName|firstName|lastName|contactName|recipientName|apiKey|token|bearer|password|secret)[^)]*\)'
-GEO_PATTERN='\\\([^)]*\.(latitude|longitude)[^)]*\)'
+GEO_PATTERN='\\\(([^)]*\.)?(latitude|longitude|lat|lon|lng)\b[^)]*\)'
 # What the user said or typed (an assistant or web-search query, a voice
 # transcript, a prompt) and where they are (a street or city name), bare or
 # truncated with `.prefix(n)`, with or without a `?? "…"` fallback. A count or
 # a nil test (`\(query.count)`, `\(road == nil ? …)`) is not matched.
-USER_TEXT_PATTERN='\\\(([^)]*\.)?(query|q|transcript|utterance|userText|userMessage|prompt|question|thoroughfare|subThoroughfare|locality|subLocality|road|street|crossStreet)(\.prefix\([0-9]+\))?( \?\? "[^"]*")?\)'
+# Text-preserving transforms: the value is still what the user typed after
+# any of these (`\(query.lowercased())`, `\(road.prefix(40))`).
+TEXT_TRANSFORMS='(\.(prefix\([0-9]+\)|suffix\([0-9]+\)|lowercased\(\)|uppercased\(\)|capitalized|localizedLowercase|localizedCapitalized|trimmingCharacters\([^)]*\)|description|debugDescription))*'
+USER_TEXT_NAMES='query|q|transcript|utterance|userText|userMessage|prompt|question|thoroughfare|subThoroughfare|locality|subLocality|road|street|crossStreet'
+USER_TEXT_PATTERN='\\\(([^)]*\.)?('"$USER_TEXT_NAMES"')'"$TEXT_TRANSFORMS"'( \?\? "[^"]*")?\)'
 # Where the user is under any variable name that says so: a camelCase name
 # ending in Road, Street, Thoroughfare or Locality (`currentRoad`,
 # `nearestStreet`), and the road-graph grid keys (`cellKey`, `gridKey`,
 # `tileKey`), which are a ~250 m square of the user's position. A value
 # copied into a name that says neither (`let key = currentRoad`) is out of
 # any pattern's reach, so the copy site is where to keep it out of a log.
-LOCATION_NAME_PATTERN='\\\(([^)]*\.)?([a-z][A-Za-z]*(Road|Street|Thoroughfare|Locality|CellKey|GridKey|TileKey)|cellKey|gridKey|tileKey)(\.prefix\([0-9]+\))?( \?\? "[^"]*")?\)'
+LOCATION_NAME_PATTERN='\\\(([^)]*\.)?([a-z][A-Za-z]*(Road|Street|Thoroughfare|Locality|CellKey|GridKey|TileKey)|cellKey|gridKey|tileKey)'"$TEXT_TRANSFORMS"'( \?\? "[^"]*")?\)'
+# A location value whole: a `CLLocation` or coordinate prints its latitude
+# and longitude (`\(location)`, `\(location.coordinate)`, `\(lastLocation)`).
+# A member of one that is not a position (`\(location.horizontalAccuracy)`)
+# is not matched.
+LOCATION_VALUE_NAMES='location|coordinate|coordinates|[a-z][A-Za-z]*Location|[a-z][A-Za-z]*Coordinate'
+LOCATION_VALUE_PATTERN='\\\(([^)]*\.)?('"$LOCATION_VALUE_NAMES"')(\.coordinate)?(\.description)?\)'
 # The name of a saved route (free text the user typed) or of a place. A bare
 # `name` is not matched: in this codebase it mostly names a device or sport.
 PLACE_NAME_PATTERN='\\\(([^)]*\.)?(savedRoute|route|osmHit|placemark|mapItem)\.name\)'
 # A bare `\(rr)` and a member path `\(self.rrIntervals)` / `\(session.rr)` alike.
 # `samples` only bare: as a member it is a sample COUNT in this codebase
 # (`\(pass.samples)`), not a series.
-RAW_SERIES_PATTERN='\\\((([^)]*\.)?(rr|rrValues|rrSeries|beats|rrIntervals)|samples)\)'
+# A series reshaped on the way in (`\(rr.map(String.init).joined())`,
+# `\(rrIntervals.prefix(20))`) is still the series.
+RAW_SERIES_NAMES='rr|rrValues|rrSeries|beats|rrIntervals'
+RAW_SERIES_PATTERN='\\\((([^)]*\.)?('"$RAW_SERIES_NAMES"')(\.(map|compactMap|flatMap|lazy|prefix|suffix|dropFirst|dropLast|sorted|reversed|joined|description|debugDescription)\b|\))|samples\))'
+# The same values joined to a string literal with `+` rather than
+# interpolated (`debugLog("asked: " + query)`, `query + " asked"`). The
+# literal anchors the match, so a word in copy beside an interpolation
+# (`"beats + \(count)"`) is not read as an operand.
+CONCAT_NAMES='email|emailAddress|fullName|firstName|lastName|contactName|recipientName|apiKey|token|password|secret|'"$USER_TEXT_NAMES"'|'"$LOCATION_VALUE_NAMES"'|'"$RAW_SERIES_NAMES"
+CONCAT_PATTERN='"[[:space:]]*\+[[:space:]]*([A-Za-z_][A-Za-z0-9_]*\.)*('"$CONCAT_NAMES"')'"$TEXT_TRANSFORMS"'[[:space:]]*([)+,]|$)|([^A-Za-z0-9_.]|^)([A-Za-z_][A-Za-z0-9_]*\.)*('"$CONCAT_NAMES"')'"$TEXT_TRANSFORMS"'[[:space:]]*\+[[:space:]]*"'
 
 # `NSLog` and `(Swift.)print` are log calls too. The app target has dozens of
 # NSLog call sites, all lifecycle text today, and a list without them leaves
 # every one outside this gate's field of view. An `os.Logger` is matched under
 # both names this repo gives one (`logger`, `log`) and when it is built in place
 # (`Logger(…)` then `.debug(…)`, the chained call allowed on the next line).
-LOGGER_LEVEL='(debug|info|notice|warning|error|fault|trace|critical)'
-LOG_CALL="(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|(logger|log)[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(]"
+LOGGER_LEVEL='(debug|info|notice|warning|error|fault|trace|critical|log)'
+LOG_CALL="(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|(log|[A-Za-z_]*[Ll]ogger|[A-Za-z_]+Log)[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(]"
 
 # A missing root would make the scan read nothing and report clean.
 for root in "${SOURCE_ROOTS[@]}"; do
@@ -176,6 +195,8 @@ report "raw beat/RR series" "$RAW_SERIES_PATTERN"
 report "user text / place names" "$USER_TEXT_PATTERN"
 report "route / place names" "$PLACE_NAME_PATTERN"
 report "location by variable name" "$LOCATION_NAME_PATTERN"
+report "location values" "$LOCATION_VALUE_PATTERN"
+report "sensitive values concatenated" "$CONCAT_PATTERN"
 
 if (( violations )); then
     cat <<'EOF'

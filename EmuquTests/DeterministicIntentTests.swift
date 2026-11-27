@@ -237,4 +237,46 @@ final class DeterministicIntentTests: XCTestCase {
         XCTAssertEqual(parts.month, 6)
         XCTAssertEqual(parts.day, 14)
     }
+
+    // MARK: - Live questions are whole questions
+
+    /// A mid-workout question that carries more than the live snapshot
+    /// answers (a pain, a plan, another route, directions) goes to the model;
+    /// the short questions the live answers were built for still match.
+    func testLiveTriggersMatchOnlyTheWholeQuestion() {
+        let rows: [(text: String, id: String?)] = [
+            ("my knee hurts, should i push through it", nil),
+            ("my calf is cramping, should i back off", nil),
+            ("what's coming up in my training plan this week", nil),
+            ("are there any hills on tomorrow's long run route", nil),
+            ("is it faster to go left from here", nil),
+            ("i need to turn back here before dark", nil),
+            ("should i ease off", "live_ease_off"),
+            ("should i push", "live_ease_off"),
+            ("am i going too hard right now", "live_ease_off"),
+            ("what's ahead", "live_whats_ahead"),
+            ("any more hills", "live_whats_ahead"),
+            ("is there a climb coming up", "live_whats_ahead"),
+            ("how am i doing on this hill compared to last time", "live_spot_compare"),
+            ("am i faster than last time", "live_spot_compare")
+        ]
+        for row in rows {
+            let id = DeterministicIntent.matchedPattern(for: row.text, live: true)?.pattern.id
+            XCTAssertEqual(id.flatMap { $0.hasPrefix("live_") ? $0 : nil }, row.id, row.text)
+        }
+    }
+
+    /// "Did I run / ride" asks about one sport; "did I train" about any.
+    func testTheSportAQuestionAsksAbout() {
+        let rows: [(text: String, sports: Set<Sport>?)] = [
+            ("did i run yesterday", [.run, .trailRun, .treadmill]),
+            ("did i ride today", [.bike, .indoorBike]),
+            ("did i cycle yesterday", [.bike, .indoorBike]),
+            ("did i train yesterday", nil),
+            ("any workouts today", nil)
+        ]
+        for row in rows {
+            XCTAssertEqual(DeterministicIntent.askedSports(row.text), row.sports, row.text)
+        }
+    }
 }

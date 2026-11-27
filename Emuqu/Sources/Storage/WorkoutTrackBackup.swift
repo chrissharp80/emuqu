@@ -108,6 +108,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         /// Offsets of the rows whose heart rate came from Apple Health.
         let healthKitHROffsets: [Int]
         let barometricSamples: [PersistedBaro]
+        /// The pauses and resumes, in the order they happened
+        /// (`PauseTimeline.Event`).
+        let pauseEvents: [PauseTimeline.Event]
     }
 
     // MARK: - Internal state
@@ -144,6 +147,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     private var sampleCursor: [UUID: Int] = [:]
     private var baroCursor: [UUID: Int] = [:]
     private var healthKitHRCursor: [UUID: Int] = [:]
+    private var pauseCursor: [UUID: Int] = [:]
     /// Key of the last row written for the two streams the recorder trims
     /// past 12 h (`WorkoutSample.offsetSec`, wrist-HR offsets). Once the
     /// oldest rows leave memory, an array index no longer says which rows are
@@ -249,6 +253,10 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         directory.appendingPathComponent("\(id.uuidString)_workout_hkhr.jsonl")
     }
 
+    private func pausesURL(_ id: UUID) -> URL {
+        directory.appendingPathComponent("\(id.uuidString)_workout_pauses.jsonl")
+    }
+
     // MARK: - Append API
     //
     // Each call passes the FULL stream so far. The backup tracks how many
@@ -304,6 +312,21 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         wroteAnything = appendStream(barometricSamples, from: persisted.baro, url: baroURL(sessionId), sessionId: sessionId, streamName: "baro", cursor: \.baroCursor) || wroteAnything
         wroteAnything = appendOrderedStream(healthKitHROffsets, from: persisted.healthKitHR, url: healthKitHRURL(sessionId), sessionId: sessionId, streamName: "hkhr", cursors: (count: \.healthKitHRCursor, lastKey: \.healthKitHRLastKey)) || wroteAnything
         return wroteAnything
+    }
+
+    /// Persist the pause and resume events (`PauseTimeline.events`) not yet
+    /// on disk, as the other streams are: the full list each call, the new
+    /// tail appended. Without them a recovered workout counted its paused
+    /// stretches as moving time and distance. Safe from any thread.
+    @discardableResult
+    func appendPauses(sessionId: UUID, events: [PauseTimeline.Event]) -> Bool {
+        appendQueue.sync {
+            lock.lock()
+            let cached = pauseCursor[sessionId]
+            lock.unlock()
+            let offset = cached ?? persistedLineCount(pausesURL(sessionId))
+            return appendStream(events, from: offset, url: pausesURL(sessionId), sessionId: sessionId, streamName: "pauses", cursor: \.pauseCursor)
+        }
     }
 
     /// Items already on disk per stream. The cursors live in memory, so after
@@ -572,7 +595,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             // row with those values cleared.
             samples: decodeJSONL(url: samplesURL(sessionId), as: WorkoutSample.self).map(\.finiteValuesOnly),
             healthKitHROffsets: decodeJSONL(url: healthKitHRURL(sessionId), as: Int.self),
-            barometricSamples: decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self).filter { $0.altitudeMeters.isFinite }
+            barometricSamples: decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self).filter { $0.altitudeMeters.isFinite },
+            pauseEvents: decodeJSONL(url: pausesURL(sessionId), as: PauseTimeline.Event.self)
         )
     }
 
@@ -586,7 +610,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     }
 
     private func logHeaderlessStreams(_ sessionId: UUID) {
-        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
+        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId), pausesURL(sessionId)]
         guard streams.contains(where: { fileManager.fileExists(atPath: $0.path) }) else { return }
         debugLog("[WorkoutTrackBackup] \(sessionId.uuidString.prefix(8)) has backup streams but no readable header; not recoverable", level: .warning)
     }
@@ -628,10 +652,10 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         return out
     }
 
-    /// The stream files of a session: its four streams and any copies set
+    /// The stream files of a session: its five streams and any copies set
     /// aside from them.
     private func streamFiles(of sessionId: UUID) -> [URL] {
-        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
+        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId), pausesURL(sessionId)]
         return streams + streams.flatMap(setAsideFiles(for:))
     }
 
@@ -704,6 +728,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         sampleCursor.removeValue(forKey: sessionId)
         baroCursor.removeValue(forKey: sessionId)
         healthKitHRCursor.removeValue(forKey: sessionId)
+        pauseCursor.removeValue(forKey: sessionId)
         sampleLastKey.removeValue(forKey: sessionId)
         healthKitHRLastKey.removeValue(forKey: sessionId)
         headerWritten.remove(sessionId)
@@ -733,6 +758,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             sampleCursor.removeAll()
             baroCursor.removeAll()
             healthKitHRCursor.removeAll()
+            pauseCursor.removeAll()
             sampleLastKey.removeAll()
             healthKitHRLastKey.removeAll()
             headerWritten.removeAll()

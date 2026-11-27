@@ -336,7 +336,7 @@ final class MorningProcessingService {
 
     /// Wall-clock time of the merged series' last beat.
     private static func seriesEnd(of merged: MergeResult) -> Date? {
-        merged.series.points.last.map { merged.effectiveStartDate.addingTimeInterval(Double($0.endMs) / 1000) }
+        merged.series.points.lastBeatEnd(after: merged.effectiveStartDate)
     }
 
     /// Steps 8–12: build the final session, finish it, and report.
@@ -365,8 +365,10 @@ final class MorningProcessingService {
         )
     }
 
-    /// Steps 9–12: vitals snapshot, the insufficient-data gate, the recovery
-    /// score, and the same-night supersede.
+    /// Steps 9–12: the insufficient-data gate, vitals snapshot, the recovery
+    /// score, and the same-night supersede. The gate runs first: the quality
+    /// it sets decides whether the strap's heart rate stands as sleep HR in
+    /// the snapshot.
     private func finishSession(
         _ finalSession: inout HRVSession,
         phase: AnalysisPhaseResult,
@@ -375,10 +377,10 @@ final class MorningProcessingService {
         cachedTrainingLoad: HealthKitManager.TrainingLoad?,
         isBackgroundRefinement: Bool
     ) async {
+        applyInsufficientDataGate(to: &finalSession, analysisResult: phase.analysisResult, settings: settings)
         if !isBackgroundRefinement {
             await attachVitalsSnapshot(to: &finalSession)
         }
-        applyInsufficientDataGate(to: &finalSession, analysisResult: phase.analysisResult, settings: settings)
         let scored = await computeRecoveryScore(
             for: finalSession, analysisResult: phase.analysisResult,
             trainingContext: trainingContext, baselineTracker: baselineTracker,
@@ -405,15 +407,16 @@ final class MorningProcessingService {
         )
     }
 
-    /// Strap-RHR override: when the session has an analysisResult, the
-    /// analysis-window mean HR (already nocturnal, already what
-    /// BaselineTracker.meanHRBaseline is built from) replaces Apple's
-    /// daytime-rest RHR sample. Keeps the comparison physiologically
-    /// self-consistent. Falls back to HealthKit RHR when no analysis
-    /// exists yet.
+    /// Strap-RHR override: when the session has an analysisResult and the
+    /// recording is usable for HRV, the analysis-window mean HR (already
+    /// nocturnal, already what BaselineTracker.meanHRBaseline is built from)
+    /// replaces Apple's daytime-rest RHR sample. Keeps the comparison
+    /// physiologically self-consistent. Falls back to HealthKit RHR when no
+    /// analysis exists yet or the recording is unusable
+    /// (`HRVSession.withSleepHeartRate`).
     private func attachVitalsSnapshot(to session: inout HRVSession) async {
         let vitals = await healthKit.fetchRecoveryVitals(relativeTo: session.endDate ?? now())
-        session.vitalsSnapshot = vitals.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
+        session.vitalsSnapshot = session.withSleepHeartRate(vitals)
     }
 
     /// Applied BEFORE scoring, with the classifier acceptance uses

@@ -78,7 +78,7 @@ print(json.dumps({
     },
     "notes": [
         "Budgets ratchet downward only; check_budget_monotonicity.sh fails an unjustified raise.",
-        "No workflow runs automatically. See docs/CI_POSTURE.md for the costing.",
+        "gates.yml and ci.yml run on every pull request and push to main; see docs/CI_POSTURE.md.",
         "Coverage and test-run results require `make ci` (~40 min, needs a simulator).",
     ],
 }, indent=2))

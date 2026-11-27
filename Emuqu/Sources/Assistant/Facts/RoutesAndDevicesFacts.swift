@@ -155,6 +155,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         else {
             return .missing(reason: .invalidParameter, detail: "new_name is required and must be non-empty")
         }
+        if let problem = Self.routeNameProblem(new) { return problem }
         if let unreadable = libraryUnreadable() { return unreadable }
         let matches = self.currentRoutes().filter { $0.name.caseInsensitiveCompare(current) == .orderedSame }
         guard matches.count == 1 else {
@@ -196,7 +197,9 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             description: """
             [ACTION] Save a recent workout to the user's route library under the given name. ONLY call this when the user explicitly asks to save a workout and supplies the new route name in the current turn — never on inference. Without \
             a `date`, saves the newest of the 20 most recent workouts that has a GPS polyline, skipping indoor / no-fix sessions. With `date` (yyyy-MM-dd), saves that day's latest workout with a polyline. Errors if none has one. If that \
-            workout's route is already in the library, returns status 'already_saved' with the existing route's name instead of adding a copy.
+            workout's route is already in the library, returns status 'already_saved' with the existing route's name instead of adding a copy. Names are at most 80 characters. \
+            The first call saves nothing and returns status=confirmation_required with an ask_user question: ask it and end your reply; call again with the same arguments only if their next message \
+            is a plain yes.
             """,
             parameters: [
                 ActionParam("name", "The name the user has asked to save the route under. Example: 'Daily 1'."),
@@ -206,12 +209,9 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
     }
 
     private func resolveRoutesLibrarySaveWorkout(_ args: [String: String]) -> FactValue {
-        guard let name = args["name"]?.trimmingCharacters(in: .whitespaces),
-              !name.isEmpty
-        else {
-            return .missing(reason: .invalidParameter, detail: "name is required and must be non-empty")
-        }
-        if let unreadable = libraryUnreadable() { return unreadable }
+        let name = args["name"]?.trimmingCharacters(in: .whitespaces) ?? ""
+        guard !name.isEmpty else { return .missing(reason: .invalidParameter, detail: "name is required and must be non-empty") }
+        if let problem = Self.routeNameProblem(name) ?? libraryUnreadable() { return problem }
         let candidates = workoutCandidates(matching: requestedDate(args))
         guard !candidates.isEmpty else {
             let detail = requestedDate(args).map { "no workout on \($0)" } ?? "no recent workouts in archive"
@@ -220,33 +220,68 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         guard let found = firstSavableRoute(in: candidates, name: name) else {
             return .missing(reason: .invalidParameter, detail: "no GPS polyline on the matching workouts — indoor or no-fix sessions can't be saved as routes")
         }
-        return addUnlessSaved(found.route, from: found.entry)
+        return MainActor.assumeIsolated {
+            Self.saveWorkoutRoute(
+                found.route, workout: (found.entry.sessionId, found.entry.date),
+                store: services.savedRouteStore, context: .live(services)
+            )
+        }
     }
 
-    /// Adds the route unless the library already holds the same recorded
-    /// path. Saving one workout twice would leave two same-named routes,
-    /// which rename and engage then refuse as ambiguous.
-    private func addUnlessSaved(_ route: SavedRoute, from entry: SessionArchiveEntry) -> FactValue {
-        if let existing = currentRoutes().first(where: { $0.encodedPolyline == route.encodedPolyline }) {
+    /// Route names are shown in lists and read back into later prompts by
+    /// `routes.library.list`, so a name stays a short label.
+    static let maxRouteNameLength = 80
+
+    /// Why a route name can't be stored, or nil when it is short enough.
+    static func routeNameProblem(_ name: String) -> FactValue? {
+        guard name.count > maxRouteNameLength else { return nil }
+        return .missing(
+            reason: .invalidParameter,
+            detail: "the route name is \(name.count) characters; keep it to \(maxRouteNameLength) or fewer and call again"
+        )
+    }
+
+    /// Adds the workout's route under the model's name once the user, shown
+    /// that name by the app, confirmed it, unless the library already holds
+    /// the same recorded path (a second copy would leave two same-named
+    /// routes, which rename and engage refuse as ambiguous). The name can
+    /// come from what the model read, and `routes.library.list` reads it
+    /// back into later prompts. The request is bound to the workout and the
+    /// name, since the route's own id is new on every call.
+    @MainActor
+    static func saveWorkoutRoute(
+        _ route: SavedRoute, workout: (id: UUID, date: Date), store: SavedRouteStore, context: AssistantMemoryNamespace.DestructiveActionContext
+    ) -> FactValue {
+        let workoutDate = ISO8601DateFormatter().string(from: workout.date)
+        if let existing = store.routes.first(where: { $0.encodedPolyline == route.encodedPolyline }) {
             return .record([
-                "status": .string("already_saved"),
-                "id": .string(existing.id.uuidString),
-                "name": .string(existing.name),
-                "from_workout_date": .string(ISO8601DateFormatter().string(from: entry.date))
+                "status": .string("already_saved"), "id": .string(existing.id.uuidString),
+                "name": .string(existing.name), "from_workout_date": .string(workoutDate)
             ])
         }
-        MainActor.assumeIsolated {
-            services.savedRouteStore.add(route)
-        }
-        return .record(savedRouteRecord(route, from: entry))
+        if let problem = routeNameProblem(route.name) { return problem }
+        let day = workout.date.formatted(date: .abbreviated, time: .omitted)
+        let question = String(localized: "Save your workout from \(day) as the route “\(route.name)”?", bundle: LanguageManager.appBundle)
+        if let unconfirmed = context.gate(
+            action: "routes.library.save_workout", target: "\(workout.id.uuidString) \(route.name)", question: question
+        ) { return unconfirmed }
+        store.add(route)
+        guard store.routes.contains(where: { $0.id == route.id }) else { return routeNotSaved }
+        return .record(savedRouteRecord(route, workoutDate: workoutDate))
     }
+
+    /// A confirmed save the library refused (`SavedRouteStore.add`).
+    private static let routeNotSaved = FactValue.missing(
+        reason: .notRecorded,
+        detail: "the route could not be saved: the saved-route library can't be read right now; nothing was changed"
+    )
 
     private func requestedDate(_ args: [String: String]) -> String? {
         let dateArg = args["date"]?.trimmingCharacters(in: .whitespaces)
         return (dateArg?.isEmpty == false) ? dateArg : nil
     }
 
-    private func savedRouteRecord(_ saved: SavedRoute, from entry: SessionArchiveEntry) -> [String: FactValue] {
+    private static func savedRouteRecord(_ saved: SavedRoute, workoutDate: String) -> [String: FactValue] {
         [
             "status": .string("saved"),
             "id": .string(saved.id.uuidString),
@@ -255,7 +290,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             "distance_meters": .double(saved.totalDistanceMeters),
             "ascent_meters": .double(saved.totalAscentMeters),
             "climb_count": .integer(saved.climbCount),
-            "from_workout_date": .string(ISO8601DateFormatter().string(from: entry.date))
+            "from_workout_date": .string(workoutDate)
         ]
     }
 

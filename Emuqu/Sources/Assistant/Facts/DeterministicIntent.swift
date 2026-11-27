@@ -230,22 +230,7 @@ enum DeterministicIntent {
                 #"^\s*did\s+i\s+(?:train|work\s*out|run|ride|cycle)\s+(?:yesterday|today)\??\s*$"#,
                 #"^\s*(?:any\s+)?workouts?\s+(?:yesterday|today)\??\s*$"#
             ],
-            handler: { utterance, ctx in
-                let isYesterday = utterance.contains("yesterday")
-                let target = dayStart(isYesterday: isYesterday, now: ctx.now)
-                // Every workout that day counts: two sessions are one
-                // answer of their combined time, not the newest one's.
-                let sameDay = ctx.archive.store.entries.filter {
-                    $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
-                }
-                if !sameDay.isEmpty {
-                    let mins = sameDay.reduce(0) { total, m in total + activeMinutes(m, archive: ctx.archive) }
-                    return trainedReply(minutes: mins)
-                }
-                return isYesterday
-                    ? String(localized: "No workout recorded yesterday.", bundle: LanguageManager.appBundle)
-                    : String(localized: "No workout recorded today yet.", bundle: LanguageManager.appBundle)
-            }
+            handler: trainedRecently
         ),
 
         // Should I train today (heuristic, not LLM-quality)
@@ -483,31 +468,28 @@ enum DeterministicIntent {
         return calendar.date(byAdding: .day, value: -1, to: base) ?? base
     }
 
-    /// The overnight session that belongs to the local day containing `now`,
-    /// by the midpoint-in-day rule (same as `OvernightArchive.byDate`
-    /// and every async by-date fact).
+    /// Today's overnight: the recording the dashboard headlines
+    /// (`DashboardSessionPolicy.latestOvernightComplete`, the latest wake
+    /// day's longest reliable overnight) when that night's wake day is the
+    /// local day containing `now`. On a night split by a strap restart the
+    /// voice answer, the prompt and the dashboard all name the same half.
     ///
-    /// Overnight sessions are dated the evening they *start*, so matching
-    /// `startOfDay(entry.date) == today` would miss last night's session
-    /// every morning — an overnight begun 23:00 Monday has `date` = Monday,
-    /// which never equals Tuesday. The midpoint lands in the morning, so it
-    /// matches the day the user asks about.
+    /// Overnight sessions are dated the evening they *start*, so the day is
+    /// the wake day (`SessionDay`), not the start date: an overnight begun
+    /// 23:00 Monday belongs to Tuesday morning.
+    ///
+    /// The instant voice path ("what's my recovery/HRV today") must not
+    /// answer from an `.insufficient`/`.preSleep` partial; the index mirrors
+    /// the quality flag. Falls through to the LLM if today's only overnight
+    /// is untrustworthy, rather than voicing a bogus number.
     static func todaysOvernightEntry(now: Date, archive: SessionArchive) -> SessionArchiveEntry? {
-        let cal = Calendar.current
-        let dayStart = cal.startOfDay(for: now)
-        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
-        // The instant voice path ("what's my recovery/HRV today")
-        // must not answer from an `.insufficient`/`.preSleep` partial; the index
-        // mirrors the quality flag. Falls through to the LLM if today's only
-        // overnight is untrustworthy — correct, rather than voicing a bogus number.
-        return archive.store.entries
-            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
-            .sorted { $0.date > $1.date }
-            .first { entry in
-                let duration = (entry.endDate ?? entry.date).timeIntervalSince(entry.date)
-                let midpoint = entry.date.addingTimeInterval(duration / 2)
-                return midpoint >= dayStart && midpoint < dayEnd
-            }
+        todaysOvernightEntry(now: now, entries: archive.store.entries, calendar: .current)
+    }
+
+    static func todaysOvernightEntry(now: Date, entries: [SessionArchiveEntry], calendar: Calendar) -> SessionArchiveEntry? {
+        guard let latest = DashboardSessionPolicy.latestOvernightComplete(inEntries: entries, calendar: calendar),
+              calendar.isDate(SessionDay.date(of: latest), inSameDayAs: now) else { return nil }
+        return latest
     }
 
     // MARK: - Spoken replies
@@ -565,6 +547,47 @@ enum DeterministicIntent {
         let wallClock = workout.endDate.map { $0.timeIntervalSince(workout.date) }
         let samples = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata?.samples
         return Int((WorkoutActiveTime.seconds(samples: samples, wallClock: wallClock) ?? 0) / 60)
+    }
+
+    /// "Did I train / run / ride yesterday?" Every workout of the asked sport
+    /// that day counts: two sessions are one answer of their combined time,
+    /// not the newest one's. A run that day is not a yes to "did I ride"; a
+    /// day with workouts of another or unreadable sport goes to the model.
+    static func trainedRecently(_ utterance: String, _ ctx: MatchContext) -> String? {
+        let isYesterday = utterance.contains("yesterday")
+        let target = dayStart(isYesterday: isYesterday, now: ctx.now)
+        let sameDay = ctx.archive.store.entries.filter {
+            $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
+        }
+        let sports = askedSports(utterance)
+        let asked = sameDay.filter { isSport($0, sports, archive: ctx.archive) }
+        if !asked.isEmpty {
+            return trainedReply(minutes: asked.reduce(0) { total, m in total + activeMinutes(m, archive: ctx.archive) })
+        }
+        if !sameDay.isEmpty { return nil }
+        return isYesterday
+            ? String(localized: "No workout recorded yesterday.", bundle: LanguageManager.appBundle)
+            : String(localized: "No workout recorded today yet.", bundle: LanguageManager.appBundle)
+    }
+
+    /// The sports a "did I run / ride / cycle" question asks about; nil for
+    /// "train", "work out" or "any workouts", which every workout answers.
+    static func askedSports(_ utterance: String) -> Set<Sport>? {
+        if utterance.range(of: #"\bdid\s+i\s+run\b"#, options: .regularExpression) != nil {
+            return [.run, .trailRun, .treadmill]
+        }
+        if utterance.range(of: #"\bdid\s+i\s+(?:ride|cycle)\b"#, options: .regularExpression) != nil {
+            return [.bike, .indoorBike]
+        }
+        return nil
+    }
+
+    /// Whether a workout is one of `sports` (any workout when nil). A
+    /// workout whose sport can't be read is not counted as one.
+    private static func isSport(_ workout: SessionArchiveEntry, _ sports: Set<Sport>?, archive: SessionArchive) -> Bool {
+        guard let sports else { return true }
+        guard let sport = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata?.sport else { return false }
+        return sports.contains(sport)
     }
 
     private static func trainedReply(minutes: Int) -> String {

@@ -858,10 +858,38 @@ mutate "rr_merge_leaves_series_unsorted" "EmuquTests/WorkoutRRMergeTests" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRRMerge.swift');s=p.read_text();o='        points.sort { '+chr(36)+'0.t_ms < '+chr(36)+'1.t_ms }';assert s.count(o)==1;p.write_text(s.replace(o,'        points.sort { '+chr(36)+'0.t_ms > '+chr(36)+'1.t_ms }'))"
 
 # A watch or sourceless workout never started a strap stream. Adopting that
-# buffer fabricates beats from an earlier session.
+# buffer fabricates beats from an earlier session, at finalize and on every
+# live tick (backup, beat count, heart rate).
 mutate "rr_merge_adopts_stale_stream_for_watch_workouts" "EmuquTests/WorkoutRRMergeTests" \
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRRMerge.swift');s=p.read_text();o='        var points: [RRPoint] = source == .strap ? streaming : []';assert s.count(o)==1;p.write_text(s.replace(o,'        var points: [RRPoint] = streaming'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRRMerge.swift');s=p.read_text();o='        source == .strap ? streaming : []';assert s.count(o)==1;p.write_text(s.replace(o,'        streaming'))"
+
+# The live tick reads the buffer without asking whose it is.
+mutate "workout_tick_reads_stale_strap_buffer" "EmuquTests/WorkoutStrapOwnershipTests" \
+    "Emuqu/Sources/Collection/WorkoutTicker+Tick.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutTicker+Tick.swift');s=p.read_text();o='WorkoutRRMerge.liveStrapBuffer(source: lifecycle.activeHRSource, streaming: core.strapStream.streamedRRPoints)';assert s.count(o)==1;p.write_text(s.replace(o,'core.strapStream.streamedRRPoints'))"
+
+# Dismissing an old summary stops whichever stream is live, an overnight's
+# included.
+mutate "acknowledge_stops_another_sessions_stream" "EmuquTests/WorkoutStrapOwnershipTests" \
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceFetch.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+DeviceFetch.swift');s=p.read_text();o='stream.streamingStartTime == ownStart else {';assert s.count(o)==1;p.write_text(s.replace(o,'stream.streamingStartTime == ownStart || stream.isStreaming else {'))"
+
+# A night re-analysed elsewhere keeps its old reading in the baseline.
+mutate "baseline_sync_ignores_a_changed_reading" "EmuquTests/BaselineArchiveSyncTests" \
+    "Emuqu/Sources/Collection/BaselineArchiveSync.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/BaselineArchiveSync.swift');s=p.read_text();o='        return abs(archived - held) > rmssdTolerance';assert s.count(o)==1;p.write_text(s.replace(o,'        return abs(archived - held) > rmssdTolerance * 1_000_000'))"
+
+# A full night folded into an insufficient fragment keeps the fragment's class.
+mutate "merge_keeps_the_fragments_quality" "EmuquTests/SessionMergeClockTests" \
+    "Emuqu/Sources/Storage/SessionMerger.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='        existing.hrvDataQuality = imported.hrvDataQuality';assert s.count(o)==1;p.write_text(s.replace(o,'        existing.hrvDataQuality = existing.hrvDataQuality ?? imported.hrvDataQuality'))"
+
+# Acceptance after a fold reads the review card's own id, which the archive
+# no longer holds.
+mutate "review_acceptance_reads_the_folded_away_id" "EmuquTests/SessionDiscardTests" \
+    "Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift');s=p.read_text();o='        foldedId ?? session.id';assert s.count(o)==1;p.write_text(s.replace(o,'        session.id'))"
 
 # The Watch fallback carries strap data the phone never saw. Dropping it
 # shortens the series and shifts every window after the gap.
@@ -1123,12 +1151,12 @@ mutate "baseline_rebuild_drops_unread_nights" "EmuquTests/BaselineTrackerTests" 
 # A pause backs the strap's downloaded beats up before the analysis.
 mutate "pause_leaves_strap_night_in_memory" "EmuquTests/StrapRecoveryFlowTests" \
     "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift');s=p.read_text();o='        await morning.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift');s=p.read_text();o='        await keepDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
 
 # A Skip as the download finishes keeps the downloaded beats.
 mutate "late_skip_drops_download" "EmuquTests/StrapRecoveryFlowTests" \
     "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift');s=p.read_text();o='        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift');s=p.read_text();o='        if let recording, morning.rescueDownloadedBeats(recording.points(onClockOf: baseSession.startDate), baseSession: baseSession) {\n';assert s.count(o)==1;p.write_text(s.replace(o,'        if let recording, recording.points.isEmpty {\n'))"
 
 # Discard Night leaves nothing in the Trash.
 mutate "discard_leaves_night_in_trash" "EmuquTests/RecordingDiscardTests" \
@@ -1232,6 +1260,431 @@ mutate "midfield_quote_joins_records" "EmuquTests/RRDataImporterTests" \
 mutate "assistant_baseline_counts_night_twice" "EmuquTests/ScoreFactorFactsTests" \
     "Emuqu/Sources/Assistant/Facts/BaselineFacts.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/BaselineFacts.swift');s=p.read_text();o='return nights.values.compactMap { night in night.max { (\$0.endDate ?? \$0.date) < (\$1.endDate ?? \$1.date) } }';assert s.count(o)==1;p.write_text(s.replace(o,'return nights.values.flatMap { \$0 }'))"
+
+# "A recovery of 200 m jog" is the rest between reps, not the score. Read as
+# a score it is rewritten into a fabricated training prescription.
+mutate "recovery_claim_reads_rep_recovery_as_score" "EmuquTests/RecoveryClaimPatternTests" \
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='|workouts?|m|meters?|metres?|km|kilometers?|kilometres?|k|mi|miles?|yd|yards?|ft|feet|s|secs?|seconds?|bpm|beats?|w|watts?|laps?|reps?|x|sets?|rounds?|strides?|steps?';assert s.count(o)==1;p.write_text(s.replace(o,'|workouts?'))"
+
+# A list of past nights by weekday is rewritten to today's score.
+mutate "verifier_reads_a_named_day_as_today" "EmuquTests/RecoveryClaimPatternTests" \
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='\"(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?\",';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+# A route name the model took from a web page joins the library, and later
+# prompts, only on the user's yes.
+mutate "route_save_workout_ungated" "EmuquTests/AssistantActionConfirmationTests" \
+    "Emuqu/Sources/Assistant/Facts/RoutesAndDevicesFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/RoutesAndDevicesFacts.swift');s=p.read_text();o=') { return unconfirmed }\n        store.add(route)';assert s.count(o)==1;p.write_text(s.replace(o,') { _ = unconfirmed }\n        store.add(route)'))"
+
+# A yes given to one contact's notes must not save a contact carrying other notes.
+mutate "contact_add_notes_unbound" "EmuquTests/AssistantActionConfirmationTests" \
+    "Emuqu/Sources/Assistant/Facts/AssistantEmailFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/AssistantEmailFacts.swift');s=p.read_text();o='target: [name, email, notes].joined';assert s.count(o)==1;p.write_text(s.replace(o,'target: [name, email].joined'))"
+
+# Under a voice reply the question is not asked until voice has spoken it; a
+# workout alert that cut it off leaves nothing a yes can confirm.
+mutate "voice_confirmation_counts_unspoken" "EmuquTests/AssistantActionConfirmationTests" \
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift');s=p.read_text();o='        request.delivered = !spokenReply';assert s.count(o)==1;p.write_text(s.replace(o,'        request.delivered = true'))"
+
+# A confirmation line cancelled or cut off before it finished playing does not
+# deliver the question.
+mutate "voice_cancelled_question_delivers" "EmuquTests/VoiceConversationControllerTests" \
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift');s=p.read_text();o='        if finished { assistantViewModel.actionConfirmations.markSpoken(promptTurnID: spoken.turnID) }';assert s.count(o)==1;p.write_text(s.replace(o,'        assistantViewModel.actionConfirmations.markSpoken(promptTurnID: spoken.turnID)'))"
+
+# "Me duele el pecho" or "I cannot breathe" gets the fixed safety reply, not
+# the cloud model.
+mutate "spoken_symptom_forms_dropped" "EmuquTests/MedicalQueryGuardTests" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='] + spokenChestPain,';assert s.count(o)==1;p.write_text(s.replace(o,'],'))"
+
+# "I keep thinking about killing myself" gets the crisis reply.
+mutate "self_harm_rumination_dropped" "EmuquTests/MedicalQueryGuardTests" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift');s=p.read_text();o='] + selfHarmRumination,';assert s.count(o)==1;p.write_text(s.replace(o,'],'))"
+
+# A late Apple Health sleep delivery re-scores a night without replacing the
+# window the user picked.
+mutate "rescore_replaces_picked_window" "EmuquTests/RRCollectorSaveResultTests" \
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift');s=p.read_text();assert s.count('reanalyzeSession(session, preserveManualWindow: true)')==1;p.write_text(s.replace('reanalyzeSession(session, preserveManualWindow: true)','reanalyzeSession(session, preserveManualWindow: false)'))"
+
+# Tags and notes picked on the morning card land on the night the archive kept
+# after a fold.
+mutate "folded_tags_written_to_own_id" "EmuquTests/SessionDiscardTests" \
+    "Emuqu/Sources/Views/RecordView+Results.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/RecordView+Results.swift');s=p.read_text();o='try archive.updateTags(archive.archivedId(of: sessionId), tags: tags, notes: notes)';assert s.count(o)==1;p.write_text(s.replace(o,'try archive.updateTags(sessionId, tags: tags, notes: notes)'))"
+
+# The perceived-readiness rating lands on the night the archive kept.
+mutate "folded_readiness_written_to_own_id" "EmuquTests/MorningResultsReadinessTests" \
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/ViewModels/MorningResultsViewModel.swift');s=p.read_text();o='services.sessionArchive.archivedId(of: session.id)';assert s.count(o)==1;p.write_text(s.replace(o,'session.id'))"
+
+# A fold carries the user's morning feeling.
+mutate "fold_drops_morning_feeling" "EmuquTests/ArchivePolicyTests" \
+    "Emuqu/Sources/Storage/SessionMerger+UserContent.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger+UserContent.swift');s=p.read_text();o='outcome.adoptMorningFeeling = existing.morningFeeling == nil && imported.morningFeeling != nil';assert s.count(o)==1;p.write_text(s.replace(o,'outcome.adoptMorningFeeling = false'))"
+
+# A rating cleared on the device that missed a fold stays cleared.
+mutate "freshness_restores_cleared_rating" "EmuquTests/CloudKitSessionFreshnessTests" \
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSessionFreshness.swift');s=p.read_text();o='        merged.perceivedReadiness = edited.perceivedReadiness\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# A sync merge never replaces a window the user picked with the other copy's
+# analysis.
+mutate "merge_replaces_picked_window" "EmuquTests/CloudKitSessionFreshnessTests" \
+    "Emuqu/Sources/Storage/SessionMerger.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='existing.windowUserAdjusted != true else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,'existing.windowUserAdjusted != false else { return false }'))"
+
+# An adopted hand-picked window keeps its flag.
+mutate "merge_drops_picked_flag" "EmuquTests/ArchivePolicyTests" \
+    "Emuqu/Sources/Storage/SessionMerger.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='        existing.windowUserAdjusted = imported.windowUserAdjusted\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# An on-disk file holding a session the index already lists (under another
+# name, or behind a legacy absolute path) must not be adopted as a second entry.
+mutate "orphan_scan_ignores_indexed_session_ids" "EmuquTests/ArchiveInterruptionTests" \
+    "Emuqu/Sources/Storage/SessionArchive+IndexIdentity.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive+IndexIdentity.swift');s=p.read_text();o='sessionIds = Set(entries.map(';assert s.count(o)==1;p.write_text(s.replace(o,'sessionIds = Set(entries.prefix(0).map('))"
+
+# Two entries of one session id are one recording listed twice; ranking them
+# as keeper and loser tombstones the night everywhere.
+mutate "dedupe_pairs_a_session_with_itself" "EmuquTests/ArchivePolicyTests" \
+    "Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift');s=p.read_text();o='let unlinked = SessionArchiveEntry.oneEntryPerSession(dayEntries';assert s.count(o)==1;p.write_text(s.replace(o,'let unlinked = (dayEntries'))"
+
+# Launch rewrites legacy absolute paths to bare names and collapses same-id entries.
+mutate "boot_skips_index_normalisation" "EmuquTests/ArchiveInterruptionTests" \
+    "Emuqu/Sources/Storage/SessionArchive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive.swift');s=p.read_text();o='normalizeIndexIdentity()\n        reconcileOrphanFiles()';assert s.count(o)==1;p.write_text(s.replace(o,'reconcileOrphanFiles()'))"
+
+# A live backup pulled from another device is that device's crash-safety copy
+# while it records; retiring it because a scan here pulled it deletes it mid-night.
+mutate "pulled_live_backup_retired_from_icloud" "EmuquTests/LostSessionRecoveryTests" \
+    "Emuqu/Sources/Services/SessionRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionRecoveryService.swift');s=p.read_text();o='? .retire : .keep';assert s.count(o)==1;p.write_text(s.replace(o,'? .retire : .retire'))"
+
+# An import older than the stored nights is scored against its archived window,
+# not the absolute RMSSD bands.
+mutate "old_import_skips_archive_baseline" "EmuquTests/SessionImportScoringTests" \
+    "Emuqu/Sources/Collection/ImportScoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ImportScoring.swift');s=p.read_text();o='oldestArchivedNight: oldest) else {';assert s.count(o)==1;p.write_text(s.replace(o,'oldestArchivedNight: oldest.flatMap { _ in nil }) else {'))"
+
+# The strap beats a saved night was scored on, rescued beside its larger
+# stream backup, must not stay behind as a phantom lost session.
+mutate "night_rescue_left_after_save" "EmuquTests/StrapRecoveryFlowTests" \
+    "Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift');s=p.read_text();o='if usedDevice { nightRescue';assert s.count(o)==1;p.write_text(s.replace(o,'if usedDevice && devicePoints.isEmpty { nightRescue'))"
+
+# A deletion applied from another device keeps the tombstone's time, so a Trash
+# restore made after it there still wins.
+mutate "remote_deletion_dated_by_apply_time" "EmuquTests/CloudPullRecordTests" \
+    "Emuqu/Sources/Storage/CloudPullCoordinator+Fetch.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudPullCoordinator+Fetch.swift');s=p.read_text();o='try manager.archive.deleteWithoutTrash(sessionId, deletedAt: deletedAt)';assert s.count(o)==1;p.write_text(s.replace(o,'try manager.archive.deleteWithoutTrash(sessionId, deletedAt: nil)'))"
+
+# A Watch End queued out of range ends the workout at the tap. Ending it on
+# arrival saves the time after the tap as workout time.
+mutate "watch_stop_ends_at_arrival" "EmuquTests/WorkoutStopTimeTests" \
+    "Emuqu/Sources/Collection/WorkoutRecorder+StopTime.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+StopTime.swift');s=p.read_text();o='return min(max(requested, startedAt ?? requested), now)';assert s.count(o)==1;p.write_text(s.replace(o,'return max(requested, now)'))"
+
+# A Verity Sense whose PPI intervals are all rejected still sends its heart
+# rate. Ignoring that reading reads the strap as silent and drops the HR.
+mutate "strap_hr_reading_ignored_while_intervals_rejected" "EmuquTests/WorkoutStrapOwnershipTests" \
+    "Emuqu/Sources/Collection/WorkoutTicker+Tick.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutTicker+Tick.swift');s=p.read_text();o='        guard lifecycle.activeHRSource == .strap,\n              let reading = Self.newStrapReading(';assert s.count(o)==1;p.write_text(s.replace(o,'        guard lifecycle.activeHRSource == .none,\n              let reading = Self.newStrapReading('))"
+
+# With no morning training snapshot the live load is the anchor. A zero
+# anchor reads a trained athlete as untrained in the morning.
+mutate "live_readiness_missing_morning_atl_is_zero" "EmuquTests/LiveReadinessTests" \
+    "Emuqu/Sources/Analysis/LiveReadiness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveReadiness.swift');s=p.read_text();o='morningContext?.atl ?? live.atl';assert s.count(o)==1;p.write_text(s.replace(o,'morningContext?.atl ?? 0'))"
+mutate "live_readiness_missing_morning_ctl_is_zero" "EmuquTests/LiveReadinessTests" \
+    "Emuqu/Sources/Analysis/LiveReadiness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveReadiness.swift');s=p.read_text();o='morningContext?.ctl ?? live.ctl';assert s.count(o)==1;p.write_text(s.replace(o,'morningContext?.ctl ?? 0'))"
+
+# A recovered workout whose strap died mid-run ends at the last thing
+# recorded. Ending at the last beat cuts the route and time after it.
+mutate "recovery_end_at_last_beat" "EmuquTests/WorkoutRecoveryResolversTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift');s=p.read_text();o='if rrEndIsFinal, let rrEnd { return rrEnd }';assert s.count(o)==1;p.write_text(s.replace(o,'if let rrEnd { return rrEnd }'))"
+
+# The beats' summed clock stands still through a strap dropout. Ending a
+# recovery on it ends the workout early by the length of every dropout.
+mutate "recovery_beat_end_on_summed_clock" "EmuquTests/WorkoutRecoveryResolversTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService+Timeline.swift');s=p.read_text();o='WorkoutAnalyzer.gapCorrectedOffsetsMs(rrPoints).last.map';assert s.count(o)==1;p.write_text(s.replace(o,'rrPoints.last.map(\\\\.t_ms).map'))"
+
+# The review card's Save keeps the length it showed. Ending at the last kept
+# beat cuts a recovered workout whose strap died before the phone stopped.
+mutate "recovery_save_ignores_chosen_end" "EmuquTests/RecoveredWorkoutReviewTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService.swift');s=p.read_text();o='let endDate = overrides.endSec.map { startDate.addingTimeInterval(\$0) } ?? Self.resolveEndDate(';assert s.count(o)==1;p.write_text(s.replace(o,'let endDate = Self.resolveEndDate('))"
+
+# A recovered workout keeps the pauses its crash backup holds. Dropping them
+# counts paused time as moving in Apple Health and the summary.
+mutate "recovery_drops_pauses" "EmuquTests/RecoveredWorkoutReviewTests" \
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService.swift');s=p.read_text();o='        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# A recording rejected as unusable scores from the baseline; its own awake
+# heart rate must not then be scored as sleep heart rate.
+mutate "unusable_recording_hr_scored_as_sleep_hr" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='let night = useBaselineHRV ? inputs.droppingRecordingHeartRate() : inputs';assert s.count(o)==1;p.write_text(s.replace(o,'let night = inputs'))"
+
+# The strap's mean heart rate stands for sleep heart rate only on a usable recording.
+mutate "sleep_hr_rule_ignores_hrv_quality" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift');s=p.read_text();o='guard isReliableForHRVAggregates,\n              let meanHR';assert s.count(o)==1;p.write_text(s.replace(o,'guard let meanHR'))"
+
+# On a strap+stream composite night a sleep start inside the strap's own
+# stretch maps onto that stretch, not past it.
+mutate "wall_clock_offset_skips_internal_beats" "EmuquTests/WindowSelectionTests" \
+    "Emuqu/Sources/Analysis/WindowSelector+Scoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/WindowSelector+Scoring.swift');s=p.read_text();o='(\$0.wallClockMs ?? \$0.t_ms) >= wallElapsedMs';assert s.count(o)==1;p.write_text(s.replace(o,'(\$0.wallClockMs ?? Int64.min) >= wallElapsedMs'))"
+
+# A first night scored without a baseline is re-scored after a sleep edit.
+mutate "first_night_keeps_score_from_before_edit" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Services/ReanalysisService+Baseline.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService+Baseline.swift');s=p.read_text();o='let stored = session.scoreBreakdown,\n              !scoredWithoutBaseline(stored) else';assert s.count(o)==1;p.write_text(s.replace(o,'session.scoreBreakdown != nil else'))"
+
+mutate "yes_bound_to_the_question_shown" "EmuquTests/AssistantWriteBindingTests" "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift');s=p.read_text();o='pending.target == target, pending.question == question, pending.delivered,';assert s.count(o)==1;p.write_text(s.replace(o,'pending.target == target, pending.delivered,'))"
+mutate "memory_restore_asks_first" "EmuquTests/AssistantWriteBindingTests" "Emuqu/Sources/Assistant/Facts/AssistantConfirmationFacts.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/AssistantConfirmationFacts.swift');s=p.read_text();o='if let unconfirmed = context.gate(action: \"assistant.memory.restore\"';assert s.count(o)==1;p.write_text(s.replace(o,'if count < 0, let unconfirmed = context.gate(action: \"assistant.memory.restore\"'))"
+mutate "artifact_question_names_its_kind" "EmuquTests/AssistantWriteBindingTests" "Emuqu/Sources/Assistant/Facts/AssistantMemoryFacts.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/AssistantMemoryFacts.swift');s=p.read_text();o='question: addQuestion(kind, body: body)';assert s.count(o)==1;p.write_text(s.replace(o,'question: addQuestion(.bug, body: body)'))"
+mutate "artifact_body_bounded" "EmuquTests/AssistantWriteBindingTests" "Emuqu/Sources/Assistant/Facts/AssistantMemoryFacts.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/AssistantMemoryFacts.swift');s=p.read_text();o='guard body.count > maxArtifactBodyLength else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'guard body.count > maxArtifactBodyLength * 10 else { return nil }'))"
+mutate "typed_address_bounded" "EmuquTests/AssistantWriteBindingTests" "Emuqu/Sources/Assistant/Facts/LiveNavigationFacts.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/LiveNavigationFacts.swift');s=p.read_text();o='guard address.count <= maxAddressLength else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard address.count <= maxAddressLength * 10 else {'))"
+mutate "directions_to_a_typed_address_ask_first" "EmuquTests/AssistantWriteBindingTests" "Emuqu/Sources/Assistant/Facts/LiveNavigationFacts.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/LiveNavigationFacts.swift');s=p.read_text();o='if let unconfirmed { return .failed(unconfirmed) }';assert s.count(o)==1;p.write_text(s.replace(o,'if let unconfirmed, addr.isEmpty { return .failed(unconfirmed) }'))"
+mutate "prescore_feeling_failure_swallowed" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Views/RecordView+Results.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/RecordView+Results.swift');s=p.read_text();o='        try archive.update(archive.archivedId(of: id)) { stored in\n            stored.morningFeeling = stored.morningFeeling ?? value';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = try? archive.update(archive.archivedId(of: id)) { stored in\n            stored.morningFeeling = stored.morningFeeling ?? value'))"
+mutate "reading_edit_missing_reported" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Storage/ReadingEditFailure.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ReadingEditFailure.swift');s=p.read_text();o='        case .fileNotFound?, .sessionWasDeleted?:\n            return false';assert s.count(o)==1;p.write_text(s.replace(o,'        case .fileNotFound?, .sessionWasDeleted?:\n            return true'))"
+mutate "review_discard_failure_ignored" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Collection/RRCollector+Coordinators.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Coordinators.swift');s=p.read_text();o='        guard morning.discardReviewArchivedSession() else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = morning.discardReviewArchivedSession()'))"
+mutate "route_add_unreadable_library" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Models/SavedRoute.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/SavedRoute.swift');s=p.read_text();o='        guard isLibraryReadable() else { return false }\n        routes.append(route)';assert s.count(o)==1;p.write_text(s.replace(o,'        routes.append(route)'))"
+mutate "hrr_refused_write_dropped" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Collection/WorkoutSessionLifecycle+Save.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSessionLifecycle+Save.swift');s=p.read_text();o='        lifecycle.unsavedHRR[id] = samples\n        storeHRR(samples, for: id)';assert s.count(o)==1;p.write_text(s.replace(o,'        storeHRR(samples, for: id)'))"
+mutate "night_export_failure_not_kept" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Collection/PendingNightExports.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PendingNightExports.swift');s=p.read_text();o='        } else {\n            note(id, in: defaults)\n        }';assert s.count(o)==1;p.write_text(s.replace(o,'        }'))"
+mutate "night_export_gone_reading_kept" "EmuquTests/SilentWriteFailureTests" "Emuqu/Sources/Collection/PendingNightExports.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/PendingNightExports.swift');s=p.read_text();o='        guard let session = stored else { return clear(id, in: defaults) }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard let session = stored else { return }'))"
+mutate "hrr_reads_another_sessions_stream" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Analysis/HRRCaptureService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRRCaptureService.swift');s=p.read_text();o='guard strapStream.isBuffering(startedAt: ownStreamStart) else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard strapStream.isStreaming else {'))"
+mutate "stream_owner_any_live_stream" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/StrapStreamSession+Ownership.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapStreamSession+Ownership.swift');s=p.read_text();o='return streamingStartTime == start';assert s.count(o)==1;p.write_text(s.replace(o,'return streamingStartTime == start || streamingStartTime != nil'))"
+mutate "link_release_ignores_strap_recording" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/StrapStreamSession+Ownership.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapStreamSession+Ownership.swift');s=p.read_text();o='&& !recording.isRecordingOnDevice';assert s.count(o)==1;p.write_text(s.replace(o,'&& true'))"
+mutate "workout_starts_during_night_ending" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/WorkoutSessionLifecycle+Start.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSessionLifecycle+Start.swift');s=p.read_text();o='guard !core.recordScreenLifecycle.isEndingOvernight else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard !core.recordScreenLifecycle.isPaused else {'))"
+mutate "strap_only_starts_under_a_stream" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/StrapRecordingGuards.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingGuards.swift');s=p.read_text();o='guard !strapStream.isStreaming else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard !strapStream.reconnectExhausted else {'))"
+mutate "hrr_release_drops_a_used_link" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift');s=p.read_text();o='guard strap.stream.mayReleaseLink(after: strap.streamStart, recording: strap.recording) else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard !strap.stream.isStreaming else {'))"
+mutate "quick_verity_release_under_new_session" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/QuickReadingSession+Streaming.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/QuickReadingSession+Streaming.swift');s=p.read_text();o='strapStream.mayReleaseLink(after: nil, recording: strapRecorder.device) else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'strapRecorder.device.transfersInFlight == 0 else { return }'))"
+mutate "night_verity_release_under_new_session" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift');s=p.read_text();o='strapStream.mayReleaseLink(after: nil, recording: strapRecorder.device) else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'strapRecorder.device.transfersInFlight == 0 else { return }'))"
+mutate "night_late_arm_stops_another_session" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Arming.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Arming.swift');s=p.read_text();o='guard !streamingLifecycle.isOvernightStreaming, !strapStream.isStreaming,';assert s.count(o)==1;p.write_text(s.replace(o,'guard !streamingLifecycle.isOvernightStreaming,'))"
+mutate "workout_late_arm_stops_another_session" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/WorkoutSessionLifecycle+DeviceBackup.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSessionLifecycle+DeviceBackup.swift');s=p.read_text();o='guard !core.strapStream.isBufferingForAnotherSession(than: owner.streamStart),';assert s.count(o)==1;p.write_text(s.replace(o,'guard !core.strapStream.isBuffering(startedAt: owner.streamStart),'))"
+mutate "watch_workout_marks_downloads_saved" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift');s=p.read_text();o='guard outcome == .saved, lifecycle.activeHRSource == .strap else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard outcome == .saved else { return }'))"
+mutate "record_screen_clear_wipes_workout_marker" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/RecordingStateStore.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RecordingStateStore.swift');s=p.read_text();o='guard PersistedRecordingState.load()?.sessionType != .workout else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard PersistedRecordingState.load()?.sessionType != .nap else {'))"
+mutate "exact_clear_takes_any_marker" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/RecordingStateStore.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RecordingStateStore.swift');s=p.read_text();o='guard PersistedRecordingState.load()?.sessionId == sessionId else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard PersistedRecordingState.load() != nil else { return }'))"
+mutate "sampler_stops_with_first_recording" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Utilities/SamplingHolders.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/SamplingHolders.swift');s=p.read_text();o='return holders.isEmpty';assert s.count(o)==1;p.write_text(s.replace(o,'return true'))"
+mutate "hrr_keeps_next_workouts_heart_rate" "EmuquTests/StrapSessionOwnershipTests" "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift');s=p.read_text();o='guard let nextStart else { return samples }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let nextStart, nextStart < stopDate else { return samples }'))"
+mutate "auto_refresh_recheck" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Collection/SleepRefreshPolicy.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SleepRefreshPolicy.swift');s=p.read_text();o='guard autoSleepRefreshAllowed(for: session) else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+mutate "auto_sleep_update_keeps_user_bounds" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Services/SleepBoundaryWrite.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SleepBoundaryWrite.swift');s=p.read_text();o='guard edit.isUserAdjustment || session.sleepUserAdjusted != true else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard edit.isUserAdjustment || session.sleepUserAdjusted != false else {'))"
+mutate "merge_keeps_existing_user_sleep" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Storage/SessionMerger+UserContent.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger+UserContent.swift');s=p.read_text();o='if existing.sleepUserAdjusted == true { return onClock(existing, startingAt: clockStart) }';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+mutate "pull_keeps_local_user_sleep" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSessionFreshness.swift');s=p.read_text();o='return local.sleepUserAdjusted != true || remote.sleepUserAdjusted == true';assert s.count(o)==1;p.write_text(s.replace(o,'return local.sleepUserAdjusted != false || remote.sleepUserAdjusted == true'))"
+mutate "rewrite_upload_unstamped" "EmuquTests/CloudKitSyncManagerTests" "Emuqu/Sources/Storage/CloudKitSyncManager.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager.swift');s=p.read_text();o='await forceReuploadSession(session, stampingEdit: false)';assert s.count(o)==1;p.write_text(s.replace(o,'await forceReuploadSession(session, stampingEdit: true)'))"
+mutate "bulk_pass_keeps_picked_window" "EmuquTests/RRCollectorSaveResultTests" "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift');s=p.read_text();o='await reanalyzeSession(session, preserveManualWindow: true)';assert s.count(o)==1;p.write_text(s.replace(o,'await reanalyzeSession(session, preserveManualWindow: false)'))"
+mutate "rebuild_keeps_notes" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Storage/SessionMerger+UserContent.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger+UserContent.swift');s=p.read_text();o='        rebuilt.notes = stored.notes\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+mutate "rebuild_reclocks_user_sleep" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Storage/SessionMerger+UserContent.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger+UserContent.swift');s=p.read_text();o='keepUserSleep(of: onClock(stored, startingAt: rebuilt.startDate), in: &rebuilt)';assert s.count(o)==1;p.write_text(s.replace(o,'keepUserSleep(of: stored, in: &rebuilt)'))"
+mutate "review_archive_keeps_user_edits" "EmuquTests/RRCollectorSaveResultTests" "Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift');s=p.read_text();o='let entry = try archive.archiveRebuilt(finalSession)';assert s.count(o)==1;p.write_text(s.replace(o,'let entry = try archive.archive(finalSession)'))"
+mutate "prenight_notes_merged" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Services/SessionAcceptanceService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='archived.notes = SessionMerger.mergedNotes(archived.notes, updated.notes)';assert s.count(o)==1;p.write_text(s.replace(o,'archived.notes = updated.notes'))"
+mutate "memory_cap_keeps_user_facts" "EmuquTests/UserFactsStoreTests" "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/UserFactsStore.swift');s=p.read_text();o='let others = facts.filter { !'+chr(36)+'0.isFromUser }.prefix(excess)';assert s.count(o)==1;p.write_text(s.replace(o,'let others = facts.prefix(excess)'))"
+mutate "insufficient_migration_rechecks_inputs" "EmuquTests/UserChoicesKeptTests" "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift');s=p.read_text();o='guard RescoreWrite.inputsMatch(stored, decided, kind: .scoreOnly(healedTraining: false)) else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+mutate "beat_end_on_beat_sum_clock" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Models/RRModels.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/RRModels.swift');s=p.read_text();o='TimeInterval(last.exportTimeMs + Int64(last.rr_ms))';assert s.count(o)==1;p.write_text(s.replace(o,'TimeInterval(last.t_ms + Int64(last.rr_ms))'))"
+mutate "series_end_from_duration" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Models/RRModels.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/RRModels.swift');s=p.read_text();o='points.lastBeatEnd(after: startDate) ?? startDate';assert s.count(o)==1;p.write_text(s.replace(o,'startDate.addingTimeInterval(TimeInterval(durationMs) / 1000.0)'))"
+mutate "night_segment_ends_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Services/MorningProcessingService+Merging.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/MorningProcessingService+Merging.swift');s=p.read_text();o='points.lastBeatEnd(after: startDate) ?? startDate';assert s.count(o)==1;p.write_text(s.replace(o,'startDate.addingTimeInterval(Double(points.last?.t_ms ?? 0) / 1000)'))"
+mutate "backup_ends_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Services/SessionRecoveryService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionRecoveryService.swift');s=p.read_text();o='backup.points.lastBeatEnd(after: backup.captureDate)';assert s.count(o)==1;p.write_text(s.replace(o,'backup.points.last.map { p in backup.captureDate.addingTimeInterval(Double(p.t_ms) / 1000.0) }'))"
+mutate "strap_download_ends_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/DeviceRecordingSession+Capture.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/DeviceRecordingSession+Capture.swift');s=p.read_text();o='guard let end = series.points.lastBeatEnd(after: series.startDate) else';assert s.count(o)==1;p.write_text(s.replace(o,'guard let end = series.points.last.map({ p in series.startDate.addingTimeInterval(Double(p.endMs) / 1000) }) else'))"
+mutate "t_ms_position_read_as_wall_offset" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Models/RRModels.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/RRModels.swift');s=p.read_text();o='return wallClockTime(forTMs: edgeMs).addingTimeInterval(Double(tMs - edgeMs) / 1000.0)';assert s.count(o)==1;p.write_text(s.replace(o,'return absoluteTime(fromRelativeMs: tMs)'))"
+mutate "recording_span_from_beat_sum" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Models/RRModels.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/RRModels.swift');s=p.read_text();o='let seconds = clockTime(forTMs: last.t_ms).timeIntervalSince(clockTime(forTMs: first.t_ms))';assert s.count(o)==1;p.write_text(s.replace(o,'let seconds = Double(last.t_ms - first.t_ms) / 1000'))"
+mutate "recovery_hr_chart_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Views/RecoveryScoreCharts+Overnight.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/RecoveryScoreCharts+Overnight.swift');s=p.read_text();o='HRPoint(time: series.clockTime(forTMs: p.t_ms), hr: hr)';assert s.count(o)==1;p.write_text(s.replace(o,'HRPoint(time: series.absoluteTime(fromRelativeMs: p.t_ms), hr: hr)'))"
+mutate "recovery_rmssd_chart_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Views/RecoveryScoreCharts+Overnight.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/RecoveryScoreCharts+Overnight.swift');s=p.read_text();o='RMSSDPoint(time: series.clockTime(forTMs: startMs), rmssd: rmssd)';assert s.count(o)==1;p.write_text(s.replace(o,'RMSSDPoint(time: series.absoluteTime(fromRelativeMs: startMs), rmssd: rmssd)'))"
+mutate "recovery_window_and_nadir_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Models/SessionDay.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/SessionDay.swift');s=p.read_text();o='series?.clockTime(forTMs: tMs) ??';assert s.count(o)==1;p.write_text(s.replace(o,'series?.absoluteTime(fromRelativeMs: tMs) ??'))"
+mutate "window_segment_matched_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Services/ReanalysisService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService.swift');s=p.read_text();o='MillisecondOffset.between(series.clockTime(forTMs: tMs), and: session.startDate, fallback: tMs)';assert s.count(o)==1;p.write_text(s.replace(o,'MillisecondOffset.between(series.absoluteTime(fromRelativeMs: tMs), and: session.startDate, fallback: tMs)'))"
+mutate "hr_estimated_stages_bounded_on_t_ms" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/HRSleepEstimator.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HRSleepEstimator.swift');s=p.read_text();o='sleepEndMs: wakeMs.map {';assert s.count(o)==1;p.write_text(s.replace(o,'sleepEndMs: wakeMs ?? wakeMs.map {'))"
+mutate "workout_beats_from_first_beat" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/WorkoutAnalyzer.swift');s=p.read_text();o='correctionMs = max(correctionMs, wall - point.t_ms)';assert s.count(o)==1;p.write_text(s.replace(o,'correctionMs = max(correctionMs, wall - point.t_ms - (rrPoints.first?.wallClockMs ?? 0))'))"
+mutate "live_beat_clock_from_first_beat" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift');s=p.read_text();o='startMs = max(startMs, wall)';assert s.count(o)==1;p.write_text(s.replace(o,'startMs = max(startMs, wall / 2)'))"
+mutate "watch_pause_keeps_samples_after_tap" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/WorkoutRecorder+WatchPause.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+WatchPause.swift');s=p.read_text();o='keepRecording(throughElapsed: activeAtTap)';assert s.count(o)==1;p.write_text(s.replace(o,'keepRecording(throughElapsed: lifecycle.elapsedSeconds)'))"
+mutate "watch_pause_reaches_before_resume" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/WorkoutRecorder+WatchPause.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+WatchPause.swift');s=p.read_text();o='return min(max(requested, since), now)';assert s.count(o)==1;p.write_text(s.replace(o,'return min(requested, now)'))"
+mutate "watch_pause_start_not_moved" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/WorkoutLifecycle.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutLifecycle.swift');s=p.read_text();o='        events.removeLast()\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+mutate "rebuilt_night_load_as_of_now" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/MorningSessionPipeline+Processing.swift');s=p.read_text();o='min(session.endDate ?? now, now)';assert s.count(o)==1;p.write_text(s.replace(o,'now'))"
+mutate "recovered_pause_dated_by_relaunch" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionRecoveryService+Backup.swift');s=p.read_text();o='min(lastBeatEnd ?? now, now)';assert s.count(o)==1;p.write_text(s.replace(o,'now'))"
+mutate "offline_recordings_joined_end_to_end" "EmuquTests/TimeBaseTests" "Emuqu/Sources/Collection/StrapRecordingCoordinator+VeritySense.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingCoordinator+VeritySense.swift');s=p.read_text();o='return max(sinceFirst, afterEarlier)';assert s.count(o)==1;p.write_text(s.replace(o,'return afterEarlier'))"
+
+mutate "fold_list_not_loaded_at_launch" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/SessionArchive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive.swift');s=p.read_text();o='        state.loadFoldedIndex()';assert s.count(o)==1;p.write_text(s.replace(o,'        state.foldedInto.removeAll()'))"
+
+mutate "fold_not_recorded_on_archive" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/SessionArchive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive.swift');s=p.read_text();o='if folded { state.recordFold(of: session.id, into: entry.sessionId) }';assert s.count(o)==1;p.write_text(s.replace(o,'if folded {}'))"
+
+mutate "fold_resolution_ignored" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/ArchiveIndexState+Folds.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveIndexState+Folds.swift');s=p.read_text();o='guard let next = foldedInto[current]';assert s.count(o)==1;p.write_text(s.replace(o,'guard let next = foldedInto[UUID()]'))"
+
+mutate "held_night_checked_by_own_id" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/SessionArchive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive.swift');s=p.read_text();o='store.entryById(state.resolvedId(id)) != nil';assert s.count(o)==1;p.write_text(s.replace(o,'store.entryById(id) != nil'))"
+
+mutate "batch_merge_fold_not_recorded" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/ArchiveStore+Batch.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveStore+Batch.swift');s=p.read_text();o='            state.recordFold(of: session.id, into: entry.sessionId)';assert s.count(o)==1;p.write_text(s.replace(o,'            _ = entry'))"
+
+mutate "retired_duplicate_not_kept_under_keeper" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveMigrations+Steps.swift');s=p.read_text();o='            moves.forEach { archive.state.recordFold(of: \$0.id, into: \$0.keeper) }';assert s.count(o)==1;p.write_text(s.replace(o,'            _ = moves'))"
+
+mutate "fold_announced_under_recording_only" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/SessionArchive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive.swift');s=p.read_text();o='NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: entry.sessionId)';assert s.count(o)==1;p.write_text(s.replace(o,'NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id)'))"
+
+mutate "folded_archive_returns_recording" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Storage/SessionArchive+StoreAPI.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionArchive+StoreAPI.swift');s=p.read_text();o='return retrieveOrLog(entry.sessionId, caller: \"SessionArchive.archiveReturningNight\") ?? session';assert s.count(o)==1;p.write_text(s.replace(o,'return session'))"
+
+mutate "folded_vitals_written_to_own_id" "EmuquTests/ArchiveFoldIdentityTests" \
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/RecoveryScoreDetailView.swift');s=p.read_text();o='try archive.update(archive.archivedId(of: id), requestingReupload: false) { fill(fresh, in: &\$0) }';assert s.count(o)==1;p.write_text(s.replace(o,'try archive.update(id, requestingReupload: false) { fill(fresh, in: &\$0) }'))"
+
+mutate "folded_recording_listed_as_lost" "EmuquTests/LostSessionRecoveryTests" \
+    "Emuqu/Sources/Services/SessionRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionRecoveryService.swift');s=p.read_text();o='.sessionId)).union(archive.foldedRecordingIds)';assert s.count(o)==1;p.write_text(s.replace(o,'.sessionId))'))"
+
+mutate "folded_review_accepted_as_card_copy" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='        let id = archive.archivedId(of: session.id)';assert s.count(o)==1;p.write_text(s.replace(o,'        let id = session.id'))"
+
+mutate "paused_night_folded_into_another" "EmuquTests/RecordingDiscardTests" \
+    "Emuqu/Sources/Collection/CollectorSessionControl+PauseResume.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl+PauseResume.swift');s=p.read_text();o='try archive.archive(session, skipSameNightMerge: true, requestingReupload: true)';assert s.count(o)==1;p.write_text(s.replace(o,'try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)'))"
+
+mutate "folded_manual_window_on_card_copy" "EmuquTests/ReanalysisServiceTests" \
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService+Sleep.swift');s=p.read_text();o='ArchivedSessionRead.read(archive.archivedId(of: session.id), from: archive, caller: \"manualWindow\")';assert s.count(o)==1;p.write_text(s.replace(o,'ArchivedSessionRead.read(session.id, from: archive, caller: \"manualWindow\")'))"
+
+mutate "folded_sleep_edit_read_by_own_id" "EmuquTests/ReanalysisServiceTests" \
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService+Sleep.swift');s=p.read_text();o='try archive.retrieve(archive.archivedId(of: sessionId))';assert s.count(o)==1;p.write_text(s.replace(o,'try archive.retrieve(sessionId)'))"
+
+mutate "forever_delete_leaves_folded_backups" "EmuquTests/ArchiveIntegrityTests" \
+    "Emuqu/Sources/Services/SessionRecoveryService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionRecoveryService.swift');s=p.read_text();o='            try discardBackupsKept(under: sessionId)';assert s.count(o)==1;p.write_text(s.replace(o,'            _ = sessionId'))"
+
+mutate "summary_key_reads_the_feeling" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift');s=p.read_text();o='hasher.combine(session.morningFeeling)';assert s.count(o)==1;p.write_text(s.replace(o,'hasher.combine(session.tags)'))"
+mutate "sleep_hr_drops_the_previous_strap_hr" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift');s=p.read_text();o='let withoutPrevious = previous.strapSleepHeartRate.map { vitals.droppingRestingHeartRate(copiedFrom: \$0) } ?? vitals';assert s.count(o)==1;p.write_text(s.replace(o,'let withoutPrevious = vitals'))"
+mutate "rescore_writes_scored_vitals" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/RescoreWrite.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/RescoreWrite.swift');s=p.read_text();o='session.vitalsSnapshot = rescored.vitalsSnapshot';assert s.count(o)==1;p.write_text(s.replace(o,'_ = rescored.vitalsSnapshot'))"
+mutate "rescore_writes_scored_quality" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/RescoreWrite.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/RescoreWrite.swift');s=p.read_text();o='session.hrvDataQuality = rescored.hrvDataQuality';assert s.count(o)==1;p.write_text(s.replace(o,'_ = rescored.hrvDataQuality'))"
+mutate "score_only_reclassifies" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/ReanalysisService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService.swift');s=p.read_text();o='reclassifyHRVQuality(of: &classified, result: result)';assert s.count(o)==1;p.write_text(s.replace(o,'_ = result'))"
+mutate "reanalysis_moves_sleep_hr" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/ReanalysisService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService.swift');s=p.read_text();o='session.refreshSleepHeartRate(replacing: previous)';assert s.count(o)==1;p.write_text(s.replace(o,'_ = previous'))"
+mutate "sleep_edit_moves_sleep_hr" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/SleepBoundaryWrite.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SleepBoundaryWrite.swift');s=p.read_text();o='session.refreshSleepHeartRate(replacing: beforeClassifying)';assert s.count(o)==1;p.write_text(s.replace(o,'_ = beforeClassifying'))"
+mutate "merge_moves_kept_sleep_hr" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Storage/SessionMerger.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='existing.refreshSleepHeartRate(replacing: previous)';assert s.count(o)==1;p.write_text(s.replace(o,'_ = previous'))"
+mutate "pull_moves_local_sleep_hr" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Storage/CloudSessionPayload.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudSessionPayload.swift');s=p.read_text();o='merged.refreshSleepHeartRate(replacing: local)';assert s.count(o)==1;p.write_text(s.replace(o,'_ = local'))"
+mutate "refresh_reclassifies_moved_sleep" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/SessionAcceptanceService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='let sleepMoved = !sameSleepSpan(session.sleepSnapshot, sleepBefore)';assert s.count(o)==1;p.write_text(s.replace(o,'let sleepMoved = !sameSleepSpan(sleepBefore, sleepBefore)'))"
+mutate "acceptance_moves_sleep_window" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/SessionAcceptanceService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='ReanalysisService.applySleepBoundaries(fetched, to: &session, sessionStart: session.startDate)';assert s.count(o)==1;p.write_text(s.replace(o,'session.sleepSnapshot = fetched'))"
+mutate "acceptance_writes_carry_window" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/SessionAcceptanceService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='stored.sleepStartMs = frozen.sleepStartMs';assert s.count(o)==1;p.write_text(s.replace(o,'_ = frozen.sleepStartMs'))"
+mutate "acceptance_asks_for_rewindow" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/SessionAcceptanceService.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='guard before.id == after.id, ReanalysisService.sleepWindowMoved(from: before, to: after) else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard before.id == after.id, ReanalysisService.sleepWindowMoved(from: before, to: before) else { return }'))"
+mutate "moved_sleep_window_detected" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/ReanalysisService+Sleep.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService+Sleep.swift');s=p.read_text();o='before.sleepStartMs != after.sleepStartMs || before.sleepEndMs != after.sleepEndMs';assert s.count(o)==1;p.write_text(s.replace(o,'before.sleepEndMs != after.sleepEndMs'))"
+mutate "reexport_skips_review_night" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Services/ReanalysisService+Sleep.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService+Sleep.swift');s=p.read_text();o='guard HealthExportReadings(of: before) != HealthExportReadings(of: after), !isAwaitingReview(after.id) else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard HealthExportReadings(of: before) != HealthExportReadings(of: after) else { return }'))"
+mutate "export_readings_include_hr" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Models/HealthExportReadings.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/HealthExportReadings.swift');s=p.read_text();o='meanHR = session.analysisResult?.timeDomain.meanHR';assert s.count(o)==1;p.write_text(s.replace(o,'meanHR = nil'))"
+mutate "recovered_night_in_user_sleep" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Collection/DeviceRecordingSession+Capture.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/DeviceRecordingSession+Capture.swift');s=p.read_text();o='let offset = MillisecondOffset.between(existing.startDate, and: start, fallback: 0)';assert s.count(o)==1;p.write_text(s.replace(o,'let offset: Int64 = 0'))"
+mutate "repair_rescored_on_kept_edits" "EmuquTests/StaleDerivedStateTests" "Emuqu/Sources/Collection/SessionRecoveryCoordinator+MergeRepair.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SessionRecoveryCoordinator+MergeRepair.swift');s=p.read_text();o='!RescoreWrite.inputsMatch(carried, rebuilt, kind: .scoreOnly(healedTraining: false))';assert s.count(o)==1;p.write_text(s.replace(o,'RescoreWrite.inputsMatch(carried, rebuilt, kind: .scoreOnly(healedTraining: false))'))"
+
+mutate "verifier_range_delta" "EmuquTests/TrainingLoadClaimTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='!isRangeOrDelta(after: claimRange, in: ns) else';assert s.count(o)==1;p.write_text(s.replace(o,'true else'))"
+mutate "sleep_delta" "EmuquTests/SleepClaimVerificationTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='!isRangeOrDelta(after: claimRange, in: ns),';assert s.count(o)==1;p.write_text(s.replace(o,'true,'))"
+mutate "overnight_last_night" "EmuquTests/RecoveryClaimPatternTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='let markers = overnight ? [earlierTimeMarkers, targetMarkers] :';assert s.count(o)==1;p.write_text(s.replace(o,'let markers = overnight ? [earlierTimeMarkers, lastNightMarker, targetMarkers] :'))"
+mutate "plan_negation_markers" "EmuquTests/SleepClaimVerificationTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='will|tonight|tomorrow|next|plan(?:ned)?|try|want|expect(?:ed)?|predict(?:ed)?|project(?:ed)?|not|never|without';assert s.count(o)==1;p.write_text(s.replace(o,'zzzz'))"
+mutate "recovery_over_100" "EmuquTests/RecoveryClaimPatternTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='guard claimed <= 100 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'guard claimed <= 100000 else { return nil }'))"
+mutate "ln_rmssd" "EmuquTests/TrainingLoadClaimTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='bln';assert s.count(o)==1;p.write_text(s.replace(o,'bxx'))"
+mutate "tsb_typographic_minus" "EmuquTests/TrainingLoadClaimTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='(?<value>[-−]?';assert s.count(o)==1;p.write_text(s.replace(o,'(?<value>[-]?'))"
+mutate "tsb_minus_word" "EmuquTests/TrainingLoadClaimTests" "Emuqu/Sources/Assistant/MetricsVerifier.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='(?:(?:negative|minus)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:(?:negative|minuz)'))"
+mutate "normalizer_minus" "EmuquTests/TrainingLoadClaimTests" "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift');s=p.read_text();o='negative|minus)';assert s.count(o)==1;p.write_text(s.replace(o,'negative|minuz)'))"
+mutate "normalizer_spaced_hundreds" "EmuquTests/TrainingLoadClaimTests" "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift');s=p.read_text();o='let colloquial = ';assert s.count(o)==1;p.write_text(s.replace(o,'let colloquial = \"(?:one|two)-(?:sixty|forty)\"; _ = '))"
+mutate "echo_yes_answers_confirmation" "EmuquTests/VoiceEchoHeuristicsTests" "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift');s=p.read_text();o='if AffirmationReply.isExplicitYes(transcript, question: question) { return true }';assert s.count(o)==1;p.write_text(s.replace(o,'if AffirmationReply.isExplicitYes(transcript, question: question) { return false }'))"
+mutate "echo_call_site_keeps_heard_yes" "EmuquTests/VoiceEchoHeuristicsTests" "Emuqu/Sources/Assistant/VoiceAudioPipeline+Audio.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/VoiceAudioPipeline+Audio.swift');s=p.read_text();o='if controller.looksLikeEcho(of: transcript), !answersHeardConfirmation(transcript) {';assert s.count(o)==1;p.write_text(s.replace(o,'if controller.looksLikeEcho(of: transcript) {'))"
+mutate "asserted_values_skip_other_times" "EmuquTests/UserCorrectionDetectorTests" "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/UserAssertedValuesParser.swift');s=p.read_text();o=', !describesAnotherTime(trimmed) {';assert s.count(o)==1;p.write_text(s.replace(o,' {'))"
+mutate "asserted_values_hrv_alias" "EmuquTests/UserCorrectionDetectorTests" "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/UserAssertedValuesParser.swift');s=p.read_text();o='\"hrv\": \"rmssd\"';assert s.count(o)==1;p.write_text(s.replace(o,'\"hrvx\": \"rmssd\"'))"
+mutate "asserted_values_keep_units" "EmuquTests/UserCorrectionDetectorTests" "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/UserAssertedValuesParser.swift');s=p.read_text();o='if let unit = found.unit { signals.units[metric] = unit }';assert s.count(o)==1;p.write_text(s.replace(o,'_ = found.unit'))"
+mutate "stop_saying_needs_data" "EmuquTests/UserCorrectionDetectorTests" "Emuqu/Sources/Assistant/UserAssertedValuesParser.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/UserAssertedValuesParser.swift');s=p.read_text();o='|| valueRejections.contains {';assert s.count(o)==1;p.write_text(s.replace(o,'|| !valueRejections.isEmpty || valueRejections.contains {'))"
+mutate "live_triggers_whole_question" "EmuquTests/DeterministicIntentTests" "Emuqu/Sources/Assistant/Facts/DeterministicIntent+Live.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/DeterministicIntent+Live.swift');s=p.read_text();o='|yet))?';assert s.count(o)==1;p.write_text(s.replace(o,'|yet))?.*'))"
+mutate "spot_compare_not_directions" "EmuquTests/DeterministicIntentTests" "Emuqu/Sources/Assistant/Facts/DeterministicIntent+Live.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/DeterministicIntent+Live.swift');s=p.read_text();o='(?:go|keep|bear|take';assert s.count(o)==1;p.write_text(s.replace(o,'(?:gox|keepx|bearx|takex'))"
+mutate "did_i_ride_asks_rides" "EmuquTests/DeterministicIntentTests" "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift');s=p.read_text();o='return [.bike, .indoorBike]';assert s.count(o)==1;p.write_text(s.replace(o,'return nil'))"
+mutate "log_keeps_diagnostic_numbers" "EmuquTests/RedactionPatternTests" "Emuqu/Sources/Utilities/DebugLog.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/DebugLog.swift');s=p.read_text();o='\"elapsed\", \"rms\", \"chars\", \"characters\", \"transcript\", \"tokens\"';assert s.count(o)==1;p.write_text(s.replace(o,'\"elapsedx\"'))"
+mutate "web_ko_ready_not_rain" "EmuquTests/CapabilityClassifierTests" "Emuqu/Sources/Assistant/Facts/CapabilityMarkers+Languages.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/CapabilityMarkers+Languages.swift');s=p.read_text();o='|(?<!준)비가|';assert s.count(o)==1;p.write_text(s.replace(o,'|비가|'))"
+mutate "web_nb_please_not_weather" "EmuquTests/CapabilityClassifierTests" "Emuqu/Sources/Assistant/Facts/CapabilityMarkers+Languages.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/CapabilityMarkers+Languages.swift');s=p.read_text();o='|været|værmelding';assert s.count(o)==1;p.write_text(s.replace(o,'|været|vær|værmelding'))"
+mutate "web_it_try_to_not_search" "EmuquTests/CapabilityClassifierTests" "Emuqu/Sources/Assistant/Facts/CapabilityMarkers+Languages.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/CapabilityMarkers+Languages.swift');s=p.read_text();o='|cercami|cerca (?:online';assert s.count(o)==1;p.write_text(s.replace(o,'|cerca|cercami|cerca (?:online'))"
+mutate "csv_semicolon_decimal_comma" "EmuquTests/RRDataImporterTests" "Emuqu/Sources/Import/RRDataImporter+CSV.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='separator: separator, decimalComma: true';assert s.count(o)==1;p.write_text(s.replace(o,'separator: separator, decimalComma: false'))"
+mutate "csv_one_column_decimal_comma" "EmuquTests/RRDataImporterTests" "Emuqu/Sources/Import/RRDataImporter+CSV.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='guard oneColumn, rows.allSatisfy(isDecimalCommaSeconds) else {';assert s.count(o)==1;p.write_text(s.replace(o,'guard oneColumn, rows.allSatisfy(isDecimalCommaSeconds), rows.isEmpty else {'))"
+mutate "text_table_reads_rr_column" "EmuquTests/RRDataImporterTests" "Emuqu/Sources/Import/RRDataImporter+CSV.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='if let table = Self.columnarTimeColumn(lines) {';assert s.count(o)==1;p.write_text(s.replace(o,'if let table = Self.columnarTimeColumn(lines), lines.isEmpty {'))"
+mutate "date_before_2000_refused" "EmuquTests/RRDataImporterTests" "Emuqu/Sources/Import/RRDataImporter+CSV.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='date >= earliestRecordingDate';assert s.count(o)==1;p.write_text(s.replace(o,'date >= Date.distantPast'))"
+mutate "date_two_digit_year_century" "EmuquTests/RRDataImporterTests" "Emuqu/Sources/Import/RRDataImporter+CSV.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='twoDigitStartDate = Date(timeIntervalSince1970: 946_684_800)';assert s.count(o)==1;p.write_text(s.replace(o,'twoDigitStartDate = Date(timeIntervalSince1970: -2_208_988_800)'))"
+mutate "json_fractional_rr_ms" "EmuquTests/RRDataImporterTests" "Emuqu/Sources/Import/RRDataImporter+JSON.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+JSON.swift');s=p.read_text();o='storableRR(roundedMilliseconds: rr)';assert s.count(o)==1;p.write_text(s.replace(o,'storableRR(roundedMilliseconds: rr.rounded(.down) == rr ? rr : -1)'))"
+mutate "speculative_en_participle" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='been|gone|run|done|had|got|gotten|made|taken|felt|slept|held|kept|left|overdone|';assert s.count(o)==1;p.write_text(s.replace(o,'zzq|'))"
+mutate "speculative_de_offer" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='{1,3}haben';assert s.count(o)==1;p.write_text(s.replace(o,'{0,3}'))"
+mutate "speculative_es_offer" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='d[íi]a|sesi[óo]n|semana|entreno';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "speculative_pt_offer" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='dia|sess[ãa]o|semana|treino|descanso|folga|corrida';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "speculative_it_offer" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='giorn|session|settiman|allenament|riposo|bisogno|recupero';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "speculative_nordic_offer" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='dag|økt|pass|tur|uke|vecka';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "speculative_ru_offer" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='л[её]гк|отдых|выходн|тренировк|день|больше|меньше';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "stroke_swim_metric" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='rate|count|length|cycle|index|technique|drill|rhythm|plan';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "diagnosis_ja_software" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='診断(?!ログ|ツール|情報|データ)';assert s.count(o)==1;p.write_text(s.replace(o,'診断'))"
+mutate "diagnosis_zh_software" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='诊断(?!日志|工具|信息|数据)';assert s.count(o)==1;p.write_text(s.replace(o,'诊断'))"
+mutate "diagnosis_ko_software" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='로그|도구|정보|데이터';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "diagnosis_ar_software" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?<!سجل ال)';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+mutate "diagnosis_fr_from" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='bundle|from|depuis';assert s.count(o)==1;p.write_text(s.replace(o,'bundle'))"
+mutate "diagnosis_romance_log" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?<!log';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzqlog'))"
+mutate "diagnosis_sv_settings" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='inst[äa]llningar';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "injury_da_nb_go" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='(?:til|p[åa]|ud|ut|';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq|'))"
+mutate "injury_sv_go" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='(?:till|p[åa]|ut|';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq|'))"
+mutate "injury_nl_run" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='lopen(?=';assert s.count(o)==1;p.write_text(s.replace(o,'lopen(?!zzq'))"
+mutate "injury_ru_go" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='(?:на|в|к|сегодня|завтра)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq)'))"
+mutate "injury_es_ride" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='(?:bici|bicicleta|moto)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq)'))"
+mutate "injury_pt_ride" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='(?:bike|bici|bicicleta|moto)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq)'))"
+mutate "injury_en_fall_idioms" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='|into|';assert s.count(o)==1;p.write_text(s.replace(o,'|'))"
+mutate "injury_fr_tombe_sur" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='sur|malade';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "injury_pt_cai_no_sono" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='ca[íi](?!';assert s.count(o)==1;p.write_text(s.replace(o,'ca[íi](?=|'))"
+mutate "injury_ar_fell_score" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='سقطت(?=';assert s.count(o)==1;p.write_text(s.replace(o,'سقطت(?=|'))"
+mutate "injury_ar_illness" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='مصاب(?!';assert s.count(o)==1;p.write_text(s.replace(o,'مصاب(?=|'))"
+mutate "injury_cjk_fracture_noun" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='骨折(?:した|して|しま)';assert s.count(o)==1;p.write_text(s.replace(o,'骨折'))"
+mutate "injury_bike_computer" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='computer|app|gps|light|lock';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "injury_triathlon_came_off" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='(?:crashed|fell';assert s.count(o)==1;p.write_text(s.replace(o,'(?:crashed|came.off|fell'))"
+mutate "injury_barbell_weight" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='weight(?!';assert s.count(o)==1;p.write_text(s.replace(o,'weight(?=|'))"
+mutate "injury_joint_pain_dropped" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='nordicInjury + jointPain + [';assert s.count(o)==1;p.write_text(s.replace(o,'nordicInjury + ['))"
+mutate "injury_joint_soreness" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift');s=p.read_text();o='after|since|from|yesterday';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "rhythm_de_herzklopfen" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='unregelm[äa][ßs]iger';assert s.count(o)==1;p.write_text(s.replace(o,'herzklopfen|unregelm[äa][ßs]iger'))"
+mutate "rhythm_fr_artefact" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='battements?';assert s.count(o)==1;p.write_text(s.replace(o,'battements?|battement'))"
+mutate "rhythm_skipping_beats" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:skipped|skipping|skip)';assert s.count(o)==1;p.write_text(s.replace(o,'skipped?'))"
+mutate "breath_it_affanno" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?<!in';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzqin'))"
+mutate "breath_nl_benauwd" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='benauwdheid';assert s.count(o)==1;p.write_text(s.replace(o,'benauwd(?:heid)?'))"
+mutate "breath_da_tungpustet" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:er|blir|bliver)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:er|blir|bliver|var)'))"
+mutate "breath_sv_past" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='(?<!var';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzqvar'))"
+mutate "breath_ru_past" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='(?<!было';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzqбыло'))"
+mutate "breath_ja_can_breathe" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='息ができな';assert s.count(o)==1;p.write_text(s.replace(o,'息ができ'))"
+mutate "breath_ko_past" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='숨쉬기 힘들(?!었)';assert s.count(o)==1;p.write_text(s.replace(o,'숨쉬기 힘들'))"
+mutate "breath_es_swim" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='cuando';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "syncope_faint_adjective" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='twinge|ache|pain|soreness|praise';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "syncope_might_faint" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='|might|may|could|will)';assert s.count(o)==1;p.write_text(s.replace(o,')'))"
+mutate "syncope_screen_blackout" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?<!screen';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzqscreen'))"
+mutate "syncope_passed_out_handout" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:the|some|flyers|water|bottles|gels|snacks|medals)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq)'))"
+mutate "syncope_fr_vanished" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='[ée]vanouissements?';assert s.count(o)==1;p.write_text(s.replace(o,'[ée]vanou[a-z]*'))"
+mutate "syncope_nl_pace_collapsed" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+Spoken.swift');s=p.read_text();o='|ze';assert s.count(o)==1;p.write_text(s.replace(o,'|tempo|ze'))"
+mutate "arrhythmia_ja_respiratory" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?<!呼吸性)';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+mutate "arrhythmia_ru_respiratory" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?<!дыхательная';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzq'))"
+mutate "stroke_zh_medium_risk" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='中风(?!险)';assert s.count(o)==1;p.write_text(s.replace(o,'中风'))"
+mutate "stroke_ru_oblique" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='инсульт(?:а|е|у|ом|ы)?';assert s.count(o)==1;p.write_text(s.replace(o,'инсульт'))"
+mutate "self_harm_de_deprive" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift');s=p.read_text();o='(?:den|die|das|mein';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq'))"
+mutate "self_harm_ru_plan" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift');s=p.read_text();o='умереть|покончить';assert s.count(o)==1;p.write_text(s.replace(o,'умереть|покончить|покончить'))"
+mutate "self_harm_pt_social" "EmuquTests/MedicalQueryGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift');s=p.read_text();o='vida(?!';assert s.count(o)==1;p.write_text(s.replace(o,'vida(?=|'))"
+mutate "verdict_low_blood_sugar" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift');s=p.read_text();o='(?<!preventing';assert s.count(o)==1;p.write_text(s.replace(o,'(?<!zzq'))"
+mutate "verdict_recovery_day" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift');s=p.read_text();o='(?:day|days|run|runs|ride';assert s.count(o)==1;p.write_text(s.replace(o,'(?:days|run|runs|ride'))"
+mutate "verdict_de_echte_erholung" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift');s=p.read_text();o='(?<!plane';assert s.count(o)==1;p.write_text(s.replace(o,'echte|(?<!plane'))"
+mutate "certainty_fi_score_copy" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:yl[äa]|ala)puolella';assert s.count(o)==1;p.write_text(s.replace(o,'zzq'))"
+mutate "certainty_ru_explicitly" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:ли|л|ла)';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq)'))"
+mutate "cure_de_heal" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='heilmittel';assert s.count(o)==1;p.write_text(s.replace(o,'heilen|heilmittel'))"
+mutate "prescription_en_pace" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:pace|workout|session|intensity';assert s.count(o)==1;p.write_text(s.replace(o,'(?:zzq|workout|session|intensity'))"
+mutate "prescription_nl_instructions" "EmuquTests/CoachVoiceGuardTests" "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='(?:arts|dokter|huisarts)s?voorschrift';assert s.count(o)==1;p.write_text(s.replace(o,'voorschrift'))"
 
 mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \

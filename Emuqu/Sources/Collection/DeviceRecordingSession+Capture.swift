@@ -134,7 +134,7 @@ extension DeviceRecordingSession {
     /// review, and presented for acceptance.
     func assembleDownloadedSession(_ recording: StrapRecording, placement: DownloadPlacement) async -> HRVSession {
         let devicePoints = recording.points(onClockOf: placement.startDate)
-        backupRawData(devicePoints, sessionId: placement.sessionId, startDate: placement.startDate)
+        keepDownloadedBeats(devicePoints, of: recording, placement: placement)
         guard devicePoints.count >= DataSourceSelector.minimumValidBeats else {
             debugLog("[RRCollector] Downloaded recording holds \(devicePoints.count) beats — too few to analyse")
             return await makeFailedSession(from: placement.failedBase, error: RRCollector.CollectorError.insufficientData)
@@ -146,6 +146,20 @@ extension DeviceRecordingSession {
         // Discard leaves it exactly as it was.
         if !archive.store.exists(session.id) { morning.archiveForReview(session) }
         return session
+    }
+
+    /// The session's backup takes the downloaded beats; one it will not take
+    /// (it would replace a larger backup) goes to a rescue backup of its own
+    /// (`StrapRecordingState.rescueToBackup`). The recording goes on the saved
+    /// record only once one of them is on disk, so an app killed before then,
+    /// or two failed writes, leave the strap's copy recoverable.
+    private func keepDownloadedBeats(_ devicePoints: [RRPoint], of recording: StrapRecording, placement: DownloadPlacement) {
+        guard !devicePoints.isEmpty else { return }
+        if backupRawData(devicePoints, sessionId: placement.sessionId, startDate: placement.startDate) {
+            strapRecorder.device.noteSaved(recording)
+        } else if !strapRecorder.device.rescueToBackup(recording) {
+            debugLog("[RRCollector] The downloaded beats are on no backup; the strap keeps its copy", level: .error)
+        }
     }
 
     /// The device recording is the base; an archived night's beats only fill
@@ -193,7 +207,7 @@ extension DeviceRecordingSession {
         let analyzingSession = await beginAnalyzingSession(placement: placement, series: series)
         let flags = artifactDetector.detectArtifacts(in: series)
         let verifyResult = verification.verify(series, flags: flags)
-        let sleepContext = await fetchSleepContext(sessionStart: series.startDate, recordingEnd: analyzingSession.endDate ?? Date())
+        let sleepContext = await sleepContext(for: placement, series: series, recordingEnd: analyzingSession.endDate ?? Date())
         await morning.fetchTrainingLoadIfEnabled()
         let windowResult = windowSelector.findBestWindowWithCapacity(
             in: series, flags: flags,
@@ -230,10 +244,11 @@ extension DeviceRecordingSession {
 
     /// When the recording's last beat ended, never later than now. The beats
     /// are on the session's clock (a recording armed after the session began
-    /// is shifted later by the gap), so the end counts from the session start.
+    /// is shifted later by the gap), so the end counts from the session start,
+    /// on the real clock where the beats carry one: an optical recording's
+    /// rejected intervals take time but leave no beat (`StrapRecording.endedAt`).
     static func lastBeatDate(of series: RRSeries) -> Date {
-        guard let last = series.points.last else { return Date() }
-        let end = series.startDate.addingTimeInterval(Double(last.endMs) / 1000)
+        guard let end = series.points.lastBeatEnd(after: series.startDate) else { return Date() }
         return min(end, Date())
     }
 
@@ -373,8 +388,9 @@ extension DeviceRecordingSession {
     }
 
     /// Backup raw RR data immediately (non-fatal on failure)
-    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) {
-        guard !points.isEmpty else { return }
+    @discardableResult
+    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) -> Bool {
+        guard !points.isEmpty else { return false }
         do {
             try rawBackup.backup(
                 points: points,
@@ -382,12 +398,41 @@ extension DeviceRecordingSession {
                 deviceId: strapLink.connectedDeviceId,
                 captureDate: startDate
             )
+            return true
         } catch {
             debugLog("[RRCollector] Warning: Failed to backup raw RR data: \(error)", level: .warning)
+            return false
         }
     }
 
     // MARK: - Sleep, training load and analysis
+
+    /// The sleep window the recording is analysed in. An archived night whose
+    /// sleep the user set by hand keeps that sleep through the swap
+    /// (`carryForwardExistingMetadata`), so its window is chosen inside the
+    /// user's sleep window, re-counted from this recording's start: Health's
+    /// window would leave the stored boundaries and the analysis describing
+    /// another sleep than the one kept and shown.
+    func sleepContext(for placement: DownloadPlacement, series: RRSeries, recordingEnd: Date) async -> SleepBoundaryContext {
+        if let existing = placement.existing, existing.sleepUserAdjusted == true,
+           let kept = Self.userSleepContext(of: existing, onto: series.startDate) {
+            return kept
+        }
+        return await fetchSleepContext(sessionStart: series.startDate, recordingEnd: recordingEnd)
+    }
+
+    /// `existing`'s own sleep window counted from `start`; nil when it has none.
+    static func userSleepContext(of existing: HRVSession, onto start: Date) -> SleepBoundaryContext? {
+        guard existing.sleepStartMs != nil || existing.sleepEndMs != nil else { return nil }
+        let offset = MillisecondOffset.between(existing.startDate, and: start, fallback: 0)
+        var context = SleepBoundaryContext()
+        context.sleepStartMs = existing.sleepStartMs.map { $0 + offset }
+        context.wakeTimeMs = existing.sleepEndMs.map { $0 + offset }
+        context.sleepSegments = existing.sleepSegments?.map {
+            HRVSession.SleepSegmentMs(startMs: $0.startMs + offset, endMs: $0.endMs + offset)
+        }
+        return context
+    }
 
     /// Sleep boundaries from HealthKit for window selection, over the
     /// recording's own span.

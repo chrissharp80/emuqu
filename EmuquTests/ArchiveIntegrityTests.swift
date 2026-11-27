@@ -758,6 +758,32 @@ extension ArchiveIntegrityTests {
         XCTAssertEqual(askedHealth, [removable.id])
     }
 
+    /// A night deleted forever takes the recordings folded into it with it:
+    /// their backups go, and Apple Health is asked to remove what each
+    /// exported under its own id, so none of the night's beats stay on the
+    /// device under an old id.
+    @MainActor
+    func testDeletingANightForeverDeletesWhatWasFoldedIntoIt() async throws {
+        let (service, _) = trashService()
+        let night = createTestSession()
+        _ = try archive.archive(night)
+        let folded = UUID()
+        archive.archiveLock.withLock { archive.state.recordFold(of: folded, into: night.id) }
+        let beats = (0 ..< 300).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: 1000) }
+        _ = try service.rawBackup.backup(points: beats, sessionId: folded)
+        try archive.delete(night.id)
+        var askedHealth: Set<UUID> = []
+
+        let outcome = await service.permanentlyDelete([night.id]) { id, _ in
+            askedHealth.insert(id)
+            return true
+        }
+
+        XCTAssertEqual(outcome, TrashDeletionOutcome())
+        XCTAssertNil(service.rawBackup.backedUpBeatCount(folded), "a recording folded into the night kept its beats")
+        XCTAssertEqual(askedHealth, [night.id, folded])
+    }
+
     /// The route a workout filed in the trail history goes with it; another
     /// workout's trail and a Get Me Back trail stay.
     @MainActor

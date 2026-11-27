@@ -122,6 +122,23 @@ final class RedactionPatternTests: XCTestCase {
         XCTAssertEqual(DebugLogger.scrubPHI("weight 72 kg"), "weight <redacted> kg")
     }
 
+    /// Timing, microphone level and text lengths stay readable for triage;
+    /// health values with a similar shape still go.
+    func testScrubPHIKeepsDiagnosticNumbers() {
+        let rows: [(line: String, scrubbed: String)] = [
+            ("finalizing turn, transcript=42 chars", "finalizing turn, transcript=42 chars"),
+            ("buffer received (rms=0.0123)", "buffer received (rms=0.0123)"),
+            ("finalizeSession done (elapsed=1.42s)", "finalizeSession done (elapsed=1.42s)"),
+            ("totalElapsed=2.1s inputTokens=1234", "totalElapsed=2.1s inputTokens=1234"),
+            ("heartRate=72", "heartRate=<redacted>"),
+            ("total=412min", "total=<redacted>"),
+            ("duration=3600s", "duration=<redacted>")
+        ]
+        for row in rows {
+            XCTAssertEqual(DebugLogger.scrubPHI(row.line), row.scrubbed, row.line)
+        }
+    }
+
     func testLastKeyWordSplitsCamelAndSnakeCase() {
         XCTAssertEqual(DebugLogger.lastKeyWord("beatCount"), "count")
         XCTAssertEqual(DebugLogger.lastKeyWord("rr_points"), "points")

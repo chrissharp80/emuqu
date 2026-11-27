@@ -134,6 +134,16 @@ enum SleepRefreshPolicy {
         }
     }
 
+    /// `applyAutoRefresh` on the copy as stored at the write, when that copy
+    /// still allows an automatic refresh (`autoSleepRefreshAllowed`). False,
+    /// with the copy unchanged, when it does not: a sleep the user edited
+    /// while Health was being read is the source of truth and stays.
+    static func applyAutoRefreshIfAllowed(_ fresh: SleepData, to session: inout HRVSession) -> Bool {
+        guard autoSleepRefreshAllowed(for: session) else { return false }
+        applyAutoRefresh(fresh, to: &session)
+        return true
+    }
+
     /// The snapshot is always updated when the new data is an improvement —
     /// even if the rescore threshold isn't met, the displayed sleep should
     /// reflect what HK actually has.

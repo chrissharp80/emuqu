@@ -261,8 +261,8 @@ No sweeping rewrites, no "while I'm here" changes, no new abstraction that
 doesn't delete more complexity than it adds, no new global/hidden state, no new
 magic numbers. Hold every change to the [Refactor Completion Checklist](REFACTOR_SPEC.md#refactor-completion-checklist-hard-gate).
 CI measures only part of it: `scripts/check_refactor_spec_conformance.sh` checks
-function, property and init length, nesting depth, commented-out code and empty
-catches, and other gates own `try?`, `.shared` and log redaction. Magic numbers
+function, operator, property, observer, init and deinit length, nesting depth,
+commented-out code and empty catches (on the watch target too), and other gates own `try?`, `.shared` and log redaction. Magic numbers
 are not checked by any gate (`.swiftlint.yml` does not enable `no_magic_numbers`),
 nor are the judgement items, so review is what holds them.
 
@@ -1023,8 +1023,9 @@ that device (`BroadcasterDisclosure`, kept out of the iCloud settings backup).
 redacts every named value whose key is not on a short allow-list of counts and
 identifiers, so a new key is covered without anyone naming it. The scrubber
 cannot recognise free text or place names, so those never reach a log call:
-`make log-redaction-guard` fails on a query, transcript or prompt, a street,
-city or saved-route name, or a coordinate interpolated into one, and the call
+`make log-redaction-guard` fails on a query, transcript or prompt (lowercased
+or trimmed too), a street, city or saved-route name, or a coordinate or
+location interpolated into one or joined on with `+`, and the call
 logs a length, a count or whether a name was found instead. The CSV, GPX,
 TCX, report-PDF, log and crash exports are written through `ExportFile` (§5.5a)
 with complete file protection. The conversation summary is sealed beside the
@@ -1335,7 +1336,8 @@ bash scripts/check_refactor_spec_conformance.sh
     orphan-Swift guard.
   - **Job 2 `strict-concurrency`** — proves every build configuration is in
     Swift 6 language mode with `SWIFT_STRICT_CONCURRENCY = complete` and that
-    warnings are errors. The compiler is the gate; this job only makes sure
+    warnings are errors in every Debug and Release build of the app and the
+    watch app. The compiler is the gate; this job only makes sure
     nobody switches it off. Seconds on Ubuntu, no build.
   - **Job 3 `thread-sanitizer`** — the unit suite under TSan. The only thing
     that can show the `@unchecked Sendable` / `nonisolated(unsafe)` escapes

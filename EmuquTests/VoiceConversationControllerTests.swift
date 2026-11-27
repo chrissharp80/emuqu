@@ -90,6 +90,107 @@ final class VoiceConversationControllerTests: XCTestCase {
         XCTAssertEqual(controller.state, .listening)
         XCTAssertEqual(controller.assistantViewModel.turns.count, turnsBefore, "the old text is not sent")
     }
+
+    // MARK: - Confirmation question
+
+    /// A reply that ends with the app's confirmation question
+    /// (`ChatTurn.confirmationPrompt`) has the question spoken after it,
+    /// word for word: a voice user sees no chat bubble, so otherwise their
+    /// "yes" would answer a question they never heard.
+    func testTheAppsConfirmationQuestionIsSpokenAfterTheReply() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VoiceConfirmationTests-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+        let dependencies = AppDependencies()
+        dependencies.overrides.assistantViewModel = viewModel
+        let controller = VoiceConversationController(services: VoiceServices(dependencies))
+        defer { controller.stopSynthesizer() }
+        var reply = ChatTurn(role: .assistant, text: "I can clear your saved memory.")
+        reply.confirmationPrompt = "Delete all 3 saved memory facts?"
+        viewModel.turns = [ChatTurn(role: .user, text: "Clear my memory"), reply]
+        controller.activeAssistantIndex = 1
+        controller.currentResponseText = reply.text
+
+        controller.audio.finishResponseFromAssistant()
+
+        XCTAssertEqual(controller.currentResponseText, "I can clear your saved memory. Delete all 3 saved memory facts?")
+    }
+
+    /// The question counts as asked only when its line plays to the end. A
+    /// line stopped part way (a workout alert preempting it) or cancelled
+    /// leaves the request undelivered, so a "yes" after it confirms nothing.
+    func testOnlyAConfirmationLineThatPlayedToTheEndDeliversTheQuestion() {
+        let (controller, viewModel) = confirmationController()
+        defer { controller.stopSynthesizer() }
+        controller.audio.finishResponseFromAssistant()
+        guard let line = controller.spokenConfirmation?.utterance else { return XCTFail("the question was not queued") }
+
+        controller.stopSynthesizer()
+        controller.confirmationLineEnded(ObjectIdentifier(line), finished: true)
+        XCTAssertEqual(viewModel.actionConfirmations.pending?.delivered, false, "a stopped line delivered the question")
+
+        controller.activeAssistantIndex = 1
+        controller.audio.finishResponseFromAssistant()
+        guard let replayed = controller.spokenConfirmation?.utterance else { return XCTFail("the question was not queued") }
+        controller.confirmationLineEnded(ObjectIdentifier(replayed), finished: false)
+        XCTAssertEqual(viewModel.actionConfirmations.pending?.delivered, false, "a cancelled line delivered the question")
+
+        controller.activeAssistantIndex = 1
+        controller.audio.finishResponseFromAssistant()
+        guard let finished = controller.spokenConfirmation?.utterance else { return XCTFail("the question was not queued") }
+        controller.confirmationLineEnded(ObjectIdentifier(finished), finished: true)
+        XCTAssertEqual(viewModel.actionConfirmations.pending?.delivered, true)
+    }
+
+    /// A voice controller speaking a reply that asked to clear memory, its
+    /// question shown under the reply but not yet spoken.
+    private func confirmationController() -> (VoiceConversationController, AssistantViewModel) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VoiceConfirmationTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the folder is temporary and may never have been created.
+            }
+        }
+        let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+        let dependencies = AppDependencies()
+        dependencies.overrides.assistantViewModel = viewModel
+        let controller = VoiceConversationController(services: VoiceServices(dependencies))
+        viewModel.turns = [ChatTurn(role: .user, text: "Clear my memory"), ChatTurn(role: .assistant, text: "I can clear it.")]
+        _ = viewModel.actionConfirmations.evaluate(action: "assistant.memory.clear", target: "all", question: "Delete all 3 saved memory facts?", turns: viewModel.turns)
+        viewModel.actionConfirmations.showPending(in: &viewModel.turns, spokenReply: true)
+        controller.activeAssistantIndex = 1
+        return (controller, viewModel)
+    }
+
+    /// A reply with no question speaks only the reply.
+    func testAReplyWithoutAQuestionSpeaksNothingMore() {
+        let controller = VoiceConversationController(services: VoiceServices(AppDependencies()))
+        defer { controller.stopSynthesizer() }
+        controller.activeAssistantIndex = nil
+        controller.currentResponseText = "Your HRV is 52 ms."
+
+        controller.audio.finishResponseFromAssistant()
+
+        XCTAssertEqual(controller.currentResponseText, "Your HRV is 52 ms.")
+    }
 }
 
 /// A transcription that returns only when the test releases it.

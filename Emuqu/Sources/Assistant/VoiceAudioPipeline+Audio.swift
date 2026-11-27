@@ -459,7 +459,7 @@ extension VoiceAudioPipeline {
     /// "Recent Problems") AND shows a short user-facing banner. If the guard
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
-        if controller.looksLikeEcho(of: transcript) {
+        if controller.looksLikeEcho(of: transcript), !answersHeardConfirmation(transcript) {
             debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
             controller.services.assistantInbox.flashTransientNotice(String(
                 localized: "Voice input matched the AI's last reply — likely echo. Tap to retry.",
@@ -472,6 +472,14 @@ extension VoiceAudioPipeline {
         debugLog("[VoiceConv] 🔁 medical-refusal echo trap — dropping a transcript of \(transcript.count) characters that re-triggers a refusal already on screen", level: .warning)
         reArmListening()
         return true
+    }
+
+    /// A plain yes or no to a confirmation question the user has heard to
+    /// the end is their answer, not echo, even when the reply above the
+    /// question used the same word.
+    private func answersHeardConfirmation(_ transcript: String) -> Bool {
+        guard let pending = controller.assistantViewModel.actionConfirmations.pending, pending.delivered else { return false }
+        return VoiceEchoHeuristics.answersConfirmation(transcript, question: pending.question)
     }
 
     /// Medical-refusal echo trap. The canned AFib / arrhythmia
@@ -786,8 +794,7 @@ extension VoiceAudioPipeline {
 
     @MainActor
     func finishResponseFromAssistant() {
-        if let remainder = controller.textChunker.finalize() { controller.speak(remainder) }
-        speakErrorRecoveryLineIfNeeded()
+        speakResponseTail()
         // Tear the subscriptions down — they'll re-arm next time the user
         // finalises a turn. Keeping them live would cause us to react to
         // typed turns the user makes from the chat input bar.
@@ -806,6 +813,39 @@ extension VoiceAudioPipeline {
         if controller.state == .speaking, !controller.synthesizer.isSpeaking, controller.llmTask == nil {
             controller.finishResponseSpeech()
         }
+    }
+
+    /// What is left to say when the reply ends: the unfinished last
+    /// sentence, the app's confirmation question, or the recovery line when
+    /// the reply failed with nothing said.
+    @MainActor
+    private func speakResponseTail() {
+        if let remainder = controller.textChunker.finalize() { controller.speak(remainder) }
+        speakConfirmationQuestionIfShown()
+        speakErrorRecoveryLineIfNeeded()
+    }
+
+    /// The app's own question for an action the assistant asked to take
+    /// (`AssistantActionConfirmations.showPending`), spoken after the reply
+    /// it was shown under. A voice user sees no chat bubble (the workout
+    /// screens show none at all), and a "yes" may only answer a question the
+    /// user was actually asked, in the app's exact wording rather than the
+    /// model's. The question is already in the app language, so it is
+    /// spoken as a scripted line in that language's voice. It joins
+    /// `currentResponseText`, which the barge-in echo check compares the
+    /// microphone against while it plays. The request can be confirmed only
+    /// once this line has played to the end
+    /// (`VoiceConversationController.confirmationLineEnded`); a reply voice
+    /// detached from (a workout alert preempting it) never speaks it, so its
+    /// request lapses.
+    @MainActor
+    func speakConfirmationQuestionIfShown() {
+        let turns = controller.assistantViewModel.turns
+        guard let idx = controller.activeAssistantIndex, turns.indices.contains(idx),
+              turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt else { return }
+        controller.currentResponseText += (controller.currentResponseText.isEmpty ? "" : " ") + question
+        guard let line = controller.speak(question, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) else { return }
+        controller.spokenConfirmation = (utterance: line, turnID: turns[idx].id)
     }
 
     /// Voice-mode network / API failure

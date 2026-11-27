@@ -116,4 +116,58 @@ final class HRRCaptureServiceTests: XCTestCase {
     func testAZeroDropIsKept() {
         XCTAssertEqual(HRRCaptureService.withoutRises([sample(offset: 60, drop: 0)]).count, 1)
     }
+
+    // MARK: - Heart rate at Stop
+
+    /// A strap silent for two minutes before Stop leaves its last rate in
+    /// the samples. Recovery measured from it would be a fall that happened
+    /// while nothing was measuring, so there is no stop rate and no capture.
+    @MainActor
+    func testAStaleLastHeartRateGivesNoStopRate() {
+        let stop = Date()
+        let hr = WorkoutRecorder.heartRateAtStop(
+            live: nil, lastSampled: 172, lastReadingAt: stop.addingTimeInterval(-120), stopDate: stop, now: stop
+        )
+        XCTAssertEqual(hr, 0)
+        XCTAssertEqual(
+            WorkoutRecorder.heartRateAtStop(live: 172, lastSampled: 172, lastReadingAt: nil, stopDate: stop, now: stop), 0,
+            "no source ever sent a reading"
+        )
+    }
+
+    /// A reading inside the window is the rate at Stop: the live one, else
+    /// the last sampled one.
+    @MainActor
+    func testAFreshHeartRateIsTheStopRate() {
+        let stop = Date()
+        XCTAssertEqual(
+            WorkoutRecorder.heartRateAtStop(live: 165, lastSampled: 160, lastReadingAt: stop.addingTimeInterval(-1), stopDate: stop, now: stop), 165
+        )
+        XCTAssertEqual(
+            WorkoutRecorder.heartRateAtStop(live: nil, lastSampled: 160, lastReadingAt: stop.addingTimeInterval(-3), stopDate: stop, now: stop), 160
+        )
+        XCTAssertEqual(
+            WorkoutRecorder.heartRateAtStop(
+                live: 150, lastSampled: 150, lastReadingAt: stop.addingTimeInterval(-WorkoutRecorder.stopHRMaxAgeSec), stopDate: stop, now: stop
+            ),
+            150
+        )
+    }
+
+    /// A Watch End queued out of range reaches the phone after the tap. The
+    /// rate on display then is the rate at arrival, not at the tap, and the
+    /// minute after the tap is long gone: no stop rate, no capture.
+    @MainActor
+    func testAStopDatedEarlierThanArrivalGivesNoStopRate() {
+        let now = Date()
+        let tap = now.addingTimeInterval(-40 * 60)
+        XCTAssertEqual(
+            WorkoutRecorder.heartRateAtStop(live: 150, lastSampled: 150, lastReadingAt: now, stopDate: tap, now: now), 0
+        )
+        XCTAssertEqual(
+            WorkoutRecorder.heartRateAtStop(live: 150, lastSampled: 150, lastReadingAt: now, stopDate: now.addingTimeInterval(-1), now: now),
+            150,
+            "a live Watch End arrives within a second of the tap and keeps its recovery"
+        )
+    }
 }

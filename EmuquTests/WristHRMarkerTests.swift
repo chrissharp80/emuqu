@@ -416,4 +416,26 @@ final class WorkoutTrackBackupTests: XCTestCase {
         PendingEncryptionLedger.record(id, in: .workoutTrack)
         return backup
     }
+
+    /// The pauses go into the backup as they begin and end, and come back
+    /// after a relaunch: one still open at the crash is there too.
+    func testPausesAreBackedUpAsTheyHappen() throws {
+        let backup = WorkoutTrackBackup(directory: directory, notificationCenter: notifications)
+        append(sampleRows(1 ... 3), to: backup)
+        var timeline = PauseTimeline()
+        timeline.pause(atElapsed: 600, now: start.addingTimeInterval(600))
+        backup.appendPauses(sessionId: id, events: timeline.events)
+        timeline.resume(now: start.addingTimeInterval(900))
+        timeline.pause(atElapsed: 1_000, now: start.addingTimeInterval(1_300))
+        backup.appendPauses(sessionId: id, events: timeline.events)
+
+        let relaunched = WorkoutTrackBackup(directory: directory, notificationCenter: notifications)
+        let events = try XCTUnwrap(relaunched.retrieve(id)).pauseEvents
+
+        XCTAssertEqual(events, timeline.events)
+        let restored = PauseTimeline.restored(from: events, endingAt: start.addingTimeInterval(1_500))
+        XCTAssertEqual(restored.spans, [
+            PauseTimeline.Span(atElapsed: 600, seconds: 300), PauseTimeline.Span(atElapsed: 1_000, seconds: 200)
+        ])
+    }
 }
