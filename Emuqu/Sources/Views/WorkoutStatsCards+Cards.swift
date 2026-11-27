@@ -631,7 +631,9 @@ extension WorkoutStatsCards {
             hrrNarrativeText(Self.hrrNarrative(drop: drop))
         } else if !captureFinished {
             hrrNarrativeText(String(localized: "Keep the strap on for about 2 minutes after Stop — your autonomic recovery rate is the HR drop at +1 min and +2 min. We'll fill this in automatically when the window closes.", bundle: LanguageManager.appBundle))
-        } else if hrrSamples == nil {
+        } else if hrrSamples == nil || (hrrSamples?.isEmpty == true && hrAtStop == nil) {
+            // With no heart rate at Stop the recorder does not run the
+            // capture at all, so the strap is not blamed for the window after.
             hrrNarrativeText(String(localized: "Heart rate recovery wasn't captured for this workout.", bundle: LanguageManager.appBundle))
         } else if hrrSamples?.isEmpty == true {
             hrrNarrativeText(String(localized: "HRR couldn't be captured — the strap or Watch wasn't reporting HR in the 60–120 s after stop. Wear it for a couple of minutes next time.", bundle: LanguageManager.appBundle))

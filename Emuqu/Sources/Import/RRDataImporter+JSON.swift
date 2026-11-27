@@ -69,7 +69,8 @@ extension RRDataImporter {
         }
         var recordingDate: Date?
         if let date = dict["date"] as? String ?? dict["timestamp"] as? String ?? dict["recordingDate"] as? String {
-            recordingDate = parseDate(date)
+            // The file holds one date, so that date decides its order.
+            recordingDate = parseDate(date, slashOrder: Self.slashDateOrder(of: [date]))
         }
         return (rrValues, metadata, recordingDate)
     }

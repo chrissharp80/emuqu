@@ -59,7 +59,7 @@ extension WorkoutRecorder {
         tearDownLiveWorkoutServices()
         let stopDate = Date()
         lifecycle.pauseTimeline.resume(now: stopDate)
-        let endHR = heartRateAtStop()
+        let endHR = heartRateAtStop(stopDate: stopDate)
         capture.collectedPoints = await gatherFinalRRPoints(stopDate: stopDate)
         cancelStrapSubscriptionsAfterStop()
         let finished = await runFinalize(
@@ -75,11 +75,38 @@ extension WorkoutRecorder {
     /// source of the 12 bpm threshold, takes the rate at peak exercise of a
     /// maximal test, which is where that test ends; after intervals and a
     /// cool-down the session maximum was minutes earlier, and recovery from
-    /// it read as an 80 bpm drop when the last minute fell 15. The live
-    /// reading, else the last sampled one; 0 (no reading) skips the capture.
-    private func heartRateAtStop() -> Int {
-        if let current = workoutHR.currentHR, current > 0 { return current }
-        return capture.workoutSamples.last(where: { $0.heartRate != nil })?.heartRate ?? 0
+    /// it read as an 80 bpm drop when the last minute fell 15.
+    private func heartRateAtStop(stopDate: Date) -> Int {
+        let readingTimes = [signals.lastStrapHRAt, capture.watchRouted.lastAt, watchBridge.latestWatchHRAt]
+        return Self.heartRateAtStop(
+            live: workoutHR.currentHR,
+            lastSampled: capture.workoutSamples.last(where: { $0.heartRate != nil })?.heartRate,
+            lastReadingAt: readingTimes.compactMap { $0 }.max(),
+            stopDate: stopDate
+        )
+    }
+
+    /// How old the newest heart-rate reading may be at Stop and still count
+    /// as the rate at Stop: the silence after which the recorder itself stops
+    /// treating the strap as live (`HRArbitration.wristFallbackSilenceSec`,
+    /// 10 s). The strap sends a reading about every second and the Watch's
+    /// wrist HR every few seconds, so a live source is always inside it; the
+    /// heart rate falls fastest in the first seconds after exercise, so a
+    /// reading much older than that is not the rate at Stop.
+    nonisolated static let stopHRMaxAgeSec: TimeInterval = WorkoutTicker.HRArbitration.wristFallbackSilenceSec
+
+    /// The rate at Stop: the live reading, else the last per-second sample
+    /// with one, but only while some source (the strap, the Watch-routed
+    /// strap, the Watch's wrist HR) sent a reading within `stopHRMaxAgeSec`
+    /// of Stop. Otherwise 0, which skips the capture: a recovery measured
+    /// from a rate the strap stopped sending minutes earlier is not one.
+    nonisolated static func heartRateAtStop(live: Int?, lastSampled: Int?, lastReadingAt: Date?, stopDate: Date) -> Int {
+        guard let lastReadingAt, stopDate.timeIntervalSince(lastReadingAt) <= stopHRMaxAgeSec else {
+            debugLog("[Recorder.stop] no heart rate within \(Int(stopHRMaxAgeSec)) s of Stop: heart-rate recovery is not measured")
+            return 0
+        }
+        if let live, live > 0 { return live }
+        return lastSampled ?? 0
     }
 
     /// Post-finalize housekeeping: battery accounting, breadcrumb archive,

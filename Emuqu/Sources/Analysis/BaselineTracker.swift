@@ -956,3 +956,41 @@ extension BaselineTracker {
         commitChanges()
     }
 }
+
+// MARK: - Nights not stored yet
+
+extension BaselineTracker {
+    /// The stored nights with sessions not stored yet merged in, by the rules
+    /// `update(with:sleepSchedule:)` applies, held apart from the tracker:
+    /// nothing in it is stored. A batch import scores each night against the
+    /// nights before it, the earlier nights of the batch included, before any
+    /// of them is written (`SessionImport`).
+    struct PendingNights {
+        fileprivate(set) var points: [BaselineDataPoint]
+    }
+
+    /// The stored nights, to merge sessions not stored yet into.
+    func pendingNights() -> PendingNights {
+        lock.lock()
+        defer { lock.unlock() }
+        return PendingNights(points: historicalData)
+    }
+
+    /// Merges `session` into `nights` as `update(with:sleepSchedule:)` merges
+    /// it into the stored nights: a reading of it already there goes, and it
+    /// joins its night's slot when it passes the baseline gates.
+    func admit(_ session: HRVSession, to nights: inout PendingNights, sleepSchedule: SleepSchedule) {
+        nights.points.removeAll { Self.isReading($0, of: session) }
+        guard let result = session.analysisResult, admitsToBaseline(session, result: result) else { return }
+        Self.mergeIntoNight(Self.dataPoint(session: session, result: result), into: &nights.points, sleepSchedule: sleepSchedule)
+    }
+
+    /// `recoveryBaselineStats(excludingNightOf:sleepSchedule:)` over `nights`
+    /// instead of the stored nights.
+    func recoveryBaselineStats(
+        excludingNightOf session: HRVSession, sleepSchedule: SleepSchedule, in nights: PendingNights
+    ) -> RecoveryBaselineStats? {
+        let night = sleepSchedule.nightKey(for: session.startDate)
+        return stats(from: nights.points.filter { sleepSchedule.nightKey(for: $0.date) < night }.sorted { $0.date < $1.date })
+    }
+}

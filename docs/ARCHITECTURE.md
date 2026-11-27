@@ -1381,7 +1381,11 @@ Post-summary and the epic α1 report live in
   retroactive repair. Fails loudly rather than silently falling back
   to GPS-noise math.
 - **HRRCaptureService** — three-tier fallback: strap, Watch HR samples,
-  HealthKit-computed HRR. Runs in a detached task after stop(). Strap
+  HealthKit-computed HRR. Runs in a detached task after stop(). Each drop
+  is measured from the HR at Stop (`WorkoutRecorder.heartRateAtStop`):
+  the live reading, else the last sampled one, only while a source sent
+  a reading within `stopHRMaxAgeSec` (10 s) of Stop; otherwise the stop
+  HR is 0 and the capture is skipped. Strap
   streaming is kept alive through the 120 s capture window, then
   closed, so Tier 1 has strap data to work with.
 - **LiveWorkoutBroker** — thread-safe snapshot publisher feeding the

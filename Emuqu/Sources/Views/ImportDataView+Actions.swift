@@ -143,7 +143,7 @@ extension ImportDataView {
         }
         session.analysisResult = analysisResult
         session.state = .complete
-        session.recoveryScore = nil // scored when saved, against the baseline, not here
+        session.recoveryScore = nil // scored by `SessionImport.save`, against the nights before it, not here
         logAnalysisSuccess(result: analysisResult)
         await presentResults(session)
     }
@@ -408,7 +408,7 @@ extension ImportDataView {
         logWindow(analysisResult)
         session.analysisResult = analysisResult
         session.state = .complete
-        session.recoveryScore = nil
+        session.recoveryScore = nil // scored by `SessionImport.saveBatch`, against the nights before it
         log("  SUCCESS: RMSSD=\(String(format: "%.1f", locale: LanguageManager.appLocale, analysisResult.timeDomain.rmssd))")
         return session
     }
