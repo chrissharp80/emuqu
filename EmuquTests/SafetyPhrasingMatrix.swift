@@ -65,6 +65,18 @@ enum SafetyPhrasingMatrix {
         case diagnosis, injuryRisk = "injury-risk", overtraining
     }
 
+    /// A claim only the output guard scrubs, by `scrubFromOutput` concept id.
+    enum OutputClaim: String, CaseIterable, Sendable {
+        case riskZoneFraming = "risk-zone-framing", medicalReferral = "medical-referral", symptomOfDisease = "symptom-of-disease"
+        case categoricalAutonomicState = "categorical-autonomic-state", physiologicalCertainty = "physiological-certainty"
+        case unsupportedMetricVerdict = "unsupported-metric-verdict"
+    }
+
+    /// A claim a negated clause exempts, by `disclaimableClaims` concept id.
+    enum DisclaimedClaim: String, CaseIterable, Sendable {
+        case regulatoryClearance = "regulatory-clearance", diagnosis, treatmentClaim = "treatment-claim"
+    }
+
     static let selfHarmRows: [Row<SelfHarmForm>] = selfHarmWestern + selfHarmNordic + selfHarmOther
     static let inputRows: [Row<InputForm>] = inputWestern + inputNordic + inputOther
     static let staticClaimRows: [Row<StaticClaim>] = staticClaimWestern + staticClaimNordic + staticClaimOther

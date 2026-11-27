@@ -20,6 +20,8 @@ final class SafetyPhrasingMatrixTests: XCTestCase {
         assertComplete(Matrix.selfHarmRows, name: "self-harm")
         assertComplete(Matrix.inputRows, name: "input guard")
         assertComplete(Matrix.staticClaimRows, name: "static copy")
+        assertComplete(Matrix.outputClaimRows, name: "output guard")
+        assertComplete(Matrix.disclaimerRows, name: "negated disclaimer")
     }
 
     /// The static-copy columns are exactly the concepts the copy linter runs.
@@ -80,6 +82,43 @@ final class SafetyPhrasingMatrixTests: XCTestCase {
         }
     }
 
+    /// The concepts only the output guard scrubs, in every language: each
+    /// phrasing is rewritten, and coaching in the same words is not.
+    func testEveryOutputOnlyClaimIsScrubbedInEveryLanguage() throws {
+        let concepts = try Dictionary(uniqueKeysWithValues: MedicalTermLexicon.scrubFromOutput.map {
+            ($0.id, try XCTUnwrap(MedicalTermLexicon.regex(for: $0)))
+        })
+        for row in Matrix.outputClaimRows {
+            for (claim, text) in row.phrasings {
+                XCTAssertTrue(Self.matches(try XCTUnwrap(concepts[claim.rawValue]), text), "[\(row.language)] \(claim.rawValue) missed: \(text)")
+                XCTAssertTrue(CoachVoiceGuard.scrub(text).didIntercept, "[\(row.language)] not rewritten: \(text)")
+            }
+            for text in row.negatives {
+                let hits = Matrix.OutputClaim.allCases.filter { concepts[$0.rawValue].map { Self.matches($0, text) } ?? false }
+                XCTAssertTrue(hits.isEmpty, "[\(row.language)] coaching rewritten as \(hits): \(text)")
+            }
+        }
+    }
+
+    /// A negated disclaimer names the clearance, diagnosis or treatment only
+    /// to deny it: the concept's words are there, the claim is not, and the
+    /// guard passes the sentence. A real claim beside a negation of something
+    /// else is still caught.
+    func testANegatedDisclaimerIsNotAClaimInEveryLanguage() throws {
+        for row in Matrix.disclaimerRows {
+            for (claim, text) in row.phrasings {
+                let concept = try XCTUnwrap(MedicalTermLexicon.disclaimableClaims.first { $0.id == claim.rawValue })
+                let regex = try XCTUnwrap(MedicalTermLexicon.regex(for: concept))
+                XCTAssertTrue(Self.matches(regex, text), "[\(row.language)] the cell does not name \(claim.rawValue): \(text)")
+                XCTAssertNil(MedicalTermLexicon.claimMatch(of: regex, concept: concept.id, in: text), "[\(row.language)] read as a claim: \(text)")
+                XCTAssertFalse(CoachVoiceGuard.scrub(text).didIntercept, "[\(row.language)] disclaimer rewritten: \(text)")
+            }
+            for text in row.negatives {
+                XCTAssertTrue(CoachVoiceGuard.scrub(text).didIntercept, "[\(row.language)] claim passed beside a negation: \(text)")
+            }
+        }
+    }
+
     private static func matches(_ regex: NSRegularExpression, _ text: String) -> Bool {
         regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
@@ -117,6 +156,18 @@ final class SafetyPhrasingMatrixTests: XCTestCase {
                 XCTAssertNotEqual(MedicalQueryGuard.classify(reply), .selfHarm, "[\(language)] \(reply)")
             }
         }
+    }
+
+    /// A crisis report that interrupts the reply is answered with the crisis
+    /// reply, not dropped with the transcript the interrupt clears.
+    func testACrisisFragmentThatInterruptsTheReplyIsAnswered() {
+        let controller = VoiceConversationController(services: VoiceServices(AppDependencies()))
+        controller.state = .speaking
+        controller.partialTranscript = "I want to end my life"
+        controller.interrupt(answering: "I want to end my life")
+        XCTAssertEqual(controller.assistantViewModel.turns.suffix(2).map(\.text), ["I want to end my life", MedicalQueryGuard.selfHarmReply])
+        XCTAssertEqual(controller.partialTranscript, "", "the fragment is answered, not left for the next turn")
+        controller.stop()
     }
 
     // MARK: - Flo switched off

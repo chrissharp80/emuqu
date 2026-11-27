@@ -479,9 +479,11 @@ extension VoiceConversationController {
         let newWords = Self.wordCount(partialTranscript) - bargeInBaselineWordCount
         guard newWords >= bargeInMinNewWords else { return }
         let candidate = String(partialTranscript.dropFirst(bargeInBaselineLength))
-        guard !isLikelyEchoOfCurrentResponse(candidate) else { return }
+        // A crisis or emergency report is never echo, and it is answered, not discarded.
+        let mustAnswer = VoiceEchoHeuristics.mustReachGuard(candidate, lastAssistantTurn: currentResponseText)
+        guard mustAnswer || !isLikelyEchoOfCurrentResponse(candidate) else { return }
         debugLog("[VoiceConv] 🛑 barge-in: \(newWords) new words decoded during sustained loud audio (\(String(format: "%.1f", Date().timeIntervalSince(lastSub)))s) — interrupting AI")
-        interrupt()
+        interrupt(answering: mustAnswer ? candidate : nil)
     }
 
     /// Thin wrappers over `VoiceEchoHeuristics`, which owns the tokeniser and
@@ -493,11 +495,9 @@ extension VoiceConversationController {
 
     /// Echo check specifically for in-flight TTS — compares against what the
     /// AI has STREAMED during the current turn, not what it said last turn.
-    /// A crisis or emergency report is never echo: it interrupts the reply.
     @MainActor
     func isLikelyEchoOfCurrentResponse(_ candidate: String) -> Bool {
-        guard !VoiceEchoHeuristics.mustReachGuard(candidate, lastAssistantTurn: currentResponseText) else { return false }
-        return VoiceEchoHeuristics.isEchoOfInFlightResponse(
+        VoiceEchoHeuristics.isEchoOfInFlightResponse(
             candidate: candidate,
             streamedSoFar: currentResponseText
         )

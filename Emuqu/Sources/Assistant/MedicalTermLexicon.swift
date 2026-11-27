@@ -501,10 +501,11 @@ enum MedicalTermLexicon {
             "zona\\s+di\\s+pericolo", "alto\\s+rischio",   // it
             "gefahrenzone", "hohes\\s+risiko",             // de
             "gevarenzone", "hoog\\s+risico",               // nl
-            "faresone", "farezone", "h[øo]j\\s+risiko", "h[øo]y\\s+risiko", // da, nb
-            "riskzon", "h[öo]g\\s+risk",                   // sv
-            "vaaravy[öo]hyke", "suuri\\s+riski",           // fi
-            "опасная\\s+зона", "высокий\\s+риск"           // ru
+            "faresone\\w*", "farezone\\w*", "h[øo]j\\s+risiko", "h[øo]y\\s+risiko", // da, nb
+            "riskzon\\w*", "h[öo]g\\s+risk",                   // sv
+            "vaaravy[öo]hyk\\w*", "suuri\\s+riski",           // fi
+            "опасн\\w+\\s+зон\\w*", "высок\\w+\\s+риск\\w*",   // ru
+            "h[æa]ttusv[æa][ðd]\\w*", "mikil\\s+h[æa]tta"           // is
         ],
         unbounded: ["危険ゾーン", "危险区", "高风险", "위험 구간", "منطقة الخطر"]
     )
@@ -701,8 +702,8 @@ extension MedicalTermLexicon {
             "consultare\\s+un\\s+medico", "rivolgersi\\s+a\\s+un\\s+medico", // it
             "(?:einen\\s+)?arzt\\s+aufsuchen", "zum\\s+arzt", "[äa]rztliche\\s+hilfe", // de
             "raadpleeg\\s+een\\s+arts", "een\\s+arts\\s+raadplegen", "naar\\s+de\\s+huisarts", // nl
-            "kontakt\\s+(?:en\\s+)?l[æa]ge", "s[øo]g\\s+l[æa]ge",     // da
-            "kontakt\\s+lege", "oppsøk\\s+lege",                      // nb
+            "kontakt\\s+(?:en\\s+)?l[æa]ge", "s[øo]ge?\\s+l[æa]ge",   // da
+            "kontakte?\\s+(?:en\\s+)?lege", "oppsøke?\\s+lege",       // nb
             "kontakta\\s+l[äa]kare", "uppsök\\s+l[äa]kare",           // sv
             "ota\\s+yhteytt[äa]\\s+l[äa][äa]k[äa]riin", "l[äa][äa]k[äa]riin", // fi
             "leita[ðd]u\\s+til\\s+l[æa]knis", "hafa\\s+samband\\s+vi[ðd]\\s+l[æa]kni", // is
@@ -724,6 +725,7 @@ extension MedicalTermLexicon {
             "symptom(?:er)?\\s+p[åa]\\s+(?:sygdom|sykdom)",     // da, nb
             "symtom\\s+p[åa]\\s+sjukdom",              // sv
             "sairauden\\s+oire(?:et|ita)?",            // fi
+            "einkenni\\s+(?:um\\s+)?sj[úu]kd[óo]m\\w*",  // is
             "симптом[ыа]?\\s+(?:болезни|заболевания)"  // ru
         ],
         unbounded: ["病気の症状", "疾病症状", "질병의 증상", "أعراض مرض"]
@@ -906,7 +908,7 @@ extension MedicalTermLexicon {
             "something\\s+significant\\s+is\\s+going\\s+on",
             "you(?:\\s+are|\\s*['’]re)\\s+(?:definitely|clearly|certainly)",
             "il\\s+se\\s+passe\\s+quelque\\s+chose\\s+d['’]important",
-            "vous\\s+[êe]tes\\s+(?:clairement|certainement|assur[ée]ment)",                  // fr
+            "(?:vous\\s+[êe]tes|tu\\s+es)\\s+(?:clairement|certainement|assur[ée]ment)",                  // fr
             "algo\\s+importante\\s+est[áa]\\s+(?:pasando|ocurriendo)",
             "est[áa]s\\s+(?:claramente|definitivamente|sin\\s+duda)",                        // es
             "algo\\s+importante\\s+est[áa]\\s+acontecendo",

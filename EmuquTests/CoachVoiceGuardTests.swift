@@ -902,8 +902,8 @@ extension CoachVoiceGuardTests {
     static let narrowedClaims = [
         "Sie könnten eine Infektion haben.", "Puede que tengas una infección.", "Podrías tener una infección.",
         "Você pode ter uma infecção.", "Potresti avere un'infezione.", "Du kan ha en infektion.", "У вас возможно инфекция.",
-        "You may have COVID.", "心房細動と診断されました。", "医生诊断你有心脏病。", "ليست تشخيصًا طبيًا لحالتك.",
-        "Ce n'est pas un diagnostic médical.", "This is true recovery.", "That is low blood sugar.",
+        "You may have COVID.", "心房細動と診断されました。", "医生诊断你有心脏病。", "هذا تشخيص طبي لحالتك.",
+        "C'est un diagnostic médical.", "This is true recovery.", "That is low blood sugar.",
         "Olet selvästi palautunut.", "Вы явно перетренированы.", "Das kann deine Krankheit heilen.",
         "Your doctor may prescribe medication.", "Dit is alleen op voorschrift verkrijgbaar.", "У вас признаки тахикардии.",
         "You may have a viral infection.", "Your doctor prescribed medication."

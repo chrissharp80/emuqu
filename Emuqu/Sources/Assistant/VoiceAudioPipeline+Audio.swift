@@ -501,6 +501,13 @@ extension VoiceAudioPipeline {
         return controller.echoOverlapRatio(transcript: transcript, against: reply) >= 0.4
     }
 
+    /// A crisis or emergency report that interrupted the reply: sent like a
+    /// finished turn, so the guard answers it and the answer is spoken.
+    func answerInterruptingFragment(_ fragment: String) {
+        debugLog("[VoiceConv] barge-in fragment of \(fragment.count) characters reaches the guard", level: .warning)
+        dispatchTranscript(fragment)
+    }
+
     /// Hand the transcript to the shared chat view model. It appends a user
     /// turn, kicks off the streaming send, and the chat UI updates the
     /// moment the assistant turn starts filling in.
