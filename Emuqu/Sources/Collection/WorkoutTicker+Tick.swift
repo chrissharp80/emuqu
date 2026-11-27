@@ -907,10 +907,14 @@ extension WorkoutTicker {
     }
 
     /// Tick stage — live HR + power push to the Zwift BLE broadcaster.
+    /// The setting is read each tick, so a broadcast whose setting went off
+    /// any way (the Settings switch, an iCloud settings restore) stops here.
     private func pushZwiftBroadcasterUpdate() {
         // Push live HR + power to the Zwift broadcaster (no-op when
         // user hasn't enabled it). One source of truth for both the
         // app's own analysis and any indoor-trainer game pairing.
+        let allowed = BroadcasterDisclosure.allowsBroadcast(settingEnabled: settingsProvider().enableZwiftBroadcast)
+        guard services.zwiftPeripheralBroadcaster.stopUnlessAllowed(allowed) else { return }
         services.zwiftPeripheralBroadcaster.update(
             heartRate: workoutHR.currentHR,
             powerWatts: motion.powerWatts

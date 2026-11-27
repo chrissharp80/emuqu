@@ -198,15 +198,15 @@ extension AssistantToolRunner {
         return try await recordResolutions(thisRound, round: round, state: &state)
     }
 
-    /// Tool calls run only while the provider that asked for them still has
-    /// data-sharing consent and is switched on. Web search, weather and
+    /// Tool calls run only while the AI Assistant is on and the provider that
+    /// asked for them still has data-sharing consent and is switched on. Web search, weather and
     /// route lookups send the model's arguments to outside services, so a
     /// withdrawal during the turn stops them as well as the next request.
     /// Checked before each batch and again after it; within the batch each
     /// call checks for itself (`toolRefusal`).
     private func requireConsentForTools(of provider: AIProvider) throws {
         try Self.requireConsentForTools(of: provider.id, consent: owner.services.providerConsentTracker)
-        guard owner.registry.isEnabled(provider.id) else {
+        guard owner.services.settingsManager.settings.enableAIAssistant, owner.registry.isEnabled(provider.id) else {
             debugLog("[Assistant] tool calls not run — \(provider.id.rawValue) was switched off", level: .warning)
             throw AIProviderError.consentWithdrawn(provider.id)
         }

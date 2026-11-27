@@ -322,7 +322,7 @@ enum HealthKitWorkoutExport {
     /// Whether a saved workout carries its heart rate: Apple Health export on,
     /// with its heart-rate switch on.
     static func writesHeartRate(with settings: UserSettings) -> Bool {
-        settings.enableHealthKitExport && settings.exportHeartRate
+        settings.exportsReading(\.exportHeartRate)
     }
 
     /// What goes into the workout's sample series besides the samples themselves.

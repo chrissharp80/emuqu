@@ -169,10 +169,11 @@ extension WorkoutSessionLifecycle {
 
     /// Publish to HealthKit as an HKWorkout so the session appears in
     /// Apple Fitness / Health and is visible to third-party apps
-    /// linked through HealthKit (TrainingPeaks, Athlytic, Zones).
-    /// Best-effort — if auth isn't granted or the API call fails,
-    /// the in-app session is canonical and unaffected.
+    /// linked through HealthKit (TrainingPeaks, Athlytic, Zones), when
+    /// "Export to Apple Health" is on. Best-effort: if auth isn't granted or
+    /// the API call fails, the in-app session is canonical and unaffected.
     func exportToHealthKitIfAvailable(_ session: HRVSession) {
+        guard services.settingsManager.settings.exportsToAppleHealth else { return }
         let healthStore = core.healthAccess.store
         let sampleStore = core.healthSampleStore
         let weight = settingsProvider().effectiveBodyWeightKg

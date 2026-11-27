@@ -46,12 +46,16 @@ final class HealthKitBackfill {
     ///
     /// First, before the watermark: a workout saved while the phone was
     /// locked has its earlier copies deleted (`PendingWorkoutReplacements`).
+    ///
+    /// Nothing is written while "Export to Apple Health" is off, and a pass
+    /// stops at the next workout once it is turned off, leaving the watermark
+    /// where it was so turning it on again scans the archive.
     @discardableResult
     func backfillWorkoutsToHealthKit(
         archive: SessionArchive,
         bodyWeightKg: Double
     ) async -> (exported: Int, skipped: Int, failed: Int) {
-        guard access.isAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
+        guard access.isAvailable, exportsNow, workoutWriteAuthorized else { return (0, 0, 0) }
         await PendingWorkoutReplacements.finish(in: sampleReplacer.store)
         let candidates = archive.store.entries.filter { $0.sessionType == .workout }
         let watermark = Self.backfillWatermark(candidates)
@@ -62,16 +66,18 @@ final class HealthKitBackfill {
         var tally = (exported: 0, skipped: 0, failed: 0)
         for entry in candidates {
             await Task.yield()
+            guard exportsNow else { return tally }
             await backfillOne(entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
         }
         // Advance the watermark only when nothing failed, so failed sessions
         // are retried next foreground (until the retry ceiling skips them).
-        if tally.failed == 0 {
-            UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey)
-        }
+        if tally.failed == 0 { UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey) }
         debugLog("[HealthKitManager] backfill complete — exported=\(tally.exported) skipped=\(tally.skipped) failed=\(tally.failed) of \(candidates.count) candidates")
         return tally
     }
+
+    /// "Export to Apple Health", read when asked.
+    private var exportsNow: Bool { access.settingsProvider().exportsToAppleHealth }
 
     /// Only proceed if the user has granted workout-write — otherwise every
     /// export throws and we'd burn battery.
@@ -83,15 +89,14 @@ final class HealthKitBackfill {
     ///
     /// `.warning`, not `debugLogExternal`: this has to reach the user-facing
     /// problems list. Logged as an external event it would stay invisible while
-    /// every workout fails to reach Apple Health — and the training load, which
-    /// is built only from HealthKit workouts, would be computed without them.
+    /// every workout fails to reach Apple Health.
     /// Once per launch, because backfill checks on every foreground.
     private var workoutWriteAuthorized: Bool {
         guard access.store.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
             if !hasReportedWorkoutWriteDenied {
                 hasReportedWorkoutWriteDenied = true
                 debugLog(
-                    "[HealthKitManager] Workouts can't be written to Apple Health — writing is off for Workouts. Turn it on in Settings → Health → Data Access & Devices → Emuqu. Until then workouts stay in Emuqu only and the training load will not include them.",
+                    "[HealthKitManager] Workouts can't be written to Apple Health — writing is off for Workouts. Turn it on in Settings → Health → Data Access & Devices → Emuqu. Until then workouts stay in Emuqu only.",
                     level: .warning
                 )
             }

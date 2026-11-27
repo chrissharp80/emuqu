@@ -293,8 +293,11 @@ extension CloudDeletionCoordinator {
     }
 
     /// A deletion for a record iCloud never had: written as a bare tombstone
-    /// so other devices still learn of it.
+    /// so other devices still learn of it. It adds a record, so it is written
+    /// only while uploads are allowed, read at the write: sync turned off
+    /// while deletions run leaves this one pending, like an abandoned sync.
     private func saveNewTombstone(_ sessionId: UUID, recordID: CKRecord.ID) async throws {
+        guard manager.cloudUploadsAllowed else { throw CloudAccountGuard.Halt.stopped }
         let record = CKRecord(recordType: manager.recordType, recordID: recordID)
         record["sessionId"] = sessionId.uuidString as CKRecordValue
         record["isDeleted"] = 1 as CKRecordValue

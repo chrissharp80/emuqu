@@ -85,6 +85,24 @@ final class ProviderConsentTrackerTests: XCTestCase {
         }
     }
 
+    /// Switching the AI Assistant off stops a request even to a provider
+    /// with consent: a summary, tool round or fallback after the switch
+    /// never connects.
+    func testARequestWithTheAssistantOffIsNotSent() async throws {
+        ProviderConsentTracker.shared.acknowledge(.anthropic)
+        let settingsManager = AppDependencies.current.app.settingsManager
+        let wasOn = settingsManager.settings.enableAIAssistant
+        settingsManager.settings.enableAIAssistant = false
+        defer { settingsManager.settings.enableAIAssistant = wasOn }
+        let request = URLRequest(url: try XCTUnwrap(URL(string: "https://127.0.0.1:9/v1/messages")))
+        do {
+            try await Self.open(request)
+            XCTFail("The request was sent with the AI Assistant off")
+        } catch let AIProviderError.consentWithdrawn(provider) {
+            XCTAssertEqual(provider, .anthropic)
+        }
+    }
+
     /// The tool gate refuses a provider without consent and lets Apple
     /// Intelligence, which needs none, through.
     func testTheToolGateRefusesAProviderWithoutConsent() throws {

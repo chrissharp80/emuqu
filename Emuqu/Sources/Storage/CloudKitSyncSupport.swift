@@ -426,13 +426,25 @@ final class CloudKitSettingsSync {
     }
 
     /// Why nothing may be pushed right now, or nil when a push may go ahead.
+    /// Read when a push starts and again right before each iCloud write, so
+    /// sync turned off while the push waits on the network writes nothing.
     private func pushSkipReason() -> String? {
         let settings = settingsManager.settings
-        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else {
+        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding, !PurgeGate.isPurging else {
             return String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle)
         }
         guard !schemaUnavailable else { return Self.schemaPausedMessage }
         return nil
+    }
+
+    /// Thrown right before an iCloud write once a push may no longer go
+    /// ahead (`pushSkipReason`).
+    private struct PushNoLongerAllowed: Error {
+        let reason: String
+    }
+
+    private func requirePushStillAllowed() throws {
+        if let reason = pushSkipReason() { throw PushNoLongerAllowed(reason: reason) }
     }
 
     private static var schemaPausedMessage: String {
@@ -481,6 +493,7 @@ final class CloudKitSettingsSync {
         }
         let editedAt = replacingNewer ? Date() : (localEditedAt ?? Date())
         CloudSettingsRecord.write(sealed, to: record, modifiedAt: editedAt)
+        try requirePushStillAllowed()
         _ = try await privateDB.save(record)
         if replacingNewer { UserDefaults.standard.set(editedAt, forKey: Self.localEditedAtKey) }
         return true
@@ -490,6 +503,10 @@ final class CloudKitSettingsSync {
     /// hasn't been promoted to production. Cancel the debounce so we don't
     /// fire again every 2 s on every settings tweak.
     private func handlePushFailure(_ error: Error) -> String {
+        if let stopped = error as? PushNoLongerAllowed {
+            status = .idle
+            return stopped.reason
+        }
         guard !CloudKitSyncManager.isPermanentSchemaError(error) else {
             schemaUnavailable = true
             debounceTask?.cancel()
@@ -564,6 +581,7 @@ final class CloudKitSettingsSync {
         if sessionSync.zoneCreated || sessionSync.lastSyncDate != nil {
             guard try await zoneExists(sessionSync.zoneID) else { throw CKError(.zoneNotFound) }
         }
+        try requirePushStillAllowed()
         _ = try await privateDB.save(CKRecordZone(zoneID: zoneID))
         UserDefaults.standard.set(true, forKey: Self.zoneCreatedKey)
     }

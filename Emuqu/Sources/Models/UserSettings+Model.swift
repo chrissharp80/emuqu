@@ -748,7 +748,9 @@ struct UserSettings: Codable, Equatable {
 
     // MARK: - Apple Health Export
 
-    /// Whether to automatically export HRV metrics to Apple Health after each session
+    /// "Export to Apple Health": whether Emuqu writes its readings and the
+    /// workouts it records to Apple Health. Writers read it through
+    /// `exportsToAppleHealth` and `exportsReading(_:)`, never directly.
     var enableHealthKitExport: Bool = false
 
     /// Export SDNN to Apple Health (as heartRateVariabilitySDNN)
@@ -944,6 +946,19 @@ enum HealthProfileField: String, Codable, CaseIterable {
 }
 
 extension UserSettings {
+    /// Whether anything new may be written to Apple Health now: the export
+    /// switch. Workouts, with their distance, energy and route, have no switch
+    /// of their own, so this alone gates them. Removing what Emuqu already
+    /// wrote is not a new write and is not gated.
+    var exportsToAppleHealth: Bool { enableHealthKitExport }
+
+    /// Whether one kind of reading (`\.exportSDNN`, `\.exportHeartRate`,
+    /// `\.exportRestingHeartRate`, `\.exportSleepData`) may be written now:
+    /// the export switch and that reading's own switch.
+    func exportsReading(_ reading: KeyPath<UserSettings, Bool>) -> Bool {
+        exportsToAppleHealth && self[keyPath: reading]
+    }
+
     /// These settings without the profile values filled from Apple Health, for
     /// the iCloud backup. The markers stay.
     func withoutHealthFilledProfile() -> UserSettings {

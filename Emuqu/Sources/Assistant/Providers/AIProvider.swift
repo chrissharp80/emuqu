@@ -895,10 +895,12 @@ struct AIProviderServices: Sendable {
     @MainActor
     var providerRegistry: ProviderRegistry { container.providers.providerRegistry }
 
-    /// Whether `provider` may receive a request now: it has data-sharing
-    /// consent and is not switched off in Settings → Flo.
+    /// Whether `provider` may receive a request now: the AI Assistant is on,
+    /// and the provider has data-sharing consent and is not switched off in
+    /// Settings → Flo.
     @MainActor
     func maySend(to provider: ProviderID) -> Bool {
-        !providerConsentTracker.requiresConsent(provider) && providerRegistry.isEnabled(provider)
+        settingsManager.settings.enableAIAssistant
+            && !providerConsentTracker.requiresConsent(provider) && providerRegistry.isEnabled(provider)
     }
 }

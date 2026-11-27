@@ -72,7 +72,7 @@ struct AppSettingsNamespace: FactNamespaceResolver {
     private var appSettingsHealthkitExportOnEntry: FactEntry {
         .fixed(
             key: "app.settings.healthkit_export_on",
-            description: "Whether Emuqu automatically writes HRV / sleep results back to Apple Health after each session.",
+            description: "Whether Emuqu automatically writes HRV, heart rate, sleep and the workouts it records to Apple Health.",
             valueType: "Bool"
         ) { .boolean(self.settings().enableHealthKitExport) }
     }

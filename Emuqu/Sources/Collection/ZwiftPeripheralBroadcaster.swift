@@ -119,6 +119,13 @@ final class ZwiftPeripheralBroadcaster: NSObject {
         clearSubscribers()
     }
 
+    /// Whether broadcasting is allowed; when it is not, a broadcast running
+    /// or waiting for the radio is stopped.
+    func stopUnlessAllowed(_ allowed: Bool) -> Bool {
+        if !allowed, wantsBroadcast || isAdvertising { stopBroadcasting() }
+        return allowed
+    }
+
     private func clearSubscribers() {
         subscribedCentrals.removeAll()
         subscriberCount = 0

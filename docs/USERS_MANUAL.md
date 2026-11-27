@@ -529,8 +529,8 @@ Why it matters:
   flat text dump and approximating.
 - **Bounded cost.** Your full archive is not uploaded on every send.
   Only the specific fields the model looks at cross the wire (and on
-  Apple Intelligence, nothing crosses the wire — everything stays on
-  the phone).
+  Apple Intelligence, none of them do; a place or directions lookup
+  still sends your position to Apple Maps or OpenStreetMap).
 
 Hard cap: 8 tool calls per question. If the model keeps retrying a bad
 argument it'll hit the cap, receive synthetic "missing" results, and
