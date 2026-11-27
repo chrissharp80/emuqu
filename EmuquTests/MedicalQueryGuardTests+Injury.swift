@@ -87,6 +87,62 @@ extension MedicalQueryGuardTests {
         XCTAssertEqual(MedicalQueryGuard.classify("I fell and now I have chest pain"), .symptom)
     }
 
+    /// Talk that shares an injury report's words: a verb that also means "go",
+    /// "run" or "ride", a fall that is a pace or a plan, a score that "fell"
+    /// (Arabic سقطت), an illness ("أنا مصاب بالزكام"), a triathlon transition,
+    /// a barbell, a noun in a general question, and soreness after a session.
+    func testInjuryLookalikesStillReachTheModel() {
+        for row in Self.injuryLookalikeRows {
+            XCTAssertNil(MedicalQueryGuard.classify(row.text), "[\(row.locale)] refused as an injury: \(row.text)")
+        }
+    }
+
+    /// The same words in the injury shape still get the injury reply, and so
+    /// does a joint that hurts now or gave way.
+    func testNarrowedInjuryReportsStillGetTheInjuryReply() {
+        for row in Self.narrowedInjuryReportRows {
+            XCTAssertEqual(MedicalQueryGuard.classify(row.text), .injury, "[\(row.locale)] expected the injury reply: \(row.text)")
+        }
+    }
+
+    static let injuryLookalikeRows: [Row] = [
+        ("en", "I fell off pace in the last mile"), ("en", "I fell off the plan this week"),
+        ("en", "I fell out of shape over the holidays"), ("en", "I fell into a rut"), ("en", "I fell down the rankings"),
+        ("en", "I had a fall in fitness after my vacation"), ("en", "When I came off the bike my legs were dead"),
+        ("en", "I can't put weight on the bar"), ("en", "I crashed my bike computer"),
+        ("en", "my legs hurt after intervals yesterday"), ("en", "my knee hurts after long runs"),
+        ("en", "my knee hurts when I run downhill"), ("en", "my calves are killing me"),
+        ("da", "jeg kan ikke gå til træning i dag"), ("nb", "jeg kan ikke gå på trening i dag"),
+        ("sv", "jag kan inte gå på passet ikväll"), ("nl", "ik kan niet lopen vandaag, ik moet werken"),
+        ("ru", "не могу идти на тренировку сегодня"), ("es", "no puedo andar en bici hoy"),
+        ("pt-BR", "não consigo andar de bike hoje"), ("fr", "je suis tombé sur une étude sur la VFC"),
+        ("fr", "je suis tombé malade la semaine dernière"), ("pt-BR", "eu caí no sono cedo"),
+        ("ar", "سقطت درجة التعافي اليوم"), ("ar", "نتيجتي سقطت بعد السباق"), ("ar", "أنا مصاب بالزكام هل أتمرن؟"),
+        ("ja", "疲労骨折がある"), ("ja", "疲労骨折の予防は？"), ("zh-Hans", "我有应力性骨折"), ("ko", "피로 골절이 있어요"),
+        ("es", "me duele la rodilla después de correr"), ("fr", "j'ai mal au genou après la course"),
+        ("de", "mein Knie tut nach dem Lauf weh"), ("it", "mi fa male il ginocchio dopo la corsa"),
+        ("pt-BR", "meu joelho está doendo depois do treino"), ("nl", "mijn knie doet pijn na het hardlopen"),
+        ("da", "jeg har ondt i knæet efter løbet"), ("sv", "jag har ont i knät efter passet"),
+        ("ru", "у меня болит колено после пробежки"), ("ja", "走った後に膝が痛い"),
+        ("zh-Hans", "跑完步后膝盖疼"), ("ko", "달리기 후에 무릎이 아파요"), ("ar", "ركبتي تؤلمني بعد الجري")
+    ]
+
+    static let narrowedInjuryReportRows: [Row] = [
+        ("en", "I fell down the stairs"), ("en", "I fell off my bike"), ("en", "I crashed my bike"),
+        ("en", "My knee hurts, should I push through it?"), ("en", "my ankle is killing me"),
+        ("en", "my knee gave way on the descent"),
+        ("da", "jeg kan ikke gå"), ("sv", "jag kan inte gå"), ("nl", "ik kan niet lopen"), ("nl", "ik kan niet meer lopen"),
+        ("ru", "не могу идти"), ("es", "no puedo caminar"), ("pt-BR", "não consigo andar"),
+        ("fr", "je suis tombé"), ("pt-BR", "eu caí"), ("ar", "سقطت"), ("ar", "سقطت من الدراجة"), ("ar", "أنا مصاب"),
+        ("ja", "足を骨折したかもしれない"), ("ja", "足首を捻挫した"), ("zh-Hans", "我的脚骨折了"), ("zh-Hans", "我扭伤了脚"),
+        ("ko", "다리가 골절된 것 같아요"),
+        ("es", "me duele la rodilla"), ("fr", "j'ai mal au genou"), ("de", "mein Knie tut weh"),
+        ("it", "mi fa male il ginocchio"), ("pt-BR", "meu joelho está doendo"), ("nl", "mijn knie doet pijn"),
+        ("da", "jeg har ondt i knæet"), ("nb", "jeg har vondt i kneet"), ("sv", "jag har ont i knät"),
+        ("fi", "polveen sattuu"), ("ru", "у меня болит колено"), ("ja", "膝が痛い"), ("zh-Hans", "膝盖很疼"),
+        ("ko", "무릎이 아파요"), ("ar", "ركبتي تؤلمني")
+    ]
+
     /// Non-diagnostic, and it names the emergency number before anything else
     /// a reader could act on.
     func testInjuryReplyPointsAtTheEmergencyNumberWithoutDiagnosing() {

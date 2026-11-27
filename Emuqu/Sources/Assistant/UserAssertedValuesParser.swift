@@ -47,6 +47,10 @@ enum UserCorrectionDetector {
         /// the user provides with a number.
         var assertedValues: [String: Double] = [:]
 
+        /// The unit the user gave with a pace or distance ("8:30 per mile",
+        /// "10 km"), as "mi", "km" or "m"; the rendered value keeps it.
+        var units: [String: String] = [:]
+
         /// The user said the dashboard differs from what we surfaced.
         /// Phrases: "dashboard actually says", "real numbers are",
         /// "the dashboard says", "you're wrong", and a sentence opening
@@ -117,7 +121,9 @@ enum UserCorrectionDetector {
     /// which makes a teaspoon/typo collision implausible in this context.
     private static let metricAliases: [String: String] = [
         "bsb": "tsb", "tsp": "tsb", "tbs": "tsb",
-        "atrl": "atl", "clt": "ctl", "acrw": "acwr"
+        "atrl": "atl", "clt": "ctl", "acrw": "acwr",
+        // The app's HRV is RMSSD, and "my HRV is 38" is how people say it.
+        "hrv": "rmssd"
     ]
 
     /// Words that also appear next to numbers the user is only quoting or
@@ -145,26 +151,46 @@ enum UserCorrectionDetector {
                 continue
             }
             remaining = found.remainder
-            if signals.assertedValues[metric] == nil {
-                signals.assertedValues[metric] = found.value
-            }
+            record(found, as: metric, into: &signals)
         }
         // Fold typo/transcription variants into their canonical metric, but
         // never overwrite a value the user stated with the correct spelling.
-        for (alias, canonical) in metricAliases where signals.assertedValues[canonical] == nil {
-            if let found = extractValue(for: alias, in: remaining) {
-                signals.assertedValues[canonical] = found.value
-            }
+        for (alias, canonical) in metricAliases {
+            if let found = extractValue(for: alias, in: remaining) { record(found, as: canonical, into: &signals) }
         }
     }
 
-    /// The text with every sentence that ends in a question mark removed.
+    /// Keeps the first value found for a metric (messages are read newest
+    /// first), with its unit when it has one.
+    private static func record(_ found: ExtractedValue, as metric: String, into signals: inout Signals) {
+        guard signals.assertedValues[metric] == nil else { return }
+        signals.assertedValues[metric] = found.value
+        if let unit = found.unit { signals.units[metric] = unit }
+    }
+
+    /// A sentence about another time or a plan, not today's value: a past
+    /// reading ("last month my rhr was 48", "195 back in 2019"), a goal ("I'm
+    /// aiming for a ctl of 80") or a workout prescription ("do 5x1km at hr
+    /// 170"). The numbers in it are not a correction of today's data. "Last
+    /// night" is left out: last night's recording is today's numbers.
+    private static let otherTimeMarker = "(?i)\\b(?:" + [
+        #"yesterday|last\s+(?:week|month|year|season|time|run|ride|race|workout)|ago|back\s+in|in\s+(?:19|20)\d{2}|used\s+to"#,
+        #"aim(?:ing|s)?|target\w*|goal\w*|want\w*|plan\w*|hop(?:e|ing)|tomorrow|next\s+(?:week|month|time|run|ride|race)"#,
+        #"do\s+\d+(?:\s*x\s*\d+)?(?:k?m|mi)?|\d+\s*x\s*\d+(?:k?m|mi)?|at\s+(?:an?\s+)?(?:hr|heart\s+rate|pace)"#
+    ].joined(separator: "|") + ")\\b"
+
+    private static func describesAnotherTime(_ sentence: String) -> Bool {
+        sentence.range(of: otherTimeMarker, options: .regularExpression) != nil
+    }
+
+    /// The text with every sentence that ends in a question mark, or that is
+    /// about another time or a plan (`describesAnotherTime`), removed.
     private static func statementsOnly(_ text: String) -> String {
         var kept: [String] = []
         text.enumerateSubstrings(in: text.startIndex..., options: .bySentences) { sentence, _, _, _ in
             guard let sentence else { return }
             let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.hasSuffix("?"), !trimmed.hasSuffix("？") { kept.append(sentence) }
+            if !trimmed.hasSuffix("?"), !trimmed.hasSuffix("？"), !describesAnotherTime(trimmed) { kept.append(sentence) }
         }
         return kept.joined(separator: " ")
     }
@@ -177,7 +203,7 @@ enum UserCorrectionDetector {
     /// must follow one of the connectors ("recovery is 45", not "recovery 45").
     private static func extractValue(
         for metric: String, in text: String, connectorRequired: Bool = false
-    ) -> (value: Double, remainder: String)? {
+    ) -> ExtractedValue? {
         let pattern = valuePattern(for: metric, connectorRequired: connectorRequired)
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return nil
@@ -189,7 +215,30 @@ enum UserCorrectionDetector {
         let remainder = regex.stringByReplacingMatches(
             in: text, range: NSRange(location: 0, length: ns.length), withTemplate: " "
         )
-        return (value, remainder)
+        return ExtractedValue(value: value, unit: unitKey(of: last, in: ns), remainder: remainder)
+    }
+
+    /// One "metric [connector] number" match: the number, the unit given
+    /// with it (pace and distance only) and the text with the matches blanked.
+    private struct ExtractedValue {
+        let value: Double
+        let unit: String?
+        let remainder: String
+    }
+
+    /// Metrics whose number means nothing without its unit: 8:30 per mile
+    /// is not 8:30 per kilometer.
+    private static let unitBearingMetrics: Set<String> = ["pace", "distance"]
+
+    /// The optional unit after a pace or distance number, as group 2.
+    private static let unitSuffix = #"(?:\s*(?:min(?:utes)?\s*)?(?:/|per\s)\s*|\s*)(mi|miles?|km|kilomet(?:er|re)s?|k|m|meters?|metres?)\b"#
+
+    /// The unit of a match as "mi", "km" or "m"; nil when it gave none.
+    private static func unitKey(of match: NSTextCheckingResult, in ns: NSString) -> String? {
+        guard match.numberOfRanges >= 3, match.range(at: 2).location != NSNotFound else { return nil }
+        let raw = ns.substring(with: match.range(at: 2)).lowercased()
+        if raw.hasPrefix("mi") { return "mi" }
+        return raw.hasPrefix("k") ? "km" : "m"
     }
 
     /// The "metric [connector] number" regex for one metric. A unit-like name
@@ -201,7 +250,8 @@ enum UserCorrectionDetector {
         let digits = metric == "pace" ? "(\\d{1,2}:[0-5]\\d|-?\\d+(?:\\.\\d+)?)" : "(-?\\d+(?:\\.\\d+)?)"
         let number = digits + "(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))"
         let connector = "(?:is|of|=|:|was|being)" + (connectorRequired ? "" : "?")
-        return "(?i)" + notAfterNumber + "\\b\(escaped)\\b\\s*" + connector + "\\s*" + number
+        let unit = unitBearingMetrics.contains(metric) ? "(?:" + unitSuffix + ")?" : ""
+        return "(?i)" + notAfterNumber + "\\b\(escaped)\\b\\s*" + connector + "\\s*" + number + unit
     }
 
     /// A captured number as a Double; "m:ss" becomes minutes (5:30 → 5.5).
@@ -312,21 +362,26 @@ enum UserCorrectionDetector {
         "stop going after that data",
         "those are the real numbers",
         "the real numbers are",
-        // Short rejections after the AI quoted a
-        // value. These mean "stop reading from wherever you're
-        // reading from" even without a fresh value being given.
-        // Suppressing the cache block forces the model to either
-        // ask a clarifying question or stop quoting it.
-        "stop saying",
-        "stop telling me",
-        "quit saying",
-        "knock it off",
-        "stop repeating"
+        "knock it off"
+    ]
+
+    /// A short rejection of a value the AI quoted ("stop saying my tsb is
+    /// -20", "stop telling me it's 45", "quit repeating those numbers"): it
+    /// means "stop reading from wherever you're reading from" even without a
+    /// fresh value, so the cache block is left out and the model has to ask
+    /// or stop quoting it. Only with data after it, or as the whole reply
+    /// ("stop saying that", "stop repeating yourself"): "stop telling me to
+    /// slow down" is about coaching, not the numbers.
+    private static let valueRejections = [
+        #"\b(?:stop|quit)\s+(?:saying|telling\s+me|repeating)\s+(?:that\s+)?(?:(?:my|the|those|these|that|your)\s+)?(?:it'?s\s+|i'?m\s+(?:at\s+)?)?"#
+            + #"(?:[-+]?\d|numbers?|data|values?|scores?|figures?|readings?|stats|metrics?|atl|ctl|tsb|acwr|hrv|rmssd|hr|rhr|recovery|readiness|load|training\s+load|heart\s+rate)"#,
+        #"\b(?:stop|quit)\s+(?:saying|repeating)\s+(?:that|it|this|yourself)[\s.!]*$"#
     ]
 
     private static func isExplicitOverride(text: String) -> Bool {
         let lower = foldedLowercase(text)
         return explicitOverridePhrases.contains { lower.contains($0) }
+            || valueRejections.contains { lower.range(of: $0, options: .regularExpression) != nil }
     }
 
     // MARK: - Rendering
@@ -345,27 +400,27 @@ enum UserCorrectionDetector {
         if !signals.assertedValues.isEmpty {
             lines.append("")
             lines.append("Values the user just stated — use these as authoritative. State them plainly; you don't need to append \"you told me\" every time (once is plenty if it helps clarity):")
-            lines += assertedValueLines(signals.assertedValues)
+            lines += assertedValueLines(signals)
         }
         return lines.joined(separator: "\n")
     }
 
     /// One `- key: value` line per assertion, in a stable order: the known
     /// metrics first, then anything else alphabetically.
-    private static func assertedValueLines(_ values: [String: Double]) -> [String] {
+    private static func assertedValueLines(_ signals: Signals) -> [String] {
         let prioritized = ["atl", "ctl", "tsb", "acwr", "hr", "rmssd", "recovery", "sleep"]
-        var emitted = Set<String>()
-        var lines: [String] = []
-        for key in prioritized {
-            guard let value = values[key] else { continue }
-            lines.append("- \(key): \(formatValue(key: key, value: value))")
-            emitted.insert(key)
+        let values = signals.assertedValues
+        let rest = values.keys.sorted().filter { !prioritized.contains($0) }
+        return (prioritized + rest).compactMap { key -> String? in
+            guard let value = values[key] else { return nil }
+            return "- \(key): " + formatValue(key: key, value: value) + unitText(key: key, unit: signals.units[key])
         }
-        for key in values.keys.sorted() where !emitted.contains(key) {
-            guard let value = values[key] else { continue }
-            lines.append("- \(key): \(formatValue(key: key, value: value))")
-        }
-        return lines
+    }
+
+    /// The unit a pace or distance was given in: " min/mi", " km".
+    private static func unitText(key: String, unit: String?) -> String {
+        guard let unit else { return "" }
+        return key == "pace" ? " min/\(unit)" : " \(unit)"
     }
 
     private static func formatValue(key: String, value: Double) -> String {

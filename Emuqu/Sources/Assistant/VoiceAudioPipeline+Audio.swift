@@ -459,7 +459,7 @@ extension VoiceAudioPipeline {
     /// "Recent Problems") AND shows a short user-facing banner. If the guard
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
-        if controller.looksLikeEcho(of: transcript) {
+        if controller.looksLikeEcho(of: transcript), !answersHeardConfirmation(transcript) {
             debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
             controller.services.assistantInbox.flashTransientNotice(String(
                 localized: "Voice input matched the AI's last reply — likely echo. Tap to retry.",
@@ -472,6 +472,14 @@ extension VoiceAudioPipeline {
         debugLog("[VoiceConv] 🔁 medical-refusal echo trap — dropping a transcript of \(transcript.count) characters that re-triggers a refusal already on screen", level: .warning)
         reArmListening()
         return true
+    }
+
+    /// A plain yes or no to a confirmation question the user has heard to
+    /// the end is their answer, not echo, even when the reply above the
+    /// question used the same word.
+    private func answersHeardConfirmation(_ transcript: String) -> Bool {
+        guard let pending = controller.assistantViewModel.actionConfirmations.pending, pending.delivered else { return false }
+        return VoiceEchoHeuristics.answersConfirmation(transcript, question: pending.question)
     }
 
     /// Medical-refusal echo trap. The canned AFib / arrhythmia

@@ -15,13 +15,15 @@ import Foundation
 extension DeterministicIntent {
     static let livePatterns: [Pattern] = [
         Pattern(id: "live_spot_compare", triggers: [
-            #"^(?=.*\b(?:here|this\s+(?:spot|hill|climb|stretch|section|place|point|corner|street|road|part)|same\s+(?:spot|place|hill|climb|stretch|part))\b)(?=.*\b(?:compar\w*|vs|versus|than|before|last\s+time|usual|past|previous|faster|slower|better|worse)\b)"#,
+            #"^(?!.*\b(?:turn|(?:go|keep|bear|take\s+a)\s+(?:left|right)|directions?|way\s+(?:home|back)|get\s+(?:back|home))\b)"#
+                + #"(?=.*\b(?:here|this\s+(?:spot|hill|climb|stretch|section|place|point|corner|street|road|part)|same\s+(?:spot|place|hill|climb|stretch|part))\b)"#
+                + #"(?=.*\b(?:compar\w*|vs|versus|than|before|last\s+time|usual|previous)\b)"#,
             #"^\s*am\s+i\s+(?:faster|slower)(?:\s+than\s+(?:last\s+time|before|usual))?\s*$"#
         ], handler: liveSpotCompare),
         Pattern(id: "live_ease_off", triggers: [
-            #"\b(?:should|do|can)\s+i\s+(?:ease|back)\s+off\b"#,
-            #"\bshould\s+i\s+(?:slow\s+down|push|go\s+harder|pick\s+it\s+up|speed\s+up)\b"#,
-            #"\bam\s+i\s+(?:going|pushing|working)\s+too\s+hard\b"#
+            #"^\s*(?:should|do|can)\s+i\s+(?:ease|back)\s+off"# + liveTail,
+            #"^\s*should\s+i\s+(?:slow\s+down|push(?:\s+(?:on|harder))?|go\s+harder|pick\s+it\s+up|speed\s+up)"# + liveTail,
+            #"^\s*am\s+i\s+(?:going|pushing|working)\s+too\s+hard"# + liveTail
         ], handler: liveEaseOff),
         Pattern(id: "live_climb_or_me", triggers: [
             #"\bis\s+(?:it|that)\s+(?:just\s+)?the\s+(?:hill|climb|grade|incline)\b"#,
@@ -29,8 +31,8 @@ extension DeterministicIntent {
             #"\bwhy\s+am\s+i\s+(?:so\s+)?slow\b"#
         ], handler: liveClimbOrMe),
         Pattern(id: "live_whats_ahead", triggers: [
-            #"\b(?:what(?:['’]?s|\s+is)|anything)\s+(?:ahead|coming(?:\s+up)?|up\s+ahead)\b"#,
-            #"\b(?:any|is\s+there\s+a|are\s+there\s+any)\s+(?:more\s+)?(?:hills?|climbs?)\b"#
+            #"^\s*(?:what(?:['’]?s|\s+is)|anything)\s+(?:ahead|coming(?:\s+up)?|up\s+ahead)(?:\s+(?:of\s+(?:me|us)|on\s+(?:this|the)\s+(?:route|run|ride|course|trail)))?"# + liveTail,
+            #"^\s*(?:any|is\s+there\s+a|are\s+there\s+any)\s+(?:more\s+)?(?:hills?|climbs?)(?:\s+(?:ahead|left|coming(?:\s+up)?|up\s+ahead|on\s+(?:this|the)\s+(?:route|run|ride|course|trail)))?"# + liveTail
         ], handler: liveWhatsAhead),
         Pattern(id: "live_where_am_i", triggers: [
             #"^\s*where\s+(?:am\s+i|are\s+we)(?:\s+(?:now|right\s+now|at))?\s*$"#
@@ -44,6 +46,12 @@ extension DeterministicIntent {
             #"^\s*how(?:['’]?s|\s+is)\s+(?:it|this|my\s+(?:run|walk|ride|workout))\s+going\s*$"#
         ], handler: liveSummary)
     ]
+
+    /// What may end a whole-utterance live question: "now", "here", "a bit"
+    /// and the like. A longer question ("my knee hurts, should I push
+    /// through it", "what's coming up in my plan this week") carries more
+    /// than the live snapshot answers, so it goes to the model.
+    static let liveTail = #"(?:\s+(?:now|here|right\s+now|a\s+bit|a\s+little|yet))?\s*$"#
 
     /// Units and formatting the live answers share.
     private static var units: UnitsPreference { UnitsPreferenceStore.current }

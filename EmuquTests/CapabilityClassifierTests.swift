@@ -200,6 +200,23 @@ final class CapabilityClassifierTests: XCTestCase {
         XCTAssertEqual(CapabilityClassifier.shared.classify("the rain held off for my whole run"), .none)
     }
 
+    /// A weather or search word that is also an everyday word in another
+    /// language raises the web flag only in the weather or search sense.
+    func testEverydayWordsInOtherLanguagesAreNotWebRequests() {
+        let rows: [(text: String, web: Bool)] = [
+            ("vær så snill, hvor lang var økten min i går", false),
+            ("cerca di spiegarmi il mio recupero", false),
+            ("레이스 준비가 됐을까", false),
+            ("hvordan blir været", true),
+            ("hva sier værmeldingen", true),
+            ("cerca online un piano per la maratona", true),
+            ("내일 비가 와", true)
+        ]
+        for row in rows {
+            XCTAssertEqual(CapabilityMarkers.requirement(of: row.text).needsWeb, row.web, row.text)
+        }
+    }
+
     // MARK: - Empty / whitespace
 
     func testEmptyInputIsNone() {

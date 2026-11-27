@@ -9,9 +9,10 @@ import Foundation
 /// Without this, every wrong metric in voice mode is invisible to the verifier.
 /// This normaliser converts the common patterns the AI emits into
 /// digit form BEFORE the regexes scan the text: 0–999 ("one hundred
-/// and sixty", "a hundred five"), the spoken "one-sixty" form of a heart
-/// rate (one or two, a hyphen, a tens word), and any number of decimal
-/// digits after "point" ("point seven five" is .75).
+/// and sixty", "a hundred five"), the spoken "one-sixty" or "one forty-five"
+/// form of a heart rate or power (one or two, then a tens word), a leading
+/// "negative" or "minus", and any number of decimal digits after "point"
+/// ("point seven five" is .75).
 ///
 /// Every spelled number in the reply is rewritten, "this one" included.
 /// That only affects matching: corrections are mapped back and applied
@@ -105,8 +106,8 @@ enum SpelledNumberNormalizer {
             .joined(separator: "|")
         let belowHundred = "(?:(?:\(tensAlts))(?:[-\\s]+(?:\(digits)))?|(?:\(onesAlts)))"
         let hundreds = "(?:a|\(digits))[-\\s]+hundred(?:(?:\\s+and)?[-\\s]+\(belowHundred))?"
-        let colloquial = "(?:one|two)-(?:\(tensAlts))(?:-(?:\(digits)))?"
-        return "(?i)\\b(?:negative\\s+)?(?:\(hundreds)|\(colloquial)|\(belowHundred))(?:\\s+point(?:\\s+(?:\(digits)))+)?\\b"
+        let colloquial = "(?:one|two)[-\\s]+(?:\(tensAlts))(?:[-\\s]+(?:\(digits)))?"
+        return "(?i)\\b(?:(?:negative|minus)\\s+)?(?:\(hundreds)|\(colloquial)|\(belowHundred))(?:\\s+point(?:\\s+(?:\(digits)))+)?\\b"
     }
 
     /// The digit string a matched phrase stands for: "negative thirty-one
@@ -114,12 +115,12 @@ enum SpelledNumberNormalizer {
     /// (shouldn't happen given the pattern).
     private static func spelledNumberReplacement(_ phrase: String) -> String? {
         let words = phrase.lowercased().split { $0.isWhitespace || $0 == "-" }.map(String.init)
-        let body = words.filter { $0 != "negative" && $0 != "and" }
+        let body = words.filter { $0 != "negative" && $0 != "minus" && $0 != "and" }
         let point = body.firstIndex(of: "point") ?? body.endIndex
         guard let integer = spelledInteger(body[..<point]) else { return nil }
         let fraction = body[point...].dropFirst().compactMap { onesAndTeens[$0] }.map(String.init).joined()
         let digits = fraction.isEmpty ? String(integer) : "\(integer).\(fraction)"
-        return words.first == "negative" ? "-" + digits : digits
+        return words.first == "negative" || words.first == "minus" ? "-" + digits : digits
     }
 
     /// The integer part. "hundred" multiplies what came before it ("a" is

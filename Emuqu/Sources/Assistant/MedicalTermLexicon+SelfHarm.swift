@@ -62,7 +62,7 @@ extension MedicalTermLexicon {
             "(?:will|m[öo]chte|moechte)\\s+(?:(?:nur\\s+noch|einfach)\\s+)?(?:sterben|tot\\s+sein|nicht\\s+mehr\\s+leben)",
             "nicht\\s+mehr\\s+leben\\s+(?:will|m[öo]chte)",
             "(?:will|m[öo]chte|moechte)\\s+mich\\s+(?:umbringen|t[öo]ten|selbst\\s+verletzen|ritzen)",
-            "ich\\s+bringe\\s+mich\\s+um", "mich\\s+umzubringen",
+            "ich\\s+bringe\\s+mich\\s+um(?!\\s+(?:den|die|das|mein\\w*)\\b)", "mich\\s+umzubringen",
             "mein(?:em)?\\s+leben\\s+(?:beenden|ein\\s+ende\\s+(?:setzen|machen))",
             "mir\\s+das\\s+leben\\s+(?:zu\\s+)?nehmen", "mir\\s+(?:etwas|was)\\s+an(?:zu)?tun", "selbstverletz\\w*",
             // es: "quiero morir(me)", "quiero matarme", "no quiero vivir",
@@ -74,7 +74,7 @@ extension MedicalTermLexicon {
             // pt-BR: "quero morrer", "quero me matar", "não quero mais viver".
             "(?:quero|vontade\\s+de)\\s+morrer", "(?:quero|vontade\\s+de|pensando\\s+em|penso\\s+em)\\s+me\\s+matar",
             "n[ãa]o\\s+quero\\s+(?:mais\\s+viver|viver\\s+mais)", "tirar\\s+(?:a\\s+)?minha\\s+(?:pr[óo]pria\\s+)?vida",
-            "acabar\\s+com\\s+(?:a\\s+)?minha\\s+vida", "(?:quero|vontade\\s+de)\\s+me\\s+(?:machucar|ferir|cortar)",
+            "acabar\\s+com\\s+(?:a\\s+)?minha\\s+vida(?!\\s+social)", "(?:quero|vontade\\s+de)\\s+me\\s+(?:machucar|ferir|cortar)",
             "automutil\\w*",                           // pt-BR, fr
             // fr: "je veux mourir", "envie de mourir", "je veux me tuer", "je
             // ne veux plus vivre", "mettre fin à mes jours". "Ça me tue" is
@@ -181,7 +181,7 @@ extension MedicalTermLexicon {
         "tappaa\\s+itseni", "itseni\\s+tappami\\w*",
         "(?:hugsa|hugsa[ðd]|hugsar)\\s+um\\s+a[ðd]\\s+(?:drepa\\s+mig|deyja|svipta\\s+mig\\s+l[íi]fi)", "svipta\\s+mig\\s+l[íi]fi",
         // ru
-        "(?:думаю|думать|думала?)\\s+(?:о\\s+том,?\\s+(?:чтобы|как)\\s+)?(?:убить\\s+себя|умереть|покончить)",
+        "(?:думаю|думать|думала?)\\s+(?:о\\s+том,?\\s+(?:чтобы|как)\\s+)?(?:убить\\s+себя|умереть|покончить\\s+с\\s+(?:собой|жизнью))",
         "жить\\s+не\\s+хочется", "не\\s+хочется\\s+жить", "поконч\\w*\\s+с\\s+собой"
     ]
 

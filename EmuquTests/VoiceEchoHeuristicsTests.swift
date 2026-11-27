@@ -188,9 +188,10 @@ final class VoiceEchoHeuristicsTests: XCTestCase {
 
     /// Documented consequence of the short-transcript rule: a one-word
     /// transcript whose word appears anywhere in the reply scores 1.0 and is
-    /// treated as echo. That is deliberate — right after TTS, a bare "thanks"
-    /// the assistant just said itself is far more often speaker bleed than a
-    /// user turn, and the cost of dropping it is one lost pleasantry.
+    /// treated as echo. Right after TTS, a bare "thanks" the assistant just
+    /// said itself is far more often speaker bleed than a user turn. A yes or
+    /// no to a confirmation question the user heard is exempt at the call site
+    /// (`answersConfirmation`), since dropping it would block the action.
     func testAOneWordTranscriptTakenFromTheReplyCountsAsEcho() {
         XCTAssertTrue(VoiceEchoHeuristics.looksLikeEcho(
             transcript: "thanks",
@@ -248,5 +249,23 @@ final class VoiceEchoHeuristicsTests: XCTestCase {
             VoiceEchoHeuristics.shortTranscriptEchoThreshold,
             VoiceEchoHeuristics.longTranscriptEchoThreshold
         )
+    }
+
+    // MARK: - Confirmation answers
+
+    /// A reply that asks for a yes contains the word, so a spoken "yes" scores
+    /// as echo of it; `answersConfirmation` is what keeps it the user's answer.
+    /// The reply's own tail ("to confirm") is neither a yes nor a no.
+    func testAPlainYesOrNoToTheQuestionIsAnAnswer() {
+        let reply = "I can delete all 3 saved memory facts for you. Just say yes to confirm."
+        let question = "Delete all 3 saved memory facts?"
+        let rows: [(transcript: String, answer: Bool)] = [
+            ("yes", true), ("Yes please", true), ("ja", true), ("no", true), ("nein danke", true), ("нет", true),
+            ("to confirm", false), ("say yes to confirm", false), ("memory facts for you", false), ("", false)
+        ]
+        XCTAssertTrue(VoiceEchoHeuristics.looksLikeEcho(transcript: "yes", ofLastAssistantTurn: reply))
+        for row in rows {
+            XCTAssertEqual(VoiceEchoHeuristics.answersConfirmation(row.transcript, question: question), row.answer, row.transcript)
+        }
     }
 }

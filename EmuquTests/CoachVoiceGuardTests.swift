@@ -838,3 +838,55 @@ extension CoachVoiceGuardTests {
         )
     }
 }
+
+// MARK: - Coaching words that a regulated pattern also spells
+
+extension CoachVoiceGuardTests {
+    /// A coach's offer ("du könntest heute locker laufen"), a past participle
+    /// ("you may have gone out too fast"), the swim metric, the app's own
+    /// Troubleshooting and beat-cleaning copy, a recovery day, fuelling advice
+    /// and the app's own score copy reach the user unchanged.
+    func testCoachingThatSharesRegulatedWordsIsNotDeflected() {
+        for sentence in Self.coachingLookalikes {
+            XCTAssertFalse(CoachVoiceGuard.scrub(sentence).didIntercept, "coaching was deflected: \(sentence)")
+        }
+    }
+
+    /// The regulated claim in the same words is still deflected.
+    func testNarrowedRegulatedClaimsAreStillDeflected() {
+        for sentence in Self.narrowedClaims {
+            XCTAssertTrue(CoachVoiceGuard.scrub(sentence).didIntercept, "a regulated claim was delivered: \(sentence)")
+        }
+    }
+
+    static let coachingLookalikes = [
+        "Du könntest heute locker laufen.", "Sie könnten morgen eine Pause einlegen.",
+        "Puedes tener un día libre mañana.", "La sesión puede tener cinco intervalos.", "Podrías tener un día suave.",
+        "Você pode ter um dia de descanso amanhã.", "Potresti avere bisogno di un giorno di riposo.",
+        "La sessione potrebbe avere più intervalli.", "Potresti avere una giornata tranquilla.", "Du kan have en hviledag i morgen.", "Du kan ha en lätt dag imorgon.",
+        "У вас может быть лёгкий день.",
+        "You might have gone out too fast in the first mile.", "You could have held the pace longer.",
+        "You had a stroke rate of 34 in the second set.",
+        "診断ログをエクスポートするには設定を開いてください。", "导出诊断日志的方法。", "진단 로그를 내보내려면 설정으로 가세요.",
+        "صدّر سجل التشخيص من الإعدادات.", "Exportez le journal de diagnostic et partagez-le.",
+        "Exporta el registro de diagnóstico.", "Esporta il log diagnostico.", "Apri Diagnostica di sistema.",
+        "Send a diagnostic from Settings.", "Skicka en diagnos från Inställningar.",
+        "Herzklopfen am Berg ist normal.", "Un battement irrégulier ou mal détecté fait baisser α1.",
+        "Hay demasiados latidos irregulares cerca.", "Un battito irregolare o rilevato male abbassa α1.",
+        "这是中风险训练。", "Plane echte Erholung ein.", "Plan echt herstel in.", "Make tomorrow a true recovery day.",
+        "Eat carbs early so you avoid low blood sugar late in the race.", "Keep taking gels, preventing low blood sugar.",
+        "Pisteet 90 tarkoittavat, että olet selvästi OMAN normaalisi yläpuolella.",
+        "Плюс следы, которые вы явно сохранили кнопкой.", "Damit die Muskeln heilen können.",
+        "Draag de borstband volgens het voorschrift van de fabrikant.",
+        "The prescribed pace for this session is 5:10/km.", "Today's training prescription is 5x1k."
+    ]
+
+    static let narrowedClaims = [
+        "Sie könnten eine Infektion haben.", "Puede que tengas una infección.", "Podrías tener una infección.",
+        "Você pode ter uma infecção.", "Potresti avere un'infezione.", "Du kan ha en infektion.", "У вас возможно инфекция.",
+        "You may have COVID.", "心房細動と診断されました。", "医生诊断你有心脏病。", "ليست تشخيصًا طبيًا لحالتك.",
+        "Ce n'est pas un diagnostic médical.", "This is true recovery.", "That is low blood sugar.",
+        "Olet selvästi palautunut.", "Вы явно перетренированы.", "Das kann deine Krankheit heilen.",
+        "Your doctor may prescribe medication.", "Dit is alleen op voorschrift verkrijgbaar.", "У вас признаки тахикардии."
+    ]
+}

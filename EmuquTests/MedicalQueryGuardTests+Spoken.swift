@@ -161,3 +161,78 @@ extension MedicalQueryGuardTests {
         ("ar", "كنت ألهث بعد الجري"), ("ar", "هذا التل يقتلني")
     ]
 }
+
+// MARK: - Words a symptom report shares with exercise talk
+
+extension MedicalQueryGuardTests {
+    /// Being winded on a climb, muggy weather, a breathtaking view, a pace I
+    /// can breathe at, a swim stroke, a faint twinge, a screen that blacked
+    /// out, a lead that vanished, a pace that collapsed, a pounding heart
+    /// before a race and respiratory arrhythmia all reach the model.
+    func testExerciseTalkThatSharesSymptomWordsReachesTheModel() {
+        for row in Self.symptomLookalikeRows {
+            XCTAssertNil(MedicalQueryGuard.classify(row.text), "[\(row.locale)] exercise talk was refused: \(row.text)")
+        }
+    }
+
+    /// The present-tense report in the same words still gets the symptom reply.
+    func testNarrowedSymptomWordsStillGetTheSymptomReply() {
+        assertRows(Self.narrowedSymptomRows, classifyAs: .symptom)
+    }
+
+    func testNarrowedRhythmWordsStillGetTheRhythmReply() {
+        assertRows(Self.narrowedRhythmRows, classifyAs: .rhythm)
+    }
+
+    /// "Ich bringe mich um den Schlaf" (deprive myself of sleep), "покончить с
+    /// этим планом" (be done with this plan) and "a minha vida social" are not
+    /// a crisis; the intent phrasings next to them still are.
+    func testSelfHarmIdiomsAreNotACrisisWhileTheIntentStillIs() {
+        for row in Self.selfHarmLookalikeRows {
+            XCTAssertNotEqual(MedicalQueryGuard.classify(row.text), .selfHarm, "[\(row.locale)] idiom read as a crisis: \(row.text)")
+        }
+        assertRows(Self.narrowedSelfHarmRows, classifyAs: .selfHarm)
+    }
+
+    static let symptomLookalikeRows: [Row] = [
+        ("en", "I feel a faint twinge in my hamstring"), ("en", "I'm feeling faint praise from my coach"),
+        ("en", "I feel faint-hearted about the hill repeats"), ("en", "my watch screen blacked out mid-run"),
+        ("en", "I passed out the water bottles"), ("en", "I have a stroke count of 18 per length"),
+        ("it", "ero in affanno sulla salita"), ("nl", "het was erg benauwd tijdens de run"),
+        ("da", "jeg var tungpustet efter bakken"), ("sv", "det var svårt att andas i backen"),
+        ("ru", "было тяжело дышать на подъёме"), ("ko", "언덕에서 숨쉬기 힘들었어요"), ("ko", "숨이 막히는 경치였어요"),
+        ("ja", "坂で息が苦しかった"), ("ja", "鼻で息ができるペースで走るべき？"), ("ja", "呼吸ができるペースで"),
+        ("es", "me ahogo cuando nado crol"), ("es", "me ahogo en las subidas"),
+        ("fr", "mon avance s'est évanouie dans la dernière côte"), ("fr", "mes progrès se sont évanouis"),
+        ("nl", "mijn tempo is in elkaar gezakt"), ("zh-Hans", "我的训练属于中风险吗"),
+        ("de", "ich hatte Herzklopfen vor dem Rennen"), ("sv", "jag fick hjärtklappning i backen"),
+        ("da", "jeg fik hjertebanken op ad bakken"), ("ko", "레이스 전 두근거림이 있어요"),
+        ("ja", "呼吸性不整脈とは何ですか"), ("ru", "что такое дыхательная аритмия")
+    ]
+
+    static let narrowedSymptomRows: [Row] = [
+        ("en", "I feel faint"), ("en", "I might faint"), ("en", "I feel like I might faint"),
+        ("en", "I passed out"), ("en", "I blacked out after the sprint"),
+        ("it", "ho l'affanno"), ("nl", "ik ben benauwd"), ("da", "jeg er tungpustet"), ("sv", "det är svårt att andas"),
+        ("ru", "мне тяжело дышать"), ("ko", "숨쉬기 힘들어요"), ("ko", "숨이 막혀요"), ("ja", "息が苦しい"), ("ja", "息ができない"),
+        ("es", "me ahogo"), ("es", "me estoy ahogando"), ("fr", "je me suis évanouie"), ("fr", "je m'évanouis"),
+        ("fr", "il s'est évanoui pendant la course"), ("nl", "ik ben in elkaar gezakt"), ("zh-Hans", "我是不是中风了"),
+        ("ru", "у меня симптомы инфаркта?"), ("ru", "у меня признаки инсульта")
+    ]
+
+    static let narrowedRhythmRows: [Row] = [
+        ("fr", "j'ai des battements irréguliers"), ("es", "tengo latidos irregulares"),
+        ("pt-BR", "tenho batimentos irregulares"), ("it", "ho un battito irregolare"),
+        ("en", "my heart feels like it's skipping beats"), ("ja", "不整脈がありますか"), ("ru", "у меня аритмия?")
+    ]
+
+    static let selfHarmLookalikeRows: [Row] = [
+        ("de", "ich bringe mich um den Schlaf, wenn ich so spät trainiere"),
+        ("ru", "думаю покончить с этим планом"), ("pt-BR", "essa planilha vai acabar com a minha vida social")
+    ]
+
+    static let narrowedSelfHarmRows: [Row] = [
+        ("de", "ich bringe mich um"), ("ru", "думаю покончить с собой"), ("pt-BR", "quero acabar com a minha vida"),
+        ("en", "I'm going to kill myself on this workout")
+    ]
+}

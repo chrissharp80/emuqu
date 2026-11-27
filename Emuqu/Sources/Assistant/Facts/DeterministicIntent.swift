@@ -230,22 +230,7 @@ enum DeterministicIntent {
                 #"^\s*did\s+i\s+(?:train|work\s*out|run|ride|cycle)\s+(?:yesterday|today)\??\s*$"#,
                 #"^\s*(?:any\s+)?workouts?\s+(?:yesterday|today)\??\s*$"#
             ],
-            handler: { utterance, ctx in
-                let isYesterday = utterance.contains("yesterday")
-                let target = dayStart(isYesterday: isYesterday, now: ctx.now)
-                // Every workout that day counts: two sessions are one
-                // answer of their combined time, not the newest one's.
-                let sameDay = ctx.archive.store.entries.filter {
-                    $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
-                }
-                if !sameDay.isEmpty {
-                    let mins = sameDay.reduce(0) { total, m in total + activeMinutes(m, archive: ctx.archive) }
-                    return trainedReply(minutes: mins)
-                }
-                return isYesterday
-                    ? String(localized: "No workout recorded yesterday.", bundle: LanguageManager.appBundle)
-                    : String(localized: "No workout recorded today yet.", bundle: LanguageManager.appBundle)
-            }
+            handler: trainedRecently
         ),
 
         // Should I train today (heuristic, not LLM-quality)
@@ -562,6 +547,47 @@ enum DeterministicIntent {
         let wallClock = workout.endDate.map { $0.timeIntervalSince(workout.date) }
         let samples = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata?.samples
         return Int((WorkoutActiveTime.seconds(samples: samples, wallClock: wallClock) ?? 0) / 60)
+    }
+
+    /// "Did I train / run / ride yesterday?" Every workout of the asked sport
+    /// that day counts: two sessions are one answer of their combined time,
+    /// not the newest one's. A run that day is not a yes to "did I ride"; a
+    /// day with workouts of another or unreadable sport goes to the model.
+    static func trainedRecently(_ utterance: String, _ ctx: MatchContext) -> String? {
+        let isYesterday = utterance.contains("yesterday")
+        let target = dayStart(isYesterday: isYesterday, now: ctx.now)
+        let sameDay = ctx.archive.store.entries.filter {
+            $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
+        }
+        let sports = askedSports(utterance)
+        let asked = sameDay.filter { isSport($0, sports, archive: ctx.archive) }
+        if !asked.isEmpty {
+            return trainedReply(minutes: asked.reduce(0) { total, m in total + activeMinutes(m, archive: ctx.archive) })
+        }
+        if !sameDay.isEmpty { return nil }
+        return isYesterday
+            ? String(localized: "No workout recorded yesterday.", bundle: LanguageManager.appBundle)
+            : String(localized: "No workout recorded today yet.", bundle: LanguageManager.appBundle)
+    }
+
+    /// The sports a "did I run / ride / cycle" question asks about; nil for
+    /// "train", "work out" or "any workouts", which every workout answers.
+    static func askedSports(_ utterance: String) -> Set<Sport>? {
+        if utterance.range(of: #"\bdid\s+i\s+run\b"#, options: .regularExpression) != nil {
+            return [.run, .trailRun, .treadmill]
+        }
+        if utterance.range(of: #"\bdid\s+i\s+(?:ride|cycle)\b"#, options: .regularExpression) != nil {
+            return [.bike, .indoorBike]
+        }
+        return nil
+    }
+
+    /// Whether a workout is one of `sports` (any workout when nil). A
+    /// workout whose sport can't be read is not counted as one.
+    private static func isSport(_ workout: SessionArchiveEntry, _ sports: Set<Sport>?, archive: SessionArchive) -> Bool {
+        guard let sports else { return true }
+        guard let sport = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata?.sport else { return false }
+        return sports.contains(sport)
     }
 
     private static func trainedReply(minutes: Int) -> String {
