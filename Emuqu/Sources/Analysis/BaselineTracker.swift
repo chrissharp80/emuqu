@@ -983,6 +983,6 @@ extension BaselineTracker {
         excludingNightOf session: HRVSession, sleepSchedule: SleepSchedule, in nights: PendingNights
     ) -> RecoveryBaselineStats? {
         let night = sleepSchedule.nightKey(for: session.startDate)
-        return stats(from: nights.points.filter { sleepSchedule.nightKey(for: $0.date) < night }.sorted { $0.date < $1.date })
+        return Self.stats(from: nights.points.filter { sleepSchedule.nightKey(for: $0.date) < night }.sorted { $0.date < $1.date })
     }
 }

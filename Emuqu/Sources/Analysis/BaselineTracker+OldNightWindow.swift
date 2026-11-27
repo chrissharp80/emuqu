@@ -8,12 +8,11 @@ extension BaselineTracker {
     /// reach back to `oldestArchivedNight` (the oldest archived night that
     /// could hold a baseline night), so none was trimmed (`maxHistoricalPoints`).
     func holdsRecoveryWindow(forNightOf session: HRVSession, sleepSchedule: SleepSchedule, oldestArchivedNight: Date?) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
+        let stored = pendingNights().points
         let night = sleepSchedule.nightKey(for: session.startDate)
-        let before = historicalData.filter { sleepSchedule.nightKey(for: $0.date) < night }
+        let before = stored.filter { sleepSchedule.nightKey(for: $0.date) < night }
         guard before.count < Self.recoveryWindowNights else { return true }
-        guard let oldestArchivedNight, let oldestStored = historicalData.first else { return oldestArchivedNight == nil }
+        guard let oldestArchivedNight, let oldestStored = stored.first else { return oldestArchivedNight == nil }
         return sleepSchedule.nightKey(for: oldestStored.date) <= oldestArchivedNight
     }
 
@@ -30,7 +29,7 @@ extension BaselineTracker {
 
     /// The baseline nights `sessions` hold before the night of `session`,
     /// oldest first, one per night.
-    private static func nights(
+    static func nights(
         rebuiltFrom sessions: [HRVSession], beforeNightOf session: HRVSession, sleepSchedule: SleepSchedule
     ) -> [BaselineDataPoint] {
         let night = sleepSchedule.nightKey(for: session.startDate)
