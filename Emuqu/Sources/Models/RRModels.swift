@@ -681,6 +681,10 @@ enum EstimatedMetric: String, CaseIterable, Sendable {
     case sdnn, pnn50, sdsd, sdHR, hrRange, sd1, sd2, sd1Sd2Ratio
     /// The beat count is unknown: `cleanBeatCount` holds 0 in its place.
     case beatCount
+    /// Mean RR and mean HR worked out from the RR extremes, not stated.
+    case meanRR, meanHR
+    /// The session's length (its end date) worked out, not stated.
+    case duration
 }
 
 extension HRVAnalysisResult {

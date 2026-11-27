@@ -468,8 +468,8 @@ extension ContextBuilder {
                 rmssd: $0.timeDomain.rmssd,
                 sdnn: $0.measuredSDNN,
                 pnn50: $0.measuredPNN50,
-                meanRR: $0.timeDomain.meanRR,
-                meanHR: $0.timeDomain.meanHR
+                meanRR: $0.measured($0.timeDomain.meanRR, as: .meanRR),
+                meanHR: $0.measured($0.timeDomain.meanHR, as: .meanHR)
             )
         }
     }
@@ -568,7 +568,8 @@ extension ContextBuilder {
             date: session.startDate,
             sessionType: session.sessionType.rawValue,
             recoveryScore: session.recoveryScore,
-            rmssd: session.analysisResult?.timeDomain.rmssd, meanHR: session.analysisResult?.timeDomain.meanHR,
+            rmssd: session.analysisResult?.timeDomain.rmssd,
+            meanHR: session.analysisResult.flatMap { $0.measured($0.timeDomain.meanHR, as: .meanHR) },
             stressIndex: session.analysisResult?.ansMetrics?.stressIndex,
             sleepMinutes: snapshot?.nightSleepMinutes, morningFeeling: session.morningFeeling,
             tags: session.tags.map(\.name),

@@ -1636,10 +1636,10 @@ API keys are stored in the iOS Keychain on this device only — they are never s
   - **JSON** — Array of RR interval values
   - **TXT** — Plain text, one interval per line
   - **Kubios** — Export files from Kubios HRV software
-  - **EliteHRV** — Summary CSV exports with pre-computed metrics (batch import of multiple sessions). RMSSD, and SDNN and pNN50 when the export has those columns, are Elite HRV's own values. Metrics the export doesn't carry are shown marked "estimate" and are left out of baselines, trends, the assistant and Apple Health; no stress index, score or beat count is made up (earlier imports lose the ones they were given)
+  - **EliteHRV** — Summary CSV exports with pre-computed metrics (batch import of multiple sessions). RMSSD, and SDNN and pNN50 when the export has those columns, are Elite HRV's own values, and so are mean HR and the reading's length when the export states them. Metrics the export doesn't carry (mean RR, mean HR and the length, when it has no mean HR, are worked out from its RR extremes) are shown marked "estimate" and are left out of baselines, trends, the assistant and Apple Health; no stress index, score or beat count is made up (earlier imports lose the ones they were given)
   - Minimum 60 RR intervals required; at least three-quarters of them must be in the 300–2000 ms physiological range. A file is rejected as damaged when its intervals add up to more than a week, or (Emuqu exports) when a session's timestamps cannot belong to one recording
 - **Export Data**: Opens export options view with three formats:
-  - **Export RR Intervals (CSV)** — Raw RR data with timestamps
+  - **Export RR Intervals (CSV)** — Raw RR data with timestamps. Each row carries its recording's start as an exact time with its UTC offset, and the recording's id, so importing the file on a phone in another time zone keeps every start, and two recordings that began at the same clock time on the night the clocks go back stay two. Files from older versions, which wrote the start to the minute with no offset, still import; recordings they wrote under one start time are imported as separate recordings
   - **Export Summary (CSV)** — Session summaries with date, type, score, RMSSD, tags, notes
   - **Export All Sessions (JSON)** — Complete session data including analysis results
 - **Recover RR from Strap**: Downloads missed data from your Polar device (only when connected)

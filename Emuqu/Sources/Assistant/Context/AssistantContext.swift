@@ -149,7 +149,7 @@ extension AssistantContext {
         if let y = yesterday, let td = y.timeDomain {
             let rec = y.recoveryScore.map { "\(RecoveryScoreCalculator.displayScore($0 * 10))/100" } ?? "—"
             let label = Self.liveStateDayLabel(y, now: now)
-            out.append("\(label) recovery \(rec), HRV RMSSD \(formatNum(td.rmssd, 1))ms, mean HR \(formatNum(td.meanHR, 0))bpm.")
+            out.append("\(label) recovery \(rec), HRV RMSSD \(formatNum(td.rmssd, 1))ms\(meanHRClause(td)).")
         }
         if liveWorkout != nil, let loc = ambientLocation {
             let locBits = Self.ambientLocationBits(loc)
@@ -194,7 +194,7 @@ extension AssistantContext {
             bits.append("recovery \(RecoveryScoreCalculator.displayScore(score * 10))/100" + tier + ";")
         }
         if let td = today.timeDomain {
-            bits.append("HRV RMSSD \(formatNum(td.rmssd, 1))ms, \(sdnnClause(td))mean HR \(formatNum(td.meanHR, 0))bpm;")
+            bits.append("HRV RMSSD \(formatNum(td.rmssd, 1))ms\(sdnnClause(td))\(meanHRClause(td));")
         }
         if let oh = today.overnightHR {
             bits.append("overnight HR nadir \(formatNum(oh.nadirBPM, 0))bpm, mean \(formatNum(oh.meanBPM, 0))bpm;")
@@ -504,14 +504,19 @@ extension AssistantContext {
     }
 
     /// "HRV: RMSSD 42.1ms, SDNN 55.0ms, mean HR 52bpm" — today and yesterday.
-    /// SDNN is left out when the reading holds it as an estimate.
+    /// SDNN and mean HR are left out when the reading holds them as estimates.
     private func hrvLine(_ td: TimeDomainSnapshot) -> String {
-        "HRV: RMSSD \(formatNum(td.rmssd, 1))ms, \(sdnnClause(td))mean HR \(formatNum(td.meanHR, 0))bpm"
+        "HRV: RMSSD \(formatNum(td.rmssd, 1))ms\(sdnnClause(td))\(meanHRClause(td))"
     }
 
-    /// "SDNN 55.0ms, " when SDNN was measured; empty when it was not.
+    /// ", mean HR 52bpm" when mean HR was measured; empty when it was not.
+    private func meanHRClause(_ td: TimeDomainSnapshot) -> String {
+        td.meanHR.map { ", mean HR \(formatNum($0, 0))bpm" } ?? ""
+    }
+
+    /// ", SDNN 55.0ms" when SDNN was measured; empty when it was not.
     private func sdnnClause(_ td: TimeDomainSnapshot) -> String {
-        td.sdnn.map { "SDNN \(formatNum($0, 1))ms, " } ?? ""
+        td.sdnn.map { ", SDNN \(formatNum($0, 1))ms" } ?? ""
     }
 
     private func todaySleepLines(_ today: SessionSnapshot) -> [String] {

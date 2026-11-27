@@ -504,8 +504,8 @@ struct MetricCompareToHistorySheet: View {
         case "RMSSD": return td.rmssd
         case "SDNN": return result.measuredSDNN
         case "SDSD": return result.measured(td.sdsd, as: .sdsd)
-        case "Mean RR": return td.meanRR
-        case "Mean HR": return td.meanHR
+        case "Mean RR": return result.measured(td.meanRR, as: .meanRR)
+        case "Mean HR": return result.measured(td.meanHR, as: .meanHR)
         case "HR range": return result.measured(td.maxHR - td.minHR, as: .hrRange)
         case "SD HR": return result.measured(td.sdHR, as: .sdHR)
         case "Min HR": return result.measured(td.minHR, as: .hrRange)
