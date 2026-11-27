@@ -356,6 +356,30 @@ extension FitnessPostSummaryView {
         .modifier(PartialBannerChrome())
     }
 
+    /// An accidental start (`WorkoutAccidentalStart`) that was not saved:
+    /// says so, and saves it when the user wants it kept. Leaving the summary
+    /// without saving lets it go.
+    func notArchivedBanner(save: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(String(localized: "Workout not saved", bundle: LanguageManager.appBundle))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            Text(String(localized: "It lasted under a minute with no heart rate or movement, so it looks like an accidental start. Tap Save to keep it.", bundle: LanguageManager.appBundle))
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(String(localized: "Save", bundle: LanguageManager.appBundle), action: save)
+                .font(.footnote.weight(.semibold))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(PartialBannerChrome())
+    }
+
     private struct PartialBannerChrome: ViewModifier {
         func body(content: Content) -> some View {
             content

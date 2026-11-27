@@ -221,11 +221,13 @@ extension WorkoutMetadata {
     }
 
     /// Seconds of the workout spent moving, the clock pace, calories and a
-    /// TCX lap's timer time are measured on: the last per-second sample's
+    /// TCX lap's timer time are measured on: the active time stored at save
+    /// (`activeSeconds`), else the last per-second sample's
     /// offset (the ticker records none while paused), else
     /// `wallClockDuration` less the recorded pauses. Nil when neither is
     /// known.
     func movingSeconds(wallClockDuration: Double?) -> Double? {
+        if let activeSeconds, activeSeconds > 0 { return activeSeconds }
         if let moving = totalDurationSec(), moving > 0 { return moving }
         guard let wallClockDuration else { return nil }
         let paused = (pauseSpans ?? []).reduce(0.0) { $0 + $1.seconds }
@@ -310,6 +312,13 @@ struct WorkoutMetadata: Codable, Equatable {
     /// `offsetSec` of the per-second samples (`activeOffset(forWallClockSeconds:)`).
     /// Nil for a workout without pauses or recorded before this existed.
     var pauseSpans: [WorkoutPauseSpan]?
+    /// The workout's active time when it was saved: the wall clock from
+    /// start to end less every pause. The per-second samples can hold far
+    /// less (a workout with no sensor records none while the phone is
+    /// locked), so where this is stored it is the duration shown
+    /// (`WorkoutActiveTime`). Nil for a workout saved before this existed,
+    /// which reads its duration from the samples as it always did.
+    var activeSeconds: Double?
 
     // MARK: Per-tick time series
     /// Per-second samples of HR, pace, cadence, altitude, α1, METs. Drives
@@ -755,7 +764,7 @@ struct WorkoutMetadata: Codable, Equatable {
         case schemaVersion
         case sport
         case gpsPolyline, gpsFixTimes, gpsSegmentStarts, distanceMeters, elevationGainMeters, elevationLossMeters
-        case splits, laps, liveMarkers, pauseSpans
+        case splits, laps, liveMarkers, pauseSpans, activeSeconds
         case samples, healthKitHROffsets
         case hrrSamples, decouplingPercent, efficiencyFactor, luciaTRIMP, hrTSS
         case averagePowerWatts, normalizedPowerWatts, peakPowerWatts
@@ -791,6 +800,7 @@ struct WorkoutMetadata: Codable, Equatable {
         laps = try c.decodeIfPresent([Lap].self, forKey: .laps)
         liveMarkers = c.optionalValue([LiveMarker].self, .liveMarkers)
         pauseSpans = c.optionalValue([WorkoutPauseSpan].self, .pauseSpans)
+        activeSeconds = try c.decodeIfPresent(Double.self, forKey: .activeSeconds)
         samples = try c.decodeIfPresent([WorkoutSample].self, forKey: .samples)
         healthKitHROffsets = try c.decodeIfPresent([Int].self, forKey: .healthKitHROffsets)
         hrrSamples = c.optionalValue([HRRSample].self, .hrrSamples)
@@ -861,6 +871,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encodeIfPresent(laps, forKey: .laps)
         try c.encodeIfPresent(liveMarkers, forKey: .liveMarkers)
         try c.encodeIfPresent(pauseSpans, forKey: .pauseSpans)
+        try c.encodeIfPresent(activeSeconds, forKey: .activeSeconds)
         try c.encodeIfPresent(samples, forKey: .samples)
         try c.encodeIfPresent(healthKitHROffsets, forKey: .healthKitHROffsets)
     }

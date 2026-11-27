@@ -42,12 +42,16 @@ extension WatchSessionManager {
     /// iPhone to dismiss its post-workout sheet too and clears the
     /// Watch's `justCompleted` banner locally.
     @MainActor
+    /// For a workout the iPhone left unsaved (`workoutNotSaved`) the status
+    /// says it was not saved: Done there lets it go.
     func requestAcknowledgeFinished() {
         justCompleted = false
+        let notSaved = workoutNotSaved
+        workoutNotSaved = false
         sendControlMessage(
             payload: ["type": "acknowledgeFinishedFromWatch"],
-            pendingStatus: String(localized: "Saving…"),
-            successStatus: String(localized: "Saved")
+            pendingStatus: notSaved ? String(localized: "Workout not saved") : String(localized: "Saving…"),
+            successStatus: notSaved ? String(localized: "Workout not saved") : String(localized: "Saved")
         )
     }
 

@@ -102,7 +102,7 @@ struct GPXPreviewSheet: View {
         }()
         // Active (un-paused) time, as the workout summary shows it.
         let durationText: String = {
-            let secs = max(0, WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: payload.session.duration) ?? 0)
+            let secs = max(0, WorkoutActiveTime.seconds(metadata: meta, wallClock: payload.session.duration) ?? 0)
             return LocalizedDuration.hoursMinutes(minutes: Int(secs / 60))
         }()
         HStack(spacing: 16) {

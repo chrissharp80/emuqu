@@ -41,11 +41,14 @@ struct FitnessPostSummaryView: View {
     var onDelete: (() -> Void)?
 
     /// For a just-finished workout: the recorder's lifecycle, which says
-    /// whether its save failed and is being retried, and the retry to run
-    /// from the summary. Nil when the summary was opened from history.
+    /// whether its save failed and is being retried or it was not saved as
+    /// an accidental start, the retry to run from the summary, and the save
+    /// of an accidental start the user wants kept. Nil when the summary was
+    /// opened from history.
     struct SaveRetry {
         let lifecycle: WorkoutLifecycle
         let retry: () -> Void
+        let save: () -> Void
     }
     let saveRetry: SaveRetry?
 
@@ -53,6 +56,14 @@ struct FitnessPostSummaryView: View {
     /// observed lifecycle, so the banner goes when a retry saves it.
     var isNotSavedYet: Bool {
         saveRetry?.lifecycle.isUnsaved(initialSession.id) ?? false
+    }
+
+    /// True while this workout is an accidental start that was not saved
+    /// (`WorkoutSaveOutcome.notArchived`), so the summary says so rather than
+    /// reading like a saved workout. Goes once the user saves it.
+    var isNotArchived: Bool {
+        guard let lifecycle = saveRetry?.lifecycle else { return false }
+        return lifecycle.saveOutcome == .notArchived && lifecycle.finishedSession?.id == initialSession.id
     }
 
     @Environment(SettingsManager.self) var settingsManager
@@ -330,6 +341,8 @@ struct FitnessPostSummaryView: View {
     private var notSavedYetBannerIfNeeded: some View {
         if let saveRetry, isNotSavedYet {
             notSavedYetBanner(retry: saveRetry.retry)
+        } else if let saveRetry, isNotArchived {
+            notArchivedBanner(save: saveRetry.save)
         }
     }
 

@@ -245,12 +245,15 @@ struct FitnessTabView: View {
     }
 
     /// A just-finished workout's summary watches the recorder for a failed
-    /// save and offers the retry.
+    /// save and offers the retry, and for an accidental start left unsaved
+    /// and offers to save it.
     private func saveRetry(for item: WorkoutSummaryItem) -> FitnessPostSummaryView.SaveRetry? {
         guard item.isJustCompleted, let recorder = recorderBox.recorder else { return nil }
-        return FitnessPostSummaryView.SaveRetry(lifecycle: recorder.lifecycle) {
-            recorder.session.retryUnsavedWorkouts()
-        }
+        return FitnessPostSummaryView.SaveRetry(
+            lifecycle: recorder.lifecycle,
+            retry: { recorder.session.retryUnsavedWorkouts() },
+            save: { recorder.session.saveNotArchived() }
+        )
     }
 
     private func dismissSummary(_ item: WorkoutSummaryItem) {

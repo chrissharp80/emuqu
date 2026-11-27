@@ -7,8 +7,10 @@ import Foundation
 enum WorkoutSaveOutcome: Equatable, Sendable {
     /// In the archive, with the post-save steps run.
     case saved
-    /// An accidental start (no heart rate, no movement, under 30 samples):
-    /// deliberately not archived.
+    /// An accidental start (`WorkoutAccidentalStart`): not archived unless
+    /// the user saves it from the summary (`saveNotArchived`). Its backups
+    /// stay until then, or until the user leaves the summary without saving
+    /// (`discardNotArchived`).
     case notArchived
     /// The archive write failed (a full disk, or files the phone keeps locked
     /// until it is unlocked). The session is kept in memory, its raw backups
@@ -42,14 +44,13 @@ extension WorkoutSessionLifecycle {
     /// unlock, on becoming active and from the summary (`retryUnsavedWorkouts`),
     /// and the post-save steps run only once one write succeeds.
     ///
-    /// An accidental start (finalize classifies a session with no heart
-    /// rate, no movement and under 30 samples as `.failed`) is not archived:
-    /// its backups are retired as for an archived one, and it never reaches
-    /// history, iCloud or Apple Health.
+    /// An accidental start (finalize classifies it `.failed` by
+    /// `WorkoutAccidentalStart`) is not archived and its backups are kept:
+    /// the summary says it was not saved and offers to save it. Nothing is
+    /// retired for a session the archive does not hold.
     func archive(session: HRVSession) -> WorkoutSaveOutcome {
         guard session.state != .failed else {
-            retireRedundantBackups(for: session)
-            debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) (no heart rate, movement or samples): not archived")
+            debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) (under a minute, no heart rate, movement or samples): not archived, kept for the summary")
             return .notArchived
         }
         guard persist(session) else {
@@ -58,6 +59,26 @@ extension WorkoutSessionLifecycle {
         }
         runPostSaveSteps(for: session)
         return .saved
+    }
+
+    /// The summary's Save on an accidental start: the user wants it, so it is
+    /// saved as a complete workout and goes through the normal save, retry
+    /// and post-save steps.
+    func saveNotArchived() {
+        guard lifecycle.saveOutcome == .notArchived, var session = lifecycle.finishedSession else { return }
+        session.state = .complete
+        lifecycle.finishedSession = session
+        lifecycle.saveOutcome = archive(session: session)
+        if lifecycle.saveOutcome != .notArchived { watchBridge.sendWorkoutSaveState(notSaved: false) }
+    }
+
+    /// The user left an accidental start's summary without saving it: its
+    /// backups and recording marker go, as nothing more will be done with
+    /// them.
+    func discardNotArchived() {
+        guard lifecycle.saveOutcome == .notArchived, let session = lifecycle.finishedSession else { return }
+        retireRedundantBackups(for: session)
+        debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) left unsaved by the user: backups retired")
     }
 
     /// Retries every workout whose save failed. Runs on the main actor with no
@@ -180,7 +201,9 @@ extension WorkoutSessionLifecycle {
         saveRetryObserving = false
     }
 
-    /// A successful archive makes the raw backup redundant. Marking it stops
+    /// A successful archive makes the raw backup redundant, as does the user
+    /// leaving an accidental start unsaved (`discardNotArchived`); nothing
+    /// else retires them. Marking it stops
     /// SessionRecoveryService offering to "recover" a session that already
     /// lives in history, and clearing persisted state stops the next app
     /// launch prompting the user to recover.

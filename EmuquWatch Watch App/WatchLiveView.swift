@@ -827,21 +827,28 @@ private struct CompletionScreen: View {
 
     /// Says the workout stopped, not that it was saved: the iPhone sends the
     /// stop before it finalizes and archives the workout, so at this moment
-    /// the Watch cannot know the save succeeded.
+    /// the Watch cannot know the save succeeded. When the iPhone then reports
+    /// it left the workout unsaved as an accidental start
+    /// (`WatchSessionManager.workoutNotSaved`), it says so instead.
     private var savedHeader: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "stop.circle.fill")
+        let notSaved = sessionManager.workoutNotSaved
+        return VStack(spacing: 10) {
+            Image(systemName: notSaved ? "exclamationmark.triangle.fill" : "stop.circle.fill")
                 .watchScaledFont(size: 36, relativeTo: .title)
-                .foregroundStyle(.green)
+                .foregroundStyle(notSaved ? .orange : .green)
 
-            Text(String(localized: "Workout stopped"))
+            Text(notSaved ? String(localized: "Workout not saved") : String(localized: "Workout stopped"))
                 .font(.headline)
 
-            Text(String(localized: "Tap Save & Done to dismiss the summary on both devices."))
+            Text(notSaved ? Self.notSavedExplainer : String(localized: "Tap Save & Done to dismiss the summary on both devices."))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
+    }
+
+    private static var notSavedExplainer: String {
+        String(localized: "Under a minute with no heart rate or movement, so it was not saved. To keep it, tap Save on your iPhone.")
     }
 
     private var saveAndDoneButton: some View {
@@ -851,7 +858,7 @@ private struct CompletionScreen: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark")
-                Text(String(localized: "Save & Done"))
+                Text(sessionManager.workoutNotSaved ? String(localized: "Done") : String(localized: "Save & Done"))
                     .font(.caption.weight(.semibold))
             }
             .frame(maxWidth: .infinity)

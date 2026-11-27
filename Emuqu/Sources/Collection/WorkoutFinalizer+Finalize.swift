@@ -37,7 +37,8 @@ extension WorkoutFinalizer {
         )
         classifySessionAndAttachData(
             session: &session, metadata: &metadata, series: analysis.series,
-            rrPoints: rrPoints, stopDate: stopDate
+            rrPoints: rrPoints, stopDate: stopDate,
+            activeSeconds: TimeInterval(recording.pauseTimeline.activeSeconds(sessionStart: startDate, now: stopDate))
         )
         attachAIContextSnapshot(to: &session, sport: analysis.sport, stopDate: stopDate)
         await attachTrainingSnapshot(to: &session, stopDate: stopDate)
@@ -401,22 +402,29 @@ extension WorkoutFinalizer {
     /// "Estimated — strap dropout" badge is more honest than
     /// silently dropping the data.
     ///
-    /// Sessions with no HR AND no GPS movement are a different case:
-    /// they're almost certainly accidental Start taps, not real
-    /// recordings. Those go to `.failed`, and `archive(session:)` does not
-    /// write a `.failed` session, so the archive (and iCloud and Apple
-    /// Health after it) isn't littered with ghost rows.
+    /// A session under a minute of active time with no HR, no movement and
+    /// few samples is a different case: almost certainly an accidental Start
+    /// tap (`WorkoutAccidentalStart`). It goes to `.failed`, which
+    /// `archive(session:)` does not write on its own: the summary says it was
+    /// not saved and offers to save it. The time is the wall clock less the
+    /// pauses (`activeSeconds`), so a long workout whose ticker was suspended
+    /// with the phone locked is saved like any other, and that time is stored
+    /// as its duration (`WorkoutMetadata.activeSeconds`).
     private func classifySessionAndAttachData(
         session: inout HRVSession,
         metadata: inout WorkoutMetadata,
         series: RRSeries?,
         rrPoints: [RRPoint],
-        stopDate: Date
+        stopDate: Date,
+        activeSeconds: TimeInterval
     ) {
-        let hasMeaningfulData = rrPoints.count >= 60
-            || (metadata.distanceMeters ?? 0) > 50
-            || (metadata.samples?.count ?? 0) >= 30
-        if hasMeaningfulData {
+        let accidental = WorkoutAccidentalStart.isAccidental(
+            beats: rrPoints.count, distanceMeters: metadata.distanceMeters,
+            sampleCount: metadata.samples?.count ?? 0, activeSeconds: activeSeconds
+        )
+        if accidental {
+            session.state = .failed
+        } else {
             session.state = .complete
             // A dropout needs a strap that sent something. A workout with no
             // beats at all never had one (no strap, or Watch heart rate), and
@@ -424,9 +432,8 @@ extension WorkoutFinalizer {
             if !rrPoints.isEmpty, rrPoints.count < 60 {
                 metadata.partialDataReason = .strapDisconnected
             }
-        } else {
-            session.state = .failed
         }
+        metadata.activeSeconds = activeSeconds
         session.workoutMetadata = metadata
         session.rrSeries = series
         session.endDate = stopDate

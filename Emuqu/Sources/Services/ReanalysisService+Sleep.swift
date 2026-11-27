@@ -589,32 +589,36 @@ extension ReanalysisService {
         Task { self.onSessionUploaded(synced) }
     }
 
-    /// Unlink a merged segment: strip its beats from the parent's series,
-    /// drop the link, archive, and re-analyse. False (link kept, nothing
+    /// Unlink a merged segment: strip its beats from the parent's series
+    /// (`NightBeatsEdit.replaceBeats`, so what is indexed into them moves and
+    /// the span follows the beats kept), drop the link, archive, and analyse
+    /// the night again from what it keeps. False (link kept, nothing
     /// written) when the parent or the link is missing, when the segment
     /// can't be read so its beats can't be located, or when the write fails.
+    /// False too, with the night put back as it was, when a night that was
+    /// analysed cannot be analysed again without the segment: its analysis
+    /// and score would describe beats it no longer holds.
     @discardableResult
-    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool {
+    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) async -> Bool {
         do {
-            guard var session = try archive.retrieve(sessionId) else { return false }
-            let linked = session
-            guard var links = session.linkedSessionIds, links.contains(segmentId) else { return false }
-            // Step 1: Strip the unlinked segment's RR data from the merged series.
-            guard stripSegmentPoints(segmentId: segmentId, from: &session) else { return false }
-            // Step 2: Remove the link
-            links.removeAll { $0 == segmentId }
-            session.linkedSessionIds = links.isEmpty ? nil : links
+            guard let linked = try archive.retrieve(sessionId), var session = Self.unlinking(segmentId, from: linked),
+                  stripSegmentPoints(segmentId: segmentId, from: &session) else { return false }
             try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
-            debugLog("[ReanalysisService] Unlinked segment \(segmentId.uuidString.prefix(8)) from session \(sessionId.uuidString.prefix(8)) — \(links.count) segments remaining")
-            // Step 3: Reanalyze without the contaminating segment's beats.
-            reanalyzeAfterUnlink(session, linked: linked)
-            let sessionToUpload = session
-            Task { self.onSessionUploaded(sessionToUpload) }
-            return true
+            debugLog("[ReanalysisService] Unlinked segment \(segmentId.uuidString.prefix(8)) from session \(sessionId.uuidString.prefix(8)) — \(session.linkedSessionIds?.count ?? 0) segments remaining")
+            return try await reanalyzeAfterUnlink(session, linked: linked)
         } catch {
             debugLog("[ReanalysisService] Failed to unlink segment: \(error)", level: .error)
             return false
         }
+    }
+
+    /// `session` without the link to `segmentId`; nil when it has none.
+    private static func unlinking(_ segmentId: UUID, from session: HRVSession) -> HRVSession? {
+        guard var links = session.linkedSessionIds, links.contains(segmentId) else { return nil }
+        links.removeAll { $0 == segmentId }
+        var unlinked = session
+        unlinked.linkedSessionIds = links.isEmpty ? nil : links
+        return unlinked
     }
 
     /// Load the unlinked session to find its time range, then remove the
@@ -641,9 +645,7 @@ extension ReanalysisService {
         let segEndMs = segStartMs + segDurationMs
         let originalCount = series.points.count
         let cleanedPoints = series.points.filter { $0.t_ms < segStartMs || $0.t_ms > segEndMs }
-        session.rrSeries = RRSeries(
-            points: cleanedPoints, sessionId: series.sessionId, startDate: series.startDate
-        )
+        NightBeatsEdit.replaceBeats(of: &session, with: cleanedPoints)
         debugLog("[ReanalysisService] Stripped \(originalCount - cleanedPoints.count) RR points from unlinked segment time range (\(segStartMs)-\(segEndMs) ms)")
         return true
     }
@@ -655,19 +657,37 @@ extension ReanalysisService {
         return unlinked.rrSeries?.points.last?.t_ms ?? 0
     }
 
+    /// The night analysed again without the segment's beats: in full, or,
+    /// for a window the user picked and still holds, scored over it. A night
+    /// that held no analysis has none to bring up to date. When the analysis
+    /// fails the night is put back as it was (`linked`) and false returned.
     /// Then Apple Health gets the night without the segment's beats,
     /// compared with the night as it was while `linked`.
-    private func reanalyzeAfterUnlink(_ session: HRVSession, linked: HRVSession) {
-        Task {
-            let reanalyzed = await self.reanalyzeSession(session)
-            if let reanalyzed {
-                debugLog("[ReanalysisService] Reanalyzed after unlink: score \(String(format: "%.1f", reanalyzed.recoveryScore ?? -1))")
-            } else {
-                debugLog("[ReanalysisService] Reanalysis after unlink returned nil — session archived with stripped data only")
+    private func reanalyzeAfterUnlink(_ session: HRVSession, linked: HRVSession) async throws -> Bool {
+        var final = session
+        if session.analysisResult != nil {
+            guard let reanalyzed = await analysedAfterBeatsEdit(session) else {
+                debugLog("[ReanalysisService] Reanalysis after unlink failed — the unlink is undone", level: .error)
+                try archive.archive(linked, skipSameNightMerge: false, requestingReupload: true)
+                onArchiveChanged()
+                return false
             }
-            self.reexportIfReadingsChanged(from: linked, to: reanalyzed ?? session)
-            await MainActor.run { self.onArchiveChanged() }
+            final = reanalyzed
         }
+        reexportIfReadingsChanged(from: linked, to: final)
+        onArchiveChanged()
+        let uploaded = final
+        Task { self.onSessionUploaded(uploaded) }
+        return true
+    }
+
+    /// A night whose beats an edit changed, analysed again in full, or, for
+    /// a window the user picked and still holds, scored over it. Nil when
+    /// neither could be done.
+    func analysedAfterBeatsEdit(_ night: HRVSession) async -> HRVSession? {
+        if let reanalysed = await reanalyzeSession(night, preserveManualWindows: true) { return reanalysed }
+        guard night.windowUserAdjusted == true else { return nil }
+        return await recomputeScoreOnly(sessionId: night.id)
     }
 }
 

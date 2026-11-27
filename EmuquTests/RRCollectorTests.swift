@@ -404,19 +404,21 @@ final class RRCollectorSaveResultTests: XCTestCase {
 
     /// No archived parent: nothing is unlinked and the reanalysis service
     /// says so, so the report keeps the segment listed.
-    func testUnlinkReportsFailureWhenTheParentIsNotArchived() {
-        XCTAssertFalse(makeReanalysis().service.unlinkSegment(segmentId: UUID(), fromSession: UUID()))
+    func testUnlinkReportsFailureWhenTheParentIsNotArchived() async {
+        let unlinked = await makeReanalysis().service.unlinkSegment(segmentId: UUID(), fromSession: UUID())
+        XCTAssertFalse(unlinked)
     }
 
     /// A segment whose own copy cannot be read: its beats cannot be located,
     /// so the link is kept and the reanalysis service reports false.
-    func testUnlinkReportsFailureAndKeepsTheLinkWhenTheSegmentCannotBeRead() throws {
+    func testUnlinkReportsFailureAndKeepsTheLinkWhenTheSegmentCannotBeRead() async throws {
         var parent = night()
         let segmentId = UUID()
         parent.linkedSessionIds = [segmentId]
         try archive.archive(parent)
 
-        XCTAssertFalse(makeReanalysis().service.unlinkSegment(segmentId: segmentId, fromSession: parent.id))
+        let unlinked = await makeReanalysis().service.unlinkSegment(segmentId: segmentId, fromSession: parent.id)
+        XCTAssertFalse(unlinked)
         XCTAssertEqual(try archive.retrieve(parent.id)?.linkedSessionIds, [segmentId])
     }
 }

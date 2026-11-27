@@ -94,6 +94,19 @@ final class LostSessionRecoveryTests: XCTestCase {
         XCTAssertEqual(lost.first?.beatCount, 300)
     }
 
+    /// A backup too short to recover (a night or reading killed in its first
+    /// minutes, a small strap rescue) is not listed, and it is kept: no size
+    /// rule deletes recorded beats the user did not delete.
+    func testABackupTooShortToRecoverIsKeptButNotListed() async throws {
+        let short = UUID()
+        _ = try collector.rawBackup.backup(points: beats(SessionRecoveryService.minRecoverableBeatCount - 1), sessionId: short)
+
+        let lost = await collector.recovery.checkForLostSessions()
+
+        XCTAssertFalse(lost.map(\.id).contains(short))
+        XCTAssertEqual(try collector.rawBackup.retrieve(short)?.points.count, SessionRecoveryService.minRecoverableBeatCount - 1)
+    }
+
     /// A second recording of a night the archive already held is folded into
     /// it and has no entry of its own. Its backup is not lost: the night
     /// holds its beats, and recovering it would merge them in again.

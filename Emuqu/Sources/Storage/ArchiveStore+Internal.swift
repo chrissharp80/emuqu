@@ -205,12 +205,10 @@ extension ArchiveStore {
         else { return nil }
         debugLog("[Archive] sameNightMerge: folding new session \(session.id.uuidString.prefix(8)) (start=\(session.startDate), score=\(session.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) into existing \(existing.sessionId.uuidString.prefix(8)) (date=\(existing.date), score=\(existing.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) — new UUID will be discarded", level: .warning)
         do {
-            guard var existingSession = try _retrieve(existing.sessionId) else {
+            guard let existingSession = try _retrieve(existing.sessionId) else {
                 throw SessionArchive.ArchiveError.fileNotFound
             }
-            if SessionMerger.mergeSessionData(from: session, into: &existingSession) { existingSession.modifiedAt = CloudKitSessionFreshness.stamp() }
-            // Re-archive the merged existing session (this is a re-archive, won't recurse)
-            return try _archive(existingSession)
+            return try archiveFold(of: session, into: existingSession)
         } catch {
             debugLog("[Archive] sameNightMerge: failed to retrieve session \(existing.sessionId.uuidString.prefix(8)): \(error) — not archiving the new session this pass", level: .warning)
             throw error
