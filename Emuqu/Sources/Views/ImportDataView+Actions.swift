@@ -255,7 +255,10 @@ extension ImportDataView {
     /// Tags & Notes edited on the imported reading's report: onto the reading
     /// Done saves, and into the archived copy, because the report hands its
     /// edits over as it closes, after Done has saved the reading. A reading
-    /// discarded instead has no archived copy; that write failure is logged.
+    /// the archive merged into a night it already held is kept under that
+    /// night's id (`SessionArchive.archivedId(of:)`), which takes the edits.
+    /// A reading discarded instead has no archived copy; that write failure
+    /// is logged.
     func applyReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
         guard importedSession?.id == sessionId else { return }
         importedSession?.tags = tags
@@ -263,7 +266,7 @@ extension ImportDataView {
         let archive = collector.archive
         Task.detached {
             do {
-                try archive.updateTags(sessionId, tags: tags, notes: notes)
+                try archive.updateTags(archive.archivedId(of: sessionId), tags: tags, notes: notes)
             } catch {
                 debugLog("[ImportDataView] Report tags not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
             }

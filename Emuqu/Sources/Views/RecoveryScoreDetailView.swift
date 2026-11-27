@@ -487,10 +487,11 @@ struct RecoveryScoreDetailView: View {
 /// and the archived copy is updated only when that adds a field.
 enum RecoveryVitalsBackfill {
     /// No re-upload request: iCloud payloads leave `vitalsSnapshot` out, so
-    /// a re-upload would carry none of this change.
+    /// a re-upload would carry none of this change. A night folded into one
+    /// already archived is filled there (`SessionArchive.archivedId(of:)`).
     static func store(_ fresh: RecoveryVitals, id: UUID, archive: SessionArchive) {
         do {
-            try archive.update(id, requestingReupload: false) { fill(fresh, in: &$0) }
+            try archive.update(archive.archivedId(of: id), requestingReupload: false) { fill(fresh, in: &$0) }
         } catch {
             debugLog("[RecoveryScoreDetail] Merged vitals not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
         }

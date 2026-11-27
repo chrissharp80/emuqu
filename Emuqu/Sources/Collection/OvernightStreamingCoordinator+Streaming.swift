@@ -729,11 +729,12 @@ extension OvernightStreamingCoordinator {
         return finalSession
     }
 
-    /// The recording marker goes once the night is saved. A scored night
-    /// whose pre-archive failed keeps it until Accept saves the night, so a
-    /// crash on the review card still offers the night at launch.
+    /// The recording marker goes once the night is saved: under its own id,
+    /// or folded into a night the archive already held (`holdsNight`). A
+    /// scored night whose pre-archive failed keeps it until Accept saves the
+    /// night, so a crash on the review card still offers the night at launch.
     private func clearPersistedStateIfSaved(_ finalSession: HRVSession) {
-        guard finalSession.state != .complete || archive.store.exists(finalSession.id) else {
+        guard finalSession.state != .complete || archive.holdsNight(finalSession.id) else {
             debugLog("[RRCollector] Night \(finalSession.id.uuidString.prefix(8)) is not in the archive — keeping its recording marker until Accept", level: .warning)
             return
         }
@@ -751,12 +752,15 @@ extension OvernightStreamingCoordinator {
     }
 
     /// Show the finished status for a beat, clear it, and fold the night into
-    /// the rolling baselines.
+    /// the rolling baselines. A recording the archive folded into a night it
+    /// already held goes in as that night (`SessionArchive.archivedId(of:)`):
+    /// the recording's own reading, under an id the archive does not hold,
+    /// would stand in the baseline for the merged night.
     private func settleMorningStatus(complete: RRCollector.MorningProcessingStatus, finalSession: HRVSession) async {
         await MainActor.run { morningCoordination.morningStatus = complete }
         await Self.holdCompleteStatusBriefly()
         await MainActor.run { morningCoordination.morningStatus = nil }
-        baselineTracker.update(with: finalSession, sleepSchedule: settingsManager.settings.sleepSchedule)
+        baselineTracker.update(with: archive.night(holding: finalSession), sleepSchedule: settingsManager.settings.sleepSchedule)
     }
 
     /// Let the "complete" morning status sit on screen for a beat before it's

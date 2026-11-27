@@ -141,10 +141,13 @@ final class SessionRecoveryService {
     /// Backups with no archive entry. `live` are the recordings still in
     /// progress: they have a backup and no entry yet, and are left out before
     /// anything is discarded, or a recording under two minutes old lost its
-    /// crash-safety backup here.
+    /// crash-safety backup here. A recording the archive folded into another
+    /// night (`SessionArchive.foldedRecordingIds`) has no entry of its own
+    /// either, but its beats are in that night: it is not lost, and
+    /// recovering it would merge the same beats in again.
     func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)] {
         await pullCloudBackupsToLocalIfDue(excluding: live)
-        let archivedIds = Set(archive.store.entries.map(\.sessionId))
+        let archivedIds = Set(archive.store.entries.map(\.sessionId)).union(archive.foldedRecordingIds)
         let deletedIds = archive.store.deletedIds
         let orphans = rawBackup.allBackups().filter {
             !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
@@ -268,6 +271,7 @@ final class SessionRecoveryService {
         guard !cloudBackups.isEmpty else { return }
         let holdings = CloudBackupHoldings(
             finished: Set(archive.store.entries.map(\.sessionId))
+                .union(archive.foldedRecordingIds)
                 .union(archive.store.deletedIds)
                 .union(ForgottenSessions.ids),
             heldLocally: Set(rawBackup.allBackups().map(\.id)),
@@ -284,7 +288,8 @@ final class SessionRecoveryService {
 
     /// What this device knows of the sessions behind iCloud's live backups.
     struct CloudBackupHoldings {
-        /// Archived, deleted, or deleted forever here.
+        /// Archived (under its own id or folded into another night), deleted,
+        /// or deleted forever here.
         let finished: Set<UUID>
         /// Sessions with a local raw backup, this device's own or pulled.
         let heldLocally: Set<UUID>
@@ -432,9 +437,23 @@ final class SessionRecoveryService {
                 outcome.kept += 1
                 continue
             }
-            if let span, !(await removeHealthSamples(id, span)) { outcome.healthSamplesKept += 1 }
+            if let span, !(await removeExports(of: id, over: span, with: removeHealthSamples)) { outcome.healthSamplesKept += 1 }
         }
         return outcome
+    }
+
+    /// What the session exported to Apple Health, and what each recording
+    /// kept under it (`SessionArchive.idsKept(under:)`) exported under its
+    /// own id before it was folded in. True when all of it went.
+    private func removeExports(
+        of id: UUID, over span: ClosedRange<Date>, with remove: (UUID, ClosedRange<Date>) async -> Bool
+    ) async -> Bool {
+        var removed = await remove(id, span)
+        for kept in archive.idsKept(under: id) {
+            let keptRemoved = await remove(kept, span)
+            removed = removed && keptRemoved
+        }
+        return removed
     }
 
     /// The breadcrumb route, the trashed file and the raw backup, in that
@@ -447,10 +466,21 @@ final class SessionRecoveryService {
         guard archive.store.discardTrashed(sessionId) else { return false }
         do {
             try rawBackup.discardBackup(sessionId)
+            try discardBackupsKept(under: sessionId)
             return true
         } catch {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard the backup of \(sessionId.uuidString.prefix(8)): \(error) — keeping it in the Trash", level: .error)
             return false
+        }
+    }
+
+    /// The backups of the recordings folded into the session, and of the
+    /// copies retired into it (`SessionArchive.idsKept(under:)`): their beats
+    /// are the session's, so deleting it forever deletes them too, and none
+    /// is left on the device under its old id.
+    private func discardBackupsKept(under sessionId: UUID) throws {
+        for id in archive.idsKept(under: sessionId) {
+            try rawBackup.discardBackup(id)
         }
     }
 

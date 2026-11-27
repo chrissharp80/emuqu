@@ -213,9 +213,13 @@ struct AssistantChatView: View {
     /// A session citation whose session can't be loaded (deleted, or not
     /// readable while locked) is still `.handled`: the tap does nothing
     /// visible. `retrieveOrLog` logs a read failure; a missing session is not logged.
+    /// A saved chat can cite a session the duplicate cleanup has since
+    /// retired into another copy; the citation opens the copy kept
+    /// (`SessionArchive.archivedId(of:)`).
     private func handleAssistantURL(_ url: URL) -> OpenURLAction.Result {
         if let sessionId = AssistantCitationResolver.parseSessionURL(url) {
-            if let session = dependencies.storage.sessionArchive.retrieveOrLog(sessionId, caller: "AssistantChatView.citationTap") {
+            let archive = dependencies.storage.sessionArchive
+            if let session = archive.retrieveOrLog(archive.archivedId(of: sessionId), caller: "AssistantChatView.citationTap") {
                 citationSession = session
             }
             return .handled

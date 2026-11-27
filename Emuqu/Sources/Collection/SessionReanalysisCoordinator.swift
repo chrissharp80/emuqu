@@ -155,12 +155,14 @@ final class SessionReanalysisCoordinator {
     /// dashboard's `retrieveLightweightOrLog` copies), and
     /// `ReanalysisService.reanalyzeSession` refuses one with no rrSeries. The
     /// full session is re-read from disk, off the main actor, so that gate
-    /// sees what is stored.
+    /// sees what is stored. A recording folded into another night is read as
+    /// that night (`SessionArchive.archivedId(of:)`), the copy a rescore can
+    /// be written to.
     private func fullSessionFromDisk(_ session: HRVSession) async -> HRVSession {
         let archive = self.archive
         let sessionId = session.id
         return await Task.detached(priority: .userInitiated) {
-            archive.retrieveOrLog(sessionId, caller: "SessionReanalysis.reanalyzeSession") ?? session
+            archive.retrieveOrLog(archive.archivedId(of: sessionId), caller: "SessionReanalysis.reanalyzeSession") ?? session
         }.value
     }
 

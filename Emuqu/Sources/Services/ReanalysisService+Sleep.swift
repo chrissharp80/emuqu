@@ -218,8 +218,13 @@ extension ReanalysisService {
     /// made after the sheet captured its copy), not the sheet's copy. Falls
     /// back to `session` when it is not archived or the read fails; a failed
     /// read is logged at `.error` (`ArchivedSessionRead`).
+    ///
+    /// A recording the archive folded into another night is that night
+    /// (`SessionArchive.archivedId(of:)`), which holds its beats: the pick is
+    /// applied there. Archiving the sheet's copy instead merged the recording
+    /// in again, which kept the night's own window and dropped the pick.
     private func latestArchivedCopy(of session: HRVSession) -> HRVSession {
-        ArchivedSessionRead.read(session.id, from: archive, caller: "manualWindow").session ?? session
+        ArchivedSessionRead.read(archive.archivedId(of: session.id), from: archive, caller: "manualWindow").session ?? session
     }
 
     /// Keep frozen snapshots so manual reanalysis remains deterministic and local.
@@ -285,7 +290,8 @@ extension ReanalysisService {
     /// One sleep edit: the session is read off the main actor, then written
     /// (`writeUntilCurrent`). False on missing start or end, a session not
     /// in the archive, an automatic update that does not apply, inputs that
-    /// kept changing, or an error (logged at `.error`).
+    /// kept changing, or an error (logged at `.error`). A recording folded
+    /// into another night is that night (`SessionArchive.archivedId(of:)`).
     private func runSleepBoundaryUpdate(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool) async -> Bool {
         guard let edit = SleepBoundaryWrite.Edit(sleepData: sleepData, isUserAdjustment: isUserAdjustment) else {
             debugLog("[UpdateSleepBounds] Bailed: sleepStart or sleepEnd is nil")
@@ -293,7 +299,7 @@ extension ReanalysisService {
         }
         let archive = archive
         do {
-            guard let read = try await Task.detached(priority: .userInitiated, operation: { try archive.retrieve(sessionId) }).value else {
+            guard let read = try await Task.detached(priority: .userInitiated, operation: { try archive.retrieve(archive.archivedId(of: sessionId)) }).value else {
                 debugLog("[UpdateSleepBounds] Bailed: session \(sessionId.uuidString.prefix(8)) not in archive")
                 return false
             }
