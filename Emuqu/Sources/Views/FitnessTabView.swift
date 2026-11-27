@@ -265,7 +265,7 @@ struct FitnessTabView: View {
                 workoutDeleteFailed = true
                 return
             }
-            if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
+            if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished(of: item.session.id) }
         }
     }
 

@@ -53,6 +53,11 @@ final class CloudKitLiveBackupManager {
         set { UserDefaults.standard.set(Array(newValue), forKey: Self.backedUpKey) }
     }
 
+    /// Uploads saved this launch, per session. A delete compares the count
+    /// from before it suspended with the count after: an upload that landed
+    /// meanwhile may have put the record back.
+    private var uploadsSaved: [String: Int] = [:]
+
     /// Sessions whose live backup in iCloud this device uploaded. Another
     /// device's backup pulled here for recovery is never among them.
     var uploadedHereIds: Set<UUID> {
@@ -129,6 +134,7 @@ final class CloudKitLiveBackupManager {
     /// over. A session discarded while the upload ran is deleted again: its
     /// delete may have landed first, and this save would bring it back.
     private func noteUploaded(_ sessionId: UUID) async {
+        uploadsSaved[sessionId.uuidString, default: 0] += 1
         backedUpIds.insert(sessionId.uuidString)
         failureEpisode.noteSuccess()
         if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
@@ -255,13 +261,29 @@ final class CloudKitLiveBackupManager {
     /// again once its session is deleted (`retryAwaitingDeletion`). While the
     /// signed-in account is not confirmed as the one the backup went to
     /// (`CloudAccountIdentity.isConfirmed`), nothing is deleted and the
-    /// session stays awaiting deletion.
+    /// session stays awaiting deletion. So does one an upload landed during
+    /// the delete for (`keepsAwaitingDeletion`): that save may have put the
+    /// record back after the delete removed it.
     func delete(sessionId: UUID) async {
         guard settings.iCloudSyncEnabled || backedUpIds.contains(sessionId.uuidString) else { return }
         guard CloudAccountIdentity.isConfirmed else {
             backedUpIds.insert(sessionId.uuidString)
             return
         }
+        let savedBefore = uploadsSaved[sessionId.uuidString, default: 0]
+        guard await deleteRecord(of: sessionId) else {
+            backedUpIds.insert(sessionId.uuidString)
+            return
+        }
+        guard !Self.keepsAwaitingDeletion(savedBefore: savedBefore, savedNow: uploadsSaved[sessionId.uuidString, default: 0]) else {
+            debugLog("[CloudKit] A live backup upload for \(sessionId.uuidString.prefix(8)) landed during its delete — kept for the next full sync")
+            return
+        }
+        backedUpIds.remove(sessionId.uuidString)
+    }
+
+    /// Deletes the session's live backup record; true once iCloud holds none.
+    private func deleteRecord(of sessionId: UUID) async -> Bool {
         do {
             let recordID = CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID)
             try await privateDB.deleteRecord(withID: recordID)
@@ -270,10 +292,15 @@ final class CloudKitLiveBackupManager {
             debugLog("[CloudKit] No live backup in iCloud for \(sessionId.uuidString.prefix(8))")
         } catch {
             debugLog("[CloudKit] Failed to clean up live backup, kept for the next full sync: \(error.localizedDescription)", level: .warning)
-            backedUpIds.insert(sessionId.uuidString)
-            return
+            return false
         }
-        backedUpIds.remove(sessionId.uuidString)
+        return true
+    }
+
+    /// Whether a delete keeps the session awaiting deletion because an
+    /// upload was saved while it ran.
+    nonisolated static func keepsAwaitingDeletion(savedBefore: Int, savedNow: Int) -> Bool {
+        savedNow != savedBefore
     }
 
     /// Delete again every backup awaiting deletion whose session is in

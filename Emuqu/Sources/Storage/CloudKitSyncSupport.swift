@@ -771,6 +771,13 @@ enum CloudSyncMessages {
     static var historyNotReadable: String {
         String(localized: "Your history on this iPhone can't be read yet. Sync will try again.", bundle: LanguageManager.appBundle)
     }
+    /// Sessions on this iPhone sealed with a key it does not hold
+    /// (`SessionArchive.sealedWithAnotherKeyCount`): restored from a backup
+    /// without the previous phone's Keychain. They are kept, and iCloud
+    /// brings back any that were synced there.
+    static var historyFromAnotherPhone: String {
+        String(localized: "History from your previous iPhone can't be opened on this one. If iCloud Keychain and iCloud Sync were on there, turn both on here to bring it back. Those readings are kept on this iPhone.", bundle: LanguageManager.appBundle)
+    }
     static var previousSyncTimedOut: String {
         String(localized: "Previous sync timed out — retrying", bundle: LanguageManager.appBundle)
     }

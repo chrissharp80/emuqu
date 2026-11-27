@@ -269,25 +269,25 @@ extension FitnessSummaryCards {
         reanalyzing = true
         reanalyzeError = nil
         defer { reanalyzing = false }
-        let (refreshedSamples, readings) = await recomputeAlpha1()
-        guard let refreshedSamples else {
+        let basis = session
+        let (refreshedSamples, readings) = await recomputeAlpha1(of: basis)
+        guard refreshedSamples != nil else {
             reanalyzeError = String(localized: "Not enough RR data to re-analyze.", bundle: LanguageManager.appBundle)
             return
         }
-        await persistReanalyzedSamples(refreshedSamples, readingCount: readings.count)
+        await persistReanalyzedSamples(readings, computedFrom: basis)
     }
 
     /// Off-thread: the DFA pass over a ~60-min RR series is a few hundred
     /// log-log regressions; fast enough that we don't need chunking but
     /// definitely shouldn't block the main thread.
     ///
-    /// The `HRVSession` snapshot is captured here on the MainActor so the
+    /// The `HRVSession` snapshot is taken by the caller on the MainActor so the
     /// detached task doesn't reach back into main-isolated state, which Swift 6
     /// strict concurrency rejects. `HRVSession` is Codable +
     /// value-semantic, so the copy is cheap and safe to move across isolation.
-    private func recomputeAlpha1() async -> ([WorkoutSample]?, [WorkoutAlpha1Reanalyzer.Reading]) {
-        let sessionSnapshot = session
-        return await Task.detached(priority: .userInitiated) { () -> ([WorkoutSample]?, [WorkoutAlpha1Reanalyzer.Reading]) in
+    private func recomputeAlpha1(of sessionSnapshot: HRVSession) async -> ([WorkoutSample]?, [WorkoutAlpha1Reanalyzer.Reading]) {
+        await Task.detached(priority: .userInitiated) { () -> ([WorkoutSample]?, [WorkoutAlpha1Reanalyzer.Reading]) in
             let rs = WorkoutAlpha1Reanalyzer.reanalyze(session: sessionSnapshot)
             guard !rs.isEmpty, let samples = sessionSnapshot.workoutMetadata?.samples else {
                 return (nil, rs)
@@ -302,9 +302,9 @@ extension FitnessSummaryCards {
     /// mean α1 is recomputed from the new samples so the splits table agrees
     /// with the re-analysed trace. The archive write runs on a detached task
     /// (`storeReanalyzedSamples`), not the main actor.
-    private func persistReanalyzedSamples(_ refreshedSamples: [WorkoutSample], readingCount: Int) async {
+    private func persistReanalyzedSamples(_ readings: [WorkoutAlpha1Reanalyzer.Reading], computedFrom basis: HRVSession) async {
         let updated: HRVSession
-        switch await storeReanalyzedSamples(refreshedSamples) {
+        switch await storeReanalyzedSamples(readings, computedFrom: basis) {
         case .success(let session?):
             updated = session
         case .success(nil):
@@ -319,44 +319,54 @@ extension FitnessSummaryCards {
         // miss it anyway; clearing it here also frees the old entry at once.
         alpha1StatsCache.cachedKey = nil
         collector.archiveSignal.notifyChanged()
-        debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
+        debugLog("[Alpha1Reanalyze] rewrote \(readings.count) α1 readings for session \(session.id)")
     }
 
-    /// Stores the re-analysed samples and their α1-enriched splits on the
-    /// archived session and rebuilds its analysis snapshot (α1 mean / min /
+    /// Stores the re-analysed α1 on the archived session's samples, with its
+    /// α1-enriched splits, and rebuilds its analysis snapshot (α1 mean / min /
     /// max, band seconds, narratives) from them; nil when the session is no
     /// longer in the archive, the error when the write threw.
-    private func storeReanalyzedSamples(_ refreshedSamples: [WorkoutSample]) async -> Result<HRVSession?, Error> {
-        let id = session.id
-        let enrichedSplits = alpha1EnrichedSplits(samples: refreshedSamples)
+    private func storeReanalyzedSamples(
+        _ readings: [WorkoutAlpha1Reanalyzer.Reading], computedFrom basis: HRVSession
+    ) async -> Result<HRVSession?, Error> {
         let archive = self.archive
         let settings = UserSettingsBridge.snapshot(of: settingsManager)
         return await Task.detached(priority: .userInitiated) {
-            Self.writeReanalyzedSamples(id, refreshedSamples, splits: enrichedSplits, archive: archive, settings: settings)
+            Self.writeReanalysis(readings, computedFrom: basis, archive: archive, settings: settings)
         }.value
     }
 
-    /// The write, off the main actor; splits are replaced only when enriched.
-    nonisolated private static func writeReanalyzedSamples(
-        _ id: UUID, _ refreshedSamples: [WorkoutSample], splits enrichedSplits: [Split]?,
+    /// The write, off the main actor, under the archive's lock.
+    nonisolated private static func writeReanalysis(
+        _ readings: [WorkoutAlpha1Reanalyzer.Reading], computedFrom basis: HRVSession,
         archive: SessionArchive, settings: UserSettingsBridge
     ) -> Result<HRVSession?, Error> {
         Result {
-            try updateArchived(id, in: archive) { stored in
-                let storedSplits = stored.workoutMetadata?.splits
-                stored.workoutMetadata?.samples = refreshedSamples
-                stored.workoutMetadata?.splits = enrichedSplits ?? storedSplits
+            try updateArchived(basis.id, in: archive) { stored in
+                applyReanalysis(readings, computedFrom: basis, to: &stored)
                 rebuildAnalysisSnapshot(&stored, settings: settings)
             }
         }
     }
 
-    /// The workout's splits with each one's mean α1 taken from `samples`; nil
-    /// when the workout has no metadata or no splits.
-    private func alpha1EnrichedSplits(samples: [WorkoutSample]) -> [Split]? {
-        guard var metadata = session.workoutMetadata, metadata.splits != nil else { return nil }
-        metadata.samples = samples
-        return WorkoutAnalyzer.splitsEnrichedWithAlpha1(metadata, startDate: session.startDate, duration: session.duration)
+    /// Puts the readings on the samples as they are stored at the write, not
+    /// as they were read before the recompute: a retrim, or a pull that kept
+    /// iCloud's copy, may have rewritten them meanwhile, and writing the
+    /// samples derived from the older copy would undo that. Readings computed
+    /// from beats the stored copy no longer holds are computed again from
+    /// it. The splits' mean α1 is then taken from the samples written.
+    nonisolated static func applyReanalysis(
+        _ readings: [WorkoutAlpha1Reanalyzer.Reading], computedFrom basis: HRVSession, to stored: inout HRVSession
+    ) {
+        guard let samples = stored.workoutMetadata?.samples else { return }
+        let current = stored.rrSeries?.points == basis.rrSeries?.points
+            ? readings : WorkoutAlpha1Reanalyzer.reanalyze(session: stored)
+        stored.workoutMetadata?.samples = WorkoutAlpha1Reanalyzer.applyReadings(current, to: samples)
+        guard let metadata = stored.workoutMetadata, metadata.splits != nil else { return }
+        let (startDate, duration) = (stored.startDate, stored.duration)
+        stored.workoutMetadata?.splits = WorkoutAnalyzer.splitsEnrichedWithAlpha1(
+            metadata, startDate: startDate, duration: duration
+        ) ?? metadata.splits
     }
 }
 

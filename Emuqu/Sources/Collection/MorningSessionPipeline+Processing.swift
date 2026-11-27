@@ -167,6 +167,12 @@ extension MorningSessionPipeline {
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
     /// A night processed again under an id the archive holds keeps what the
     /// user set on the stored copy (`SessionArchive.archiveRebuilt`).
+    ///
+    /// The review ids are this night's only while it is the one on the
+    /// recorder (`SessionState.recorderTaken`): a caller whose claim went
+    /// stale may get here after another session took the recorder, and that
+    /// session's review must not point Discard or the rescore at this night.
+    /// The night is saved either way.
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
         let isNewEntry = !archive.store.entries.contains { $0.sessionId == finalSession.id }
@@ -175,6 +181,7 @@ extension MorningSessionPipeline {
             let entry = try archive.archiveRebuilt(finalSession)
             retireRawBackupIfSafe(finalSession)
             retireNightRescue(of: finalSession)
+            guard !sessionState.recorderTaken(since: finalSession.id) else { return }
             if entry.sessionId != finalSession.id {
                 sessionState.reviewFoldedIntoSessionId = entry.sessionId
             } else if isNewEntry {

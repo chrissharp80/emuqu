@@ -8,6 +8,10 @@ import SwiftUI
 extension DataSettingsPage {
     /// What an idle sync that is not up to date waits on.
     enum SyncWait: Equatable {
+        /// Sessions on this iPhone no key here opens: restored without the
+        /// previous phone's Keychain (`sealedWithAnotherKeyCount`). Retrying
+        /// cannot read them, so it is said before an unread index is.
+        case historyFromAnotherPhone
         /// The archive's index did not load, so what is waiting is unknown.
         case historyUnreadable
         /// Sessions whose last upload failed (`failedUploadsWaitingCount`).
@@ -20,8 +24,10 @@ extension DataSettingsPage {
         case uploading
     }
 
-    /// Nil when the sync is up to date (`isUpToDate`).
+    /// Nil when the sync is up to date (`isUpToDate`) and every session on
+    /// this iPhone opens.
     var syncWait: SyncWait? {
+        if syncManager.archive.sealedWithAnotherKeyCount > 0 { return .historyFromAnotherPhone }
         guard !syncManager.isUpToDate else { return nil }
         guard syncManager.archive.hasCompleteIndex else { return .historyUnreadable }
         let failed = syncManager.failedUploadsWaitingCount
@@ -34,6 +40,7 @@ extension DataSettingsPage {
     /// waiting their turn: a save uploading right now is not "pending retry".
     var syncWarning: String? {
         switch syncWait {
+        case .historyFromAnotherPhone: CloudSyncMessages.historyFromAnotherPhone
         case .historyUnreadable: CloudSyncMessages.historyNotReadable
         case let .failedUploads(count): CloudSyncMessages.uploadsWaiting(count)
         case .awaitingKey: CloudPayloadCodec.CodecError.noMatchingKey.localizedDescription
