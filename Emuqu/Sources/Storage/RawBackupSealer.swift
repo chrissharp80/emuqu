@@ -173,7 +173,7 @@ struct RawBackupSealer {
     /// when none exists; false, with nothing rewritten, while the key is out
     /// of reach.
     private func resealPointFiles(_ files: [URL]) throws -> Bool {
-        let present = files.filter { FileManager.default.fileExists(atPath: $0.path) }
+        let present = files.filter { BackupFiles.isFile($0, using: .default) }
         guard !present.isEmpty else { return true }
         guard let manager = SealedJSONLines.availableManager(encryption) else { return false }
         return try present.map { try SealedJSONLines.resealFile(at: $0, with: manager) }.allSatisfy { $0 }

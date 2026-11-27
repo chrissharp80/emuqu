@@ -226,15 +226,34 @@ final class BeatTimelineTests: XCTestCase {
         points += (64 ..< 124).map { RRPoint(t_ms: Int64($0) * 1_000, rr_ms: 1_000) }
         let imported = try RRDataImporter().importContent(RRDataImporter.recordingCSV(points: points), fileName: "rr.csv")
         let timeline = try XCTUnwrap(imported.timeline)
-        XCTAssertEqual(timeline.map(\.t_ms)[59 ... 62], [59_000, 61_000, 62_000, 64_000])
+        XCTAssertEqual(Array(timeline.map(\.t_ms).dropFirst(59).prefix(4)), [59_000, 61_000, 62_000, 64_000])
         let series = RRSeries(points: points, sessionId: UUID(), startDate: Date(timeIntervalSince1970: 1_700_000_000))
         var session = HRVSession(startDate: series.startDate, sessionType: .overnight)
         session.rrSeries = series
         let csv = RRDataImporter.emuquRRExportHeader + "\n" + ExportDataView.rrCSVRows(for: session, series: series, timeZone: .gmt)
         let importer = RRDataImporter()
-        let data = try XCTUnwrap(importer.parseFlowHRVMultiSession(csv, fileName: "e.csv").sessions.first)
+        let sessions = try importer.parseFlowHRVMultiSession(csv, fileName: "e.csv").sessions
+        XCTAssertEqual(sessions.count, 1, "the shared timestamp is one batch, not a second recording")
+        let data = try XCTUnwrap(sessions.first)
         let reread = try XCTUnwrap(importer.createSessionFromFlowHRVData(data, originalFileName: "e.csv").rrSeries?.points)
-        XCTAssertEqual(reread.map(\.t_ms)[59 ... 62], [59_000, 61_000, 62_000, 64_000])
+        XCTAssertEqual(reread.count, points.count)
+        XCTAssertEqual(Array(reread.map(\.t_ms).dropFirst(59).prefix(4)), [59_000, 61_000, 62_000, 64_000])
+    }
+
+    /// A legacy export's rows are one recording while they are in order by
+    /// the timeline rule: a timestamp shared by two beats of one batch (the
+    /// same wall clock) stays in it, and a timestamp that repeats or steps
+    /// back without that begins the next recording.
+    func testALegacyExportSplitsRecordingsOnlyWhereTheTimelineRestarts() {
+        func beat(_ ms: Int64, wall: Int64? = nil) -> RRDataImporter.ExportedBeat {
+            RRDataImporter.ExportedBeat(timestamp: ms, rr: 1_000, wallClockMs: wall, followsRemovedBeat: false)
+        }
+        let batch = [beat(0), beat(1_000, wall: 2_000), beat(1_000, wall: 2_000), beat(3_000)]
+        XCTAssertEqual(RRDataImporter.legacyRecordingSegments(batch).map(\.count), [4])
+        let restarts = [beat(0), beat(1_000), beat(1_000), beat(2_000), beat(0), beat(1_000)]
+        XCTAssertEqual(RRDataImporter.legacyRecordingSegments(restarts).map(\.count), [2, 2, 2])
+        let otherBatch = [beat(0), beat(1_000, wall: 2_000), beat(1_000, wall: 3_000)]
+        XCTAssertEqual(RRDataImporter.legacyRecordingSegments(otherBatch).map(\.count), [2, 1])
     }
 
     /// Beats that share a timestamp are each recovered from a backup, in the

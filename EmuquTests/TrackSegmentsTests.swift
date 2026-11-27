@@ -138,14 +138,16 @@ final class TrackSegmentsTests: XCTestCase {
         var pauses = WorkoutAnalyzer.TrackPauses()
         pauses.breaks = Set(track.starts)
         let metadata = WorkoutAnalyzer.analyze(
-            sport: .run, rrPoints: [], startDate: start, track: track.fixes, splitDistanceMeters: 1_500, pauses: pauses
+            sport: .run, rrPoints: [], startDate: start, track: track.fixes, splitDistanceMeters: 1_450, pauses: pauses
         )
         XCTAssertEqual(metadata.distanceMeters ?? 0, 2_000, accuracy: 20)
         XCTAssertEqual(metadata.gpsSegmentStarts, [11])
+        // A step is 0.0009° of latitude, 99.5 m: the first split closes after
+        // the ten steps of the first segment and five of the second.
         let splits = metadata.splits ?? []
-        XCTAssertEqual(splits.count, 1, "1.5 km runs across the join and adds nothing for it")
+        XCTAssertEqual(splits.count, 1, "1.45 km runs across the join and adds nothing for it")
         XCTAssertEqual(splits.first?.durationSeconds ?? 0, 450, accuracy: 1, "the hour between segments is not moving time")
-        XCTAssertEqual(splits.first?.distanceMeters ?? 0, 1_500, accuracy: 20)
+        XCTAssertEqual(splits.first?.distanceMeters ?? 0, 15 * 99.5, accuracy: 5, "the 10 km between segments is not distance")
     }
 
     func testASavedRouteFromASegmentedWorkoutKeepsItsSegments() throws {
