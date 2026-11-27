@@ -126,6 +126,74 @@ final class DerivedValueConsistencyTests: XCTestCase {
         XCTAssertTrue(row.explanation.contains("not scored"), row.explanation)
     }
 
+    private func strapNight(meanHR: Double) -> HRVSession {
+        let timeDomain = TimeDomainMetrics(
+            meanRR: 60_000 / meanHR, sdnn: 55, rmssd: 40, pnn50: 20,
+            sdsd: 36, meanHR: meanHR, sdHR: 5, triangularIndex: nil
+        )
+        let nonlinear = NonlinearMetrics(
+            sd1: 30, sd2: 60, sd1Sd2Ratio: 0.5, sampleEntropy: 1.5,
+            approxEntropy: 1.3, dfaAlpha1: 0.9, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+        )
+        var session = scoredNight()
+        session.analysisResult = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 500, timeDomain: timeDomain, frequencyDomain: nil, nonlinear: nonlinear,
+            ansMetrics: nil, artifactPercentage: 2, cleanBeatCount: 500, analysisDate: start
+        )
+        session.hrvDataQuality = .good
+        session.state = .complete
+        return session
+    }
+
+    private func vitals(restingHR: Double?) -> RecoveryVitals {
+        RecoveryVitals(
+            respiratoryRate: nil, respiratoryRateBaseline: nil, oxygenSaturation: nil, oxygenSaturationMin: nil,
+            wristTemperature: nil, wristTemperatureBaseline: nil, restingHeartRate: restingHR
+        )
+    }
+
+    /// The report's resting HR names its source: the strap's sleep HR when
+    /// it is that, Apple Health's otherwise, and unknown when the data was
+    /// built without its night.
+    func testTheReportNamesTheRestingHRSource() {
+        typealias Source = PDFReportGenerator.VitalsData.RestingHRSource
+        let table: [(restingHR: Double?, strapHR: Double?, source: Source)] = [
+            (52, 52, .strapSleep), (58, 52, .appleResting), (58, nil, .appleResting), (nil, 52, .unknown)
+        ]
+        for row in table {
+            XCTAssertEqual(
+                PDFReportGenerator.VitalsData.source(of: row.restingHR, strapSleepHR: row.strapHR), row.source,
+                "resting \(String(describing: row.restingHR)) strap \(String(describing: row.strapHR))"
+            )
+        }
+        XCTAssertEqual(PDFReportGenerator.VitalsData(from: vitals(restingHR: 58)).restingHRSource, .unknown)
+        let strap = PDFReportGenerator.VitalsData(from: vitals(restingHR: 58), night: strapNight(meanHR: 60))
+        XCTAssertEqual(strap.restingHeartRate, 60, "the strap's sleep HR stands in the report, as in the score")
+        XCTAssertEqual(strap.restingHRSource, .strapSleep)
+        let apple = PDFReportGenerator.VitalsData(from: vitals(restingHR: 58), night: scoredNight())
+        XCTAssertEqual(apple.restingHRSource, .appleResting)
+    }
+
+    /// The resting-HR line says the score reads the figure against the
+    /// baseline only for the strap's sleep HR, says Apple Health's is not
+    /// used, and makes no scoring claim when the source is unknown.
+    func testTheRestingHRLineIsChosenBySource() throws {
+        let bundle = LanguageManager.appBundle
+        let scored = String(localized: "The recovery score reads it against your own recent baseline, not the absolute value.", bundle: bundle)
+        let notUsed = String(localized: "This is Apple Health's resting heart rate, shown for reference; the recovery score does not use it.", bundle: bundle)
+        let cases: [(source: PDFReportGenerator.VitalsData.RestingHRSource, expected: String)] = [
+            (.strapSleep, scored), (.appleResting, notUsed),
+            (.unknown, String(localized: "What matters is how it compares with your own recent baseline.", bundle: bundle))
+        ]
+        for c in cases {
+            var data = PDFReportGenerator.VitalsData(from: vitals(restingHR: 55))
+            data.restingHRSource = c.source
+            let line = try XCTUnwrap(restingHeartRateRow(vitals: data, bundle: bundle)?.interpretation)
+            XCTAssertTrue(line.hasSuffix(c.expected), "\(c.source): \(line)")
+            if c.source != .strapSleep { XCTAssertFalse(line.contains(scored), "\(c.source) claims scoring") }
+        }
+    }
+
     // MARK: - C: a training snapshot is read on the scale it was recorded on
 
     private let anchors = TrainingLoadSeries.HeartRateAnchors(restingHR: 60, maxHR: 180)

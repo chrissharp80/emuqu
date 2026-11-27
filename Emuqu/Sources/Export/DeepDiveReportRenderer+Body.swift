@@ -538,6 +538,28 @@ private func wristTemperatureInterpretation(_ temp: Double, bundle: Bundle) -> S
     return String(localized: "Within typical fluctuation range", bundle: bundle)
 }
 
+/// Where a resting HR sits for adults; the score never grades the absolute value.
+func restingHRRangeText(_ rhr: Double, bundle: Bundle) -> String {
+    if rhr < 60 { return String(localized: "Athletic range for adults.", bundle: bundle) }
+    if rhr < 70 { return String(localized: "Within the 60–70 bpm range common in adults.", bundle: bundle) }
+    if rhr < 80 { return String(localized: "Upper-normal for adults.", bundle: bundle) }
+    return String(localized: "High for adults.", bundle: bundle)
+}
+
+/// What the recovery score does with the figure, by its source: only the
+/// strap's sleep HR is read against the baseline; Apple Health's resting HR
+/// is shown, not scored; a figure of unknown source makes no claim.
+func restingHRSourceText(_ source: PDFReportGenerator.VitalsData.RestingHRSource, bundle: Bundle) -> String {
+    switch source {
+    case .strapSleep:
+        String(localized: "The recovery score reads it against your own recent baseline, not the absolute value.", bundle: bundle)
+    case .appleResting:
+        String(localized: "This is Apple Health's resting heart rate, shown for reference; the recovery score does not use it.", bundle: bundle)
+    case .unknown:
+        String(localized: "What matters is how it compares with your own recent baseline.", bundle: bundle)
+    }
+}
+
 /// The night's resting HR, explained as the recovery score reads it: only
 /// the strap's sleeping HR is compared with the baseline
 /// (`RecoveryVitals.keepingOnlyStrapSleepHR`).
@@ -546,16 +568,6 @@ func restingHeartRateRow(vitals: PDFReportGenerator.VitalsData, bundle: Bundle) 
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Resting Heart Rate", bundle: bundle), value: String(format: "%.0f bpm", locale: LanguageManager.appLocale, rhr),
         explanation: String(localized: "Your resting heart rate for the night: the sleeping heart rate from your strap recording when there is one, otherwise Apple Health's resting heart rate. A personal biomarker — absolute values vary widely (40–80 bpm is normal for adults). What matters is YOUR trend: an increase of >5 bpm from your baseline is common with accumulated fatigue, dehydration, stress or alcohol, and sometimes with an oncoming illness. RHR typically decreases with improved cardiovascular fitness. In the recovery score, only the sleeping heart rate from your strap is compared with your own baseline, and one above it lowers the Vitals part (15%). Apple Health's resting heart rate is shown here but not scored.", bundle: bundle),
-        interpretation: rhr < 50 ? String(localized: "Athletic range for adults — but recovery reads this vs. your OWN recent baseline, not the absolute value", bundle: bundle) :
-            (
-                rhr < 60 ? String(localized: "Athletic range for adults — recovery reads this vs. your recent baseline, not the absolute value", bundle: bundle) :
-                    (
-                        rhr < 70 ? String(localized: "Within the 60–70 bpm range common in adults — recovery reads this vs. your recent baseline", bundle: bundle) :
-                            (
-                                rhr < 80 ? String(localized: "Upper-normal for adults — check whether it's elevated vs. your recent baseline", bundle: bundle) :
-                                    String(localized: "High for adults — and check whether it's elevated vs. your recent baseline", bundle: bundle)
-                            )
-                    )
-            )
+        interpretation: "\(restingHRRangeText(rhr, bundle: bundle)) \(restingHRSourceText(vitals.restingHRSource, bundle: bundle))"
     )
 }

@@ -191,7 +191,7 @@ enum ReportRenderer {
             sleepTrend: .recentNights(before: overnight, in: recentOvernight),
             recentSessions: recentOvernight,
             healthKitHR: nil,
-            vitals: overnight.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0) },
+            vitals: overnight.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0, night: overnight) },
             compositeRecoveryScore: breakdown.map { Double($0.compositeScore) },
             scoreBreakdown: breakdown,
             baselineStats: baselineStats,

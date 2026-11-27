@@ -182,7 +182,7 @@ extension MorningReanalysisControls {
             sleepData: (hkSleep?.nightSleepMinutes ?? 0) > 0 ? hkSleep.map(PDFReportGenerator.SleepData.init(from:)) : nil,
             sleepTrend: (hkTrend?.nightsAnalyzed ?? 0) > 0 ? hkTrend.map(PDFReportGenerator.SleepTrendData.init(from:)) : nil,
             healthKitHR: healthKitHR,
-            vitals: effectiveVitals.map(PDFReportGenerator.VitalsData.init(from:)),
+            vitals: effectiveVitals.map { PDFReportGenerator.VitalsData(from: $0, night: session, result: result) },
             compositeScore: vm.compositeRecoveryScore,
             breakdown: MainActor.run { vm.recoveryBreakdown() },
             baselineStats: vm.baselineStats,
