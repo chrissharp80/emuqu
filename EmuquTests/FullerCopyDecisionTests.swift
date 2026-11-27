@@ -69,14 +69,6 @@ final class FullerCopyDecisionTests: XCTestCase {
         }
     }
 
-    /// A discarded fragment's iCloud copy goes only when this device uploaded
-    /// it; another device's may have grown past the fragment since.
-    func testADiscardedFragmentRetiresOnlyAnICloudCopyThisDeviceUploaded() {
-        let own = UUID(), pulled = UUID()
-        XCTAssertTrue(SessionRecoveryService.retiresCloudCopyOfDiscardedFragment(own, uploadedHere: [own]))
-        XCTAssertFalse(SessionRecoveryService.retiresCloudCopyOfDiscardedFragment(pulled, uploadedHere: [own]))
-    }
-
     // MARK: - Raw backup writes (RawRRBackup.backup)
 
     func testARawBackupIsNeverReplacedByOneWithFewerBeats() throws {

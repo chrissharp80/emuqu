@@ -106,6 +106,28 @@ final class WorkoutAccidentalStartTests: XCTestCase {
         XCTAssertFalse(summary(of: recorder, workout).isNotArchived)
     }
 
+    /// A workout saved with its active time shows it, though its samples
+    /// stop at the lock; one saved before that existed reads as it did.
+    func testTheDurationShownIsTheStoredActiveTimeWhenThereIsOne() {
+        var metadata = WorkoutMetadata(sport: .crossFit)
+        metadata.samples = (1 ... 8).map { WorkoutSample(offsetSec: $0) }
+        XCTAssertEqual(WorkoutActiveTime.seconds(metadata: metadata, wallClock: 2_400), 8, "an older workout reads as before")
+
+        metadata.activeSeconds = 2_400
+        XCTAssertEqual(WorkoutActiveTime.seconds(metadata: metadata, wallClock: 2_400), 2_400)
+        XCTAssertEqual(metadata.movingSeconds(wallClockDuration: 2_400), 2_400)
+    }
+
+    /// The 40-minute workout saves its active time.
+    func testALongWorkoutStoresItsActiveTime() async {
+        let recorder = makeRecorder()
+        _ = startedWorkout(on: recorder, seconds: 2_400, samples: 8)
+
+        await recorder.stop()
+
+        XCTAssertEqual(recorder.lifecycle.finishedSession?.workoutMetadata?.activeSeconds ?? 0, 2_400, accuracy: 3)
+    }
+
     /// A 10-second tap: not saved, the summary says so, and the backups stay
     /// until the user decides. Save keeps it.
     func testAnAccidentalStartIsKeptUntilTheUserSavesIt() async {

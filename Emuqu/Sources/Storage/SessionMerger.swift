@@ -79,9 +79,17 @@ enum SessionMerger {
     /// decision (`relation(of:to:mergeGap:)`): this combines whatever it is
     /// given.
     static func mergeSessionData(from imported: HRVSession, into existing: inout HRVSession) -> Bool {
+        mergeSessionDataChangingBeats(from: imported, into: &existing).changed
+    }
+
+    /// `mergeSessionData`, also saying whether the beats changed. A night
+    /// whose beats changed is analysed again from what it then holds once it
+    /// is written (`NightBeatsEdit.requestReanalysis`): the analysis and
+    /// score kept from one side describe that side's beats only.
+    static func mergeSessionDataChangingBeats(from imported: HRVSession, into existing: inout HRVSession) -> (changed: Bool, beatsChanged: Bool) {
         let outcome = Self.mergeOutcome(imported: imported, existing: existing)
         Self.apply(outcome, from: imported, to: &existing)
-        return outcome.hasChanges
+        return (outcome.hasChanges, outcome.rrChange != nil)
     }
 
     // MARK: Pure decision core

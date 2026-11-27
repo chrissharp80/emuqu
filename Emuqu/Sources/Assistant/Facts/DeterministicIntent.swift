@@ -545,8 +545,8 @@ enum DeterministicIntent {
     /// wall-clock span stands in only when the session can't be read.
     private static func activeMinutes(_ workout: SessionArchiveEntry, archive: SessionArchive) -> Int {
         let wallClock = workout.endDate.map { $0.timeIntervalSince(workout.date) }
-        let samples = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata?.samples
-        return Int((WorkoutActiveTime.seconds(samples: samples, wallClock: wallClock) ?? 0) / 60)
+        let metadata = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata
+        return Int((WorkoutActiveTime.seconds(metadata: metadata, wallClock: wallClock) ?? 0) / 60)
     }
 
     /// "Did I train / run / ride yesterday?" Every workout of the asked sport

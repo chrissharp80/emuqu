@@ -289,7 +289,7 @@ extension SessionNamespace {
             "id": .string(s.id.uuidString),
             "date": .date(s.startDate),
             "sport": .from(meta?.sport.displayName),
-            "duration_sec": .from(WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: s.duration).map { Int($0) }),
+            "duration_sec": .from(WorkoutActiveTime.seconds(metadata: meta, wallClock: s.duration).map { Int($0) }),
             "elapsed_sec": .from(s.duration.map { Int($0) }),
             "distance_m": .from(meta?.distanceMeters),
             "elevation_gain_m": .from(meta?.elevationGainMeters),

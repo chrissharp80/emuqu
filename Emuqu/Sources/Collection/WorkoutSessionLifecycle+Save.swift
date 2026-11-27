@@ -69,6 +69,7 @@ extension WorkoutSessionLifecycle {
         session.state = .complete
         lifecycle.finishedSession = session
         lifecycle.saveOutcome = archive(session: session)
+        if lifecycle.saveOutcome != .notArchived { watchBridge.sendWorkoutSaveState(notSaved: false) }
     }
 
     /// The user left an accidental start's summary without saving it: its

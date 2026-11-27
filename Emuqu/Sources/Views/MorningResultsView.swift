@@ -58,7 +58,7 @@ struct MorningResultsView: View {
     /// Optional callback to unlink a segment from the same-night merge.
     /// Returns whether the unlink was stored; the sheet removes the segment
     /// only when it was.
-    var onUnlinkSegment: ((UUID) -> Bool)?
+    var onUnlinkSegment: ((UUID) async -> Bool)?
 
     /// Linked segment time ranges for split-night recordings. Nil for standalone sessions.
     var linkedSegments: [LinkedSegmentInfo]?
@@ -165,7 +165,7 @@ struct MorningResultsView: View {
         onApplyManualResult: ((HRVAnalysisResult) async -> HRVSession?)? = nil,
         onUpdateSleep: ((SleepData) -> Void)? = nil,
         onAdjustSleep: ((SleepData) -> Void)? = nil,
-        onUnlinkSegment: ((UUID) -> Bool)? = nil,
+        onUnlinkSegment: ((UUID) async -> Bool)? = nil,
         linkedSegments: [LinkedSegmentInfo]? = nil
     ) {
         self.session = session
@@ -639,20 +639,6 @@ struct MorningResultsView: View {
         }
     }
 
-    /// The segment leaves the list only once the unlink is stored; when it
-    /// is not, it stays listed (still linked and scored) and the alert says so.
-    private func unlinkPendingSegment() {
-        guard let segmentId = pendingUnlinkSegmentId else { return }
-        pendingUnlinkSegmentId = nil
-        guard onUnlinkSegment?(segmentId) == true else {
-            segmentUnlinkFailed = true
-            return
-        }
-        _ = withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
-            removedSegmentIds.insert(segmentId)
-        }
-    }
-
     private var removeSegmentMessage: some View {
         Text(String(localized: "This will unlink this segment from the combined recording. The segment's data will no longer be included in analysis.", bundle: LanguageManager.appBundle))
     }
@@ -798,4 +784,23 @@ struct IdentifiableURL: Identifiable, Equatable {
 struct SavedTagsAndNotes: Equatable {
     let tags: Set<ReadingTag>
     let notes: String
+}
+
+extension MorningResultsView {
+    /// The segment leaves the list only once the unlink is stored and the
+    /// night analysed again without it; when it is not, it stays listed
+    /// (still linked and scored) and the alert says so.
+    private func unlinkPendingSegment() {
+        guard let segmentId = pendingUnlinkSegmentId else { return }
+        pendingUnlinkSegmentId = nil
+        Task {
+            guard await onUnlinkSegment?(segmentId) == true else {
+                segmentUnlinkFailed = true
+                return
+            }
+            _ = withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                removedSegmentIds.insert(segmentId)
+            }
+        }
+    }
 }

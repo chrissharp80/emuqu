@@ -120,6 +120,7 @@ final class WatchConnectivityBridge: NSObject {
         case requestStrapState     // Watch → iOS "send me the current strap status now" (Watch fires on activation so it never has to wait for the next iOS-pushed change)
         case requestCurrentState   // Watch → iOS "send me the current live workout snapshot now" (Watch fires on activation / foreground so a relaunch mid-workout restores the live session instead of offering a new one). Reply IS the liveState payload.
         case coachAlert            // iOS → Watch "play a wrist haptic for a coach alert" (`urgent`, `firedAt`); a late one is dropped on the Watch
+        case workoutSaveState      // iOS → Watch "the workout that just ended was not saved" (`notSaved`): an accidental start the summary offers to save
         // There is no voice-trigger (iOS → Watch) or stop-voice-chat
         // (Watch → iOS) message: the Watch has no UI for either. Add them
         // with both a sender and a handler if it grows one.
@@ -904,6 +905,21 @@ final class WatchConnectivityBridge: NSObject {
         // The context still held the last live tick, which said recording.
         wcQueue.async { self.updateLiveStateContextLocked(payload) }
     }
+
+    /// Whether the workout that just ended was left unsaved as an accidental
+    /// start (`WorkoutSaveOutcome.notArchived`), so the Watch's summary says
+    /// so rather than offering Save & Done; false once it is saved from the
+    /// iPhone. Dual-channel, like the stop it follows.
+    func sendWorkoutSaveState(notSaved: Bool) {
+        sendDualChannel([
+            MessageKey.type.rawValue: MessageType.workoutSaveState.rawValue,
+            Self.notSavedKey: notSaved,
+            "ts": Date().timeIntervalSince1970
+        ], label: "sendWorkoutSaveState")
+    }
+
+    /// The `workoutSaveState` field the Watch reads.
+    nonisolated static let notSavedKey = "notSaved"
 
     /// Fast `sendMessage` when reachable plus a queued `transferUserInfo` that
     /// lands whenever the Watch app next wakes. Issued before the session has

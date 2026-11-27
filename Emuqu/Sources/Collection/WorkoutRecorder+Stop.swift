@@ -125,13 +125,15 @@ extension WorkoutRecorder {
 
     /// Post-finalize housekeeping: battery accounting, breadcrumb archive,
     /// state reset, and the flip to `.finished` that reveals the summary,
-    /// which shows `saveOutcome` (a workout not saved yet says so).
+    /// which shows `saveOutcome` (a workout not saved yet says so). An
+    /// accidental start left unsaved is said on the Watch too.
     private func settleAfterFinalize(finished: HRVSession, saveOutcome: WorkoutSaveOutcome, startedAt: Date) async {
         await chargeStrapBatteryUsage()
         archiveBreadcrumbTrailIfNeeded(finished: finished)
         resetRecorderStateAfterStop()
         lifecycle.finishedSession = finished
         lifecycle.saveOutcome = saveOutcome
+        if saveOutcome == .notArchived { watchBridge.sendWorkoutSaveState(notSaved: true) }
         lifecycle.phase = .finished
         debugLog("[Recorder.stop] phase=.finished save=\(saveOutcome) (total elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         disconnectFootPodPostWorkout()

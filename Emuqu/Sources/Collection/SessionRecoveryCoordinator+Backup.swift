@@ -509,7 +509,7 @@ extension SessionRecoveryCoordinator {
               let updated = persistMergedOvernight(
                 session: session, mergedPoints: mergedPoints, selection: selection, existingCount: existing.count, strap: strap
               ) else { return .failed }
-        return await rescoreAugmentedOvernight(updated, merging: session, strapCount: strapRR.count, streamedCount: existing.count, with: reanalysis)
+        return await rescoreAugmentedOvernight(updated, merging: session, strap: strap, streamedCount: existing.count, with: reanalysis)
     }
 
     /// The selector's points, or the strap's when it chose nothing and the
@@ -522,25 +522,69 @@ extension SessionRecoveryCoordinator {
         return strapRR.count > existing.count ? strapRR : nil
     }
 
+    /// The merged night is analysed again from its beats (`NightBeatsEdit`):
+    /// a window the user picked stays and is scored, and any other is chosen
+    /// again. When that fails the merge is undone (`undoOvernightMerge`), the
+    /// strap's download kept as a rescue backup, and the result says it
+    /// failed: a night holding the strap's beats under the stream's analysis
+    /// and score is never left behind.
     ///
     /// Apple Health gets the night with the strap's beats, compared with the
     /// night as it was before the merge (`before`): the reanalysis compares
     /// with the merged copy it read, which already holds them.
     private func rescoreAugmentedOvernight(
-        _ updated: HRVSession, merging before: HRVSession, strapCount: Int, streamedCount: Int, with reanalysis: SessionReanalysisCoordinator
+        _ updated: HRVSession, merging before: HRVSession, strap: PulledStrapRecording, streamedCount: Int, with reanalysis: SessionReanalysisCoordinator
     ) async -> OvernightAugmentResult {
-        let rescored = await reanalysis.reanalyzeSession(updated)
+        guard let rescored = await Self.analysedAfterBeatsEdit(updated, with: reanalysis) else {
+            undoOvernightMerge(before, mergedCount: updated.rrSeries?.points.count ?? 0, strap: strap)
+            return .failed
+        }
         await MainActor.run { archiveSignal.notifyChanged() }
-        let finalSession = rescored ?? updated
-        reanalysis.service.reexportIfReadingsChanged(from: before, to: finalSession)
-        let mergedBeatCount = finalSession.rrSeries?.points.count ?? 0
-        debugLog("[RRCollector] augmentOvernight: merged \(strapCount) strap + \(streamedCount) streamed → \(mergedBeatCount) beats, source=\(finalSession.dataSourceSummary?.selectedSource ?? "?"), rescored=\(rescored != nil)")
-        // A failed rescore reports no score: the archived one predates the merge.
-        return .merged(
-            source: finalSession.dataSourceSummary?.selectedSource ?? "internal",
-            beats: mergedBeatCount,
-            score: rescored?.recoveryScore
-        )
+        reanalysis.service.reexportIfReadingsChanged(from: before, to: rescored)
+        let mergedBeatCount = rescored.rrSeries?.points.count ?? 0
+        debugLog("[RRCollector] augmentOvernight: merged \(strap.points.count) strap + \(streamedCount) streamed → \(mergedBeatCount) beats, source=\(rescored.dataSourceSummary?.selectedSource ?? "?")")
+        return .merged(source: rescored.dataSourceSummary?.selectedSource ?? "internal", beats: mergedBeatCount, score: rescored.recoveryScore)
+    }
+
+    /// A night whose beats an edit changed, analysed again: in full, or, for
+    /// a window the user picked and still holds, scored over it. Nil when
+    /// neither could be done.
+    static func analysedAfterBeatsEdit(_ night: HRVSession, with reanalysis: SessionReanalysisCoordinator) async -> HRVSession? {
+        if let reanalysed = await reanalysis.reanalyzeSession(night, preserveManualWindow: true) { return reanalysed }
+        guard night.windowUserAdjusted == true else { return nil }
+        return await reanalysis.service.recomputeScoreOnly(sessionId: night.id)
+    }
+
+    /// Puts the night back as it was before the strap's beats were merged,
+    /// while it still holds the merged beats, and keeps the download aside.
+    private func undoOvernightMerge(_ before: HRVSession, mergedCount: Int, strap: PulledStrapRecording) {
+        let archive = archive
+        let restored = attempt("augmentOvernight.undo") { try Self.undoMerge(before, mergedCount: mergedCount, in: archive) }
+        keepUnsavedDownload(strap.recording)
+        debugLog("[RRCollector] augmentOvernight: the merged night could not be analysed — \(restored == true ? "merge undone" : "could not undo the merge")", level: .error)
+    }
+
+    /// Writes `before`'s beats and derived fields back, while the stored copy
+    /// still holds the `mergedCount` merged beats. Whether it wrote.
+    nonisolated static func undoMerge(_ before: HRVSession, mergedCount: Int, in archive: SessionArchive) throws -> Bool {
+        try archive.updateIfChanged(before.id) { stored in
+            guard (stored.rrSeries?.points.count ?? 0) == mergedCount else { return false }
+            restoreBeatsAndDerivedFields(of: before, in: &stored)
+            return true
+        }
+    }
+
+    /// The beats and every field computed from them, as `before` had them.
+    nonisolated static func restoreBeatsAndDerivedFields(of before: HRVSession, in stored: inout HRVSession) {
+        stored.rrSeries = before.rrSeries
+        stored.dataSourceSummary = before.dataSourceSummary
+        stored.artifactFlags = before.artifactFlags
+        stored.analysisResult = before.analysisResult
+        stored.autoWindowResult = before.autoWindowResult
+        stored.windowUserAdjusted = before.windowUserAdjusted
+        stored.endDate = before.endDate
+        stored.sleepStartMs = before.sleepStartMs
+        stored.sleepEndMs = before.sleepEndMs
     }
 
     /// Reconnect so the strap's stored recording is reachable (BLE likely
@@ -607,16 +651,18 @@ extension SessionRecoveryCoordinator {
         return written
     }
 
-    /// Puts `points` and `summary` on the archived copy of `sessionId` and
-    /// changes nothing else; nil, with nothing written, when that copy no
-    /// longer holds `replacing` beats. Returns the copy as written.
+    /// Puts `points` and `summary` on the archived copy of `sessionId`, with
+    /// what is indexed into the beats moved with them and the span following
+    /// them (`NightBeatsEdit.replaceBeats`), and changes nothing else; nil,
+    /// with nothing written, when that copy no longer holds `replacing`
+    /// beats. Returns the copy as written.
     nonisolated static func writeMergedBeats(
         _ points: [RRPoint], summary: HRVSession.DataSourceSummary, into sessionId: UUID, replacing beatCount: Int, in archive: SessionArchive
     ) throws -> HRVSession? {
         var written: HRVSession?
         try archive.updateIfChanged(sessionId) { stored in
             guard (stored.rrSeries?.points.count ?? 0) == beatCount else { return false }
-            stored.rrSeries = RRSeries(points: points, sessionId: stored.id, startDate: stored.startDate)
+            NightBeatsEdit.replaceBeats(of: &stored, with: points)
             stored.dataSourceSummary = summary
             written = stored
             return true

@@ -127,11 +127,13 @@ extension ArchiveStore {
             }
             // Update with any new/better data from import: an edit made here,
             // stamped and queued to upload again (`postBatchChangeNotifications`).
-            if SessionMerger.mergeSessionData(from: session, into: &existingSession) {
+            let merge = SessionMerger.mergeSessionDataChangingBeats(from: session, into: &existingSession)
+            if merge.changed {
                 existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
                 try _archive(existingSession)
                 outcome.updatedIds.append(existingSession.id)
             }
+            if merge.beatsChanged { NightBeatsEdit.requestReanalysis(of: existingSession, detail: "an imported recording was folded in") }
             state.recordFold(of: session.id, into: entry.sessionId)
         } catch {
             debugLog("[Archive] archiveBatch: could not merge \(session.id.uuidString.prefix(8)) into \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)

@@ -288,6 +288,7 @@ extension SessionRecoveryService {
         }
         guard wrote == true else { return false }
         rawBackup.markAsArchived(backupId)
+        NightBeatsEdit.requestReanalysis(of: imported, detail: "a stranded backup's beats were merged in")
         debugLog("[SessionRecoveryService] Merged the fuller backup \(backupId.uuidString.prefix(8)) (\(imported.rrSeries?.points.count ?? 0) beats) into night \(imported.id.uuidString.prefix(8))")
         return true
     }

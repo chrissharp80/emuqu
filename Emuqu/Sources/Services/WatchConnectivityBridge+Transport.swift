@@ -28,14 +28,16 @@ extension WatchConnectivityBridge {
     /// stop), the strap, and the voice chat. A coach alert replaces a queued
     /// coach alert too: the Watch plays one only within a few seconds of when
     /// it fired (`WatchMessageDecoding.playsCoachAlert`), so the older one
-    /// would reach it too late to play. Any other type, or none, is never
+    /// would reach it too late to play. A save state replaces a queued one:
+    /// only whether the workout is now saved matters. Any other type, or none, is never
     /// superseded.
     nonisolated static func userInfoSupersedes(_ type: String?, queued: String?) -> Bool {
         guard let type, let queued else { return false }
         let workout: Set<String> = [MessageType.startWorkout.rawValue, MessageType.stopWorkout.rawValue]
         if workout.contains(type) { return workout.contains(queued) }
         let replacesItsOwnType: Set<String> = [
-            MessageType.strapState.rawValue, "voiceChatState", MessageType.coachAlert.rawValue
+            MessageType.strapState.rawValue, "voiceChatState", MessageType.coachAlert.rawValue,
+            MessageType.workoutSaveState.rawValue
         ]
         return replacesItsOwnType.contains(type) && queued == type
     }

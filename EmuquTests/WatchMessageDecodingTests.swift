@@ -270,6 +270,19 @@ final class WatchMessageDecodingTests: XCTestCase {
         XCTAssertNil(WatchMessageDecoding.command(["heartRate": 100]))
     }
 
+    /// The iPhone's save state for the workout that just ended reaches the
+    /// Watch under the key the phone sends it with.
+    func testWorkoutSaveStateParsing() {
+        XCTAssertEqual(
+            WatchMessageDecoding.command([
+                "type": WatchConnectivityBridge.MessageType.workoutSaveState.rawValue,
+                WatchConnectivityBridge.notSavedKey: true
+            ]),
+            .workoutSaveState(notSaved: true)
+        )
+        XCTAssertEqual(WatchMessageDecoding.command(["type": "workoutSaveState"]), .workoutSaveState(notSaved: false))
+    }
+
     func testStrapStateCarriesItsPayload() {
         let command = WatchMessageDecoding.command([
             "type": "strapState",

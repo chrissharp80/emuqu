@@ -51,7 +51,7 @@ extension FitnessSummaryCards {
     /// summary hero shows (`WorkoutActiveTime`), so a paused workout's recap
     /// card carries the same duration and pace.
     private var recapActiveSeconds: TimeInterval {
-        max(0, WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration) ?? 0)
+        max(0, WorkoutActiveTime.seconds(metadata: session.workoutMetadata, wallClock: session.duration) ?? 0)
     }
 
     private func recapDuration() -> String {

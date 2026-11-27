@@ -213,14 +213,6 @@ final class SessionRecoveryService {
         }
     }
 
-    /// Whether discarding a fragment's local backup retires its iCloud copy
-    /// too: only one this device uploaded. No scan discards a fragment for
-    /// its size any more; the rule is kept with its test for the mutation
-    /// harness entry that names it.
-    static func retiresCloudCopyOfDiscardedFragment(_ id: UUID, uploadedHere: Set<UUID>) -> Bool {
-        uploadedHere.contains(id)
-    }
-
     /// Pull iCloud backups, but no more than once per `cloudPullMinInterval`.
     /// Prevents the Lost Sessions loop where every scan re-seeds from cloud.
     /// Only a pull that read iCloud starts the wait: one that failed (offline,

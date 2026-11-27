@@ -76,4 +76,16 @@ extension ArchiveStore {
         entry.sessionType == session.sessionType
             && SessionMerger.overlaps(SessionMerger.span(of: entry), SessionMerger.span(of: session))
     }
+
+    /// The fold itself, re-archived (a re-archive, which won't recurse). A
+    /// night whose beats it changed is then analysed again from them
+    /// (`NightBeatsEdit.requestReanalysis`).
+    func archiveFold(of session: HRVSession, into existing: HRVSession) throws -> SessionArchiveEntry {
+        var merged = existing
+        let merge = SessionMerger.mergeSessionDataChangingBeats(from: session, into: &merged)
+        if merge.changed { merged.modifiedAt = CloudKitSessionFreshness.stamp() }
+        let entry = try _archive(merged)
+        if merge.beatsChanged { NightBeatsEdit.requestReanalysis(of: merged, detail: "a same-night recording was folded in") }
+        return entry
+    }
 }

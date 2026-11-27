@@ -267,7 +267,7 @@ extension FitnessStrapSection {
         return HeroFacts(
             sport: meta?.sport,
             distance: meta?.distanceMeters.map { units.formatDistance(meters: $0) } ?? "—",
-            duration: Self.heroDurationString(WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: session.duration)),
+            duration: Self.heroDurationString(WorkoutActiveTime.seconds(metadata: meta, wallClock: session.duration)),
             pace: heroPaceString(session: session, meta: meta),
             peakHR: meta?.samples?.compactMap { $0.heartRate }.max().map { String(localized: "\($0) bpm", bundle: LanguageManager.appBundle) },
             alpha1Avg: Self.heroAlpha1Average(meta: meta),
@@ -289,7 +289,7 @@ extension FitnessStrapSection {
     /// Active (un-paused) time over distance, as the summary hero computes it.
     private func heroPaceString(session: HRVSession, meta: WorkoutMetadata?) -> String? {
         guard let d = meta?.distanceMeters, d > 100,
-              let dur = WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: session.duration), dur > 10 else { return nil }
+              let dur = WorkoutActiveTime.seconds(metadata: meta, wallClock: session.duration), dur > 10 else { return nil }
         return units.formatPace(elapsedSec: Int(dur), distanceMeters: d)
     }
 

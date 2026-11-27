@@ -15,7 +15,7 @@ extension WorkoutStatsCards {
 
     /// Un-paused time; see `WorkoutActiveTime`.
     var activeDuration: TimeInterval? {
-        WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration)
+        WorkoutActiveTime.seconds(metadata: session.workoutMetadata, wallClock: session.duration)
     }
 
     /// H:MM:SS, or M:SS under an hour (`formatMMSS`).

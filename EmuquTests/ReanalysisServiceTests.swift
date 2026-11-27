@@ -532,7 +532,7 @@ final class ReanalysisServiceTests: XCTestCase {
     /// A linked segment that can be read is unlinked: the parent drops the
     /// link and the call reports true, which is what lets the report take the
     /// segment off its list.
-    func testUnlinkingALinkedSegmentDropsTheLinkAndReportsTrue() throws {
+    func testUnlinkingALinkedSegmentDropsTheLinkAndReportsTrue() async throws {
         let segment = HRVSession(
             id: UUID(), startDate: nightStart.addingTimeInterval(2 * 3600), endDate: nightStart.addingTimeInterval(3 * 3600),
             state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
@@ -542,7 +542,8 @@ final class ReanalysisServiceTests: XCTestCase {
         try archive.archive(segment)
         try archive.archive(parent)
 
-        XCTAssertTrue(makeService().unlinkSegment(segmentId: segment.id, fromSession: parent.id))
+        let unlinked = await makeService().unlinkSegment(segmentId: segment.id, fromSession: parent.id)
+        XCTAssertTrue(unlinked)
         XCTAssertNil(try archive.retrieve(parent.id)?.linkedSessionIds)
     }
 
@@ -727,5 +728,50 @@ extension ReanalysisServiceTests {
 
         XCTAssertTrue(saved, "the edit was reported as not saved")
         XCTAssertEqual(try archive.retrieve(night.id)?.sleepSnapshot?.nightSleepMinutes, 420)
+    }
+}
+
+// MARK: - Unlinking a segment from an analysed night
+
+extension ReanalysisServiceTests {
+    /// A two-hour analysed night with a segment linked over its second hour.
+    private func analysedNightWithSegment() throws -> (parent: HRVSession, segment: HRVSession) {
+        let segment = HRVSession(
+            id: UUID(), startDate: nightStart.addingTimeInterval(3_600), endDate: nightStart.addingTimeInterval(7_200),
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        var parent = MergeClockFixture.session(start: nightStart, minutes: 120, meanRR: 1000, withAnalysis: true)
+        parent.linkedSessionIds = [segment.id]
+        try archive.archive(segment, skipSameNightMerge: true)
+        try archive.archive(parent, skipSameNightMerge: true)
+        return (parent, segment)
+    }
+
+    /// A night that cannot be analysed again without the segment is put
+    /// back as it was: its analysis and score would describe beats it no
+    /// longer holds. The call says it failed.
+    func testAnUnlinkWhoseReanalysisFailsIsUndone() async throws {
+        let (parent, segment) = try analysedNightWithSegment()
+
+        let unlinked = await makeService { nil }.unlinkSegment(segmentId: segment.id, fromSession: parent.id)
+
+        XCTAssertFalse(unlinked)
+        let stored = try XCTUnwrap(try archive.retrieve(parent.id))
+        XCTAssertEqual(stored.linkedSessionIds, [segment.id])
+        XCTAssertEqual(stored.rrSeries?.points.count, parent.rrSeries?.points.count)
+    }
+
+    /// An unlink that analyses keeps the night without the segment, ending
+    /// at its last kept beat.
+    func testAnUnlinkEndsTheNightAtItsLastKeptBeat() async throws {
+        let (parent, segment) = try analysedNightWithSegment()
+        let start = nightStart
+
+        let unlinked = await makeService { Self.analysis(at: start) }.unlinkSegment(segmentId: segment.id, fromSession: parent.id)
+
+        XCTAssertTrue(unlinked)
+        let stored = try XCTUnwrap(try archive.retrieve(parent.id))
+        XCTAssertNil(stored.linkedSessionIds)
+        XCTAssertEqual(try XCTUnwrap(stored.endDate).timeIntervalSince(nightStart), 3_600, accuracy: 5)
     }
 }

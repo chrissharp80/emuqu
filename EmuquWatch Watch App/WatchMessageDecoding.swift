@@ -371,6 +371,9 @@ extension WatchMessageDecoding {
         /// user-set threshold, and when the iPhone fired it (seconds since
         /// 1970), nil from a phone that left it out.
         case coachAlert(urgent: Bool, firedAt: Double?)
+        /// Whether the workout that just ended was left unsaved as an
+        /// accidental start on the iPhone; false once it is saved there.
+        case workoutSaveState(notSaved: Bool)
 
         /// Unrecognised verb. Carried rather than dropped so a schema drift
         /// between a new iOS build and an old Watch build is visible.
@@ -386,6 +389,7 @@ extension WatchMessageDecoding {
         case "voiceChatState": return .voiceChatState
         case "coachAlert":
             return .coachAlert(urgent: message["urgent"] as? Bool ?? false, firedAt: message["firedAt"] as? Double)
+        case "workoutSaveState": return .workoutSaveState(notSaved: message["notSaved"] as? Bool ?? false)
         case "strapState":
             return .strapState(
                 connected: message["strapConnected"] as? Bool,

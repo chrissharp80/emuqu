@@ -145,12 +145,15 @@ enum RescoreWrite {
         }
     }
 
-    /// What a rescore's result is computed from: the beats (by count and
-    /// first and last timestamp), the sleep boundaries, segments and
+    /// What a rescore's result is computed from: the recording's span (its
+    /// start and end, which the quality check measures), the beats (by count
+    /// and first and last timestamp), the sleep boundaries, segments and
     /// snapshot, the vitals, the perceived readiness and the training
     /// snapshot; for a score-only pass also the analysis it scores, and for a
     /// reanalysis the manual-window mark it would clear.
     private struct Inputs: Encodable {
+        let startDate: Date
+        let endDate: Date?
         let beatCount: Int
         let firstBeatMs: Int64?
         let lastBeatMs: Int64?
@@ -166,9 +169,9 @@ enum RescoreWrite {
 
         init(of session: HRVSession, kind: Kind) {
             let points = session.rrSeries?.points ?? []
+            (startDate, endDate) = (session.startDate, session.endDate)
             beatCount = points.count
-            firstBeatMs = points.first?.t_ms
-            lastBeatMs = points.last?.t_ms
+            (firstBeatMs, lastBeatMs) = (points.first?.t_ms, points.last?.t_ms)
             sleepStartMs = session.sleepStartMs
             sleepEndMs = session.sleepEndMs
             sleepSegments = session.sleepSegments

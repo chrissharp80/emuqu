@@ -308,7 +308,10 @@ enum CloudKitSessionFreshness {
             session = merged
             replacement = (merged, kept)
         }
-        if replacement?.keptLocalBeats == true { archive.postReuploadRequest(for: sessionId) }
+        if let replacement, replacement.keptLocalBeats {
+            archive.postReuploadRequest(for: sessionId)
+            NightBeatsEdit.requestReanalysis(of: replacement.session, detail: "beats only this device held were kept")
+        }
         return replacement
     }
 
@@ -352,7 +355,10 @@ enum CloudKitSessionFreshness {
             session = merged
             kept = true
         }
-        if kept { archive.postReuploadRequest(for: sessionId) }
+        if kept {
+            archive.postReuploadRequest(for: sessionId)
+            NightBeatsEdit.requestReanalysis(of: remote, detail: "beats only the iCloud copy held were put in")
+        }
         return kept
     }
 

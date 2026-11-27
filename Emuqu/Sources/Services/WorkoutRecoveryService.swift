@@ -479,6 +479,7 @@ enum WorkoutRecoveryService {
         )
         metadata.healthKitHROffsets = Self.healthKitHROffsets(recovered.backupHealthKitHROffsets, in: recovered.liveSamples)
         metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)
+        metadata.activeSeconds = recovered.durationSec
         if recovered.baroSamples.isEmpty {
             Self.applyGPSElevation(to: &metadata, track: recovered.track, starts: recovered.trackSegmentStarts)
         }

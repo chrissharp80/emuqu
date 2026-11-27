@@ -408,7 +408,8 @@ extension WorkoutFinalizer {
     /// `archive(session:)` does not write on its own: the summary says it was
     /// not saved and offers to save it. The time is the wall clock less the
     /// pauses (`activeSeconds`), so a long workout whose ticker was suspended
-    /// with the phone locked is saved like any other.
+    /// with the phone locked is saved like any other, and that time is stored
+    /// as its duration (`WorkoutMetadata.activeSeconds`).
     private func classifySessionAndAttachData(
         session: inout HRVSession,
         metadata: inout WorkoutMetadata,
@@ -432,6 +433,7 @@ extension WorkoutFinalizer {
                 metadata.partialDataReason = .strapDisconnected
             }
         }
+        metadata.activeSeconds = activeSeconds
         session.workoutMetadata = metadata
         session.rrSeries = series
         session.endDate = stopDate

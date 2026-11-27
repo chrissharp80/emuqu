@@ -358,7 +358,7 @@ extension ContextBuilder {
     /// active (un-paused) time, as the workout card does.
     private static func workoutHistoryEntry(_ s: HRVSession, weightKg: Double) -> AssistantContext.WorkoutHistoryEntry {
         let meta = s.workoutMetadata
-        let duration = WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: s.duration).map { Int($0) }
+        let duration = WorkoutActiveTime.seconds(metadata: meta, wallClock: s.duration).map { Int($0) }
         let derived = derivedSampleMetrics(samples: meta?.samples ?? [], durationSec: duration, weightKg: weightKg)
         return AssistantContext.WorkoutHistoryEntry(
             date: s.startDate, sport: meta?.sport.rawValue ?? "unknown", durationSec: duration,

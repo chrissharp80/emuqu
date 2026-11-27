@@ -532,7 +532,7 @@ struct HistoryView: View {
             onApplyManualResult: { await dependencies.collection.reanalysisService.applyManualAnalysis(session, result: $0) },
             onUpdateSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: false) },
             onAdjustSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: true) },
-            onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
+            onUnlinkSegment: { await dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
             linkedSegments: selectedLinkedSegments
         )
     }

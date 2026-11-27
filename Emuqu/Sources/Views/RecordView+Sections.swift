@@ -414,7 +414,7 @@ extension RecordView {
             onApplyManualResult: { await applyManualMorningResult($0, to: session) },
             onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
             onAdjustSleep: { adjustMorningSleep($0, for: session) },
-            onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
+            onUnlinkSegment: { await dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
             linkedSegments: presentation.linkedSegments
         )
     }
