@@ -1271,6 +1271,78 @@ mutate "recovery_claim_reads_rep_recovery_as_score" "EmuquTests/RecoveryClaimPat
 mutate "verifier_reads_a_named_day_as_today" "EmuquTests/RecoveryClaimPatternTests" \
     "Emuqu/Sources/Assistant/MetricsVerifier.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MetricsVerifier.swift');s=p.read_text();o='\"(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?\",';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+# A route name the model took from a web page joins the library, and later
+# prompts, only on the user's yes.
+mutate "route_save_workout_ungated" "EmuquTests/AssistantActionConfirmationTests" \
+    "Emuqu/Sources/Assistant/Facts/RoutesAndDevicesFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/RoutesAndDevicesFacts.swift');s=p.read_text();o=') { return unconfirmed }\n        store.add(route)';assert s.count(o)==1;p.write_text(s.replace(o,') { _ = unconfirmed }\n        store.add(route)'))"
+
+# A yes given to one contact's notes must not save a contact carrying other notes.
+mutate "contact_add_notes_unbound" "EmuquTests/AssistantActionConfirmationTests" \
+    "Emuqu/Sources/Assistant/Facts/AssistantEmailFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/AssistantEmailFacts.swift');s=p.read_text();o='target: [name, email, notes].joined';assert s.count(o)==1;p.write_text(s.replace(o,'target: [name, email].joined'))"
+
+# Under a voice reply the question is not asked until voice has spoken it; a
+# workout alert that cut it off leaves nothing a yes can confirm.
+mutate "voice_confirmation_counts_unspoken" "EmuquTests/AssistantActionConfirmationTests" \
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift');s=p.read_text();o='        request.delivered = !spokenReply';assert s.count(o)==1;p.write_text(s.replace(o,'        request.delivered = true'))"
+
+# A confirmation line cancelled or cut off before it finished playing does not
+# deliver the question.
+mutate "voice_cancelled_question_delivers" "EmuquTests/VoiceConversationControllerTests" \
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift');s=p.read_text();o='        if finished { assistantViewModel.actionConfirmations.markSpoken(promptTurnID: spoken.turnID) }';assert s.count(o)==1;p.write_text(s.replace(o,'        assistantViewModel.actionConfirmations.markSpoken(promptTurnID: spoken.turnID)'))"
+
+# "Me duele el pecho" or "I cannot breathe" gets the fixed safety reply, not
+# the cloud model.
+mutate "spoken_symptom_forms_dropped" "EmuquTests/MedicalQueryGuardTests" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='] + spokenChestPain,';assert s.count(o)==1;p.write_text(s.replace(o,'],'))"
+
+# "I keep thinking about killing myself" gets the crisis reply.
+mutate "self_harm_rumination_dropped" "EmuquTests/MedicalQueryGuardTests" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon+SelfHarm.swift');s=p.read_text();o='] + selfHarmRumination,';assert s.count(o)==1;p.write_text(s.replace(o,'],'))"
+
+# A late Apple Health sleep delivery re-scores a night without replacing the
+# window the user picked.
+mutate "rescore_replaces_picked_window" "EmuquTests/RRCollectorSaveResultTests" \
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift');s=p.read_text();assert s.count('reanalyzeSession(session, preserveManualWindow: true)')==1;p.write_text(s.replace('reanalyzeSession(session, preserveManualWindow: true)','reanalyzeSession(session, preserveManualWindow: false)'))"
+
+# Tags and notes picked on the morning card land on the night the archive kept
+# after a fold.
+mutate "folded_tags_written_to_own_id" "EmuquTests/SessionDiscardTests" \
+    "Emuqu/Sources/Views/RecordView+Results.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/RecordView+Results.swift');s=p.read_text();o='try archive.updateTags(archive.archivedId(of: sessionId), tags: tags, notes: notes)';assert s.count(o)==1;p.write_text(s.replace(o,'try archive.updateTags(sessionId, tags: tags, notes: notes)'))"
+
+# The perceived-readiness rating lands on the night the archive kept.
+mutate "folded_readiness_written_to_own_id" "EmuquTests/MorningResultsReadinessTests" \
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/ViewModels/MorningResultsViewModel.swift');s=p.read_text();o='services.sessionArchive.archivedId(of: session.id)';assert s.count(o)==1;p.write_text(s.replace(o,'session.id'))"
+
+# A fold carries the user's morning feeling.
+mutate "fold_drops_morning_feeling" "EmuquTests/ArchivePolicyTests" \
+    "Emuqu/Sources/Storage/SessionMerger+UserContent.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger+UserContent.swift');s=p.read_text();o='outcome.adoptMorningFeeling = existing.morningFeeling == nil && imported.morningFeeling != nil';assert s.count(o)==1;p.write_text(s.replace(o,'outcome.adoptMorningFeeling = false'))"
+
+# A rating cleared on the device that missed a fold stays cleared.
+mutate "freshness_restores_cleared_rating" "EmuquTests/CloudKitSessionFreshnessTests" \
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSessionFreshness.swift');s=p.read_text();o='        merged.perceivedReadiness = edited.perceivedReadiness\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# A sync merge never replaces a window the user picked with the other copy's
+# analysis.
+mutate "merge_replaces_picked_window" "EmuquTests/CloudKitSessionFreshnessTests" \
+    "Emuqu/Sources/Storage/SessionMerger.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='existing.windowUserAdjusted != true else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,'existing.windowUserAdjusted != false else { return false }'))"
+
+# An adopted hand-picked window keeps its flag.
+mutate "merge_drops_picked_flag" "EmuquTests/ArchivePolicyTests" \
+    "Emuqu/Sources/Storage/SessionMerger.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/SessionMerger.swift');s=p.read_text();o='        existing.windowUserAdjusted = imported.windowUserAdjusted\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
 mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=' || words == [\"interval\", \"ms\"]';assert s.count(o)==1;p.write_text(s.replace(o,''))"
