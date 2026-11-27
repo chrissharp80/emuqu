@@ -122,7 +122,7 @@ struct CitationQuickView: View {
         LabeledContent(String(localized: "ATL (fatigue)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.atl)) }
         LabeledContent(String(localized: "CTL (fitness)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.ctl)) }
         LabeledContent(String(localized: "TSB (form)", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f", locale: LanguageManager.appLocale, training.tsb)) }
-        LabeledContent(String(localized: "Yesterday TRIMP", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.yesterdayTRIMP)) }
+        LabeledContent(String(localized: "Yesterday's load", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, training.yesterdayLoad)) }
     }
 
     @ViewBuilder

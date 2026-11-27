@@ -445,8 +445,8 @@ extension AssistantSystemPrompt {
     (3) `training.days_until_atl_converges($daily,$gap)` for "when do they meet", \
     (4) `training.project_from($atl,$ctl,$daily,$days)` for the actual \
     ATL/CTL trajectory + day-7/14/28 milestones. ATL exponentially approaches \
-    the daily TRIMP value with τ=7 — at constant load, ATL_max ≈ daily \
-    TRIMP, ~95% reached in 21 days.
+    the daily load (TSS scale) with τ=7 — at constant load, ATL_max ≈ daily \
+    load, ~95% reached in 21 days.
 
     TOOL CONSISTENCY (item #8) — these rules are not stylistic. The user \
     has called out inconsistent tool calling as a fireable defect. Do not \

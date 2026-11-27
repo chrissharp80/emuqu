@@ -15,11 +15,6 @@ extension TrainingContext {
     var tsb: Double { onTSSScale(recordedTSB) }
     /// The load of the day before this reading, TSS scale.
     var yesterdayLoad: Double { onTSSScale(recordedYesterdayLoad) }
-    /// `yesterdayLoad` on Banister's TRIMP scale, for a surface that labels
-    /// the figure TRIMP and grades it with TRIMP bands.
-    var yesterdayTRIMP: Double {
-        Self.trimp(fromTSS: yesterdayLoad, anchors: WorkoutLoadRestingHR.anchors)
-    }
 
     /// This context with every load figure on the TSS scale at `anchors`,
     /// stamped `.tss`: the copy a context built from it with new load
@@ -45,14 +40,5 @@ extension TrainingContext {
 
     fileprivate func onTSSScale(_ recorded: Double) -> Double {
         scale == .tss ? recorded : WorkoutLoadRestingHR.anchors.tss(fromTRIMP: recorded)
-    }
-
-    /// A TSS-scale load on Banister's TRIMP scale at `anchors`: the inverse
-    /// of `HeartRateAnchors.tss(fromTRIMP:)`, which is linear, so one hour at
-    /// threshold maps back to its TRIMP.
-    static func trimp(fromTSS tss: Double, anchors: TrainingLoadSeries.HeartRateAnchors) -> Double {
-        let perHundred = anchors.tss(fromTRIMP: 100)
-        guard perHundred > 0 else { return tss }
-        return tss * 100 / perHundred
     }
 }

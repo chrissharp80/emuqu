@@ -119,7 +119,12 @@ an hour at threshold gives at the default anchors (resting 60, max 180, LTHR
 Ratios (ACWR bands, capacity-ratio breakpoints, Foster monotony) do not depend
 on the scale. TSB, ramp-rate and daily-load bands (TSB ±5/10/25, ramp 8
 TSS/day/week, daily load 50/150/300) were written as TSS conventions and now
-apply to every workout.
+apply to every workout. The daily-load bands grade the Deep Dive report's
+"Yesterday's load" row, which shows the snapshot's prior-day load on the TSS
+scale (`TrainingContext.yesterdayLoad`) and is labelled load, not TRIMP. A
+figure is labelled TRIMP only where it is a Banister TRIMP as computed
+(`luciaTRIMP`: the workout PDF's Banister TRIMP row, the Holistic report's
+internal-load row, the CSV column).
 
 HealthKit-sourced workouts
 (from other apps) carry no `precomputedLoad` and fall to Layer 0b, whose
