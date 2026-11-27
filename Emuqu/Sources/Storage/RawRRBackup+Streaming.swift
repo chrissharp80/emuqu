@@ -61,7 +61,7 @@ extension RawRRBackup {
     /// Throws when the one-shot backup a format switch would replace holds
     /// more beats than the points about to replace it.
     private func refuseReplacingLargerBackup(_ existing: BackupIndex?, newCount: Int) throws {
-        guard let existing, existing.beatCount > newCount else { return }
+        guard let existing, !FullerCopy.covers(newCount, existing.beatCount) else { return }
         throw BackupError.wouldReplaceLargerBackup(existing: existing.beatCount, new: newCount)
     }
 

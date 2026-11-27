@@ -93,6 +93,6 @@ extension OneShotBackupName {
         guard writtenMs(url.lastPathComponent) < indexedMs(entry),
               let beats = attempt("RawRRBackup.readReplacedFile", { try RawRRBackup.decodeLegacyBackup(at: url, encryption: encryption).points.count })
         else { return false }
-        return beats <= (entry.backedUpCount ?? entry.beatCount)
+        return FullerCopy.covers(entry.backedUpCount ?? entry.beatCount, beats)
     }
 }

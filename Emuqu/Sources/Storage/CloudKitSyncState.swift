@@ -332,8 +332,9 @@ struct CloudKitSyncState {
     }
 
     /// The server version this device's copy now matches, after it saved the
-    /// record or imported it. A save or fetch that returned no change tag
-    /// leaves the version as it was.
+    /// record or imported it, or has read, after it kept the beats only that
+    /// version held (`CloudPullCoordinator.keepRemoteBeats`). A save or fetch
+    /// that returned no change tag leaves the version as it was.
     mutating func noteRecordVersion(_ version: String?, of sessionId: UUID) {
         guard let version else { return }
         recordVersions[sessionId] = version
