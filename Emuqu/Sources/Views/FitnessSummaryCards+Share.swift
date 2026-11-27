@@ -85,7 +85,8 @@ extension FitnessSummaryCards {
     private func renderTrackImage() async -> UIImage? {
         guard !track.isEmpty else { return nil }
         let coords = track.map(\.coordinate)
-        return await RecapCard.renderRouteMap(coordinates: coords, tint: UIColor(AppTheme.primary))
+        let starts = session.workoutMetadata?.gpsSegmentStarts(count: coords.count) ?? []
+        return await RecapCard.renderRouteMap(coordinates: coords, segmentStarts: starts, tint: UIColor(AppTheme.primary))
     }
 
     /// Write to temp file with meaningful name so the share sheet
@@ -452,6 +453,9 @@ extension FitnessSummaryCards {
     struct ElevationPoint {
         let distance: Double  // km from start
         let altitude: Double  // meters
+        /// The recorded segment of the track the point is on; the chart
+        /// draws no line from one segment into the next (`TrackSegments`).
+        var segment = 0
     }
 
     /// The right-hand column of a metric row: the value, optionally captioned.

@@ -372,7 +372,8 @@ func clampedAnalysisWindow(series: RRSeries, result: HRVAnalysisResult) -> Range
 let poincarePaddingFraction = 0.15
 
 /// Consecutive RR pairs `(RRn, RRn+1)` inside `window`, dropping a pair when
-/// either beat is flagged as an artifact. A beat with no flag (nil or short
+/// either beat is flagged as an artifact or a recording break separates them
+/// (`TimeDomainAnalyzer.isRecordingBreak`: the beats were never adjacent). A beat with no flag (nil or short
 /// `flags`, as merged and streamed sessions leave them) counts as clean.
 /// `window` must lie inside `series.points` (see `clampedAnalysisWindow`).
 func poincareBeatPairs(series: RRSeries, flags: [ArtifactFlags]?, window: Range<Int>) -> [(Double, Double)] {
@@ -380,7 +381,8 @@ func poincareBeatPairs(series: RRSeries, flags: [ArtifactFlags]?, window: Range<
     let flags = flags ?? []
     let isArtifact: (Int) -> Bool = { $0 < flags.count ? flags[$0].isArtifact : false }
     return (window.lowerBound ..< (window.upperBound - 1)).compactMap { i in
-        guard !isArtifact(i), !isArtifact(i + 1) else { return nil }
+        guard !isArtifact(i), !isArtifact(i + 1),
+              !TimeDomainAnalyzer.isRecordingBreak(between: series.points[i], and: series.points[i + 1]) else { return nil }
         return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
     }
 }

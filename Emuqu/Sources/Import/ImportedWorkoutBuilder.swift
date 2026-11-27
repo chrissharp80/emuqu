@@ -29,15 +29,19 @@ struct ImportedWorkoutTrack {
     let heartRateSamples: [(Date, Int)]
     let cadenceSamples: [(Date, Double)]
     let sport: Sport
+    /// The fixes of `track` that begin a new recorded segment
+    /// (`TrackSegments`): a GPX `<trkseg>`, a second Health route, a pause.
+    var segmentStarts: [Int] = []
 
-    /// The same track with its points in time order. A GPX file or a route
-    /// query can hand points over out of order, and the builder sums distance
-    /// and sweeps altitude in array order.
+    /// The same track with its points in time order, each keeping its
+    /// segment. A GPX file or a route query can hand points over out of
+    /// order, and the builder sums distance and sweeps altitude in array order.
     func timeOrdered() -> ImportedWorkoutTrack {
-        ImportedWorkoutTrack(
-            startDate: startDate, endDate: endDate,
-            track: track.sorted { $0.timestamp < $1.timestamp },
-            heartRateSamples: heartRateSamples, cadenceSamples: cadenceSamples, sport: sport
+        let ordered = TrackSegments.timeOrdered(track, starts: segmentStarts)
+        return ImportedWorkoutTrack(
+            startDate: startDate, endDate: endDate, track: ordered.fixes,
+            heartRateSamples: heartRateSamples, cadenceSamples: cadenceSamples, sport: sport,
+            segmentStarts: ordered.starts
         )
     }
 }
@@ -129,8 +133,33 @@ enum ImportedWorkoutBuilder {
     ) throws -> HRVSession {
         let ordered = track.timeOrdered()
         let duration = try durationSeconds(from: ordered.startDate, to: ordered.endDate)
-        let samples = perSecondSamples(from: ordered, duration: duration)
-        return session(from: ordered, samples: samples, source: source, replacing: existingID)
+        let pauses = breakPauses(of: ordered)
+        let samples = perSecondSamples(from: ordered, duration: duration, pauses: pauses)
+        var built = session(from: ordered, samples: samples, source: source, replacing: existingID)
+        built.workoutMetadata?.pauseSpans = pauses.isEmpty ? nil : pauses
+        return built
+    }
+
+    /// Each stretch between two segments of the track as a pause of the
+    /// workout: nothing was recorded there, so the per-second samples' clock
+    /// stops through it, as it does through a recorded pause, and moving
+    /// time and pace leave it out. A join less than a second long is none.
+    static func breakPauses(of track: ImportedWorkoutTrack) -> [WorkoutPauseSpan] {
+        let fixes = track.track
+        var pausedBefore = 0.0
+        return TrackSegments.starts(track.segmentStarts, count: fixes.count).compactMap { start in
+            let from = fixes[start - 1].timestamp.timeIntervalSince(track.startDate)
+            let seconds = fixes[start].timestamp.timeIntervalSince(fixes[start - 1].timestamp).rounded(.down)
+            guard seconds >= 1 else { return nil }
+            defer { pausedBefore += seconds }
+            return WorkoutPauseSpan(atElapsed: max(0, Int(from - pausedBefore)), seconds: seconds)
+        }
+    }
+
+    /// The wall-clock second of active second `active`: the active second
+    /// plus every pause that began before it (`WorkoutMetadata.wallClockSeconds`).
+    private static func wallSecond(of active: Int, pauses: [WorkoutPauseSpan]) -> Int {
+        active + Int(pauses.reduce(0.0) { $1.atElapsed < active ? $0 + $1.seconds : $0 })
     }
 
     /// The length, in whole seconds, of a workout from `start` to `end`.
@@ -181,49 +210,43 @@ enum ImportedWorkoutBuilder {
 
     /// Per-point elapsed seconds and cumulative distance along the track,
     /// precomputed ONCE. `buildSession` puts the track in time order first.
+    /// No distance is added from the last fix of a segment to the first of
+    /// the next (`TrackSegments`): nothing was recorded between them.
     ///
     /// The previous implementation rescanned the whole track for the nearest
     /// point AND recomputed the full prefix distance for every single second —
     /// O(n²), which froze the app for minutes (and tripped the watchdog) on a
     /// 2 h GPX. This is O(n + duration).
     private static func trackIndex(_ track: ImportedWorkoutTrack) -> (elapsed: [Double], cumulative: [Double]) {
-        let points = track.track
-        var trackElapsed = [Double]()
-        var trackCumDist = [Double]()
-        trackElapsed.reserveCapacity(points.count)
-        trackCumDist.reserveCapacity(points.count)
-        var cum = 0.0
-        for (i, pt) in points.enumerated() {
-            if i > 0 { cum += pt.distance(from: points[i - 1]) }
-            trackElapsed.append(pt.timestamp.timeIntervalSince(track.startDate))
-            trackCumDist.append(cum)
-        }
-        return (trackElapsed, trackCumDist)
+        let elapsed = track.track.map { $0.timestamp.timeIntervalSince(track.startDate) }
+        return (elapsed, TrackSegments.cumulativeMeters(track.track, starts: track.segmentStarts))
     }
 
-    /// One sample per second from start to end, filling HR + cadence from the
-    /// nearest GPX sample. Distance/altitude come from the nearest track point
-    /// via a single advancing cursor (two-pointer sweep).
-    private static func perSecondSamples(from track: ImportedWorkoutTrack, duration: Int) -> [WorkoutSample] {
+    /// One sample per active second from start to end (the `pauses` left
+    /// out), filling HR + cadence from the nearest GPX sample. Distance and
+    /// altitude come from the nearest track point via a single advancing
+    /// cursor (two-pointer sweep).
+    private static func perSecondSamples(
+        from track: ImportedWorkoutTrack, duration: Int, pauses: [WorkoutPauseSpan]
+    ) -> [WorkoutSample] {
         let (hrMap, cadMap) = secondKeyedSamples(from: track)
         let (trackElapsed, trackCumDist) = trackIndex(track)
-        var samples: [WorkoutSample] = []
-        samples.reserveCapacity(duration + 1)
+        let active = max(0, duration - Int(pauses.reduce(0.0) { $0 + $1.seconds }))
         var cursor = 0
-        for sec in 0 ... duration {
+        return (0 ... active).map { activeSec in
+            let sec = wallSecond(of: activeSec, pauses: pauses)
             cursor = advancing(cursor, to: sec, elapsed: trackElapsed)
             let cumulative = trackCumDist.isEmpty ? 0 : trackCumDist[cursor]
-            samples.append(WorkoutSample(
-                offsetSec: sec,
+            return WorkoutSample(
+                offsetSec: activeSec,
                 heartRate: hrMap[sec] ?? Self.nearestValue(in: hrMap, near: sec, within: 5),
                 distanceMeters: cumulative > 0 ? cumulative : nil,
                 paceSecPerKm: nil,
                 cadenceStepsPerMin: cadMap[sec] ?? Self.nearestValue(in: cadMap, near: sec, within: 5),
                 altitudeMeters: track.track.isEmpty ? nil : track.track[cursor].altitude,
                 alpha1: nil, mets: nil, powerWatts: nil
-            ))
+            )
         }
-        return samples
     }
 
     /// Advances to the track point nearest `sec` in time: the last one at or
@@ -248,6 +271,9 @@ enum ImportedWorkoutBuilder {
     ) -> HRVSession {
         var metadata = WorkoutMetadata(sport: track.sport)
         metadata.gpsPolyline = WorkoutAnalyzer.encodePolyline(track: track.track)
+        metadata.gpsFixTimes = WorkoutAnalyzer.encodeFixTimes(track: track.track)
+        let starts = TrackSegments.starts(track.segmentStarts, count: track.track.count)
+        metadata.gpsSegmentStarts = starts.isEmpty ? nil : starts
         metadata.distanceMeters = samples.last?.distanceMeters ?? 0
         metadata.samples = samples
         var session = blankSession(startDate: track.startDate, source: source, existingID: existingID)

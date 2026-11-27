@@ -59,16 +59,18 @@ extension HealthWorkoutImporter {
     // MARK: - Assembling one workout
 
     private func importedTrack(for workout: HKWorkout, candidate: Candidate) async -> ImportedWorkoutTrack {
-        async let locations = routeLocations(for: workout)
+        async let route = training.segmentedRoute(for: workout)
         async let heartRates = heartRateSamples(from: candidate.startDate, to: candidate.endDate)
         async let cadence = cadenceSamples(from: candidate.startDate, to: candidate.endDate)
+        let segmented = await route
         return await ImportedWorkoutTrack(
             startDate: candidate.startDate,
             endDate: candidate.endDate,
-            track: locations,
+            track: segmented.fixes,
             heartRateSamples: heartRates,
             cadenceSamples: cadence,
-            sport: candidate.sport
+            sport: candidate.sport,
+            segmentStarts: segmented.starts
         )
     }
 
@@ -152,12 +154,6 @@ extension HealthWorkoutImporter {
     /// Logs a HealthKit read that hit its time limit; see `noteFailedRead`.
     nonisolated static func noteTimedOutRead(_ what: String) {
         debugLog("[HealthImport] \(what) read timed out", level: .warning)
-    }
-
-    /// The workout's GPS track, or empty for an indoor or route-less workout.
-    private func routeLocations(for workout: HKWorkout) async -> [CLLocation] {
-        guard let route = await training.routeSeries(for: workout) else { return [] }
-        return await training.routeLocations(route)
     }
 
     /// The workout's heart rate, from whichever source recorded it.

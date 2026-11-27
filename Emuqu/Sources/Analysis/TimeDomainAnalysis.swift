@@ -212,6 +212,18 @@ enum TimeDomainAnalyzer {
         return breaks
     }
 
+    /// The longest stretch of `range` with no recording break inside it
+    /// (`isRecordingBreak`), for a reading that interpolates between beats
+    /// (a resampled spectrum) and so must not span a break. `range` clamped
+    /// to `points`; empty when it is.
+    static func longestUnbrokenRange(in points: [RRPoint], range: Range<Int>) -> Range<Int> {
+        let clamped = range.clamped(to: 0 ..< points.count)
+        guard !clamped.isEmpty else { return clamped }
+        let breaks = beatsAfterRecordingBreak(in: points, range: clamped).filter { $0 > clamped.lowerBound }
+        let bounds = [clamped.lowerBound] + breaks.sorted() + [clamped.upperBound]
+        return zip(bounds, bounds.dropFirst()).map { $0 ..< $1 }.max { $0.count < $1.count } ?? clamped
+    }
+
     // MARK: - Public API
 
     /// Compute time-domain metrics for clean RR intervals

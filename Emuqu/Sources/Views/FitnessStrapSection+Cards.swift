@@ -207,7 +207,7 @@ extension FitnessStrapSection {
             heroHeadline(facts: facts)
             // Mini polyline preview: the route `loadLatestWorkoutSession` decoded.
             if facts.polyline != nil {
-                heroPolylinePreview(route: latestWorkoutRoute)
+                heroPolylinePreview(route: latestWorkoutRoute, starts: session.workoutMetadata?.gpsSegmentStarts(count: latestWorkoutRoute.count) ?? [])
             }
             // Badges — a compact "why this workout mattered" row
             heroBadgesRow(
@@ -333,15 +333,16 @@ extension FitnessStrapSection {
     /// every hero render); a quick line trace communicates "you ran a
     /// loop / out-and-back / point-to-point" at a glance.
     @ViewBuilder
-    func heroPolylinePreview(route: [CLLocation]) -> some View {
+    func heroPolylinePreview(route: [CLLocation], starts: [Int] = []) -> some View {
         if route.count >= 2 {
-            polylineTrace(coords: route.map(\.coordinate))
+            polylineTrace(coords: route.map(\.coordinate), starts: starts)
         }
     }
 
-    private func polylineTrace(coords: [CLLocationCoordinate2D]) -> some View {
+    /// No line is traced across a join between recorded segments (`starts`).
+    private func polylineTrace(coords: [CLLocationCoordinate2D], starts: [Int]) -> some View {
         GeometryReader { geo in
-            Path { Self.tracePolyline(&$0, coords: coords, in: geo.size) }
+            Path { Self.tracePolyline(&$0, coords: coords, starts: starts, in: geo.size) }
                 .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
         }
         .frame(height: 64)
@@ -351,11 +352,11 @@ extension FitnessStrapSection {
     /// `decoded.count >= 2` upstream guarantees non-empty, but
     /// force-unwrap is a spec finding. Use guard so any future change to the
     /// gate condition can't introduce a crash here.
-    private static func tracePolyline(_ path: inout Path, coords: [CLLocationCoordinate2D], in size: CGSize) {
+    private static func tracePolyline(_ path: inout Path, coords: [CLLocationCoordinate2D], starts: [Int], in size: CGSize) {
         guard let fit = RouteThumbnailFit(coords: coords, size: size) else { return }
         for (i, c) in coords.enumerated() {
             let p = fit.point(c)
-            if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+            if i == 0 || starts.contains(i) { path.move(to: p) } else { path.addLine(to: p) }
         }
     }
 

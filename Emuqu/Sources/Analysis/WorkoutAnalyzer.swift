@@ -106,9 +106,18 @@ enum WorkoutAnalyzer {
     /// Steps of a track (step `i` runs from fix `i - 1` to fix `i`) that a
     /// paused stretch makes not count: `paused` steps add neither distance nor
     /// time, `gaps` (the step across a resume) add distance but not time.
+    /// `breaks` are the steps into a new recorded segment (`TrackSegments`):
+    /// nothing was recorded across them, so they add neither distance, time
+    /// nor heart rate, and the stored track keeps them as segment starts.
     struct TrackPauses: Equatable, Sendable {
         var paused: Set<Int> = []
         var gaps: Set<Int> = []
+        var breaks: Set<Int> = []
+
+        /// Whether step `i` adds neither distance nor time.
+        func leavesOut(_ i: Int) -> Bool {
+            paused.contains(i) || breaks.contains(i)
+        }
     }
 
     /// Compute all workout-flavoured metrics from the raw inputs.
@@ -176,6 +185,8 @@ enum WorkoutAnalyzer {
         metadata.distanceMeters = computeDistance(track: track, pauses: pauses)
         metadata.gpsPolyline = encodePolyline(track: track)
         metadata.gpsFixTimes = encodeFixTimes(track: track)
+        let starts = TrackSegments.starts(Array(pauses.breaks), count: track.count)
+        metadata.gpsSegmentStarts = starts.isEmpty ? nil : starts
         // Splits carry no α1 yet: the per-second samples are attached after
         // this analyzer runs. `splitsEnrichedWithAlpha1` fills the column in
         // once they are.
@@ -363,10 +374,10 @@ enum WorkoutAnalyzer {
     // MARK: - GPS derivations
 
     static func computeDistance(track: [CLLocation], pauses: TrackPauses = TrackPauses()) -> Double {
-        guard !pauses.paused.isEmpty else { return WorkoutGeometry.trackLengthMeters(track) }
+        guard !pauses.paused.isEmpty || !pauses.breaks.isEmpty else { return WorkoutGeometry.trackLengthMeters(track) }
         guard track.count >= 2 else { return 0 }
         return (1 ..< track.count).reduce(0.0) { total, i in
-            pauses.paused.contains(i) ? total : total + track[i].distance(from: track[i - 1])
+            pauses.leavesOut(i) ? total : total + track[i].distance(from: track[i - 1])
         }
     }
 
@@ -402,7 +413,7 @@ enum WorkoutAnalyzer {
         for i in 1 ..< track.count {
             run.add(step: i, of: track, pauses: pauses, beats: &beats)
             guard run.distance >= splitDistanceMeters else { continue }
-            splits.append(split(index: splits.count + 1, track: track, from: splitStartIdx, to: i, run: run))
+            splits.append(split(index: splits.count + 1, track: track, from: splitStartIdx, to: i, run: run, breaks: pauses.breaks))
             splitStartIdx = i
             run = SplitRun()
         }
@@ -420,9 +431,9 @@ enum WorkoutAnalyzer {
         var hrCount = 0
 
         mutating func add(step i: Int, of track: [CLLocation], pauses: TrackPauses, beats: inout HRCursor) {
-            let moving = !pauses.paused.contains(i) && !pauses.gaps.contains(i)
+            let moving = !pauses.leavesOut(i) && !pauses.gaps.contains(i)
             let taken = beats.take(through: track[i].timestamp, counting: moving)
-            guard !pauses.paused.contains(i) else { return }
+            guard !pauses.leavesOut(i) else { return }
             distance += track[i].distance(from: track[i - 1])
             guard moving else { return }
             seconds += track[i].timestamp.timeIntervalSince(track[i - 1].timestamp)
@@ -436,7 +447,8 @@ enum WorkoutAnalyzer {
         track: [CLLocation],
         from splitStartIdx: Int,
         to i: Int,
-        run: SplitRun
+        run: SplitRun,
+        breaks: Set<Int>
     ) -> Split {
         let distance = run.distance
         let duration = run.seconds
@@ -446,7 +458,7 @@ enum WorkoutAnalyzer {
             durationSeconds: duration,
             averageHR: run.hrCount > 0 ? run.hrSum / Double(run.hrCount) : nil,
             averagePaceSecPerKm: duration > 0 ? (duration / (distance / 1_000)) : nil,
-            elevationGainMeters: splitElevationGain(Array(track[splitStartIdx ... i])),
+            elevationGainMeters: splitElevationGain(track: track, from: splitStartIdx, to: i, breaks: breaks),
             averageAlpha1: nil // populated by enrichSplitsWithAlpha1 post-pass
         )
     }
@@ -455,6 +467,13 @@ enum WorkoutAnalyzer {
     /// session total uses (`BarometricAltitudeProcessor`), so the splits add
     /// up to roughly the headline gain instead of ~2× it from summing raw GPS
     /// altitude jitter. Slices too short to smooth fall back to the raw sum.
+    /// Summed per recorded segment of the slice, so no climb is taken across
+    /// a join between segments (`TrackPauses.breaks`).
+    private static func splitElevationGain(track: [CLLocation], from start: Int, to end: Int, breaks: Set<Int>) -> Double {
+        let starts = breaks.filter { $0 > start && $0 <= end }.map { $0 - start }
+        return TrackSegments.split(Array(track[start ... end]), starts: starts).reduce(0.0) { $0 + splitElevationGain($1) }
+    }
+
     private static func splitElevationGain(_ fixes: [CLLocation]) -> Double {
         guard fixes.count >= 3 else { return computeElevationGain(track: fixes) }
         return BarometricAltitudeProcessor.process(
@@ -603,14 +622,12 @@ enum WorkoutAnalyzer {
         let halfTime = movingSeconds(track: track, pauses: pauses) / 2
         var cursor = HRCursor(samples: hrSamples)
         _ = cursor.take(through: firstFix.timestamp, counting: false)
-        for i in 1 ..< track.count where !pauses.paused.contains(i) {
-            let counted = !pauses.gaps.contains(i)
+        for i in 1 ..< track.count {
+            let counted = !pauses.leavesOut(i) && !pauses.gaps.contains(i)
             let beats = cursor.take(through: track[i].timestamp, counting: counted)
-            let step = MovingHalf(
-                distance: track[i].distance(from: track[i - 1]),
-                seconds: counted ? track[i].timestamp.timeIntervalSince(track[i - 1].timestamp) : 0,
-                hrSum: beats.sum, hrCount: beats.count
-            )
+            guard !pauses.leavesOut(i) else { continue }
+            let seconds = counted ? track[i].timestamp.timeIntervalSince(track[i - 1].timestamp) : 0
+            let step = MovingHalf(distance: track[i].distance(from: track[i - 1]), seconds: seconds, hrSum: beats.sum, hrCount: beats.count)
             if halves.first.seconds < halfTime {
                 halves.first = halves.first.merged(with: step)
             } else {
@@ -623,7 +640,7 @@ enum WorkoutAnalyzer {
     private static func movingSeconds(track: [CLLocation], pauses: TrackPauses) -> Double {
         guard track.count > 1 else { return 0 }
         return (1 ..< track.count).reduce(0.0) { total, i in
-            pauses.paused.contains(i) || pauses.gaps.contains(i)
+            pauses.leavesOut(i) || pauses.gaps.contains(i)
                 ? total : total + track[i].timestamp.timeIntervalSince(track[i - 1].timestamp)
         }
     }

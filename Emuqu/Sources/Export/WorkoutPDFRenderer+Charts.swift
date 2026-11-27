@@ -35,10 +35,33 @@ extension WorkoutPDFRenderer {
         let py: (Double) -> CGFloat
     }
 
+    /// A curve's points and the indices that begin a new run after a hole
+    /// (`SeriesRuns`), where the stroke lifts instead of bridging it.
+    struct CurvePoints {
+        var points: [(Double, Double)] = []
+        var runStarts: Set<Int> = []
+    }
+
+    /// `raw` (seconds, value) cut into runs at every hole wider than
+    /// `SeriesRuns.workoutMaxGapMinutes`, each bucket-averaged on its own
+    /// (so no average spans a hole) to its share of `maxPDFPoints`.
+    static func downsampledRuns(_ raw: [(Double, Double)]) -> CurvePoints {
+        let runs = SeriesRuns.runs(of: raw.map(\.0), maxGap: SeriesRuns.workoutMaxGapMinutes * 60)
+        let ranges = TrackSegments.ranges(count: raw.count, starts: raw.indices.dropFirst().filter { runs[$0] != runs[$0 - 1] })
+        var curve = CurvePoints()
+        for range in ranges {
+            let target = max(5, maxPDFPoints * range.count / max(1, raw.count))
+            if !curve.points.isEmpty { curve.runStarts.insert(curve.points.count) }
+            curve.points += downsample(Array(raw[range]), target: target)
+        }
+        return curve
+    }
+
     func drawHRChart(in rect: CGRect, samples: [WorkoutSample]) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         fillChartFrame(rect)
-        let points = Self.hrChartPoints(samples)
+        let curve = Self.hrChartPoints(samples)
+        let points = curve.points
         guard points.count >= 2 else { return }
         // The domain follows the trace itself, so a peak above HRmax still
         // sits inside the plot.
@@ -52,18 +75,18 @@ extension WorkoutPDFRenderer {
         ctx.saveGState()
         ctx.clip(to: plot)
         drawHRZoneBands(plot: plot, minY: minY, maxY: maxY, py: py)
-        drawHRCurve(ctx: ctx, points: points, px: px, py: py)
+        drawHRCurve(ctx: ctx, curve: curve, px: px, py: py)
         ctx.restoreGState()
         drawHRYAxisTicks(plot: plot, minY: minY, maxY: maxY, py: py)
     }
     /// (seconds, bpm) for every sample with a heart rate, bucket-averaged
-    /// down to at most `maxPDFPoints`.
-    private static func hrChartPoints(_ samples: [WorkoutSample]) -> [(Double, Double)] {
+    /// down to at most about `maxPDFPoints`, in runs (`downsampledRuns`).
+    private static func hrChartPoints(_ samples: [WorkoutSample]) -> CurvePoints {
         let raw: [(Double, Double)] = samples.compactMap { s in
             guard let hr = s.heartRate else { return nil }
             return (Double(s.offsetSec), Double(hr))
         }
-        return downsample(raw, target: maxPDFPoints)
+        return downsampledRuns(raw)
     }
 
     /// Zone bands (fractions of max HR) behind the trace, so a reader can see
@@ -87,16 +110,22 @@ extension WorkoutPDFRenderer {
             UIBezierPath(rect: bandRect).fill()
         }
     }
-    func drawHRCurve(ctx: CGContext, points: [(Double, Double)], px: (Double) -> CGFloat, py: (Double) -> CGFloat) {
+    func drawHRCurve(ctx: CGContext, curve: CurvePoints, px: (Double) -> CGFloat, py: (Double) -> CGFloat) {
         // HR curve
         ctx.setStrokeColor(report.config.primary.cgColor)
         ctx.setLineWidth(2.0)
+        Self.curvePath(curve, px: px, py: py).stroke()
+    }
+
+    /// The curve as one path, lifted at each run start so no line crosses
+    /// a hole.
+    static func curvePath(_ curve: CurvePoints, px: (Double) -> CGFloat, py: (Double) -> CGFloat) -> UIBezierPath {
         let path = UIBezierPath()
-        for (i, pt) in points.enumerated() {
+        for (i, pt) in curve.points.enumerated() {
             let cgp = CGPoint(x: px(pt.0), y: py(pt.1))
-            if i == 0 { path.move(to: cgp) } else { path.addLine(to: cgp) }
+            if i == 0 || curve.runStarts.contains(i) { path.move(to: cgp) } else { path.addLine(to: cgp) }
         }
-        path.stroke()
+        return path
     }
     func drawHRYAxisTicks(plot: CGRect, minY: Double, maxY: Double, py: (Double) -> CGFloat) {
         // Y axis ticks
@@ -120,7 +149,8 @@ extension WorkoutPDFRenderer {
     /// to draw and indistinguishable visually.
     func drawAlpha1Chart(in rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        let points = alpha1ChartPoints()
+        let curve = alpha1ChartPoints()
+        let points = curve.points
         guard points.count >= 2 else {
             drawText(String(localized: "No α1 data available.", bundle: LanguageManager.appBundle), at: rect.origin, font: report.config.captionFont, color: report.config.textTertiary)
             return
@@ -131,17 +161,18 @@ extension WorkoutPDFRenderer {
         let (minY, maxY, px, py) = (scales.minY, scales.maxY, scales.px, scales.py)
         drawAlpha1Grid(ctx: ctx, plot: plot, minY: minY, maxY: maxY, py: py)
         drawAlpha1Thresholds(ctx: ctx, plot: plot, py: py)
-        strokeAlpha1Curve(ctx: ctx, points: points, px: px, py: py)
+        strokeAlpha1Curve(ctx: ctx, curve: curve, px: px, py: py)
         drawText(String(localized: "Seconds from start", bundle: LanguageManager.appBundle), at: CGPoint(x: plot.midX - 40, y: plot.maxY + 6), font: report.config.captionFont, color: report.config.textTertiary)
     }
-    /// α1 series, bucket-averaged down to at most `maxPDFPoints`.
-    func alpha1ChartPoints() -> [(Double, Double)] {
+    /// α1 series, bucket-averaged down to at most about `maxPDFPoints`, in
+    /// runs (`downsampledRuns`): a stretch whose α1 was cleared stays open.
+    func alpha1ChartPoints() -> CurvePoints {
         let samples = report.session.workoutMetadata?.samples ?? []
-        let raw: [(x: Double, y: Double)] = samples.compactMap { s in
+        let raw: [(Double, Double)] = samples.compactMap { s in
             guard let a = s.alpha1 else { return nil }
             return (Double(s.offsetSec), a)
         }
-        return Self.downsample(raw, target: Self.maxPDFPoints)
+        return Self.downsampledRuns(raw)
     }
     /// Axis domain and the two projection closures. α1 is clamped to a
     /// 0.3–1.3 minimum window so a flat report.session still shows the thresholds.
@@ -195,17 +226,11 @@ extension WorkoutPDFRenderer {
         drawText(String(localized: "AT2 · anaerobic threshold", bundle: LanguageManager.appBundle), at: CGPoint(x: plot.minX + 4, y: py(at2) - 12), font: report.config.captionFont, color: .orange)
         ctx.setLineDash(phase: 0, lengths: [])
     }
-    func strokeAlpha1Curve(ctx: CGContext, points: [(Double, Double)], px: (Double) -> CGFloat, py: (Double) -> CGFloat) {
+    func strokeAlpha1Curve(ctx: CGContext, curve: CurvePoints, px: (Double) -> CGFloat, py: (Double) -> CGFloat) {
         // α1 curve
         ctx.setStrokeColor(report.config.dustyRose.cgColor)
         ctx.setLineWidth(2.0)
-        let path = UIBezierPath()
-        for (i, pt) in points.enumerated() {
-            let cgp = CGPoint(x: px(pt.0), y: py(pt.1))
-            if i == 0 { path.move(to: cgp) } else { path.addLine(to: cgp) }
-        }
-        path.stroke()
-
+        Self.curvePath(curve, px: px, py: py).stroke()
     }
     /// Overlay the GPS polyline onto the map image rect, segment-coloured by
     /// α1 band. Draws in the current graphics context (caller has already
@@ -213,7 +238,8 @@ extension WorkoutPDFRenderer {
     /// snapshot itself, so the line lands on the tiles whatever region MapKit
     /// settled on; this only scales image coordinates into `rect`. A
     /// segment takes the α1 of its fix's pause-excluded second, the clock the
-    /// samples are recorded on.
+    /// samples are recorded on. No step is drawn across a join between
+    /// recorded segments (`WorkoutMetadata.gpsSegmentStarts`).
     func drawColouredPolyline(_ map: RouteMapImage, in rect: CGRect) {
         guard report.track.count >= 2, map.track.count == report.track.count,
               map.image.size.width > 0, map.image.size.height > 0,
@@ -224,11 +250,12 @@ extension WorkoutPDFRenderer {
         }
         let band = alphaBandLookup()
         let offsets = TrackSampleAlignment.activeOffsets(of: report.track, session: report.session)
+        let starts = Set(report.session.workoutMetadata?.gpsSegmentStarts(count: report.track.count) ?? [])
         cg.setLineWidth(3.0)
         cg.setLineCap(.round)
         cg.setLineJoin(.round)
         // empty-range-ok: the guard above requires report.track.count >= 2.
-        for i in 1 ..< report.track.count {
+        for i in 1 ..< report.track.count where !starts.contains(i) {
             cg.setStrokeColor(band(offsets[i] ?? activeSecond(of: report.track[i])).withAlphaComponent(0.95).cgColor)
             cg.move(to: point(i - 1))
             cg.addLine(to: point(i))

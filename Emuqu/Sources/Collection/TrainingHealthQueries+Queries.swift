@@ -327,12 +327,51 @@ extension TrainingHealthQueries {
     /// source (the Apple Watch) over our own written copy, since ours only
     /// holds the truncated phone track. Returns nil when there's no matching
     /// workout, no route series, or no locations (so the caller can fall back).
-    func fetchWorkoutRoute(from start: Date, to end: Date) async -> [CLLocation]? {
+    func fetchWorkoutRoute(from start: Date, to end: Date) async -> SegmentedTrack? {
         guard access.isAvailable, end > start else { return nil }
         guard let workout = await bestOverlappingWorkout(from: start, to: end) else { return nil }
-        guard let route = await routeSeries(for: workout) else { return nil }
-        let locations = await routeLocations(route)
-        return locations.isEmpty ? nil : locations.sorted { $0.timestamp < $1.timestamp }
+        let route = await segmentedRoute(for: workout)
+        return route.fixes.isEmpty ? nil : route
+    }
+
+    /// Every GPS route of `workout` in time order, each its own segment, with
+    /// a new segment across each of the workout's pauses (`pauseWindows`):
+    /// a source that writes one route per recorded stretch, or stops
+    /// recording through a pause, recorded nothing between them
+    /// (`TrackSegments`). Empty for an indoor or route-less workout.
+    func segmentedRoute(for workout: HKWorkout) async -> SegmentedTrack {
+        var stretches: [[CLLocation]] = []
+        for route in await routeSeries(for: workout) {
+            stretches.append(await routeLocations(route).sorted { $0.timestamp < $1.timestamp })
+        }
+        let joined = TrackSegments.joined(stretches)
+        let ordered = TrackSegments.timeOrdered(joined.fixes, starts: joined.starts)
+        return TrackSegments.breakingAtPauses(ordered, pauses: Self.pauseWindows(of: workout))
+    }
+
+    nonisolated private static func oldestFirst(_ routes: [HKWorkoutRoute]?) -> [HKWorkoutRoute] {
+        (routes ?? []).sorted { $0.startDate < $1.startDate }
+    }
+
+    /// The spans `workout` was paused, by hand or automatically, from its
+    /// pause and resume events. A pause never resumed runs to the end.
+    nonisolated static func pauseWindows(of workout: HKWorkout) -> [ClosedRange<Date>] {
+        let events = (workout.workoutEvents ?? []).map { (type: $0.type, at: $0.dateInterval.start) }
+        return pauseWindows(events: events.sorted { $0.at < $1.at }, end: workout.endDate)
+    }
+
+    /// `pauseWindows(of:)` over time-ordered events.
+    nonisolated static func pauseWindows(events: [(type: HKWorkoutEventType, at: Date)], end: Date) -> [ClosedRange<Date>] {
+        var windows: [ClosedRange<Date>] = []
+        var pausedAt: Date?
+        for event in events {
+            let resumes = event.type == .resume || event.type == .motionResumed
+            if event.type == .pause || event.type == .motionPaused { pausedAt = pausedAt ?? event.at }
+            if resumes, let start = pausedAt, event.at > start { windows.append(start ... event.at) }
+            if resumes { pausedAt = nil }
+        }
+        if let start = pausedAt, end > start { windows.append(start ... end) }
+        return windows
     }
 
     /// Best overlapping workout — prefers an external (Watch) source, and the
@@ -373,12 +412,10 @@ extension TrainingHealthQueries {
         min(workout.endDate, end).timeIntervalSince(max(workout.startDate, start))
     }
 
-    /// The workout's GPS route series, if it has one.
-    ///
-    /// Internal rather than private: `HealthWorkoutImporter` rebuilds external
-    /// workouts and needs the same route, and a second copy of this query would
-    /// be a second thing to keep correct.
-    func routeSeries(for workout: HKWorkout) async -> HKWorkoutRoute? {
+    /// The workout's GPS route series, oldest first; empty when it has none.
+    /// A workout can hold several (one per recorded stretch), and each is
+    /// part of the route.
+    private func routeSeries(for workout: HKWorkout) async -> [HKWorkoutRoute] {
         await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKSeriesType.workoutRoute(),
@@ -386,9 +423,9 @@ extension TrainingHealthQueries {
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
             ) { _, samples, _ in
-                resolve((samples as? [HKWorkoutRoute])?.first)
+                resolve(Self.oldestFirst(samples as? [HKWorkoutRoute]))
             }
-        }
+        } ?? []
     }
 
     /// Stream the route's CLLocations (delivered in batches). Empty when the

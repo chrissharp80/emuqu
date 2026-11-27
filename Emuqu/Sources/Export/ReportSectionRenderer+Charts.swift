@@ -45,7 +45,9 @@ extension ReportSectionRenderer {
         let windowEnd = min(result.windowEnd, series.points.count)
         guard windowStart >= 0, windowEnd > windowStart + 1 else { return [] }
         return (windowStart ..< (windowEnd - 1)).compactMap { i in
-            guard Self.isCleanPair(at: i, flags: flags) else { return nil }
+            // No pair across a recording break: those beats were never adjacent.
+            guard Self.isCleanPair(at: i, flags: flags),
+                  !TimeDomainAnalyzer.isRecordingBreak(between: series.points[i], and: series.points[i + 1]) else { return nil }
             return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
         }
     }
@@ -426,7 +428,9 @@ private func tachogramValues(series: RRSeries, flags: [ArtifactFlags], result: H
 // pipeline. The clean beats are placed at their own times, linearly
 // interpolated onto a 4 Hz grid (the standard HRV resampling), mean-removed,
 // and each bin k sits at k × 4 / n Hz, so the frequency axis and the band
-// shading line up with physical frequencies.
+// shading line up with physical frequencies. Only the window's longest
+// stretch without a recording break is resampled, so no beat is
+// interpolated across a hole (`TimeDomainAnalyzer.longestUnbrokenRange`).
 
 private let psdResampleHz = 4.0
 /// About 8.5 minutes at 4 Hz: longer than any analysis window, short enough
@@ -434,7 +438,8 @@ private let psdResampleHz = 4.0
 private let psdMaxSamples = 2_048
 
 private func chartPeriodogram(series: RRSeries, flags: [ArtifactFlags], window: Range<Int>) -> [(Double, Double)] {
-    let beats = cleanBeatTimes(series: series, flags: flags, window: window)
+    let unbroken = TimeDomainAnalyzer.longestUnbrokenRange(in: series.points, range: window)
+    let beats = cleanBeatTimes(series: series, flags: flags, window: unbroken)
     guard beats.count >= 64 else { return [] }
     let grid = interpolatedGrid(beats)
     guard grid.count >= 64 else { return [] }

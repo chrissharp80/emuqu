@@ -22,6 +22,10 @@ import Foundation
 //   - Power (rarely in GPX)
 //   - Lap markers
 //
+// Each `<trkseg>` and `<trk>` (each `<rte>`) starts a new segment of the
+// track (`TrackSegments`): the device recorded nothing between them, so no
+// distance or line is taken across the join.
+//
 // Parser is a tiny XMLParser — we don't need a full GPX type system, just the
 // few tags we consume.
 //
@@ -110,7 +114,7 @@ enum GPXImporter {
             },
             // GPX files often set <trk><type>Running</type>; fall back to the
             // caller's default when they don't.
-            sport: sportFromType(delegate.trkType) ?? defaultSport
+            sport: sportFromType(delegate.trkType) ?? defaultSport, segmentStarts: delegate.segmentStarts
         )
     }
 
@@ -274,6 +278,16 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
     private(set) var routePoints: [Point] = []
     /// The track's points, or the route's when the file has no track.
     var points: [Point] { trackPoints.isEmpty ? routePoints : trackPoints }
+    /// The index in `trackPoints` (`routePoints`) of the first point of each
+    /// `<trkseg>` or `<trk>` (each `<rte>`) after the first: the recording
+    /// stopped there, so no distance or line joins it to the point before.
+    private(set) var trackSegmentStarts: [Int] = []
+    private(set) var routeSegmentStarts: [Int] = []
+    /// `segmentStarts` of `points`.
+    var segmentStarts: [Int] { trackPoints.isEmpty ? routeSegmentStarts : trackSegmentStarts }
+    /// A `<trkseg>`, `<trk>` or `<rte>` opened since the last point of its kind.
+    private var trackSegmentOpened = false
+    private var routeSegmentOpened = false
     /// More than `GPXImporter.maxPoints` points: the parse was stopped.
     private(set) var exceededPointLimit = false
     /// The first `<type>` directly under `<trk>` or `<rte>`; a `<type>` of a
@@ -315,6 +329,7 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
         path.append(currentElement)
         textBuffer = ""
         if currentElement == "metadata" { inMetadata = true }
+        noteSegmentOpened(currentElement)
         guard currentElement == "trkpt" || currentElement == "rtept" else { return }
         // Only start a point when both coordinates parse. A malformed trkpt
         // (missing/unparseable lat or lon) would otherwise append a phantom
@@ -347,7 +362,7 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
         if path.last == tag { path.removeLast() }
         apply(tag: tag, text: textBuffer.trimmingCharacters(in: .whitespacesAndNewlines), parent: path.last)
         if tag == "trkpt" || tag == "rtept", let p = current {
-            if tag == "trkpt" { trackPoints.append(p) } else { routePoints.append(p) }
+            append(p, isTrackPoint: tag == "trkpt")
             current = nil
             if trackPoints.count + routePoints.count > GPXImporter.maxPoints {
                 exceededPointLimit = true
@@ -355,6 +370,27 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
             }
         }
         textBuffer = ""
+    }
+
+    /// A `<trkseg>` or `<trk>` (a `<rte>`) starts a new segment at the next
+    /// track (route) point.
+    private func noteSegmentOpened(_ element: String) {
+        if element == "trkseg" || element == "trk" { trackSegmentOpened = true }
+        if element == "rte" { routeSegmentOpened = true }
+    }
+
+    /// Adds a finished point, first noting a new segment when a `<trkseg>`,
+    /// `<trk>` or `<rte>` opened after the previous point of its kind.
+    private func append(_ point: Point, isTrackPoint: Bool) {
+        if isTrackPoint {
+            if trackSegmentOpened, !trackPoints.isEmpty { trackSegmentStarts.append(trackPoints.count) }
+            trackSegmentOpened = false
+            trackPoints.append(point)
+        } else {
+            if routeSegmentOpened, !routePoints.isEmpty { routeSegmentStarts.append(routePoints.count) }
+            routeSegmentOpened = false
+            routePoints.append(point)
+        }
     }
 
     /// A trackpoint's own time, or the file's `<metadata><time>`.

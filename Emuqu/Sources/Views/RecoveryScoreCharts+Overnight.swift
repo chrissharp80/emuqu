@@ -602,11 +602,14 @@ struct OvernightTimeAxis: ViewModifier {
 // `private` at file scope is fileprivate, so every call site in this
 // file resolves the same way.
 
+/// One line per run (`SeriesRuns`): none across a hole in the night.
 private func hrvLineMarks(_ series: [RecoveryScoreCharts.RMSSDPoint]) -> some ChartContent {
-    ForEach(series) { p in
+    let runs = SeriesRuns.runs(of: series.map(\.time), maxGap: SeriesRuns.overnightMaxGapSeconds)
+    return ForEach(Array(series.enumerated()), id: \.element.id) { index, p in
         LineMark(
             x: .value("Time", p.time),
-            y: .value("RMSSD", p.rmssd)
+            y: .value("RMSSD", p.rmssd),
+            series: .value("Run", runs[index])
         )
         .foregroundStyle(AppTheme.wongOptimal)
     }
@@ -637,11 +640,14 @@ private func hrvAudioDescriptor(_ series: [RecoveryScoreCharts.RMSSDPoint]) -> s
     )
 }
 
+/// One line per run (`SeriesRuns`): none across a hole in the night.
 private func hrLineMarks(_ series: [RecoveryScoreCharts.HRPoint]) -> some ChartContent {
-    ForEach(series) { p in
+    let runs = SeriesRuns.runs(of: series.map(\.time), maxGap: SeriesRuns.overnightMaxGapSeconds)
+    return ForEach(Array(series.enumerated()), id: \.element.id) { index, p in
         LineMark(
             x: .value("Time", p.time),
-            y: .value("HR", p.hr)
+            y: .value("HR", p.hr),
+            series: .value("Run", runs[index])
         )
         .foregroundStyle(AppTheme.wongAttention.opacity(0.7))
     }

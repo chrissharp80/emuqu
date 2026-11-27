@@ -55,7 +55,8 @@ extension HRVDetailV2View {
             ForEach(points) { p in
                 LineMark(
                     x: .value("Time", p.elapsedSec),
-                    y: .value("RR", p.rrMs)
+                    y: .value("RR", p.rrMs),
+                    series: .value("Run", p.run)
                 )
                 .foregroundStyle(AppTheme.wongOptimal)
             }
@@ -77,14 +78,21 @@ extension HRVDetailV2View {
         let id: Int
         let elapsedSec: Double
         let rrMs: Int
+        /// The unbroken stretch the beat is in: a new one starts after every
+        /// recording break (`TimeDomainAnalyzer.isRecordingBreak`), and the
+        /// chart draws no line from one to the next.
+        var run = 0
     }
 
     /// Every 4th beat, for chart performance.
     static func sampledRRPoints(_ series: RRSeries?) -> [RRPlotPoint] {
         guard let series, !series.points.isEmpty else { return [] }
         var out: [RRPlotPoint] = []
-        for (i, p) in series.points.enumerated() where i % 4 == 0 {
-            out.append(RRPlotPoint(id: i, elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms))
+        var run = 0
+        for (i, p) in series.points.enumerated() {
+            if i > 0, TimeDomainAnalyzer.isRecordingBreak(between: series.points[i - 1], and: p) { run += 1 }
+            guard i % 4 == 0 else { continue }
+            out.append(RRPlotPoint(id: i, elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms, run: run))
         }
         return out
     }
@@ -237,7 +245,10 @@ extension HRVDetailV2View {
         var out: [PoincarePair] = []
         // Cap to 600 pairs for chart perf.
         let stride = max(1, pts.count / 600)
-        for i in Swift.stride(from: 0, to: pts.count - 1, by: stride) {
+        // A pair across a recording break is two beats that were never
+        // adjacent (`TimeDomainAnalyzer.isRecordingBreak`), so it is not plotted.
+        for i in Swift.stride(from: 0, to: pts.count - 1, by: stride)
+            where !TimeDomainAnalyzer.isRecordingBreak(between: pts[i], and: pts[i + 1]) {
             out.append(PoincarePair(id: i, x: pts[i].rr_ms, y: pts[i + 1].rr_ms))
         }
         return out

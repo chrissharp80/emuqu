@@ -524,13 +524,22 @@ private struct BoundRouteSummary: View {
     private var mapPreview: some View {
         let coords = route.trackpoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         if coords.count >= 2 {
+            // One line per segment: no line across a join (`TrackSegments`).
+            let segments = TrackSegments.split(coords, starts: route.segmentStarts)
             Map(initialPosition: .region(region(for: coords)), interactionModes: []) {
-                MapPolyline(coordinates: coords)
-                    .stroke(AppTheme.fitnessAccent, lineWidth: 3)
+                routeLines(segments)
             }
             .allowsHitTesting(false)
         } else {
             Color.gray.opacity(0.2)
+        }
+    }
+
+    @MapContentBuilder
+    private func routeLines(_ segments: [[CLLocationCoordinate2D]]) -> some MapContent {
+        ForEach(segments.indices, id: \.self) { index in
+            MapPolyline(coordinates: segments[index])
+                .stroke(AppTheme.fitnessAccent, lineWidth: 3)
         }
     }
 
@@ -614,7 +623,9 @@ private struct RoutePicker: View {
             let parsed = await Task.detached(priority: .userInitiated) { Self.parsedRoute(at: url, sport: sport) }.value
             switch parsed {
             case .success(let track):
-                plan.selectedRoute = Route.fromGPX(name: url.deletingPathExtension().lastPathComponent, track: track.track)
+                plan.selectedRoute = Route.fromGPX(
+                    name: url.deletingPathExtension().lastPathComponent, track: track.track, segmentStarts: track.segmentStarts
+                )
             case .failure(let error):
                 debugLog("[Preflight] GPX import failed: \(error)")
                 gpxImportError = (error as? GPXImporter.ImportError) == .tooLarge

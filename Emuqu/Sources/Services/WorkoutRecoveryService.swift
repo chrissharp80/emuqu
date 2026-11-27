@@ -196,8 +196,9 @@ enum WorkoutRecoveryService {
         discardBackupsOnAccept: Bool = false,
         /// When set, use THIS GPS track instead of the on-disk one — the path
         /// for recovering a route from the Apple Watch (HealthKit) when the
-        /// phone's GPS died mid-workout. Distance/splits recompute from it.
-        overrideTrack: [CLLocation]? = nil,
+        /// phone's GPS died mid-workout. Distance/splits recompute from it,
+        /// and nothing is taken across a join between its segments.
+        overrideTrack: SegmentedTrack? = nil,
         /// Apply the trailing-rest auto-trim to `overrideRRPoints` too. Used by
         /// the strap-augment path (the merged strap recording still has the
         /// post-workout tail). The manual trim/Save passes false — the user
@@ -247,7 +248,7 @@ enum WorkoutRecoveryService {
     struct Overrides {
         let strapRRPoints: [RRPoint]?
         let rrPoints: [RRPoint]?
-        let track: [CLLocation]?
+        let track: SegmentedTrack?
         let autoTrim: Bool
         let distanceMeters: Double?
         let discardBackupsOnAccept: Bool
@@ -365,6 +366,9 @@ enum WorkoutRecoveryService {
         let pauses: PauseTimeline
         let rrPoints: [RRPoint]
         let track: [CLLocation]
+        /// The fixes of `track` that begin a new recorded segment
+        /// (`TrackSegments`); empty for the phone's own continuous track.
+        let trackSegmentStarts: [Int]
         let rawTrackWasEmpty: Bool
         /// Offsets the backup marked as rows whose heart rate came from Apple
         /// Health, including rows past a trimmed end.
@@ -381,7 +385,7 @@ enum WorkoutRecoveryService {
         sessionId: UUID, startDate: Date, prepared: Prepared, overrides: Overrides
     ) -> RecoveredWorkout {
         let record = prepared.workoutRecord
-        let (rawTrack, liveSamples) = (overrides.track ?? record?.track ?? [], record?.samples ?? [])
+        let (rawTrack, liveSamples) = (overrides.track?.fixes ?? record?.track ?? [], record?.samples ?? [])
         let baroSamples = record?.barometricSamples ?? []
         let rr = Self.resolvedRR(
             diskPoints: prepared.rrEntry?.points ?? [], strapPoints: overrides.strapRRPoints, overridePoints: overrides.rrPoints,
@@ -395,7 +399,7 @@ enum WorkoutRecoveryService {
         return RecoveredWorkout(
             sport: Self.recoveredSport(prepared), startDate: startDate, endDate: endDate,
             durationSec: durationSec, pauses: pauses, rrPoints: rr.points,
-            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate),
+            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate), trackSegmentStarts: overrides.track?.starts ?? [],
             rawTrackWasEmpty: rawTrack.isEmpty, backupHealthKitHROffsets: record?.healthKitHROffsets ?? [],
             liveSamples: liveSamples.filter { Double($0.offsetSec) <= durationSec },
             baroSamples: baroSamples.filter { $0.timestamp <= endDate }
@@ -413,7 +417,8 @@ enum WorkoutRecoveryService {
         _ recovered: RecoveredWorkout, settings: UserSettings, unitsPreference: UnitsPreference
     ) async -> WorkoutMetadata {
         let (sport, rrPoints, startDate, track) = (recovered.sport, recovered.rrPoints, recovered.startDate, recovered.track)
-        let pauses = Self.trackPauses(of: track, windows: recovered.pauses.pauseWindows(now: recovered.endDate))
+        var pauses = Self.trackPauses(of: track, windows: recovered.pauses.pauseWindows(now: recovered.endDate))
+        pauses.breaks = Set(TrackSegments.starts(recovered.trackSegmentStarts, count: track.count))
         return await Task.detached(priority: .userInitiated) {
             Self.runAnalyzer(
                 sport: sport, rrPoints: rrPoints, startDate: startDate,
@@ -454,7 +459,9 @@ enum WorkoutRecoveryService {
         )
         metadata.healthKitHROffsets = Self.healthKitHROffsets(recovered.backupHealthKitHROffsets, in: recovered.liveSamples)
         metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)
-        if recovered.baroSamples.isEmpty { Self.applyGPSElevation(to: &metadata, track: recovered.track) }
+        if recovered.baroSamples.isEmpty {
+            Self.applyGPSElevation(to: &metadata, track: recovered.track, starts: recovered.trackSegmentStarts)
+        }
         Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
         if recovered.rawTrackWasEmpty, let existing = prepared.existingSession?.workoutMetadata {
             Self.backfillRouteFields(into: &metadata, from: existing)
@@ -528,9 +535,12 @@ enum WorkoutRecoveryService {
     /// with the same 5 m per-fix gate the live recorder's fallback uses
     /// (`WorkoutLocationManager.accumulateGPSElevationFallback`). Left nil
     /// without two fixes, so a trim can still keep the earlier figures.
-    private static func applyGPSElevation(to metadata: inout WorkoutMetadata, track: [CLLocation]) {
+    private static func applyGPSElevation(to metadata: inout WorkoutMetadata, track: [CLLocation], starts: [Int]) {
         guard track.count > 1 else { return }
-        let deltas = zip(track, track.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }.filter { abs($0) >= 5.0 }
+        // No climb is taken across a join between segments (`TrackSegments`).
+        let deltas = TrackSegments.split(track, starts: starts).flatMap { segment in
+            zip(segment, segment.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }
+        }.filter { abs($0) >= 5.0 }
         metadata.elevationGainMeters = deltas.filter { $0 > 0 }.reduce(0, +)
         metadata.elevationLossMeters = -deltas.filter { $0 < 0 }.reduce(0, +)
     }
@@ -551,6 +561,7 @@ enum WorkoutRecoveryService {
         applyBarometricElevation(to: &metadata, baroSamples: baroSamples)
         metadata.gpsPolyline = computed.gpsPolyline
         metadata.gpsFixTimes = computed.gpsFixTimes
+        metadata.gpsSegmentStarts = computed.gpsSegmentStarts
         metadata.splits = computed.splits
         metadata.luciaTRIMP = computed.luciaTRIMP
         metadata.hrTSS = computed.hrTSS
@@ -576,6 +587,7 @@ enum WorkoutRecoveryService {
         if metadata.gpsPolyline == nil {
             metadata.gpsPolyline = existing.gpsPolyline
             metadata.gpsFixTimes = existing.gpsFixTimes
+            metadata.gpsSegmentStarts = existing.gpsSegmentStarts
         }
         if metadata.elevationGainMeters == nil { metadata.elevationGainMeters = existing.elevationGainMeters }
         if metadata.elevationLossMeters == nil { metadata.elevationLossMeters = existing.elevationLossMeters }

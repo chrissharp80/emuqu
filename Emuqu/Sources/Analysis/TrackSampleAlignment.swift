@@ -51,7 +51,8 @@ enum TrackSampleAlignment {
             return times.map { metadata.activeOffset(forWallClockSeconds: $0.timeIntervalSince(session.startDate)) }
         }
         let samples = (metadata.samples ?? []).sorted { $0.offsetSec < $1.offsetSec }
-        return byAltitude(track, samples: samples) ?? byDistance(track, samples: samples)
+        let starts = metadata.gpsSegmentStarts(count: track.count)
+        return byAltitude(track, samples: samples, starts: starts) ?? byDistance(track, samples: samples, starts: starts)
     }
 
     /// A previous placed fix: its index in `track` and the change it took.
@@ -60,7 +61,7 @@ enum TrackSampleAlignment {
     /// Each new reading placed at its change in the samples, the fixes
     /// between placed ones by ground covered; nil when fewer than two
     /// readings are new or fewer than `minAltitudeMatchShare` of them match.
-    static func byAltitude(_ track: [CLLocation], samples: [WorkoutSample]) -> [Int?]? {
+    static func byAltitude(_ track: [CLLocation], samples: [WorkoutSample], starts: [Int] = []) -> [Int?]? {
         let changes = altitudeChanges(samples)
         let isNew = newReadings(track)
         var previous: Anchor?
@@ -71,7 +72,7 @@ enum TrackSampleAlignment {
         }
         let (expected, matched) = (isNew.filter { $0 }.count, anchors.compactMap { $0 }.count)
         guard expected >= 2, Double(matched) >= minAltitudeMatchShare * Double(expected) else { return nil }
-        return filledBetweenAnchors(anchors, along: cumulativeDistances(track))
+        return filledBetweenAnchors(anchors, along: cumulativeDistances(track, starts: starts))
     }
 
     /// The seconds whose carried altitude differs from the second before:
@@ -135,8 +136,8 @@ enum TrackSampleAlignment {
 
     /// Each fix placed at the first sample that had covered as much ground,
     /// the sample total scaled to the track's.
-    static func byDistance(_ track: [CLLocation], samples: [WorkoutSample]) -> [Int?] {
-        let along = cumulativeDistances(track)
+    static func byDistance(_ track: [CLLocation], samples: [WorkoutSample], starts: [Int] = []) -> [Int?] {
+        let along = cumulativeDistances(track, starts: starts)
         let marks = samples.compactMap { sample in sample.distanceMeters.map { (offset: sample.offsetSec, meters: $0) } }
             .sorted { $0.offset < $1.offset }
         guard let trackTotal = along.last, trackTotal > 0, let sampleTotal = marks.last?.meters, sampleTotal > 0,
@@ -152,12 +153,10 @@ enum TrackSampleAlignment {
             .min { $0.1 < $1.1 }?.0
     }
 
-    static func cumulativeDistances(_ track: [CLLocation]) -> [Double] {
-        var along = 0.0
-        return track.indices.map { index in
-            if index > 0 { along += track[index].distance(from: track[index - 1]) }
-            return along
-        }
+    /// The ground covered up to each fix, none across a join between
+    /// recorded segments (`TrackSegments`), as the samples' distance counts it.
+    static func cumulativeDistances(_ track: [CLLocation], starts: [Int] = []) -> [Double] {
+        TrackSegments.cumulativeMeters(track, starts: starts)
     }
 
     /// The offset of the first mark at or past `meters`, in marks sorted by

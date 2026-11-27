@@ -767,7 +767,10 @@ enum SegmentPointSampler {
     /// would make up the pace. The sample's pace stands in then.
     private static func recordedLocalPace(_ track: [CLLocation], at index: Int, metadata: WorkoutMetadata) -> Double? {
         guard GPXExporter.recordedFixTimes(metadata, count: track.count) != nil else { return nil }
-        return WorkoutGeometry.localPace(in: GPXExporter.timedAsRecorded(track, metadata: metadata), at: index)
+        return WorkoutGeometry.localPace(
+            in: GPXExporter.timedAsRecorded(track, metadata: metadata), at: index,
+            starts: metadata.gpsSegmentStarts(count: track.count)
+        )
     }
 
     /// HR / power / cadence / altitude / α1 from the per-second sample
