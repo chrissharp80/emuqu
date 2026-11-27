@@ -575,7 +575,8 @@ The spine of the product.
    is the pause and recovery gather, not the morning stop.)
 4. **Pick the best source** — `DataSourceSelector.selectBestSource(...)`
    (`Emuqu/Sources/Collection/DataSourceSelector.swift`): internal → composite (if internal
-   has more than 5% fewer beats) → streaming → raw backup. The composite takes the
+   has more than 5% fewer beats, or the stream runs more than 60 s before or after the
+   span the strap recorded) → streaming → raw backup. The composite takes the
    streamed beats that fall in the internal series' gaps (2 s past the expected
    interval) or before and after the span the strap recorded.
 5. **Analyze** — `HRVAnalysisPipeline` (`Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`).

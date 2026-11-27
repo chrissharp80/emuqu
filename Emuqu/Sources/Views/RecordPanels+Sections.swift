@@ -673,7 +673,11 @@ extension RecordPanels {
         sessionState.lastError = error
     }
 
+    /// The Recover card's Discard. Asked again at the tap: a session may
+    /// have taken the strap's recording since the card was drawn
+    /// (`RRCollector.offersStrapRecovery`).
     func discardAndStartFresh() {
+        guard collector.offersStrapRecovery else { return }
         Task {
             do {
                 try await collector.polarManager.recording.discardStoredExercises()

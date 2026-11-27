@@ -311,9 +311,11 @@ final class RRCollector {
     /// What the Record screen's Recover card offers: a recording the app has
     /// never downloaded, or one still running on the strap that no session of
     /// this app owns (left by a crash, or started on the strap). Recover stops
-    /// a running one before it downloads.
+    /// a running one before it downloads. Neither the card's Recover nor its
+    /// Discard is offered while another session owns the strap's recording
+    /// (`StrapRecordingGuards.strapRecordingOwner`).
     var offersStrapRecovery: Bool {
-        strapGuards.hasUnrecoveredData || strapGuards.holdsOrphanedRecording
+        (strapGuards.hasUnrecoveredData || strapGuards.holdsOrphanedRecording) && strapGuards.strapRecordingOwner() == nil
     }
 
     // MARK: - Initialization

@@ -142,7 +142,7 @@ final class BeatTimelineTests: XCTestCase {
         let samples = night(600, rejectEvery: 10)
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let bounded = boundedToWorkoutWindow(memory(samples), startDate: start, stopDate: start.addingTimeInterval(300))
-        XCTAssertEqual(bounded.count, keptStarts(samples).filter { $0 <= 360_000 }.count)
+        XCTAssertEqual(bounded.count, keptStarts(samples).filter { $0 <= 300_000 }.count)
     }
 
     // MARK: - Merges

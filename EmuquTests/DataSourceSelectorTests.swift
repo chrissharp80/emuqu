@@ -395,6 +395,50 @@ final class DataSourceSelectorTests: XCTestCase {
         XCTAssertTrue(result.points.contains { $0.t_ms >= dropoutStart && $0.t_ms < dropoutEnd }, "the strap's beats in the dropout are kept")
     }
 
+    // MARK: - Coverage, not beat count
+
+    /// A strap armed at a resume holds only what came after it. The archived
+    /// night's stream runs from its first segment's start, so however the
+    /// counts compare, the strap replaces only the stretch it covers and the
+    /// stream's beats before it stay.
+    func testAStrapCoveringOnlyPartOfTheStreamNeverReplacesIt() throws {
+        let stream = createRRPoints(count: 1_000, intervalMs: 1_000)
+        let cases: [(name: String, strapCount: Int)] = [("as many beats", 1_000), ("more beats", 1_400), ("slightly fewer", 980)]
+        for testCase in cases {
+            let strap = createRRPoints(count: testCase.strapCount, startMs: 300_000, intervalMs: 1_000)
+            let result = try XCTUnwrap(DataSourceSelector.selectBestSource(
+                streamingPoints: stream, internalPoints: strap, sessionId: UUID(), sessionStart: Date()
+            ))
+            XCTAssertTrue(result.isComposite, testCase.name)
+            XCTAssertEqual(result.points.count, testCase.strapCount + 300, "\(testCase.name): the stream's first 300 s are kept")
+            XCTAssertEqual(result.points.first?.t_ms, 0, testCase.name)
+        }
+    }
+
+    /// A stream too short to stand on its own still keeps the beats outside
+    /// the strap's span.
+    func testAShortStreamOutsideTheStrapsSpanIsKept() throws {
+        let stream = createRRPoints(count: 100, intervalMs: 1_000)
+        let strap = createRRPoints(count: 500, startMs: 200_000, intervalMs: 1_000)
+        let result = try XCTUnwrap(DataSourceSelector.selectBestSource(
+            streamingPoints: stream, internalPoints: strap, sessionId: UUID(), sessionStart: Date()
+        ))
+        XCTAssertEqual(result.points.count, 600)
+    }
+
+    /// A strap armed moments after the stream started covers it: within
+    /// `spanSlackMs` the strap's recording is used alone, as before.
+    func testAStrapArmedMomentsAfterTheStreamStillStandsAlone() throws {
+        XCTAssertEqual(DataSourceSelector.spanSlackMs, 60_000)
+        let stream = createRRPoints(count: 1_000, intervalMs: 1_000)
+        let strap = createRRPoints(count: 1_000, startMs: 30_000, intervalMs: 1_000)
+        let result = try XCTUnwrap(DataSourceSelector.selectBestSource(
+            streamingPoints: stream, internalPoints: strap, sessionId: UUID(), sessionStart: Date()
+        ))
+        XCTAssertEqual(result.sourceDescription, "internal")
+        XCTAssertEqual(result.points.count, 1_000)
+    }
+
     // MARK: - mergePoints (time-alignment merge)
 
     func testMergePoints_EmptyInputs_ReturnsEmpty() {

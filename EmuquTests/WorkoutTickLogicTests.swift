@@ -245,7 +245,17 @@ final class WorkoutTickLogicTests: XCTestCase {
         XCTAssertEqual(WorkoutRecorder.DeviceFetchDecision.skipFetchDensityThreshold, 0.95, accuracy: 0.000001)
         XCTAssertEqual(WorkoutRecorder.DeviceFetchDecision.minPlausibleAvgRRMs, 300)
         XCTAssertEqual(WorkoutRecorder.DeviceFetchDecision.minElapsedSecForDensityCheck, 60)
-        XCTAssertEqual(WorkoutRecorder.DeviceFetchDecision.deviceWindowToleranceMs, 60_000)
+    }
+
+    /// A Watch End dated by the tap reaches the phone later, and the strap
+    /// recorded until it arrived: its beats are cut at the stop, as the
+    /// streamed beats are, with none of the minute after it kept.
+    func testTheStrapsBeatsAreCutAtTheStop() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let strap = (0 ..< 400).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: 1000) }
+        let bounded = boundedToWorkoutWindow(strap, startDate: start, stopDate: start.addingTimeInterval(300))
+        XCTAssertEqual(bounded.count, 301)
+        XCTAssertEqual(bounded.last?.t_ms, 300_000)
     }
 
     // MARK: - Device-fetch density gate: decisions

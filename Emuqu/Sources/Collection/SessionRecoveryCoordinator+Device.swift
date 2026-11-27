@@ -76,13 +76,13 @@ extension SessionRecoveryCoordinator {
         return session
     }
 
-    /// Recover needs the strap, must not stop a live session's recording, and
+    /// Recover needs the strap, must not take a recording another session
+    /// owns (`StrapRecordingGuards.strapRecordingOwner`: a live session, an
+    /// interrupted workout, a paused night or one awaiting acceptance), and
     /// does not offer a recording already downloaded and saved.
     private func checkRecoverable() throws {
         guard strapRecorder.linkState.connectionState == .connected else { throw recoveryRefused(.notConnected) }
-        guard !strapGuards.belongsToLiveSession, !strapGuards.heldByInterruptedWorkout else {
-            throw recoveryRefused(.alreadyRecording)
-        }
+        guard strapGuards.strapRecordingOwner() == nil else { throw recoveryRefused(.alreadyRecording) }
         let device = strapRecorder.device
         let alreadySaved = device.hasStoredExercise && device.storedExerciseDate != nil
             && !device.isRecordingOnDevice && !strapGuards.hasUnrecoveredData
@@ -148,27 +148,18 @@ extension SessionRecoveryCoordinator {
     /// the nearest segment of the same sleep within the merge gap when merging
     /// is on and the recording's start is known. Only an overnight of the same
     /// night of the sleep schedule is a candidate (`ArchiveStore.sharesNightAnchor`).
-    /// A segment absorbed into another entry's linked series (a paused night's
-    /// earlier half) is never the target: its night is the entry that absorbed
-    /// it. Recordings further apart stay separate nights.
+    /// A segment absorbed into another entry's beats (a paused night's
+    /// earlier half, `SessionLinks.absorbedIds`) is never the target: its
+    /// night is the entry that absorbed it, the resumed night's final
+    /// session. Recordings further apart stay separate nights.
     private func archivedNightToMergeInto(_ recording: StrapRecording, start: Date) -> HRVSession? {
         let settings = settingsManager.settings
-        let end = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
-        let span = SessionMerger.span(start: start, end: end)
+        var probe = HRVSession(startDate: start, sessionType: .overnight)
+        probe.endDate = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
         let allowsSameSleep = settings.sessionMergeMode != .off && recording.startedAt != nil
-        let store = archive.store
-        let entries = store.entries
-        let absorbed = Set(entries.flatMap { $0.linkedSessionIds ?? [] })
-        let related = entries
-            .filter { $0.sessionType == .overnight && !absorbed.contains($0.sessionId) && store.sharesNightAnchor($0, start: start) }
-            .map { entry in
-                let entrySpan = SessionMerger.span(of: entry)
-                let relation = SessionMerger.relation(of: span, to: entrySpan, mergeGap: settings.effectiveMergeGapSeconds)
-                return (entry: entry, relation: relation, gap: SessionMerger.gapBetween(span, entrySpan))
-            }
-        let target = related.first { $0.relation == .sameRecording }
-            ?? (allowsSameSleep ? related.filter { $0.relation == .sameSleep }.min { $0.gap < $1.gap } : nil)
-        guard let target, let session = archive.retrieveOrLog(target.entry.sessionId) else { return nil }
+        let gap = allowsSameSleep ? settings.effectiveMergeGapSeconds : nil
+        guard let target = archive.store.lockedMergeTarget(for: probe, sameSleepGap: gap),
+              let session = archive.retrieveOrLog(target.sessionId) else { return nil }
         debugLog("[Recovery] Same-night session \(session.id.uuidString.prefix(8)) (\(session.rrSeries?.points.count ?? 0) beats, source \(session.dataSourceSummary?.selectedSource ?? "nil"))")
         return session
     }

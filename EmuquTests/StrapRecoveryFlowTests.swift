@@ -140,6 +140,93 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(fetched(radio))
     }
 
+    // MARK: - One ownership rule
+
+    /// Every owner of the strap's recording is named by the one rule the
+    /// strap's stops, downloads and clears ask, and the session a flow acts
+    /// for may take its own.
+    func testEveryOwnerOfTheStrapsRecordingIsNamed() {
+        let collector = makeCollector(FakeStrapRadio())
+        let guards = collector.strapGuards
+        XCTAssertNil(guards.strapRecordingOwner())
+
+        let paused = HRVSession(startDate: Date().addingTimeInterval(-3600), sessionType: .overnight)
+        collector.streamingLifecycle.isPaused = true
+        collector.streamingLifecycle.pausedSession = paused
+        XCTAssertEqual(guards.strapRecordingOwner(), .pausedNight)
+        XCTAssertNil(guards.strapRecordingOwner(otherThan: paused.id), "the paused night may take its own recording")
+        collector.streamingLifecycle.isPaused = false
+
+        let pending = HRVSession(startDate: Date().addingTimeInterval(-8 * 3600), sessionType: .overnight)
+        collector.sessionState.currentSession = pending
+        collector.sessionState.needsAcceptance = true
+        XCTAssertEqual(guards.strapRecordingOwner(), .pendingAcceptance)
+        XCTAssertEqual(guards.strapRecordingOwner(otherThan: UUID()), .pendingAcceptance)
+        XCTAssertNil(guards.strapRecordingOwner(otherThan: pending.id), "the night awaiting acceptance may take its own recording")
+        collector.sessionState.needsAcceptance = false
+
+        let workoutId = UUID()
+        collector.recordingStore.persist(sessionId: workoutId, startTime: Date().addingTimeInterval(-3600), sessionType: .workout)
+        XCTAssertEqual(guards.strapRecordingOwner(), .interruptedWorkout)
+        XCTAssertNil(guards.strapRecordingOwner(otherThan: workoutId), "workout recovery may take the workout's own recording")
+        collector.recordingStore.clear()
+
+        collector.sessionState.isCollecting = true
+        XCTAssertEqual(guards.strapRecordingOwner(otherThan: UUID()), .liveSession)
+    }
+
+    /// A night pulled from the strap for History's re-merge, or a workout's
+    /// strap recovery, takes nothing while a workout the app died during
+    /// owns the strap's recording: workout recovery rebuilds that workout
+    /// with its route, and a download here moved its beats to Lost Sessions.
+    func testAnotherSessionsPullLeavesAnInterruptedWorkoutsRecording() async throws {
+        let radio = FakeStrapRadio()
+        let start = Date().addingTimeInterval(-3600)
+        radio.setRecording(ongoing: true, entryId: exerciseId(start))
+        let collector = makeCollector(radio)
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
+        collector.recordingStore.persist(sessionId: UUID(), startTime: start, sessionType: .workout)
+        let night = completeNight(startingAt: Date().addingTimeInterval(-30 * 3600))
+        _ = try archive.archive(night, skipSameNightMerge: true)
+
+        let pulled = await collector.recovery.pullStrapRecording(for: night)
+
+        XCTAssertNil(pulled)
+        XCTAssertFalse(radio.calls.contains(.stopRecording))
+        XCTAssertFalse(fetched(radio))
+    }
+
+    /// Recover takes nothing a paused night or a night awaiting acceptance
+    /// owns, as it takes nothing a live session or an interrupted workout
+    /// owns.
+    func testRecoverLeavesAPausedOrPendingNightsRecordingAlone() async {
+        let setups: [(name: String, apply: (RRCollector) -> Void)] = [
+            ("paused night", { collector in
+                collector.streamingLifecycle.isPaused = true
+                collector.streamingLifecycle.pausedSession = HRVSession(sessionType: .overnight)
+            }),
+            ("awaiting acceptance", { collector in
+                collector.sessionState.currentSession = HRVSession(sessionType: .overnight)
+                collector.sessionState.needsAcceptance = true
+            })
+        ]
+        for setup in setups {
+            let radio = FakeStrapRadio()
+            radio.setRecording(ongoing: true, entryId: exerciseId(Date().addingTimeInterval(-3600)))
+            let collector = makeCollector(radio)
+            collector.polarManager.deviceRecording.isRecordingOnDevice = true
+            setup.apply(collector)
+            XCTAssertFalse(collector.offersStrapRecovery, setup.name)
+            do {
+                _ = try await collector.recovery.recoverFromDevice()
+                XCTFail("Recover took the recording of a \(setup.name)")
+            } catch {
+                XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording, setup.name)
+            }
+            XCTAssertFalse(radio.calls.contains(.stopRecording), setup.name)
+        }
+    }
+
     // MARK: - The same night is not offered on every connect
 
     /// The strap keeps a downloaded recording as a backup; it is neither

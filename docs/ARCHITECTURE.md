@@ -47,7 +47,7 @@ Both devices are fully interchangeable — recording, fetch, recovery, and disca
 
 When stopping an overnight session, preference order (`DataSourceSelector`):
 1. **Internal recording** (preferred) — no Bluetooth gaps
-2. **Composite** (internal + streaming gap-fill) — if internal has >5% fewer beats than streaming
+2. **Composite** (internal + streaming gap-fill) — if internal has >5% fewer beats than streaming, or the stream runs more than 60 s (`spanSlackMs`) before or after the span the internal recording covers (a strap armed at a resume holds only what came after it)
 3. **Streaming only** — if internal fetch failed, or if the composite could not be built
 4. **RawRRBackup** — if both failed (a separate recovery path, `SessionRecoveryCoordinator+Backup`)
 

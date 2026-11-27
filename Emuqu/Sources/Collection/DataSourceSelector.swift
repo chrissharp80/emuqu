@@ -75,8 +75,37 @@ enum DataSourceSelector {
         debugLog("[DataSourceSelector] Internal: \(internalPoints?.count ?? 0) beats")
     }
 
+    /// How far, on the real clock, the stream may run before the strap's
+    /// recording starts or after it ends and still count as covered: the
+    /// strap is armed moments after a stream starts, and the two clocks are
+    /// stamped in whole seconds.
+    static let spanSlackMs: Int64 = 60_000
+
+    /// Whether the stream holds a stretch the strap's recording does not
+    /// span: its first beat starts more than `spanSlackMs` before the
+    /// recording's first, or its last more than that after the recording's
+    /// end, on the real clock (`BeatTimeline`). A strap armed at a resume
+    /// holds only what came after it, and one stopped early only what came
+    /// before. Beat counts cannot tell: a recording of the last six hours
+    /// can hold more beats than a stream of all eight.
+    static func streamReachesPastRecording(internal internalPoints: [RRPoint], streaming streamingPoints: [RRPoint]) -> Bool {
+        let device = timed(internalPoints)
+        let streamed = timed(streamingPoints)
+        guard let deviceFirst = device.first, let deviceLast = device.last,
+              let streamFirst = streamed.first, let streamLast = streamed.last else { return false }
+        let deviceEnd = deviceLast.timeMs + Int64(deviceLast.point.rr_ms)
+        return streamFirst.timeMs < deviceFirst.timeMs - spanSlackMs || streamLast.timeMs > deviceEnd + spanSlackMs
+    }
+
     // MARK: - Private Methods
 
+    /// The strap's recording alone when it spans the stream and is not
+    /// missing beats the stream has (`compareDataSources`); otherwise the
+    /// stream fills what the recording lacks (`compositeOrStreaming`). A
+    /// recording never replaces the stream outside the span it covers
+    /// (`streamReachesPastRecording`), whatever either one's beat count, and
+    /// a stream too short to stand on its own still keeps the beats outside
+    /// that span.
     private static func selectWithInternalAvailable(
         internalData: [RRPoint],
         streamingPoints: [RRPoint],
@@ -84,26 +113,27 @@ enum DataSourceSelector {
         sessionId: UUID,
         sessionStart: Date
     ) -> SelectionResult {
-        guard hasValidStreaming else {
-            debugLog("[DataSourceSelector] Using internal recording (streaming failed)")
+        let reachesPast = streamReachesPastRecording(internal: internalData, streaming: streamingPoints)
+        let missingBeats = hasValidStreaming && logComparison(internalCount: internalData.count, streamingCount: streamingPoints.count)
+        guard reachesPast || missingBeats else {
+            debugLog("[DataSourceSelector] Using internal recording (\(hasValidStreaming ? "preferred" : "streaming failed"))")
             return SelectionResult(points: internalData, sourceDescription: "internal", isComposite: false)
         }
-        // Both succeeded — compare and decide.
-        let comparison = compareDataSources(
-            internalCount: internalData.count,
-            streamingCount: streamingPoints.count
-        )
-        debugLog("[DataSourceSelector] Both recordings succeeded")
-        debugLog("[DataSourceSelector] Beat count: internal=\(internalData.count) vs streaming=\(streamingPoints.count)")
-        debugLog("[DataSourceSelector] Difference: \(comparison.beatDifference) beats (\(String(format: "%.1f", comparison.percentDifference))%)")
-        guard comparison.shouldCreateComposite else {
-            debugLog("[DataSourceSelector] Using internal recording (preferred)")
-            return SelectionResult(points: internalData, sourceDescription: "internal", isComposite: false)
-        }
+        if reachesPast { debugLog("[DataSourceSelector] The stream runs past the internal recording's span - keeping its beats outside it") }
         return compositeOrStreaming(
             internalData: internalData, streamingPoints: streamingPoints,
             sessionId: sessionId, sessionStart: sessionStart
         )
+    }
+
+    /// Compares both sources' beat counts, logs it, and returns whether the
+    /// internal recording is missing beats the stream has.
+    private static func logComparison(internalCount: Int, streamingCount: Int) -> Bool {
+        let comparison = compareDataSources(internalCount: internalCount, streamingCount: streamingCount)
+        debugLog("[DataSourceSelector] Both recordings succeeded")
+        debugLog("[DataSourceSelector] Beat count: internal=\(internalCount) vs streaming=\(streamingCount)")
+        debugLog("[DataSourceSelector] Difference: \(comparison.beatDifference) beats (\(String(format: "%.1f", comparison.percentDifference))%)")
+        return comparison.shouldCreateComposite
     }
 
     /// Internal is missing beats streaming has — try a composite. If streaming

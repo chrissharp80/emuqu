@@ -31,9 +31,9 @@ final class SessionRecoveryMergeTests: XCTestCase {
         XCTAssertEqual(merged.count, 500)
     }
 
-    /// The last-resort tie-break: more beats wins. Keeping the shorter
-    /// recording silently throws away part of a workout the user cannot record
-    /// again.
+    /// The last-resort tie-break, for two recordings of the same stretch:
+    /// more beats wins. Keeping the shorter recording silently throws away
+    /// part of a workout the user cannot record again.
     ///
     /// Tested on `longerRecording` directly rather than through
     /// `mergedWorkoutPoints`, because for any pair `DataSourceSelector` can
@@ -41,14 +41,25 @@ final class SessionRecoveryMergeTests: XCTestCase {
     /// the front door passed while the comparison was inverted (mutation
     /// `recovery_merge_keeps_fewer_beats`).
     func testTheFallbackKeepsWhicheverRecordingHasMoreBeats() {
-        let short = points(count: 100)
-        let long = points(count: 900)
+        let fewer = points(count: 100)
+        let more = points(count: 150, rrMs: 660)
         XCTAssertEqual(
-            SessionRecoveryMath.longerRecording(existing: short, strapRR: long).count, 900
+            SessionRecoveryMath.longerRecording(existing: fewer, strapRR: more).count, 150
         )
         XCTAssertEqual(
-            SessionRecoveryMath.longerRecording(existing: long, strapRR: short).count, 900
+            SessionRecoveryMath.longerRecording(existing: more, strapRR: fewer).count, 150
         )
+    }
+
+    /// Two short recordings of different stretches are both kept: a count
+    /// cannot say which stretch is missing, and the larger one alone would
+    /// drop the other's beats. The strap's beats stand where it recorded.
+    func testTheFallbackKeepsBothWhenTheRecordingsSpanDifferentStretches() {
+        let archived = points(count: 100)
+        let strap = points(count: 110, startingAt: 200_000)
+        let kept = SessionRecoveryMath.longerRecording(existing: archived, strapRR: strap)
+        XCTAssertEqual(kept.count, 210)
+        XCTAssertEqual(SessionRecoveryMath.longerRecording(existing: strap, strapRR: archived).count, 210)
     }
 
     /// Equal lengths keep what is already archived rather than churning the

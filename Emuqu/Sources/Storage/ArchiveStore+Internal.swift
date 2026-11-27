@@ -447,11 +447,15 @@ extension ArchiveStore {
         return try decoder.decode(HRVSession.self, from: plaintext)
     }
 
-    /// Load linked session time ranges for split-night display.
+    /// Load linked session time ranges for split-night display: the
+    /// segments whose beats `session` holds, which Unlink can strip from it.
+    /// A paused night's link to the segment resumed from it is a reference
+    /// back (`SessionLinks.holds`), so that segment is not listed.
     /// Returns nil if the session has no linked sessions.
     func linkedSegments(for session: HRVSession) -> [LinkedSegmentInfo]? {
         guard let linkedIds = session.linkedSessionIds, !linkedIds.isEmpty else { return nil }
-        let segments = linkedIds.compactMap { segmentInfo(forLinked: $0) }
+        let holder = SessionLinks.Node(session)
+        let segments = linkedIds.compactMap { segmentInfo(forLinked: $0, heldBy: holder) }
         let normalized = Self.normalizedSplitNightSegments(
             currentSessionId: session.id,
             currentStartDate: session.startDate,
@@ -463,11 +467,13 @@ extension ArchiveStore {
         return linkedOnly.isEmpty ? nil : linkedOnly
     }
 
-    /// One linked session's span. Nil when it can't be read, or when its end
-    /// doesn't advance past its start (nothing to contribute to the night).
-    private func segmentInfo(forLinked linkedId: UUID) -> LinkedSegmentInfo? {
+    /// One linked session's span. Nil when it can't be read, when `holder`
+    /// does not hold its beats, or when its end doesn't advance past its
+    /// start (nothing to contribute to the night).
+    private func segmentInfo(forLinked linkedId: UUID, heldBy holder: SessionLinks.Node) -> LinkedSegmentInfo? {
         do {
-            guard let linked = try retrieveCounted(linkedId) else { return nil }
+            guard let linked = try retrieveCounted(linkedId),
+                  !SessionLinks.isResumeParent(holder, of: SessionLinks.Node(linked)) else { return nil }
             let end = linked.endDate ?? linked.startDate
             guard end > linked.startDate else { return nil }
             return LinkedSegmentInfo(id: linked.id, startDate: linked.startDate, endDate: end)

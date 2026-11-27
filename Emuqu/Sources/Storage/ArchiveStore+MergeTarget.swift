@@ -13,14 +13,16 @@ extension ArchiveStore {
     /// stands alone. Caller must hold state.archiveLock.
     ///
     /// A candidate has the same session type, is neither linked to `session`
-    /// nor absorbed into another entry's linked series, and for an overnight
+    /// nor absorbed into another entry's beats (`SessionLinks.absorbedIds`:
+    /// a resumed night's final session is not, as its parent only refers
+    /// back to it), and for an overnight
     /// shares the night's anchor. A copy of the same recording (overlapping
     /// spans) wins; otherwise, when `sameSleepGap` is given, the nearest
     /// segment of the same sleep within that gap. Recordings further apart
     /// than the gap are separate sleeps and never merge.
     func mergeTarget(for session: HRVSession, sameSleepGap: TimeInterval?) -> SessionArchiveEntry? {
         let sessionSpan = SessionMerger.span(of: session)
-        let absorbed = Set(state.index.flatMap { $0.linkedSessionIds ?? [] })
+        let absorbed = SessionLinks.absorbedIds(in: state.index)
         let related = state.index
             .filter { !absorbed.contains($0.sessionId) && isMergeCandidate($0, for: session) }
             .map { entry in
@@ -60,6 +62,14 @@ extension ArchiveStore {
     func sameSleepGap(for session: HRVSession) -> TimeInterval? {
         guard session.sessionType == .overnight, state.mergeSettings.mode() != .off else { return nil }
         return state.mergeSettings.gap()
+    }
+
+    /// `mergeTarget`, taking the lock: the rule Recover asks for a
+    /// recording downloaded off the strap.
+    func lockedMergeTarget(for session: HRVSession, sameSleepGap: TimeInterval?) -> SessionArchiveEntry? {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        return mergeTarget(for: session, sameSleepGap: sameSleepGap)
     }
 
     /// Whether the archive already holds a copy of `session`'s recording:

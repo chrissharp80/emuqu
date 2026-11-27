@@ -233,7 +233,7 @@ extension SessionRecoveryCoordinator {
     /// streamed disk backup it reads on its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> PulledStrapRecording? {
         guard let backup = services.workoutTrackBackup.retrieve(sessionId),
-              !strapGuards.belongsToLiveSession else { return nil }
+              strapGuards.strapRecordingOwner(otherThan: sessionId) == nil else { return nil }
         let workoutStart = backup.header.startDate
         strapRecorder.beginTransfer()
         guard await strapRecorder.reconnectForTransfer(), strapRecorder.device.isRecordingOnDevice || strapRecorder.device.hasStoredExercise,
@@ -481,8 +481,10 @@ extension SessionRecoveryCoordinator {
     }
 
     /// The strap's recording of `session`, on the session's clock: one that
-    /// began during it. Nothing is taken while a live session owns the
-    /// strap's recording. A recording that turns out to be another
+    /// began during it. Nothing is taken while another session owns the
+    /// strap's recording (`StrapRecordingGuards.strapRecordingOwner`): a live
+    /// one, a workout the app died during, a paused night or a night awaiting
+    /// acceptance. A recording that turns out to be another
     /// session's is not dropped: it goes to the rescue backup, and if that
     /// fails the strap's copy is not saved (`isStrapRecordingSaved`), so the
     /// next start rescues it again instead of clearing it.
@@ -493,7 +495,8 @@ extension SessionRecoveryCoordinator {
         } ?? false
         // A recording still running is only dated once it is downloaded; the
         // check after the download catches one that is not this session's.
-        guard !strapGuards.belongsToLiveSession, strapRecorder.device.isRecordingOnDevice || storedIsThisSession else {
+        guard strapGuards.strapRecordingOwner(otherThan: session.id) == nil,
+              strapRecorder.device.isRecordingOnDevice || storedIsThisSession else {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
             return nil
         }

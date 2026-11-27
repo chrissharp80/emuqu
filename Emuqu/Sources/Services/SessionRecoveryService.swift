@@ -586,7 +586,7 @@ final class SessionRecoveryService {
     /// A backup that already holds the parent (`backupHoldsParent`) is not
     /// merged again.
     func pointsOnParentClock(_ backup: RawRRBackup.BackupEntry, sessionId: UUID) -> (points: [RRPoint], start: Date) {
-        guard let parent = parentSession(of: sessionId),
+        guard let parent = parentSession(of: sessionId, endingAt: Self.backupEndDate(backup) ?? backup.captureDate),
               let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty else { return (backup.points, backup.captureDate) }
         let points = Self.parentMergedPoints(
             parentSeries: parentSeries, parentStart: parent.startDate,
@@ -669,9 +669,15 @@ final class SessionRecoveryService {
         }
     }
 
-    /// The session this one is a pause/resume child of, if any.
-    func parentSession(of sessionId: UUID) -> HRVSession? {
-        guard let entry = archive.store.entries.first(where: { $0.linkedSessionIds?.contains(sessionId) == true }) else {
+    /// The session this one is a pause/resume child of, if any
+    /// (`SessionLinks.isResumeParent`). Other sessions list it too: the
+    /// segment resumed from it, and a night that holds its beats. Neither is
+    /// its parent, and putting either's beats in front of its own would
+    /// place them twice. `childEnd` dates a child with no archive entry.
+    func parentSession(of sessionId: UUID, endingAt childEnd: Date) -> HRVSession? {
+        let entries = archive.store.entries
+        let child = entries.first { $0.sessionId == sessionId }.map(SessionLinks.Node.init)
+        guard let entry = entries.first(where: { Self.isResumeParent($0, of: sessionId, child: child, childEnd: childEnd) }) else {
             return nil
         }
         do {
@@ -680,6 +686,16 @@ final class SessionRecoveryService {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to retrieve parent session \(entry.sessionId): \(error)")
             return nil
         }
+    }
+
+    /// Whether `entry` is the resume parent of `sessionId`: read against the
+    /// child's own entry when it has one, else against its backup's end.
+    nonisolated static func isResumeParent(
+        _ entry: SessionArchiveEntry, of sessionId: UUID, child: SessionLinks.Node?, childEnd: Date
+    ) -> Bool {
+        let parent = SessionLinks.Node(entry)
+        guard let child else { return SessionLinks.isResumeParent(parent, ofUnarchived: sessionId, childEnd: childEnd) }
+        return SessionLinks.isResumeParent(parent, of: child)
     }
 
     /// Where the backup's own beats run out, relative to its capture date,

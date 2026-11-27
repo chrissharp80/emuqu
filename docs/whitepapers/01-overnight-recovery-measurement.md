@@ -123,8 +123,8 @@ Inputs are the streamed points `S` and the internal points `I` (possibly absent)
 
 1. A source is *valid* if it has ≥ 120 beats.
 2. If `I` is invalid: use `S` if valid ("streaming (internal failed)"), else fail.
-3. If `I` is valid and `S` is invalid: use `I`.
-4. If both are valid, compute `diff = |#I − #S|` and `pct = 100·diff / max(#I, #S)`. If `#I < #S` and `pct > 5`, go to step 5. Otherwise use `I` (preferred).
+3. **Coverage.** If `S`'s first beat starts more than 60 s before `I`'s first, or its last more than 60 s after `I`'s last beat ends, on the real clock, go to step 5 whatever either count. `I` then covers only part of the session (a strap armed at a resume holds only the beats after it), and the stream's beats outside it are kept. This holds when `S` is invalid too.
+4. If `I` is valid and `S` is invalid: use `I`. If both are valid, compute `diff = |#I − #S|` and `pct = 100·diff / max(#I, #S)`. If `#I < #S` and `pct > 5`, go to step 5. Otherwise use `I` (preferred).
 5. **Gap detection on `I`.** For consecutive internal beats `prev, next`, a gap exists when `next.t_ms − prev.endMs > prev.rr_ms + 2000`. The gap spans `[prev.endMs, next.t_ms]`.
 6. **Gap fill.** Select streamed beats whose effective time `wallClockMs ?? t_ms` lies inside any gap (inclusive) or outside the span `I` recorded (before its first beat or after its last beat's end). Streamed `t_ms` is not used because it lags after Bluetooth packet loss. A strap file is a sum of intervals, so it has no gaps of its own; for it this selects the stretch the strap was not yet, or no longer, recording. If no streamed beat is selected, the composite fails.
 7. **Merge.** Two-pointer merge of `I` with the selected streamed beats, ordered by `I.t_ms` versus the streamed beat's effective time. When an internal beat is emitted, *all* following streamed beats within `|Δ| < 50 ms` of it are skipped, and vice versa (cluster-aware de-duplication). Emitted streamed beats have `t_ms` rewritten to `wallClockMs`.
@@ -526,7 +526,7 @@ Commercial entries state only what the cited public pages say. Items marked † 
 
 Each statement gives only the part not found in a prior-art search made on 2026-10-08 (patents, vendor support pages and white papers, peer-reviewed and preprint literature, clinical-trial protocols and open-source HRV code). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
-**N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter.** Streamed beats are added only where the internal file has none: inside its gaps (next start − previous end > previous RR + 2000 ms) or before its first or after its last beat. They are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If the stream adds no beat the internal file lacks, the stream is used rather than the shorter internal file.
+**N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter or covers less of the session than the stream.** Streamed beats are added only where the internal file has none: inside its gaps (next start − previous end > previous RR + 2000 ms) or before its first or after its last beat. They are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If the stream adds no beat the internal file lacks, the stream is used rather than the shorter internal file.
 
 *Builds on:* the Polar H10's internal memory, which stores about 20 h of RR as one session [30][31]; adds a merge that takes live-stream beats only where the internal file has none, which no public tool found performs.
 
@@ -798,6 +798,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 |---|---|---|---|
 | minimumValidBeats | 120 | beats | Source validity; minimum series for band search |
 | compositeThresholdPercent | 5 | % | Internal deficit that triggers a composite |
+| spanSlackMs | 60 000 | ms | Stream span past the internal recording's that still counts as covered |
 | gap slack | 2000 | ms | Gap / recording-break tolerance beyond one RR |
 | duplicateToleranceMs | 50 | ms | Cross-source duplicate window |
 | backup interval | 60 | s | Append-only JSONL flush |

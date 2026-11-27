@@ -38,14 +38,16 @@ extension SessionRecoveryCoordinator {
         return await rescoreAugmentedOvernight(updated, merging: session, strap: strap, streamedCount: existing.count, with: reanalysis)
     }
 
-    /// The selector's points, or the strap's when it chose nothing and the
-    /// strap holds more. Nil when the archived stream would stay as it is:
-    /// relabelling it as strap data would report a merge that never happened.
+    /// The selector's points, or, when it chose nothing, the recovery
+    /// tie-break's (`SessionRecoveryMath.longerRecording`). Nil when the
+    /// archived stream would stay as it is: relabelling it as strap data
+    /// would report a merge that never happened.
     private func overnightMergePoints(
         selection: DataSourceSelector.SelectionResult?, existing: [RRPoint], strapRR: [RRPoint]
     ) -> [RRPoint]? {
         if let selected = selection?.points { return selected.isEmpty ? nil : selected }
-        return strapRR.count > existing.count ? strapRR : nil
+        let chosen = SessionRecoveryMath.longerRecording(existing: existing, strapRR: strapRR)
+        return chosen == existing ? nil : chosen
     }
 
     /// The merged night is analysed again from its beats (`NightBeatsEdit`):

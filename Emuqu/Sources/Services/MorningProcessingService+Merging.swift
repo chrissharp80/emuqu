@@ -216,10 +216,10 @@ extension MorningProcessingService {
     /// Every archived overnight recording that shares this night's anchor,
     /// alongside the base session's own points.
     ///
-    /// A session linked from another one already has its beats inside that
-    /// one's series (a resumed recording carries the paused one's), so it is
-    /// skipped: merging it again would put the same beats in twice, out of
-    /// time order.
+    /// A session whose beats another one holds (`SessionLinks.absorbedIds`:
+    /// a resumed recording carries the paused one's) is skipped: merging it
+    /// again would put the same beats in twice, out of time order. A resumed
+    /// night's final session holds them all and is read like any other.
     ///
     /// Each same-night recording is read whole (decrypted and decoded, every
     /// beat) off the main actor.
@@ -227,8 +227,9 @@ extension MorningProcessingService {
         baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule, mergeGap: TimeInterval
     ) async -> (segments: [NightSegment], links: [UUID]) {
         let sameNightEntries = sameNightEntries(of: baseSession, sleepSchedule: sleepSchedule)
-        let alreadyLinked = Set(baseSession.linkedSessionIds ?? [])
-            .union(sameNightEntries.flatMap { $0.linkedSessionIds ?? [] })
+        let alreadyLinked = SessionLinks.absorbedIds(
+            in: sameNightEntries.map(SessionLinks.Node.init) + [SessionLinks.Node(baseSession)]
+        )
         let base = NightSegment(startDate: baseSession.startDate, points: points)
         let toRead = sameNightEntries.filter { !alreadyLinked.contains($0.sessionId) }
         let archive = archive

@@ -660,8 +660,8 @@ enum WorkoutRecoveryService {
         return (trimmed, trimmed.count < merged.count)
     }
 
-    /// Prefer the merged strap + disk series; fall back to whichever side has
-    /// more beats when the selector can't reconcile them.
+    /// Prefer the merged strap + disk series; when the selector can't judge
+    /// them, the recovery tie-break decides (`SessionRecoveryMath.longerRecording`).
     private static func mergedPoints(
         diskPoints: [RRPoint], strapPoints: [RRPoint]?, sessionId: UUID, startDate: Date
     ) -> [RRPoint] {
@@ -676,7 +676,7 @@ enum WorkoutRecoveryService {
             debugLog("[WorkoutRecovery] merged strap(\(strap.count)) + disk(\(diskPoints.count)) → \(selection.points.count) [\(selection.normalizedSource)]")
             return selection.points
         }
-        return strap.count > diskPoints.count ? strap : diskPoints
+        return SessionRecoveryMath.longerRecording(existing: diskPoints, strapRR: strap)
     }
 
     // MARK: - Trailing-rest trim

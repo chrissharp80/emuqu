@@ -594,7 +594,10 @@ extension ReanalysisService {
     /// the span follows the beats kept), drop the link, archive, and analyse
     /// the night again from what it keeps. False (link kept, nothing
     /// written) when the parent or the link is missing, when the segment
-    /// can't be read so its beats can't be located, or when the write fails.
+    /// can't be read so its beats can't be located, when the link is a
+    /// paused night's reference back to the segment resumed from it (the
+    /// night holds none of that segment's beats, `SessionLinks.holds`), or
+    /// when the write fails.
     /// False too, with the night put back as it was, when a night that was
     /// analysed cannot be analysed again without the segment: its analysis
     /// and score would describe beats it no longer holds.
@@ -602,7 +605,7 @@ extension ReanalysisService {
     func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) async -> Bool {
         do {
             guard let linked = try archive.retrieve(sessionId), var session = Self.unlinking(segmentId, from: linked),
-                  stripSegmentPoints(segmentId: segmentId, from: &session) else { return false }
+                  stripSegmentPoints(segmentId: segmentId, heldBy: SessionLinks.Node(linked), from: &session) else { return false }
             try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             debugLog("[ReanalysisService] Unlinked segment \(segmentId.uuidString.prefix(8)) from session \(sessionId.uuidString.prefix(8)) — \(session.linkedSessionIds?.count ?? 0) segments remaining")
             return try await reanalyzeAfterUnlink(session, linked: linked)
@@ -633,9 +636,13 @@ extension ReanalysisService {
     /// Using `session.startDate` shifted the window and stripped the wrong
     /// beats. Identical for the common non-merged case where the two origins
     /// coincide.
-    private func stripSegmentPoints(segmentId: UUID, from session: inout HRVSession) -> Bool {
+    private func stripSegmentPoints(segmentId: UUID, heldBy holder: SessionLinks.Node, from session: inout HRVSession) -> Bool {
         guard let unlinked = archive.retrieveOrLog(segmentId) else {
             debugLog("[ReanalysisService] Unlink refused: segment \(segmentId.uuidString.prefix(8)) can't be read, so its beats can't be located", level: .error)
+            return false
+        }
+        guard !SessionLinks.isResumeParent(holder, of: SessionLinks.Node(unlinked)) else {
+            debugLog("[ReanalysisService] Unlink refused: segment \(segmentId.uuidString.prefix(8)) was resumed from this night and holds its beats", level: .warning)
             return false
         }
         guard let series = session.rrSeries, !series.points.isEmpty else { return true }
