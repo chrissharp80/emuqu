@@ -369,22 +369,30 @@ struct RecordView: View {
     /// archives (`scoreLatestVersion`), and only reach the archive that way;
     /// when that re-archive is not stored the user is told (`finishAutoAccept`).
     /// The selection is cleared either way, so it never lands on another night.
+    ///
+    /// The recorder is claimed from the tap until the review is cleared
+    /// (`SessionState.RecorderClaim`): a night started while the archive
+    /// read, the Health fetches and the re-archive run would otherwise be the
+    /// session the review clears.
     func autoAcceptOvernight() {
         debugLog("[AutoAccept] autoAcceptOvernight called")
+        let claim = sessionState.claimRecorder()
         Task {
-            if let session = sessionState.currentSession, !isInArchive(session) {
-                await acceptUnsavedNight(session)
-                return
-            }
-            let tagsStored: Bool
-            if let session = sessionState.currentSession {
-                tagsStored = await scoreLatestVersion(of: session)
-            } else {
-                debugLog("[AutoAccept] currentSession is nil — skipping")
-                tagsStored = true
-            }
-            await MainActor.run { finishAutoAccept(tagsStored: tagsStored) }
+            defer { sessionState.releaseRecorder(claim) }
+            await autoAccept(sessionState.currentSession)
         }
+    }
+
+    /// The night on the review card is accepted against its own id: what is
+    /// cleared at the end is that night's review only.
+    private func autoAccept(_ session: HRVSession?) async {
+        guard let session else {
+            debugLog("[AutoAccept] currentSession is nil — skipping")
+            return finishAutoAccept(of: nil, tagsStored: true)
+        }
+        guard isInArchive(session) else { return await acceptUnsavedNight(session) }
+        let tagsStored = await scoreLatestVersion(of: session)
+        finishAutoAccept(of: session.id, tagsStored: tagsStored)
     }
 
     /// Whether the night on the review card is in the archive: under its own
@@ -416,8 +424,8 @@ struct RecordView: View {
     /// night only, so it must never carry over onto the next one. When the
     /// re-archive carrying the tags and notes the user picked was not stored,
     /// the tag-save failure alert says so first.
-    private func finishAutoAccept(tagsStored: Bool) {
-        collector.morning.clearAcceptanceState()
+    private func finishAutoAccept(of sessionId: UUID?, tagsStored: Bool) {
+        collector.morning.clearAcceptanceState(of: sessionId)
         if !tagsStored, !selectedTags.isEmpty || !sessionNotes.isEmpty {
             debugLog("[AutoAccept] Re-archive not stored — the pre-night tags and notes were not saved", level: .warning)
             tagSaveFailureMessage = String(localized: "The tags and notes you picked for this reading couldn't be saved. Add them again from History.", bundle: LanguageManager.appBundle)

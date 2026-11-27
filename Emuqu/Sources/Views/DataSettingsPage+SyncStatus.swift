@@ -2,7 +2,8 @@ import SwiftUI
 
 // The iCloud sync status Settings → iCloud & Data shows: up to date, syncing
 // (a sync running, or saves waiting for their upload), a warning for uploads
-// that failed or an index that did not load, or the sync's error.
+// that failed, sessions waiting for their key, or an index that did not load,
+// or the sync's error.
 
 extension DataSettingsPage {
     /// What an idle sync that is not up to date waits on.
@@ -11,6 +12,9 @@ extension DataSettingsPage {
         case historyUnreadable
         /// Sessions whose last upload failed (`failedUploadsWaitingCount`).
         case failedUploads(Int)
+        /// Sessions in iCloud sealed with a key this device does not hold
+        /// yet (`recordsAwaitingKeyCount`): they are not on this iPhone.
+        case awaitingKey
         /// Sessions whose upload has not run yet, or is running: nothing has
         /// failed, so this is shown as syncing, not as a warning.
         case uploading
@@ -21,7 +25,8 @@ extension DataSettingsPage {
         guard !syncManager.isUpToDate else { return nil }
         guard syncManager.archive.hasCompleteIndex else { return .historyUnreadable }
         let failed = syncManager.failedUploadsWaitingCount
-        return failed > 0 ? .failedUploads(failed) : .uploading
+        if failed > 0 { return .failedUploads(failed) }
+        return syncManager.recordsAwaitingKeyCount > 0 ? .awaitingKey : .uploading
     }
 
     /// The warning for a wait the user should know about: an index that did
@@ -31,6 +36,7 @@ extension DataSettingsPage {
         switch syncWait {
         case .historyUnreadable: CloudSyncMessages.historyNotReadable
         case let .failedUploads(count): CloudSyncMessages.uploadsWaiting(count)
+        case .awaitingKey: CloudPayloadCodec.CodecError.noMatchingKey.localizedDescription
         case .uploading, nil: nil
         }
     }

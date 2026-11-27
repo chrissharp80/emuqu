@@ -186,7 +186,10 @@ extension CloudDeletionCoordinator {
     /// (`flagRecordDeleted`) and, once it is there, record it as confirmed
     /// (`noteDeletionConfirmed`). A restore made on another device since is
     /// adopted instead (`yieldToRestore`). A failure is logged and left for
-    /// the next full sync (`reconcileLocalDeletions`).
+    /// the next full sync (`reconcileLocalDeletions`). An account change or
+    /// an abandoned sync during the fetch stops it before anything is written
+    /// or recorded (`requireAccountStillConfirmed`); the deletion stays to be
+    /// sent by the next sync for the right account.
     func performUploadDeletion(sessionId: UUID) async {
         guard !manager.schemaUnavailable else { return }
         do {
@@ -195,7 +198,10 @@ extension CloudDeletionCoordinator {
                 yieldToRestore(sessionId)
                 return
             }
+            try requireAccountStillConfirmed()
             noteDeletionConfirmed(sessionId)
+        } catch CloudAccountGuard.Halt.stopped {
+            debugLog("[CloudKit] Delete sync for \(sessionId.uuidString.prefix(8)) stopped: the account changed or the sync was abandoned", level: .info)
         } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
             // The zone was deleted: no tombstone is written into a recreated
             // one, and sync stops for the user to opt in again.
@@ -209,6 +215,9 @@ extension CloudDeletionCoordinator {
     /// A schema error pauses sync; any other failure is retried next sync,
     /// which until then is not shown as up to date (`lastDeletionErrorMessage`).
     private func noteDeletionFailed(_ error: Error, sessionId: UUID) {
+        // A deletion the stall watchdog abandoned reports nothing into the
+        // next sync, which sends it again.
+        guard !Task.isCancelled else { return }
         if CloudKitSyncManager.isPermanentSchemaError(error) {
             manager.flagSchemaUnavailable(reason: error.localizedDescription)
             return
@@ -275,7 +284,7 @@ extension CloudDeletionCoordinator {
             // stored health data the user had deleted, and every device
             // re-downloaded it with each pull.
             existingRecord["sessionData"] = nil
-            _ = try await manager.privateDB.save(existingRecord)
+            try await saveTombstone(existingRecord)
             return true
         } catch let error as CKError where error.code == .unknownItem {
             try await saveNewTombstone(sessionId, recordID: recordID)
@@ -290,7 +299,23 @@ extension CloudDeletionCoordinator {
         record["sessionId"] = sessionId.uuidString as CKRecordValue
         record["isDeleted"] = 1 as CKRecordValue
         record["startDate"] = Date() as CKRecordValue // Placeholder
+        try await saveTombstone(record)
+    }
+
+    /// Writes a tombstone, only while the account it was checked against is
+    /// still the one signed in (`requireAccountStillConfirmed`).
+    private func saveTombstone(_ record: CKRecord) async throws {
+        try requireAccountStillConfirmed()
         _ = try await manager.privateDB.save(record)
+    }
+
+    /// The account the deletion was checked against is still the one signed
+    /// in, and the sync it runs in was not abandoned by the stall watchdog:
+    /// the fetch before a tombstone's write suspends, and a write after an
+    /// account change would land in the other account's zone while this
+    /// one's deletion was recorded as sent. Throws `Halt.stopped` otherwise.
+    private func requireAccountStillConfirmed() throws {
+        guard CloudAccountIdentity.isConfirmed, !Task.isCancelled else { throw CloudAccountGuard.Halt.stopped }
     }
 
     /// Re-check this device's deletions against iCloud: a deletion that never

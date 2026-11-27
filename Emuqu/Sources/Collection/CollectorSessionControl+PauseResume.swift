@@ -357,17 +357,25 @@ extension CollectorSessionControl {
 
     /// Restore paused state on app launch so the Record tab shows Resume / Done.
     /// Session deserialization runs off the main thread to avoid blocking app startup.
+    /// The pause is put back unless another session took the recorder during
+    /// the read (`SessionState.recorderTaken`): a recording started meanwhile
+    /// keeps it.
     func restorePausedStateIfNeeded() {
         guard let pausedId = recordingStore.pausedSessionId() else { return }
         let archive = self.archive
+        let before = sessionState.currentSession?.id
         Task.detached(priority: .userInitiated) {
             guard let session = archive.retrieveOrLog(pausedId), session.state == .paused else { return }
-            await MainActor.run { [weak self] in self?.publishRestoredPausedSession(session, id: pausedId) }
+            await MainActor.run { [weak self] in self?.publishRestoredPausedSession(session, id: pausedId, over: before) }
         }
     }
 
     @MainActor
-    private func publishRestoredPausedSession(_ session: HRVSession, id: UUID) {
+    private func publishRestoredPausedSession(_ session: HRVSession, id: UUID, over before: UUID?) {
+        guard !sessionState.recorderTaken(since: before) else {
+            debugLog("[RRCollector] Not restoring paused session \(id.uuidString.prefix(8)): another session took the recorder", level: .warning)
+            return
+        }
         debugLog("[RRCollector] Restoring paused state for session \(id.uuidString.prefix(8))")
         streamingLifecycle.pausedSession = session
         sessionState.currentSession = session

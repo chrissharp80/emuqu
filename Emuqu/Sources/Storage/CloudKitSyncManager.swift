@@ -56,6 +56,13 @@ final class CloudKitSyncManager {
     /// (`CloudDeletionCoordinator.performUploadDeletion`); it is retried next
     /// sync, and until then the sync is not shown as up to date.
     var lastDeletionErrorMessage: String?
+    /// Records the last complete pull could not open because this device
+    /// does not hold their key yet (another device's, still travelling
+    /// through iCloud Keychain, or never arriving with iCloud Keychain off).
+    /// Not a failure, so the sync is still stamped, but not "Up to date"
+    /// either: those sessions are in iCloud and not on this iPhone
+    /// (`isUpToDate`, `SyncCompletion.waitingForKeys`).
+    var recordsAwaitingKeyCount = 0
 
     /// Detect CloudKit errors that won't resolve without server-side action
     /// (schema promotion, container changes). Recognizing these stops the
@@ -193,9 +200,11 @@ final class CloudKitSyncManager {
 
     /// Whether Settings may say "Up to date": no sync running or failed,
     /// the archive's index loaded (an index that did not load lists none of
-    /// the sessions the push should cover), and nothing waiting to go up.
+    /// the sessions the push should cover), nothing waiting to go up, and no
+    /// record in iCloud waiting for its key to come down
+    /// (`recordsAwaitingKeyCount`).
     var isUpToDate: Bool {
-        syncState == .idle && archive.hasCompleteIndex && uploadsWaitingCount == 0
+        syncState == .idle && archive.hasCompleteIndex && uploadsWaitingCount == 0 && recordsAwaitingKeyCount == 0
     }
 
     /// Count of sessions QUARANTINED from sync due to a permanent prep failure
@@ -874,13 +883,16 @@ final class CloudKitSyncManager {
     private func finishSuccessfulSync(pushed: Int, startedAt: Date) {
         // Turned off during this run, by `CloudAccountGuard.stopSync` (its
         // message stays) or by the user: nothing is stamped.
-        guard settings.iCloudSyncEnabled else { return }
+        // Nor does a run the account changed under after its last phase:
+        // what it covered was the other account's.
+        guard settings.iCloudSyncEnabled, CloudAccountIdentity.isConfirmed else { return }
         if !schemaUnavailable {
             apply(Self.completion(
                 syncError: lastPullErrorMessage ?? lastPushErrorMessage ?? lastDeletionErrorMessage,
                 bookkeepingUnsaved: state.hasUnsavedBookkeeping,
                 indexComplete: archive.hasCompleteIndex,
-                waitingUploads: uploadsWaitingCount
+                waitingUploads: uploadsWaitingCount,
+                awaitingKey: recordsAwaitingKeyCount
             ))
         }
         let elapsed = Date().timeIntervalSince(startedAt)
@@ -896,20 +908,32 @@ final class CloudKitSyncManager {
         /// It ran, but sessions still wait to go up, or the archive's index
         /// did not load: nothing is stamped.
         case incomplete
+        /// Everything else is done, but records in iCloud wait for a key this
+        /// device does not hold: the sync is stamped, so the next one keeps
+        /// its interval, and Settings says what waits (`isUpToDate`).
+        case waitingForKeys(Int)
     }
 
     /// The one rule for how a full sync ends: up to date only when no phase
     /// failed, its bookkeeping was saved, the index it pushed from was
-    /// complete and no session waits to go up.
-    static func completion(syncError: String?, bookkeepingUnsaved: Bool, indexComplete: Bool, waitingUploads: Int) -> SyncCompletion {
+    /// complete, no session waits to go up and no pulled record waits for
+    /// its key.
+    static func completion(
+        syncError: String?, bookkeepingUnsaved: Bool, indexComplete: Bool, waitingUploads: Int, awaitingKey: Int
+    ) -> SyncCompletion {
         if let syncError { return .failed(syncError) }
         if bookkeepingUnsaved { return .failed(CloudSyncMessages.progressNotSaved) }
+        if awaitingKey > 0, indexComplete, waitingUploads == 0 { return .waitingForKeys(awaitingKey) }
         return indexComplete && waitingUploads == 0 ? .upToDate : .incomplete
     }
 
     private func apply(_ completion: SyncCompletion) {
         switch completion {
         case .upToDate:
+            lastSyncDate = Date()
+            syncState = .idle
+        case let .waitingForKeys(count):
+            debugLog("[CloudKit] Full sync done with \(count) iCloud record(s) waiting for their key on this device", level: .warning)
             lastSyncDate = Date()
             syncState = .idle
         case let .failed(message):

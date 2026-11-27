@@ -815,9 +815,23 @@ extension SessionRecoveryCoordinator {
     /// Resume after a crash. Only a paused night is put on the Record tab: a
     /// kept finished copy put there offered Resume and Done for a night
     /// already saved, and Done saved it again.
+    ///
+    /// The rebuild and its analysis hold the recorder, so no recording
+    /// starts under them (`SessionState.RecorderClaim`). The night is put on
+    /// the Record tab unless another session took the recorder during the
+    /// rebuild (`SessionState.recorderTaken`); that one keeps it, and the
+    /// night, which the rebuild archived as paused, is reported saved there.
     func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> PausedRecovery {
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
+        let before = sessionState.currentSession?.id
         guard let session = await pausedRecovery(sessionId, sessionType: sessionType) else { return .failed }
         guard session.state == .paused else {
+            recordingStore.clear(ifItIs: sessionId)
+            return .saved(session.sessionType)
+        }
+        guard !sessionState.recorderTaken(since: before) else {
+            debugLog("[RRCollector] Resume: another session took the recorder during the rebuild; \(sessionId.uuidString.prefix(8)) stays paused in the archive", level: .warning)
             recordingStore.clear(ifItIs: sessionId)
             return .saved(session.sessionType)
         }

@@ -229,7 +229,9 @@ extension RecordView {
     /// error raised (`acceptSession` sets `lastError`), and the selection is
     /// kept, so Save again writes the same tags and notes.
     func acceptSession() {
+        let claim = sessionState.claimRecorder()
         Task {
+            defer { sessionState.releaseRecorder(claim) }
             if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
             do {
                 try await collector.morning.acceptSession()

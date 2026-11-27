@@ -63,6 +63,8 @@ extension SessionRecoveryCoordinator {
         // An earlier operation's error must not stand in for this one's.
         sessionState.lastError = nil
         try checkRecoverable()
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
         strapRecorder.beginTransfer()
         let recording = try await downloadForRecovery()
         let placement = await recoveryPlacement(for: recording)

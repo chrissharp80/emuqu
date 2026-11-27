@@ -30,5 +30,7 @@ struct CloudPullCoordinator {
         var backfillId: UUID?
         /// 1 when a newer iCloud copy replaced this device's copy.
         var refreshed = 0
+        /// 1 when the record is sealed with a key this device does not hold yet.
+        var awaitingKey = 0
     }
 }

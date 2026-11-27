@@ -173,7 +173,9 @@ extension CloudKitSyncManager {
             await keepOnDevice(sessionId)
             return nil
         } catch {
-            await handlePrepFailure(error, sessionId: sessionId)
+            // A prep the stall watchdog abandoned reports nothing into the
+            // sync that already owns the state.
+            if !Task.isCancelled { await handlePrepFailure(error, sessionId: sessionId) }
             return nil
         }
     }
@@ -216,6 +218,9 @@ extension CloudKitSyncManager {
     /// have stops CloudKit for this launch; anything else queues the session
     /// for a retry. Returns true when the push cycle must stop.
     func handleSaveFailure(_ error: Error, sessionId: UUID) async -> Bool {
+        // A save the stall watchdog abandoned fails into a sync that already
+        // owns the state: nothing is marked, and the cycle ends.
+        guard !Task.isCancelled else { return true }
         if let ckError = error as? CKError, Self.isZoneGone(ckError) {
             return await handleZoneGone(ckError, sessionId: sessionId)
         }

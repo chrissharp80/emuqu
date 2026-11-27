@@ -17,6 +17,8 @@ extension CloudPullCoordinator {
         /// Ids of sessions archived NEW, or replaced without their sleep
         /// snapshot, by this pull — handed to the HK sleep/vitals backfill below.
         var backfillIds: [UUID] = []
+        /// Records sealed with a key this device does not hold yet.
+        var awaitingKey = 0
     }
 
     /// List every record and process each; then re-queue what iCloud lacks,
@@ -30,6 +32,7 @@ extension CloudPullCoordinator {
             let results = try await fetchAllRemoteRecords()
             let counts = await processRemoteRecords(results)
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return }
+            manager.recordsAwaitingKeyCount = counts.awaitingKey
             reuploadSessionsMissingFromCloud(results)
             await manager.state.saveSyncStateAsync()
             await manager.state.savePendingQueueAsync()
@@ -132,6 +135,7 @@ extension CloudPullCoordinator {
             counts.newSessions += outcome.new
             counts.deleted += outcome.deleted
             counts.refreshed += outcome.refreshed
+            counts.awaitingKey += outcome.awaitingKey
             if let id = outcome.backfillId { counts.backfillIds.append(id) }
         }
         return counts
@@ -291,6 +295,8 @@ extension CloudPullCoordinator {
         do {
             return try await manager.privateDB.record(for: record.recordID)
         } catch {
+            // A pull the stall watchdog abandoned reports nothing into the next one.
+            guard !Task.isCancelled else { return nil }
             manager.lastPullErrorMessage = manager.cloudKitErrorMessage(error)
             debugLog("[CloudKit] Pull: fetching \(record.recordID.recordName.prefix(8)) failed: \(error.localizedDescription)", level: .warning)
             return nil
@@ -348,7 +354,9 @@ extension CloudPullCoordinator {
     /// device's, still travelling through iCloud Keychain — is not a failure:
     /// it stays un-imported and the next pull, once the key has arrived,
     /// imports it. Reporting it as an error would withhold the sync stamp and
-    /// re-run the full pull on every activation until then.
+    /// re-run the full pull on every activation until then. It is counted
+    /// instead (`RecordOutcome.awaitingKey`), and the sync ends waiting for
+    /// keys rather than up to date (`CloudKitSyncManager.completion`).
     ///
     /// A record saved by a newer app version is skipped the same way: this
     /// build refuses to write it, and an error would keep sync failing on
@@ -391,10 +399,12 @@ extension CloudPullCoordinator {
     func importFailure(_ error: Error, sessionIdString: String) -> RecordOutcome {
         if let codecError = error as? CloudPayloadCodec.CodecError, case .noMatchingKey = codecError {
             debugLogExternal("iCloud record \(sessionIdString.prefix(8)) is waiting for its backup key to sync to this device", cause: .iCloud)
+            return RecordOutcome(awaitingKey: 1)
         } else if let archiveError = error as? SessionArchive.ArchiveError,
                   case .newerSchemaVersion(let version) = archiveError {
             debugLog("[CloudKit] Pull: \(sessionIdString.prefix(8)) is from a newer app version (schema v\(version)) — skipped until the app is updated", level: .warning)
-        } else {
+        } else if !Task.isCancelled {
+            // A pull the stall watchdog abandoned reports nothing into the next one.
             manager.lastPullErrorMessage = String(localized: "A session from iCloud couldn't be imported: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
             debugLog("[CloudKit] Pull: Failed to process \(sessionIdString.prefix(8)): \(error.localizedDescription)", level: .warning)
         }

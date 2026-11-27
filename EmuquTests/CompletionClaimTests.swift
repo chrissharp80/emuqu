@@ -118,6 +118,7 @@ final class CompletionClaimTests: XCTestCase {
     func testASyncIsUpToDateOnlyWhenNothingItCoversIsOutstanding() {
         struct Case {
             let error: String?, unsaved: Bool, index: Bool, waiting: Int
+            var awaitingKey = 0
             let expected: CloudKitSyncManager.SyncCompletion
         }
         let cases = [
@@ -127,13 +128,17 @@ final class CompletionClaimTests: XCTestCase {
             Case(error: nil, unsaved: false, index: false, waiting: 0, expected: .incomplete),
             Case(error: "pull failed", unsaved: false, index: true, waiting: 0, expected: .failed("pull failed")),
             Case(error: "push failed", unsaved: false, index: true, waiting: 35, expected: .failed("push failed")),
-            Case(error: nil, unsaved: true, index: true, waiting: 0, expected: .failed(CloudSyncMessages.progressNotSaved))
+            Case(error: nil, unsaved: true, index: true, waiting: 0, expected: .failed(CloudSyncMessages.progressNotSaved)),
+            Case(error: nil, unsaved: false, index: true, waiting: 0, awaitingKey: 3, expected: .waitingForKeys(3)),
+            Case(error: nil, unsaved: false, index: true, waiting: 2, awaitingKey: 3, expected: .incomplete),
+            Case(error: "pull failed", unsaved: false, index: true, waiting: 0, awaitingKey: 3, expected: .failed("pull failed"))
         ]
         for c in cases {
             let outcome = CloudKitSyncManager.completion(
-                syncError: c.error, bookkeepingUnsaved: c.unsaved, indexComplete: c.index, waitingUploads: c.waiting
+                syncError: c.error, bookkeepingUnsaved: c.unsaved, indexComplete: c.index,
+                waitingUploads: c.waiting, awaitingKey: c.awaitingKey
             )
-            XCTAssertEqual(outcome, c.expected, "error \(c.error ?? "none"), unsaved \(c.unsaved), index \(c.index), waiting \(c.waiting)")
+            XCTAssertEqual(outcome, c.expected, "error \(c.error ?? "none"), unsaved \(c.unsaved), index \(c.index), waiting \(c.waiting), awaiting key \(c.awaitingKey)")
         }
     }
 
@@ -154,6 +159,27 @@ final class CompletionClaimTests: XCTestCase {
 
         for session in nights.dropFirst(25) { manager.state.markUploaded(session.id) }
         XCTAssertTrue(manager.isUpToDate)
+    }
+
+    /// A pull that found sessions sealed with a key this device does not
+    /// hold leaves Settings saying so rather than "Up to date": those
+    /// sessions are in iCloud and not on this iPhone.
+    func testUpToDateIsNotShownWhileICloudRecordsWaitForTheirKey() {
+        let manager = CloudKitSyncManager.isolated(archive: SessionArchive(directory: archiveDirectory), directory: directory, settings: settings)
+        XCTAssertTrue(manager.isUpToDate)
+        manager.recordsAwaitingKeyCount = 2
+        XCTAssertFalse(manager.isUpToDate, "two sessions in iCloud cannot be opened here")
+        manager.recordsAwaitingKeyCount = 0
+        XCTAssertTrue(manager.isUpToDate)
+    }
+
+    /// A record sealed with a key this device lacks is counted, not reported
+    /// as a failure.
+    func testARecordWaitingForItsKeyIsCountedNotFailed() {
+        let manager = CloudKitSyncManager.isolated(archive: SessionArchive(directory: archiveDirectory), directory: directory, settings: settings)
+        let outcome = manager.pull.importFailure(CloudPayloadCodec.CodecError.noMatchingKey, sessionIdString: UUID().uuidString)
+        XCTAssertEqual(outcome.awaitingKey, 1)
+        XCTAssertNil(manager.lastPullErrorMessage)
     }
 
     /// Quarantined and kept-on-device sessions are accounted for elsewhere
