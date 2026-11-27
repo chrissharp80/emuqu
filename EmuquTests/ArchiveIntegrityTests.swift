@@ -887,6 +887,41 @@ extension ArchiveIntegrityTests {
         XCTAssertNotNil(reopenedArchive().entryById(session.id))
     }
 
+    /// The Trash expiry asks again at each id's turn: a session with a
+    /// restore under way, or one the archive holds again, is not deleted for
+    /// good; one still expired once the restore has ended is.
+    @MainActor
+    func testTheTrashExpirySkipsASessionBeingRestored() async throws {
+        let (service, _) = trashService()
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try archive.delete(session.id)
+        archive.store.reinstateDeletion(session.id, deletedAt: Date().addingTimeInterval(-100 * 86_400))
+        XCTAssertTrue(service.isExpiryStillDue(session.id), "Sanity: past the 90 days")
+
+        service.beginRestore(session.id)
+        XCTAssertFalse(service.isExpiryStillDue(session.id))
+        _ = await service.permanentlyDelete([session.id], stillDue: { service.isExpiryStillDue($0) }, removeHealthSamples: { _, _ in true })
+        XCTAssertNotNil(archive.store.trashedSession(session.id), "the expiry deleted a session being restored")
+
+        service.endRestore(session.id)
+        _ = await service.permanentlyDelete([session.id], stillDue: { service.isExpiryStillDue($0) }, removeHealthSamples: { _, _ in true })
+        XCTAssertNil(archive.store.trashedSession(session.id), "an expired session no restore holds was kept")
+    }
+
+    /// A session the archive holds is never an expired deletion, whatever
+    /// its old deletion time says.
+    func testASessionTheArchiveHoldsIsNotAnExpiredDeletion() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try archive.store.markAsDeleted(session.id)
+        defer { attempt("test.forgetDeleted") { try archive.store.unmarkAsDeleted(session.id) } }
+        archive.store.reinstateDeletion(session.id, deletedAt: Date().addingTimeInterval(-100 * 86_400))
+        XCTAssertFalse(archive.store.isStillExpiredDeletion(session.id))
+    }
+
     // MARK: Helpers
 
     /// A recovery service over this test's archive, with the trail history

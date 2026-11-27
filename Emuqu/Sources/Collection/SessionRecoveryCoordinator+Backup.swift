@@ -67,7 +67,12 @@ extension SessionRecoveryCoordinator {
     /// A session the archive still holds as deleted cannot be put back (the
     /// archive refuses to write it), so the restore stops there and says so
     /// rather than rebuilding it only to have the write refused.
+    ///
+    /// The restore is marked under way until it ends, so the Trash expiry
+    /// does not delete for good a session being brought back.
     func restoreFromTrash(_ sessionId: UUID) async -> HRVSession? {
+        recoveryService.beginRestore(sessionId)
+        defer { recoveryService.endRestore(sessionId) }
         recoveryService.restoreFromTrash(sessionId)
         guard !archive.store.deletedIds.contains(sessionId) else {
             debugLog("[Recovery] Could not restore \(sessionId.uuidString.prefix(8)): it is still marked deleted", level: .error)
@@ -110,6 +115,17 @@ extension SessionRecoveryCoordinator {
         await recoveryService.permanentlyDelete(ids) { id, span in
             await removeHealthExports(of: id, over: span)
         }
+    }
+
+    /// The 90-day Trash expiry: `permanentlyDelete(_:)` for each id still
+    /// due when its turn comes (`SessionRecoveryService.isExpiryStillDue`).
+    @discardableResult
+    func permanentlyDeleteExpired(_ ids: [UUID]) async -> TrashDeletionOutcome {
+        let service = recoveryService
+        return await service.permanentlyDelete(
+            ids, stillDue: { service.isExpiryStillDue($0) },
+            removeHealthSamples: { id, span in await self.removeHealthExports(of: id, over: span) }
+        )
     }
 
     /// False (logged) when HealthKit could not delete all of them.
