@@ -198,12 +198,12 @@ fi
 # decompresses without decrypting makes the backup unreadable the
 # same day, on the same device, and it surfaces as "no backup" rather than an
 # error.
-# The readers are the functions that actually decompress: `decodePoints`
+# The readers are the functions that actually decompress: `decodePayload`
 # (live backups, called by `liveBackupSummary`) and `decodeSessionAsset`
 # (CloudPullCoordinator; every session payload, for the pull and for the
 # health scrub). A reader that is not found, or no longer decompresses in its
 # own body, is a config error rather than a pass.
-for reader in decodePoints decodeSessionAsset; do
+for reader in decodePayload decodeSessionAsset; do
     file="$(grep -rlnE "func $reader\b" Emuqu/Sources/Storage 2>/dev/null | head -1)"
     if [[ -z "$file" ]]; then
         echo "check_no_health_data_in_cloudkit: reader $reader not found under Emuqu/Sources/Storage — re-point this gate at it." >&2

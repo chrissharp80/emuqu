@@ -796,13 +796,13 @@ private func elevationMarks(
     AreaMark(
         x: .value("Distance (\(xLabel))", point.distance),
         y: .value("Elevation (\(yLabel))", point.altitude),
-        series: .value("Segment", point.segment)
+        series: .value("Run", point.segment)
     )
     .foregroundStyle(AppTheme.fitnessAccent.opacity(0.3))
     LineMark(
         x: .value("Distance (\(xLabel))", point.distance),
         y: .value("Elevation (\(yLabel))", point.altitude),
-        series: .value("Segment", point.segment)
+        series: .value("Run", point.segment)
     )
     .foregroundStyle(AppTheme.fitnessAccent)
     .interpolationMethod(.catmullRom)
