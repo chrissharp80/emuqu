@@ -75,7 +75,7 @@ extension OvernightReportRenderer {
         y: CGFloat,
         boxWidth: CGFloat
     ) {
-        let hrRangeText = hrRange.map { "\(Int($0.min))-\(Int($0.max))" } ?? reportMissingValue
+        let hrRangeText = hrRange.map { "\(Int($0.min.rounded()))-\(Int($0.max.rounded()))" } ?? reportMissingValue
         // Row 1: Duration, Sleep, Deep Sleep, HR Range
         let row1Stats: [(String, String, UIColor)] = [
             (String(localized: "Recording", bundle: LanguageManager.appBundle), durationFormatted, config.primaryColor),
@@ -109,7 +109,7 @@ extension OvernightReportRenderer {
         let peakText = peakRMSSD.map { String(format: "%.0f ms", locale: LanguageManager.appLocale, $0) } ?? reportMissingValue
         // Row 2: Nadir HR, Peak HRV with times
         let row2Stats: [(String, String, UIColor)] = [
-            (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), hrRange.map { "\(Int($0.min)) bpm" } ?? reportMissingValue, UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
+            (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), hrRange.map { "\(Int($0.min.rounded())) bpm" } ?? reportMissingValue, UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
             (String(localized: "@ Time", bundle: LanguageManager.appBundle), clock(hrRange?.nadirTime), UIColor.darkGray),
             (String(localized: "Peak HRV", bundle: LanguageManager.appBundle), peakText, config.primaryColor),
             (String(localized: "@ Time", bundle: LanguageManager.appBundle), clock(peakHRVTime), UIColor.darkGray)

@@ -98,7 +98,7 @@ extension WorkoutFinalizer {
             userMaxHR: userMaxHR,
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
-            sex: Self.banisterSex(for: settings.biologicalSex),
+            sex: WorkoutAnalyzer.BanisterSex(settings.biologicalSex),
             splitDistanceMeters: Self.splitDistanceMeters(),
             pauses: recording.location?.trackPauses ?? WorkoutAnalyzer.TrackPauses()
         )
@@ -111,16 +111,6 @@ extension WorkoutFinalizer {
     /// a 6.35 km walk shows "mi 1..mi 6" for a 3.95 mi walk.
     private static func splitDistanceMeters() -> Double {
         UnitsPreferenceStore.current.resolved == .imperial ? UnitConstants.metersPerMile : 1000.0
-    }
-
-    /// Banister's original work gave different exponents for men vs
-    /// women. Map the settings enum; `.other` → male coefficients (the
-    /// historical default in the literature when sex is unspecified).
-    private static func banisterSex(for biologicalSex: UserSettings.BiologicalSex?) -> WorkoutAnalyzer.BanisterSex {
-        switch biologicalSex {
-        case .female: return .female
-        default: return .male
-        }
     }
 
     /// Finalize stage 2 — base metadata + the session's distance.
@@ -384,7 +374,7 @@ extension WorkoutFinalizer {
             bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: metadata.samples ?? [],
             splits: metadata.splits ?? [],
-            trimp: metadata.luciaTRIMP,
+            load: metadata.preferredTrainingLoad(ftp: .current(settings), heartRate: WorkoutLoadRestingHR.anchors)?.value,
             decouplingPercent: metadata.decouplingPercent
         )
         metadata.analysisSnapshot = WorkoutAnalysisSnapshotBuilder.build(snapshotInputs)

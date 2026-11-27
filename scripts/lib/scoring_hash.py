@@ -15,7 +15,7 @@ import re
 import sys
 from decimal import Decimal, InvalidOperation
 
-CURRENT_SCHEME = "decl-flow"
+CURRENT_SCHEME = "stored-flow"
 
 # --- static-lets ----------------------------------------------------------
 # `static let <name> = <number>` declarations only, in two files and two
@@ -400,10 +400,17 @@ class TokenWalker:
     (`type`), which reference resolution reads.
     """
 
-    def __init__(self):
+    def __init__(self, signature_defaults=False):
         self.stack = []
         self.pending = None
         self.items = {}
+        # With `signature_defaults`, an `=` inside a function's parameter
+        # list (a default argument) keeps the function pending, so its body
+        # is recorded under the function. Without it, as the older schemes
+        # read, the body after a default argument lands in the type header.
+        self.signature_defaults = signature_defaults
+        self.parens = 0
+        self.pending_parens = 0
 
     def _names(self, kinds):
         return [s.name for s in self.stack if s.kind in kinds]
@@ -485,7 +492,11 @@ class TokenWalker:
             if tok in ("@", "import"):
                 skip_next = True
                 continue
+            before = self.pending
             self._declare(tokens, i, tok)
+            if self.pending is not before:
+                self.pending_parens = self.parens
+            self.parens += {"(": 1, ")": -1}.get(tok, 0)
             if tok == "{":
                 kind, name = self.pending or ("block", "")
                 self.stack.append(_TokenScope(kind, name))
@@ -496,17 +507,19 @@ class TokenWalker:
                     self.stack.pop()
                 self.pending = None
                 continue
-            if tok == "=" and self.pending and self.pending[0] == "func" and not self._in_function():
+            in_signature = self.signature_defaults and self.parens > self.pending_parens
+            if tok == "=" and self.pending and self.pending[0] == "func" and not self._in_function() and not in_signature:
                 self.pending = None
             self._record(_normalize_number(tok) if NUMBER_RE.match(tok) else tok)
         return self.items
 
 
-def _token_index():
+def _token_index(signature_defaults=False):
     """{file: TokenWalker items} for every Swift file under the app sources."""
     index = {}
     for path in sorted(pathlib.Path(TOKEN_SOURCE_ROOT).rglob("*.swift")):
-        index[str(path)] = TokenWalker().walk(path.read_text(encoding="utf-8"))
+        walker = TokenWalker(signature_defaults=signature_defaults)
+        index[str(path)] = walker.walk(path.read_text(encoding="utf-8"))
     return index
 
 
@@ -566,10 +579,10 @@ def _root_decls(index, decls, token_roots=None):
     return found
 
 
-def decl_tokens_items(sources=None, globs=None, token_roots=None):
+def decl_tokens_items(sources=None, globs=None, token_roots=None, signature_defaults=False):
     """{key: [token, ...]}: the scoring files whole, the roots, and every
     declaration they reach by name, each key once."""
-    index = _token_index()
+    index = _token_index(signature_defaults)
     decls = _by_decl(index)
     whole = set()
     for label, names in _decl_sources(sources, globs):
@@ -678,9 +691,120 @@ def decl_flow_hash():
     return _tokens_digest(decl_flow_items())
 
 
+# --- stored-flow ----------------------------------------------------------
+# `decl-flow` plus every declaration that computes a value stored beside a
+# score and read back into it. The training snapshot frozen on each night
+# (ATL, CTL, TSB, yesterday's load, the recent workouts, days since a hard
+# session, VO2max) decides the frozen training readiness
+# (`ReanalysisService.computeFrozenReadiness`) and the recovery score's
+# training tier, and it is built from the training-load chain: the EWMA and
+# its time constants, the Banister coefficients and load caps
+# (`TrainingConstants`), each workout's load (`effectiveLoad`, the precedence
+# ladder, the TSS-scale conversion, the strap's TRIMP and hrTSS, the route
+# estimate, the METs load), the Health and archive workout merge, and the
+# heart-rate anchors. The vitals snapshot is built from Apple Health's
+# readings by window and baseline rules and the strap's sleep heart rate, and
+# the sleep snapshot from Apple Health's sleep samples, the naps folded into
+# the night and the heart-rate sleep estimate.
+# `decl-flow` followed none of them: their values reach the score on an
+# instance (`trainingContext.atl`), so an edit to the CTL time constant
+# changed every stored readiness with the hash unmoved. It also lost the body
+# of any function with a default argument: the `=` read as a stored
+# property's initializer, so the body fell under the type header, which a
+# root never reaches. This scheme keeps such a body under its function.
+STORED_SOURCES = FLOW_SOURCES + [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift",
+]
+STORED_ROOTS = {
+    **FLOW_ROOTS,
+    "Emuqu/Sources/Utilities/Constants.swift": FLOW_ROOTS["Emuqu/Sources/Utilities/Constants.swift"] + ["TrainingConstants"],
+    "Emuqu/Sources/Collection/HealthDataTypes.swift": [
+        "HealthWorkoutSummary.effectiveLoad",
+        "HealthWorkoutSummary.calculateTrimp",
+        "HealthWorkoutSummary.fromAppArchive",
+        "HealthWorkoutSummary.summaryFromIndex",
+        "HealthWorkoutSummary.intensityScore",
+        "HealthWorkoutSummary.isHardWorkout",
+    ],
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift": [
+        "HealthKitManager.WorkoutSummary.userScaledLoad",
+        "WorkoutLoadRestingHR",
+    ],
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift": [
+        "TrainingHealthQueries.calculateTrainingMetrics",
+        "TrainingHealthQueries.calculateTrainingLoad",
+        "TrainingHealthQueries.answeredTrainingLoad",
+        "TrainingHealthQueries.trainingLoad",
+        "TrainingHealthQueries.trainingHeartRateAnchors",
+        "TrainingHealthQueries.fetchAppleRestingHR",
+        "TrainingHealthQueries.fetchVO2MaxTrend",
+        "TrainingHealthQueries.deduplicateWorkouts",
+        "TrainingHealthQueries.mergeArchiveAuthoritative",
+        "TrainingHealthQueries.workoutSummaries",
+        "TrainingHealthQueries.ewmaLookbackDays",
+    ],
+    "Emuqu/Sources/Collection/TrainingLoad.swift": ["TrainingLoad"],
+    "Emuqu/Sources/Collection/TrainingMetrics.swift": ["TrainingMetrics"],
+    "Emuqu/Sources/Models/RRModels.swift": ["TrainingContext"],
+    "Emuqu/Sources/Models/WorkoutMetadata.swift": [
+        "WorkoutMetadata.computedMETLoad",
+        "WorkoutMetadata.storedPowerTSS",
+        "WorkoutMetadata.routeEstimateReplacesHRLoad",
+        "WorkoutMetadata.TrainingLoadSource",
+    ],
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift": [
+        "WorkoutAnalyzer.computeTRIMP",
+        "WorkoutAnalyzer.computeHrTSS",
+        "WorkoutAnalyzer.banisterTRIMP",
+    ],
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift": ["RouteTRIMPEstimator"],
+    "Emuqu/Sources/Collection/SessionScoringContext.swift": [
+        "SessionScoringContext.createTrainingContext",
+        "SessionScoringContext.createTrainingContextEnsuringFresh",
+        "SessionScoringContext.ansConfig",
+    ],
+    "Emuqu/Sources/Collection/MorningSessionPipeline+Analysis.swift": FLOW_ROOTS["Emuqu/Sources/Collection/MorningSessionPipeline+Analysis.swift"] + [
+        "MorningSessionPipeline.scoringTrainingContext",
+    ],
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift": [
+        "SessionDataMigrations.recalibratedContext",
+        "SessionDataMigrations.trainingAnchor",
+    ],
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift": [
+        "VitalsHealthQueries.fetchRecoveryVitals",
+    ],
+    "Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift": [
+        "HRVSession.withSleepHeartRate",
+        "HRVSession.refreshSleepHeartRate",
+    ],
+    "Emuqu/Sources/Models/RecoveryVitals.swift": ["RecoveryVitals"],
+    "Emuqu/Sources/Collection/SleepHealthQueries+Queries.swift": [
+        "SleepHealthQueries.fetchLastNightSleep",
+        "SleepHealthQueries.fetchSleepData",
+        "SleepHealthQueries.fetchDaytimeNapMinutesIfReadable",
+        "SleepHealthQueries.qualifyingNapMinutes",
+        "SleepHealthQueries.estimateSleepFromHealthKitHR",
+    ],
+    "Emuqu/Sources/Models/SleepData.swift": ["SleepData"],
+}
+
+
+# Every root above is a declaration the base branch has too, so the base's
+# own sources hash under this scheme and the gate compares them; a root that
+# only the tree has would leave that comparison skipped.
+def stored_flow_items():
+    return decl_tokens_items(STORED_SOURCES, FLOW_GLOBS, STORED_ROOTS, signature_defaults=True)
+
+
+def stored_flow_hash():
+    return _tokens_digest(stored_flow_items())
+
+
 SCHEMES = {
     "static-lets": static_lets_hash, "decl-literals": decl_literals_hash,
-    "decl-tokens": decl_tokens_hash, CURRENT_SCHEME: decl_flow_hash,
+    "decl-tokens": decl_tokens_hash, "decl-flow": decl_flow_hash,
+    CURRENT_SCHEME: stored_flow_hash,
 }
 
 
@@ -692,7 +816,7 @@ def scheme_of(fields):
 if __name__ == "__main__":
     scheme = sys.argv[1] if len(sys.argv) > 1 else CURRENT_SCHEME
     if scheme == "--dump":
-        for key, values in sorted(decl_flow_items().items()):
+        for key, values in sorted(stored_flow_items().items()):
             print(f"{key}={' '.join(values)}")
         raise SystemExit(0)
     try:

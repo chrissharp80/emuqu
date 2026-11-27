@@ -257,7 +257,7 @@ struct LoadTrajectoryLoader: View {
     @MainActor
     private static func recentWorkoutRow(entry: SessionArchiveEntry, session: HRVSession, ftp: TrainingLoadPrecedence.FTPAnchors) -> LoadTrajectoryView.RecentWorkout? {
         guard let meta = session.workoutMetadata else { return nil }
-        let load = meta.preferredTrainingLoad(ftp: ftp)
+        let load = meta.preferredTrainingLoad(ftp: ftp, heartRate: WorkoutLoadRestingHR.anchors)
         let durationSeconds = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
         return LoadTrajectoryView.RecentWorkout(
             id: entry.sessionId,

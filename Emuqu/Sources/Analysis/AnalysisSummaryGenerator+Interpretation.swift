@@ -410,7 +410,7 @@ extension AnalysisSummaryGenerator {
 
     var stressFindings: [String] {
         guard let s = result.ansMetrics?.stressIndex else { return [] }
-        let value = NarrativeLanguage.integer(Int(s))
+        let value = NarrativeLanguage.integer(Int(s.rounded()))
         if s > HRVThresholds.stressIndexHigh {
             return [String(localized: "Stress index is high (\(value)) - significant physiological load", bundle: NarrativeLanguage.bundle)]
         } else if s > HRVThresholds.stressIndexNormal {
@@ -567,7 +567,7 @@ extension AnalysisSummaryGenerator {
     private func tonightVsAverageFindings(_ sleepDiffPercent: Double, avgHours: Double) -> [String] {
         guard abs(sleepDiffPercent) > Self.notableSleepChangePercent else { return [] }
         let tonight = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
-        let pct = NarrativeLanguage.integer(Int(abs(sleepDiffPercent)))
+        let pct = NarrativeLanguage.integer(Int(abs(sleepDiffPercent).rounded()))
         if sleepDiffPercent > Self.notableSleepChangePercent {
             return [String(localized: "Tonight's \(tonight)h is \(pct)% above your recent average", bundle: NarrativeLanguage.bundle)]
         }

@@ -172,7 +172,7 @@ final class FloDiscoverabilityTests: XCTestCase {
         guard case let .record(fields) = PaceDisplay.annotate(record, units: .imperial) else { return XCTFail("expected a record") }
         XCTAssertEqual(text(fields["current_pace_display"]), "9:07 /mi")
         guard case let .list(items) = fields["nested"], case let .record(inner) = items.first else { return XCTFail("nested lost") }
-        XCTAssertEqual(text(inner["pace_display_at_point"]), "8:02 /mi")
+        XCTAssertEqual(text(inner["pace_display_at_point"]), "8:03 /mi", "482.8 s/mi rounds to the nearest second")
         guard case let .record(single) = PaceDisplay.annotate(.double(340), field: "pace_sec_per_km", units: .metric) else {
             return XCTFail("a bare pace becomes a record")
         }

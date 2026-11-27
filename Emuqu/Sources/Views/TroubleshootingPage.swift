@@ -191,10 +191,10 @@ struct TroubleshootingPage: View {
 
     @ViewBuilder
     private var hitRatioRows: some View {
-        let cumulative = Int(cacheTelemetry.cumulativeHitRatio * 100)
+        let cumulative = Int((cacheTelemetry.cumulativeHitRatio * 100).rounded())
         let warningColor: Color = cumulative >= 75 ? AppTheme.wongOptimal : AppTheme.wongCaution
         cumulativeHitRow(cumulative, color: warningColor)
-        recentHitRow(Int(cacheTelemetry.recentHitRatio() * 100))
+        recentHitRow(Int((cacheTelemetry.recentHitRatio() * 100).rounded()))
     }
 
     @ViewBuilder
@@ -261,7 +261,7 @@ struct TroubleshootingPage: View {
             Text(verbatim: row.provider)
                 .font(.callout)
             Spacer()
-            Text("Turns: \(row.turns) · \(Int(row.hitRatio * 100))%", bundle: LanguageManager.appBundle)
+            Text("Turns: \(row.turns) · \(Int((row.hitRatio * 100).rounded()))%", bundle: LanguageManager.appBundle)
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(AppTheme.textSecondary)
         }

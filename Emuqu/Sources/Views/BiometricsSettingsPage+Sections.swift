@@ -185,7 +185,7 @@ extension BiometricsSettingsPage {
             TextField(
                 isImperial
                     ? "\(Int((settingsManager.settings.effectiveBodyWeightKg * 2.20462).rounded()))"
-                    : "\(Int(settingsManager.settings.effectiveBodyWeightKg))",
+                    : "\(Int(settingsManager.settings.effectiveBodyWeightKg.rounded()))",
                 value: bodyWeightDisplayBinding(isImperial: isImperial),
                 format: .number
             )

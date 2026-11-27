@@ -202,7 +202,7 @@ extension WatchMessageDecoding {
     nonisolated static func pace(secPerKm: Double, imperial: Bool) -> String? {
         guard secPerKm.isFinite, secPerKm > 0 else { return nil }
         let perUnit = imperial ? secPerKm * 1.609344 : secPerKm
-        let time = Duration.seconds(Int(min(perUnit, 86_400))).formatted(.time(pattern: .minuteSecond).locale(.current))
+        let time = Duration.seconds(Int(min(perUnit, 86_400).rounded())).formatted(.time(pattern: .minuteSecond).locale(.current))
         return imperial ? String(localized: "\(time) /mi") : String(localized: "\(time) /km")
     }
 

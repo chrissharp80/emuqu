@@ -359,7 +359,7 @@ extension ContextBuilder {
     private static func workoutHistoryEntry(_ s: HRVSession, weightKg: Double) -> AssistantContext.WorkoutHistoryEntry {
         let meta = s.workoutMetadata
         let duration = WorkoutActiveTime.seconds(metadata: meta, wallClock: s.duration).map { Int($0) }
-        let derived = derivedSampleMetrics(samples: meta?.samples ?? [], durationSec: duration, weightKg: weightKg)
+        let derived = derivedSampleMetrics(samples: meta?.samples ?? [], weightKg: weightKg)
         return AssistantContext.WorkoutHistoryEntry(
             date: s.startDate, sport: meta?.sport.rawValue ?? "unknown", durationSec: duration,
             distanceMeters: meta?.distanceMeters, elevationGainMeters: meta?.elevationGainMeters,
@@ -400,7 +400,6 @@ extension ContextBuilder {
     /// the samples carried that value (no foot-pod / no bike sensor).
     private static func derivedSampleMetrics(
         samples: [WorkoutSample],
-        durationSec: Int?,
         weightKg: Double
     ) -> DerivedSampleMetrics {
         var out = DerivedSampleMetrics()
@@ -409,7 +408,7 @@ extension ContextBuilder {
         if !hrs.isEmpty { out.avgHR = Double(hrs.reduce(0, +)) / Double(hrs.count) }
         let mets = samples.compactMap { $0.mets }
         if !mets.isEmpty { out.avgMETs = mets.reduce(0, +) / Double(mets.count) }
-        out.kcal = estimatedCalories(avgMETs: out.avgMETs, durationSec: durationSec, weightKg: weightKg)
+        out.kcal = WorkoutEnergy.activeKilocalories(samples: samples, bodyWeightKg: weightKg)
         let cadences = samples.compactMap { $0.cadenceStepsPerMin }
         if !cadences.isEmpty {
             out.avgCadenceSpm = Int(round(Double(cadences.reduce(0, +)) / Double(cadences.count)))
@@ -417,14 +416,6 @@ extension ContextBuilder {
         let alphas = samples.compactMap { $0.alpha1 }
         if !alphas.isEmpty { out.alpha1Mean = alphas.reduce(0, +) / Double(alphas.count) }
         return out
-    }
-
-    /// Compendium kcal formula using the user's current weight from settings
-    /// (`effectiveBodyWeightKg`, which falls back to 75 kg) over the active
-    /// duration the caller passes, as the post-summary card computes it.
-    private static func estimatedCalories(avgMETs: Double?, durationSec: Int?, weightKg: Double) -> Double? {
-        guard let avg = avgMETs, let dur = durationSec, dur > 0 else { return nil }
-        return (avg * 3.5 * weightKg * (Double(dur) / 60.0)) / 200.0
     }
 
     /// Seconds per kilometre, or nil when the workout is too short to make the

@@ -34,7 +34,9 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
     ///   because of a 2.5-m GPS-delta gate upstream) to OR-of-three-signals
     ///   + elapsed-seconds accumulation. Stored v1 snapshots carry the
     ///   old, wrong numbers — rebuild on next view.
-    static let currentVersion = 2
+    /// - v3: calories are active energy (`WorkoutEnergy`), the load sentence
+    ///   reads the workout's TSS-scale load, and percentages are rounded.
+    static let currentVersion = 3
     let schemaVersion: Int
 
     // MARK: α1 physiology

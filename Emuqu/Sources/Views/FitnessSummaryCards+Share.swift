@@ -67,16 +67,13 @@ extension FitnessSummaryCards {
     }
 
     /// Use `preferredTrainingLoad` so power-equipped sessions show
-    /// their TSS instead of an HR-only TRIMP.
+    /// their TSS instead of an HR-only estimate; every tier is on the TSS
+    /// scale, so every one reads "Load".
     private func recapSummary(meta: WorkoutMetadata?) -> String {
-        guard let load = meta?.preferredTrainingLoad(ftp: .current(settingsManager.settings)), load.value > 0 else { return "Emuqu" }
-        let label: String
-        switch load.source {
-        case .power, .hr, .mets: label = String(localized: "Load", bundle: LanguageManager.appBundle)
-        case .banister, .routeHistory: label = "TRIMP"
-        }
+        let anchors = WorkoutLoadRestingHR.anchors
+        guard let load = meta?.preferredTrainingLoad(ftp: .current(settingsManager.settings), heartRate: anchors), load.value > 0 else { return "Emuqu" }
         // Round to match other load displays
-        return "\(label) \(Int(load.value.rounded()))"
+        return "\(String(localized: "Load", bundle: LanguageManager.appBundle)) \(Int(load.value.rounded()))"
     }
 
     /// The route map for the recap card, nil without a track. MapKit takes
@@ -521,7 +518,7 @@ extension FitnessSummaryCards {
             Spacer()
             splitPaceText(split)
             if let hr = split.averageHR {
-                Text(String(localized: "\(Int(hr)) bpm", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(Int(hr.rounded())) bpm", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                     .frame(width: 70, alignment: .trailing)

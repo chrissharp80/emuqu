@@ -481,14 +481,13 @@ struct WorkoutMetadata: Codable, Equatable {
     // recent-workouts list, the AI coach, and load-trajectory rows all
     // pick the best available source through the same property.
     //
-    // Scale note: powerTSS and hrTSS are both calibrated so 100 = one
-    // hour at threshold, so they're directly substitutable. luciaTRIMP
-    // is on Banister's HRR-coefficient scale and ranks numerically
-    // lower — only used as a fallback when no hrTSS was stored (HRmax or
-    // HRrest unknown at finalize, or a legacy session; LTHR itself is
-    // optional for hrTSS). extrapolatedTRIMP comes from
-    // `RouteTRIMPEstimator` and is on TRIMP scale too; it's the
-    // partial-data backup for HR-dropout sessions.
+    // Scale note: powerTSS, hrTSS and the METs load are calibrated so
+    // 100 = one hour at threshold. luciaTRIMP (used only when no hrTSS was
+    // stored: HRmax or HRrest unknown at finalize, or a legacy session) and
+    // extrapolatedTRIMP (`RouteTRIMPEstimator`, the backup for HR-dropout
+    // sessions) are stored on Banister's TRIMP scale, and are placed on the
+    // TSS scale through the hrTSS rule (`HeartRateAnchors.tss`) before they
+    // are shown, summed or compared, so every tier reads on one scale.
     enum TrainingLoadSource: String {
         /// Coggan power-based TSS. Best available; HR-independent.
         case power
@@ -507,18 +506,15 @@ struct WorkoutMetadata: Codable, Equatable {
         /// Route-history extrapolation when HR was lost mid-workout.
         case routeHistory
 
-        /// Canonical short label for the value this source produces.
-        /// Power/HR/METs load is on the TSS scale → "LOAD"; only the
-        /// Banister/route-history fallbacks are on the TRIMP scale → "TRIMP".
-        /// Single source of truth for the label so
-        /// no display can print an effective-load value under the wrong name
-        /// (the "TRIMP 94 here / 111 TRIMP there" split for the same workout).
-        var displayLabel: String {
-            switch self {
-            case .power, .hr, .mets: String(localized: "LOAD", bundle: LanguageManager.appBundle)
-            case .banister, .routeHistory: String(localized: "TRIMP", bundle: LanguageManager.appBundle)
-            }
-        }
+        /// Whether the value stored for this source is on Banister's TRIMP
+        /// scale, so it goes through the hrTSS rule (`HeartRateAnchors.tss`)
+        /// before it meets a TSS.
+        var isTRIMPScale: Bool { self == .banister || self == .routeHistory }
+
+        /// Canonical short label for a workout's load. Every source's value
+        /// is on the TSS scale by the time it is shown (`preferredTrainingLoad`,
+        /// `effectiveLoad`), so every source reads "LOAD".
+        var displayLabel: String { String(localized: "LOAD", bundle: LanguageManager.appBundle) }
     }
 
     /// METs-based load on the same TSS scale (100 = 1 h
@@ -688,10 +684,11 @@ struct WorkoutMetadata: Codable, Equatable {
         return (luciaTRIMP ?? 0) < Self.routeDropoutRecordedShare * estimate
     }
 
-    /// Preferred numeric load + the source it came from: exactly
-    /// `TrainingLoadPrecedence.stored`, the figure ATL/CTL count, under the
-    /// FTPs `ftp` (`FTPAnchors.current(settings)` of the settings the
-    /// caller renders with). Order is by published accuracy:
+    /// Preferred numeric load + the source it came from: the tier
+    /// `TrainingLoadPrecedence.stored` picks under the FTPs `ftp`
+    /// (`FTPAnchors.current(settings)` of the settings the caller renders
+    /// with), on the TSS scale at `heartRate` (`TrainingLoadPrecedence.onTSSScale`),
+    /// the figure ATL/CTL count. Order is by published accuracy:
     ///   1. powerTSS (Coggan, with Stryd / cycling power; either
     ///      the stored value over moving time OR derived at read time
     ///      from NP and the current effective FTP — incl. auto-estimate)
@@ -705,8 +702,10 @@ struct WorkoutMetadata: Codable, Equatable {
     ///
     /// Callers use the source tag to label the displayed number
     /// honestly ("Coggan · power", "METs · partial", etc.).
-    nonisolated func preferredTrainingLoad(ftp: TrainingLoadPrecedence.FTPAnchors) -> (value: Double, source: TrainingLoadSource)? {
-        TrainingLoadPrecedence.stored(self, ftp: ftp)
+    nonisolated func preferredTrainingLoad(
+        ftp: TrainingLoadPrecedence.FTPAnchors, heartRate: TrainingLoadSeries.HeartRateAnchors
+    ) -> (value: Double, source: TrainingLoadSource)? {
+        TrainingLoadPrecedence.stored(self, ftp: ftp).map { TrainingLoadPrecedence.onTSSScale($0, anchors: heartRate) }
     }
 
     // MARK: Rowing-specific (from Concept2 PM5)

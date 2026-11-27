@@ -419,7 +419,7 @@ extension HolisticDailyReport {
                  at: CGPoint(x: config.margin, y: y),
                  font: UIFont.systemFont(ofSize: 11, weight: .regular),
                  color: config.textPrimary)
-        let valueLabel = String(format: "%.1f × %d%%", locale: LanguageManager.appLocale, c.score, Int(c.weight * 100))
+        let valueLabel = String(format: "%.1f × %d%%", locale: LanguageManager.appLocale, c.score, Int((c.weight * 100).rounded()))
         let valueAttr: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 10, weight: .regular),
             .foregroundColor: config.textSecondary

@@ -564,7 +564,7 @@ struct OvernightHRVChartCanvas: View {
         let peakCircle = Path(ellipseIn: CGRect(x: peakX - 6, y: peakY - 6, width: 12, height: 12))
         context.fill(peakCircle, with: .color(AppTheme.primary))
         context.stroke(peakCircle, with: .color(.white), lineWidth: 2)
-        let peakText = Text("\(Int(stats.peakRMSSD))")
+        let peakText = Text("\(Int(stats.peakRMSSD.rounded()))")
             .font(.caption.bold())
             .foregroundColor(AppTheme.primary)
         context.draw(peakText, at: CGPoint(x: peakX, y: peakY - 16))

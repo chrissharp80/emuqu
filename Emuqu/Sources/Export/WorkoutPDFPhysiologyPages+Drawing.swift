@@ -301,7 +301,7 @@ extension WorkoutPDFPhysiologyPages {
         at y: inout CGFloat,
         contentW: CGFloat
     ) {
-        let pct = Int((Double(secs) / Double(total)) * 100)
+        let pct = Int((Double(secs) / Double(total) * 100).rounded())
         let row = "Z\(idx + 1) (\(range))"
         let val = "\(PDFDurationText.minutesSeconds(secs)) · \(pct) % · \(meaning)"
         renderer.drawText(row,

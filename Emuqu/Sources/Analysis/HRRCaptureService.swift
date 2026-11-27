@@ -293,26 +293,15 @@ final class HRRCaptureService {
         return hr
     }
 
-    /// Median HR over the tail of the Polar streaming buffer. Matches
-    /// what WorkoutRecorder uses for its live HR display — single-beat
-    /// HR from raw rr_ms swings 40-140 from the same heart rate, but
-    /// the median of the last ~8 beats reads like a real HR. Nil when the
-    /// newest beat is stale (`freshTailBeats`), so a stalled stream is not
-    /// stored as the HR at +60/+120 s.
+    /// Median HR over the tail of the Polar streaming buffer
+    /// (`medianHeartRateBPM`, the rule the live HR display uses): single-beat
+    /// HR from raw rr_ms swings 40-140 from the same heart rate, but the
+    /// median of the last ~8 beats reads like a real HR. Nil when the newest
+    /// beat is stale (`freshTailBeats`), so a stalled stream is not stored as
+    /// the HR at +60/+120 s, and outside 20-250 bpm.
     private func currentHRFromBuffer() -> Int? {
-        guard let recent = freshTailBeats(), !recent.isEmpty else { return nil }
-        let sorted = recent.map { Double($0.rr_ms) }.sorted()
-        let median = sorted.count.isMultiple(of: 2)
-            ? (sorted[sorted.count / 2 - 1] + sorted[sorted.count / 2]) / 2
-            : sorted[sorted.count / 2]
-        // Defensive: median should be > 0 since rr_ms > 0 was filtered,
-        // but a corrupt sample with negative rr_ms is theoretically
-        // representable. Guard against it before the division so we
-        // can't trap on `Int(.infinity)`.
-        guard median.isFinite, median > 50 else { return nil }
-        let bpm = 60_000.0 / median
-        guard bpm.isFinite, bpm > 20, bpm < 250 else { return nil }
-        return Int(bpm)
+        guard let bpm = freshTailBeats()?.medianHeartRateBPM, bpm > 20, bpm < 250 else { return nil }
+        return bpm
     }
 
     /// A newest beat older than this at the read is a stalled stream.

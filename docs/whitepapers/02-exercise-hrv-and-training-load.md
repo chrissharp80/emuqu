@@ -248,10 +248,10 @@ At least 30 beats are required. When HRmax or resting HR is unknown, an Edwards 
 
 #### 3.3.4 Scales and the daily series
 
-**Scales.** Power TSS and hrTSS put 100 at one hour at threshold, and MET load uses the same nominal anchor. Banister TRIMP and the route estimate are on the Banister scale. Each workout is labeled by source ("LOAD" or "TRIMP") and enters unconverted.
+**Scales.** Power TSS and hrTSS put 100 at one hour at threshold, and MET load uses the same nominal anchor. Banister TRIMP and the route estimate are on the Banister scale, where an hour at threshold is about 150 to 160, so each is converted before it is summed, shown or compared: TRIMP ÷ TRIMP(60 min at LTHR) × 100, the hrTSS rule itself, at the same resting HR, max HR, LTHR and sex coefficients. Every workout then enters on the TSS scale and is labeled "LOAD".
 
 **Daily series and the Performance Management Chart (PMC).**
-- A workout figure is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, else 0.
+- A workout figure is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, converted to the TSS scale, else 0.
 - Apple Health workouts that are not in the archive (from the Watch or other apps) join the series. When Apple Health workouts were never authorized, or were denied, the query's answer is read as no workouts, so the series is still built from the archive; a query that fails or times out for any other reason publishes nothing, and the previous load stands until the next refresh asks again.
 - Loads are summed per local day (0 on rest days), and each day is capped at 1200.
 - `X_today = load·(1 − e^(−1/τ)) + X_yesterday·e^(−1/τ)`, with τ = 7 days for ATL and 42 days for CTL; `TSB = CTL − ATL`.
@@ -660,7 +660,7 @@ Training load, TSB and the ACWR damper are bookkeeping on training history; they
 
 **Sustained crossings.** The 180 s sustain makes crossings robust to single beats, at the cost of missing excursions shorter than three minutes. The reported HR is taken at the start of the run without lag correction.
 
-**Unconverted load scales.** Route estimates and Banister TRIMP enter ATL/CTL on their own scale, labeled by source. Each figure stays traceable to how it was measured, at the cost of a series that mixes TSS-scale and TRIMP-scale values.
+**Converted load scales.** Route estimates and Banister TRIMP are put on the TSS scale through the hrTSS normalisation at the current anchors. A Health workout's TRIMP comes from its average HR, which reads lower than a beat-level integration of the same session, and a legacy Edwards zone TRIMP is converted as if it were Banister's, so an HR-derived load stays less accurate than a power one even on the same scale.
 
 **History-based substitution.** Route substitution needs a saved route and earlier clean runs. TRIMP per meter does not adjust for pace, weather or fitness change between runs.
 

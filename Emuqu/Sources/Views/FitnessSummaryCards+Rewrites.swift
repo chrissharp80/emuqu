@@ -385,7 +385,8 @@ private func rebuildAnalysisSnapshot(_ stored: inout HRVSession, settings: UserS
         sport: meta.sport, durationSec: duration, distanceMeters: meta.distanceMeters,
         elevationGainMeters: meta.elevationGainMeters, elevationLossMeters: meta.elevationLossMeters,
         meanHR: stored.meanHR, userMaxHR: settings.userMaxHR, bodyWeightKg: settings.weightKg,
-        samples: samples, splits: meta.splits ?? [], trimp: meta.luciaTRIMP,
+        samples: samples, splits: meta.splits ?? [],
+        load: meta.preferredTrainingLoad(ftp: settings.ftp, heartRate: WorkoutLoadRestingHR.anchors)?.value,
         decouplingPercent: meta.decouplingPercent
     ))
     stored.workoutMetadata?.analysisSnapshot = snapshot

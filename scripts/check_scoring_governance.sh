@@ -18,16 +18,20 @@
 #    leave Analysis/CauseDetection.
 #
 # 2. The code that decides a recovery score is hashed token by token
-#    (scripts/lib/scoring_hash.py, scheme `decl-flow`): the scoring files
+#    (scripts/lib/scoring_hash.py, scheme `stored-flow`): the scoring files
 #    whole (RecoveryScoreConstants.swift, HRVThresholds.swift,
 #    RecoveryScoreCalculator*.swift, ScoreDetailBuilder, VitalsScoring,
 #    SleepScienceAnalyzer), the files that compute a stored score input whole
 #    (the overnight analysis from artifact detection and window selection to
 #    the time, frequency, nonlinear, DFA, stress and respiration metrics, the
-#    sleep staging and boundary rules, training readiness), named roots
-#    elsewhere (the ScoringBounds, ScoringWeights, StressNormativeConstants
-#    and HRVConstants enums of Constants.swift, the baseline statistics the
-#    z-score divides by, the HRV quality rule, each path's score assembly),
+#    sleep staging and boundary rules, training readiness, the training-load
+#    EWMA and precedence ladder), named roots elsewhere (the ScoringBounds,
+#    ScoringWeights, StressNormativeConstants, HRVConstants and
+#    TrainingConstants enums of Constants.swift, the baseline statistics the
+#    z-score divides by, the HRV quality rule, each path's score assembly, and
+#    what builds the training, vitals and sleep snapshots stored beside a
+#    score: each workout's load, the workout merge, the heart-rate anchors,
+#    the vitals windows and baselines, the sleep fetch and nap rule),
 #    and every declaration those reach by name, wherever it is declared: the baseline SD floors, the night window and minimum
 #    night count, the fragmentation weights. Numbers, operators and names all
 #    count; comments, whitespace, string contents and access modifiers do

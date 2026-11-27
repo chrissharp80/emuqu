@@ -530,7 +530,7 @@ final class WatchConnectivityBridge: NSObject {
         guard let heartRate else { return }
         payload[MessageKey.heartRate.rawValue] = heartRate
         guard userMaxHR > 0 else { return }
-        payload[MessageKey.hrPercentOfMax.rawValue] = Int((Double(heartRate) / Double(userMaxHR)) * 100)
+        payload[MessageKey.hrPercentOfMax.rawValue] = Int((Double(heartRate) / Double(userMaxHR) * 100).rounded())
     }
 
     // MARK: - Strap state (independent of workout pipeline)

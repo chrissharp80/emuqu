@@ -96,6 +96,18 @@ enum TrainingLoadPrecedence {
         return nil
     }
 
+    /// `load` on the TSS scale: a TRIMP-scale tier (`.banister`,
+    /// `.routeHistory`) through the hrTSS rule at `anchors`
+    /// (`HeartRateAnchors.tss`), the others as they are. What every display,
+    /// sum and comparison of a workout's load reads, so a stored TRIMP is
+    /// never added to or ranked against a TSS.
+    nonisolated static func onTSSScale(
+        _ load: (value: Double, source: WorkoutMetadata.TrainingLoadSource),
+        anchors: TrainingLoadSeries.HeartRateAnchors
+    ) -> (value: Double, source: WorkoutMetadata.TrainingLoadSource) {
+        load.source.isTRIMPScale ? (anchors.tss(fromTRIMP: load.value), load.source) : load
+    }
+
     /// Coggan power TSS derived now, for a session stored with NP but no
     /// power TSS (it finalized before an FTP was known): IF² × moving hours
     /// × 100, IF = NP / today's FTP for the sport. Moving hours are the last

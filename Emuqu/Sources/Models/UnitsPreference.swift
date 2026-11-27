@@ -66,7 +66,7 @@ enum UnitsPreference: String, Codable, CaseIterable, Identifiable {
 
     /// "5:07" — minutes and zero-padded seconds, as pace is written everywhere.
     private static func minutesSeconds(_ seconds: Double) -> String {
-        let whole = Int(min(seconds, Double(Int.max / 2)))
+        let whole = Int(min(seconds, Double(Int.max / 2)).rounded())
         return "\(whole / 60):\(String(format: "%02d", whole % 60))"
     }
 

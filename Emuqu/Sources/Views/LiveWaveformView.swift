@@ -56,7 +56,7 @@ struct LiveWaveformView: View {
     /// Current heart rate
     private var currentHR: Int? {
         guard let lastRR = displayPoints.last, lastRR.rr_ms > 0 else { return nil }
-        return Int(60000.0 / Double(lastRR.rr_ms))
+        return Int((60000.0 / Double(lastRR.rr_ms)).rounded())
     }
 
     /// Current RR

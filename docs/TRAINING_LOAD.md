@@ -14,9 +14,10 @@ verifiable. Citations name the file and symbol; line numbers drift.
 ## The chain at a glance
 
 ```
-workout ─▶ per-workout load (effectiveLoad)
+workout ─▶ per-workout load (effectiveLoad), always on the TSS scale
               powerTSS ▸ [route estimate, strap dropout] ▸ hrTSS ▸ METs ▸ luciaTRIMP ▸ extrapolatedTRIMP
               └ else HR-only Banister TRIMP
+              every TRIMP-scale figure ─▶ HRSS: TRIMP ÷ TRIMP(1 h at LTHR) × 100
         ─▶ daily bucket  (sum effectiveLoad per local calendar day, rest days = 0)
         ─▶ Banister EWMA, seeded from 0
               live value:  180-day window
@@ -32,14 +33,15 @@ workout ─▶ per-workout load (effectiveLoad)
 
 ## Layer 0 — Per-workout load (the stress score of a single session)
 
-`WorkoutSummary.effectiveLoad(restingHR:maxHR:)` — `HealthDataTypes.swift`
+`WorkoutSummary.effectiveLoad(anchors:)` — `HealthDataTypes.swift`
 
 ```swift
-func effectiveLoad(restingHR: Double = 60, maxHR: Double? = nil) -> Double {
-    let base = (precomputedLoad ?? 0) > 0 ? (precomputedLoad ?? 0)    // best available source
-        : calculateTrimp(restingHR: restingHR, maxHR: maxHR)          // HR-only fallback
-    return cappedLoad(base)   // clamps at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000)
+func effectiveLoad(anchors: TrainingLoadSeries.HeartRateAnchors) -> Double {
+    cappedLoad(tssScaleLoad(anchors: anchors))   // clamps at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000)
 }
+// tssScaleLoad: the stored load (power TSS, hrTSS, METs as they are; a stored
+// TRIMP or route estimate through anchors.tss), else
+// anchors.tss(fromTRIMP: calculateTrimp(...)) for the HR-only fallback.
 ```
 
 The 1000 cap is an engineering backstop against corrupt recordings, not a
@@ -66,37 +68,48 @@ wins:
 | 6 | `routeHistory` | Route-history extrapolation | `extrapolatedTRIMP`, when nothing above exists |
 
 powerTSS, hrTSS and the MET load are calibrated so **100 = one hour at
-threshold**, which is what lets the ladder fall through those three into one
-series. The other two tiers are **not** on that scale: Banister TRIMP
-(`banister`) and the route-history extrapolation (`routeHistory`, also a TRIMP
-figure) are raw TRIMP on Banister's HRR-weighted scale, where an hour at
-threshold is not pinned to 100. A session resolved at one of those tiers is
-added to the same series uncalibrated.
+threshold**. Banister TRIMP is not: on its HRR-weighted scale an hour at
+threshold comes to about 150 to 160, so an Apple Health workout scored by TRIMP, or a
+strap session resolved at the `banister` or `routeHistory` tier, would count
+about 1.5 times as much per hour as the same effort scored by hrTSS, and ATL,
+ACWR, form and readiness would jump whenever a user's workouts changed source.
 
-Sharing a scale is a calibration convention, but in this case there is also
-evidence behind the substitution — more than the previous wording claimed and
-more than the first correction of it allowed. TSS is explicitly modelled on
-Banister's TRIMP, and studies comparing load metrics against changes in aerobic
-fitness put iTRIMP and TSS at the top of the range together (r ≈ .75–.81). They
-are measuring the same construct.
+So every TRIMP-scale figure is put on the TSS scale before it is summed, shown
+or compared, through the same rule the strap's own hrTSS uses (HRSS, Fellrnr /
+intervals.icu; TrainingPeaks' hrTSS has the same anchor):
 
-What the literature also says is that they are not equally good at it. The
-accuracy order is power-derived, then HR-derived, then time/MET estimates:
-power is a direct mechanical measurement, HR tracks effort well in steady state
-and less well outside it, and a MET bucket is an estimate of an estimate. That
-is exactly the order this ladder tries them in.
+```
+TSS-scale load = TRIMP ÷ TRIMP(60 min at LTHR) × 100
+```
 
-So: substitutable enough to form one series, with real evidence behind the
-construct, and noisier the further down the ladder a session was resolved. A
-load history assembled from mixed sources is approximate, and the approximation
-is quantified above rather than asserted either way.
+with the resolved anchors (`TrainingLoadSeries.HeartRateAnchors.tss`, calling
+`WorkoutAnalyzer.hrTSS(fromTRIMP:)`): the same resting HR and max HR the TRIMP
+was scored against, the user's LTHR (`effectiveLTHR`, else 0.88 × max HR) and
+Banister's coefficients for the biological-sex setting. The strap's stored
+hrTSS is exactly this rule applied at finalize, so a workout scores the same
+whether its load came from the strap or from Health. `.banister` and
+`.routeHistory` (`TrainingLoadSource.isTRIMPScale`) are converted wherever
+they are read: in `effectiveLoad` for ATL/CTL, and in
+`WorkoutMetadata.preferredTrainingLoad` (`TrainingLoadPrecedence.onTSSScale`)
+for every row, calendar total, AI fact and share line. Every tier is then
+labelled "LOAD".
+
+What stays approximate: a Health workout's TRIMP comes from its average HR,
+which reads lower than the strap's beat-by-beat integration of the same
+session (the exponential is convex), and a legacy `luciaTRIMP` stored as
+Edwards' zone TRIMP (finalized without a resting HR) is converted as if it
+were Banister's. The accuracy order is power-derived, then HR-derived, then
+time/MET estimates, the order the ladder tries them in. Power TSS and hrTSS
+are also anchored to different thresholds (FTP, LTHR), so the conversion puts
+them on one scale but does not make an HR estimate as accurate as a power one.
 
 HealthKit-sourced workouts
-(from other apps) carry no `precomputedLoad` and fall to Layer 0b.
+(from other apps) carry no `precomputedLoad` and fall to Layer 0b, whose
+TRIMP is then put on the TSS scale as above.
 
 ### 0b. HR-only Banister TRIMP (the fallback)
 
-`WorkoutSummary.calculateTrimp(restingHR:maxHR:)` — `HealthDataTypes.swift`
+`WorkoutSummary.calculateTrimp(restingHR:maxHR:sex:)` — `HealthDataTypes.swift`
 
 ```
 HRR   = clamp( (avgHR − restingHR) / (maxHR − restingHR), 0, 1 )

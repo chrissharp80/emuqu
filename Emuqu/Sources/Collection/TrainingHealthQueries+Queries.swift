@@ -648,15 +648,21 @@ extension TrainingHealthQueries {
         let apple = await fetchAppleRestingHR(relativeTo: referenceDate)
         let settings = access.settingsProvider()
         return .resolve(
-            appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR
+            appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR,
+            settingLTHR: settings.effectiveLTHR, settingSex: settings.biologicalSex
         )
     }
 
-    /// The caller's anchors, with any it left nil resolved by `trainingHeartRateAnchors`.
+    /// The caller's anchors, with any it left nil resolved by
+    /// `trainingHeartRateAnchors`. LTHR and sex are always the user's
+    /// (`effectiveLTHR`, the one the strap's hrTSS divides by).
     private func heartRateAnchors(restingHR: Double?, maxHR: Double?, relativeTo referenceDate: Date) async -> TrainingLoadSeries.HeartRateAnchors {
-        if let restingHR, let maxHR { return .init(restingHR: restingHR, maxHR: maxHR) }
+        let settings = access.settingsProvider()
+        let lthr = Double(settings.effectiveLTHR)
+        let sex = WorkoutAnalyzer.BanisterSex(settings.biologicalSex)
+        if let restingHR, let maxHR { return .init(restingHR: restingHR, maxHR: maxHR, lthr: lthr, sex: sex) }
         let resolved = await trainingHeartRateAnchors(relativeTo: referenceDate)
-        return .init(restingHR: restingHR ?? resolved.restingHR, maxHR: maxHR ?? resolved.maxHR)
+        return .init(restingHR: restingHR ?? resolved.restingHR, maxHR: maxHR ?? resolved.maxHR, lthr: lthr, sex: sex)
     }
 
     /// Morning readings stop at yesterday, so today's load is not applied;

@@ -266,6 +266,20 @@ extension [RRPoint] {
         guard let last else { return nil }
         return start.addingTimeInterval(TimeInterval(last.exportTimeMs + Int64(last.rr_ms)) / 1000.0)
     }
+
+    /// Smoothed heart rate: the bpm of these beats' median interval, rounded
+    /// to the nearest beat. Raw rr_ms swings with normal RR variation (one
+    /// beat might read 48 or 92 from the same heart rate); the median of the
+    /// last few reads like a real heart rate. The one rule for the live
+    /// display and the post-workout recovery readings. Beats without a
+    /// positive interval are left out; nil when none is left.
+    var medianHeartRateBPM: Int? {
+        let intervals = compactMap { $0.rr_ms > 0 ? Double($0.rr_ms) : nil }.sorted()
+        guard !intervals.isEmpty else { return nil }
+        let mid = intervals.count / 2
+        let median = intervals.count.isMultiple(of: 2) ? (intervals[mid - 1] + intervals[mid]) / 2 : intervals[mid]
+        return Int((60_000.0 / median).rounded())
+    }
 }
 
 /// Artifact classification flags for each RR interval

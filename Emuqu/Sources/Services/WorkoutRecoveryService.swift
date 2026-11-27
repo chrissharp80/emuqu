@@ -47,7 +47,7 @@ enum WorkoutRecoveryService {
         unitsPreference: UnitsPreference,
         pauses: WorkoutAnalyzer.TrackPauses = WorkoutAnalyzer.TrackPauses()
     ) -> WorkoutMetadata {
-        let banisterSex: WorkoutAnalyzer.BanisterSex = settings.biologicalSex == .female ? .female : .male
+        let banisterSex = WorkoutAnalyzer.BanisterSex(settings.biologicalSex)
         return WorkoutAnalyzer.analyze(
             sport: sport,
             rrPoints: rrPoints,
@@ -158,7 +158,7 @@ enum WorkoutRecoveryService {
             bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: metadata.samples ?? [],
             splits: metadata.splits ?? [],
-            trimp: metadata.luciaTRIMP,
+            load: metadata.preferredTrainingLoad(ftp: .current(settings), heartRate: WorkoutLoadRestingHR.anchors)?.value,
             decouplingPercent: metadata.decouplingPercent
         )
         metadata.analysisSnapshot = WorkoutAnalysisSnapshotBuilder.build(snapshotInputs)
@@ -751,7 +751,7 @@ enum WorkoutRecoveryService {
             parts.append(CoachReportGenerator.formatDistance(m, units: unitsPreference))
         }
         if let t = metadata.luciaTRIMP, t > 0 {
-            parts.append(String(localized: "TRIMP \(Int(t))", bundle: LanguageManager.appBundle))
+            parts.append(String(localized: "TRIMP \(Int(t.rounded()))", bundle: LanguageManager.appBundle))
         }
         return listFormatter.string(from: parts) ?? parts.joined(separator: ", ")
     }

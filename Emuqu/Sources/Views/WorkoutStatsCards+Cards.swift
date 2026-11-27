@@ -141,13 +141,18 @@ extension WorkoutStatsCards {
         }
     }
 
+    /// Each band starts at the first whole bpm the zone classifier
+    /// (`HRZone.classify`, by fraction of max HR) puts in that zone, the
+    /// fraction of max rounded up (less a float tolerance, so 0.6 x 150 is
+    /// 90, not 91), so a heart rate drawn inside a band is in that zone.
     private static func hrZones(userMax: Int) -> [(lo: Int, hi: Int, color: Color)] {
-        [
-            (Int(Double(userMax) * 0.50), Int(Double(userMax) * 0.60), Color(red: 0.40, green: 0.80, blue: 0.55).opacity(0.10)),
-            (Int(Double(userMax) * 0.60), Int(Double(userMax) * 0.70), Color(red: 0.55, green: 0.85, blue: 0.45).opacity(0.12)),
-            (Int(Double(userMax) * 0.70), Int(Double(userMax) * 0.80), Color(red: 0.95, green: 0.80, blue: 0.30).opacity(0.14)),
-            (Int(Double(userMax) * 0.80), Int(Double(userMax) * 0.90), Color(red: 0.95, green: 0.55, blue: 0.25).opacity(0.16)),
-            (Int(Double(userMax) * 0.90), userMax + 10, Color(red: 0.90, green: 0.35, blue: 0.35).opacity(0.18))
+        let edge = { (fraction: Double) in Int((Double(userMax) * fraction - 1e-9).rounded(.up)) }
+        return [
+            (edge(0.50), edge(0.60), Color(red: 0.40, green: 0.80, blue: 0.55).opacity(0.10)),
+            (edge(0.60), edge(0.70), Color(red: 0.55, green: 0.85, blue: 0.45).opacity(0.12)),
+            (edge(0.70), edge(0.80), Color(red: 0.95, green: 0.80, blue: 0.30).opacity(0.14)),
+            (edge(0.80), edge(0.90), Color(red: 0.95, green: 0.55, blue: 0.25).opacity(0.16)),
+            (edge(0.90), userMax + 10, Color(red: 0.90, green: 0.35, blue: 0.35).opacity(0.18))
         ]
     }
 
