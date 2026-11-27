@@ -443,118 +443,6 @@ class MissingScanPath(Exception):
 
 
 LEXICON_PATH = "Emuqu/Sources/Assistant/MedicalTermLexicon.swift"
-DISCLAIMER_PATH = "Emuqu/Sources/Assistant/MedicalTermLexicon+Disclaimer.swift"
-
-
-def _group_names(path: Path, group: str) -> list[str]:
-    """The concept names listed in `static let <group>: [Concept] = [...]`."""
-    source = path.read_text(encoding="utf-8")
-    found = re.search(r"static let %s: \[Concept\] = \[(.*?)\]" % re.escape(group), source, re.DOTALL)
-    if found is None:
-        raise MissingScanPath(f"{path}: {group} not found")
-    return re.findall(r"\b([a-z]\w+)\b", re.sub(r"//[^\n]*", "", found.group(1)))
-
-
-class NegatedClauses:
-    """The stretches of a string a negation denies, by the rule in
-    `MedicalTermLexicon+Disclaimer.swift` (`negatedSpans`): from a negation
-    that opens its clause to the clause's end, the whole clause around one
-    that may follow what it denies, and back to the clause's start from one
-    that closes it. Clauses end at a sentence end, a semicolon, or a "but" or
-    "and" word."""
-
-    def __init__(self, ahead, in_clause, behind, breaks):
-        self.ahead, self.in_clause, self.behind, self.breaks = ahead, in_clause, behind, breaks
-
-    def spans(self, text: str) -> list[tuple[int, int]]:
-        cuts = [(m.start(), m.end()) for m in self.breaks.finditer(text)]
-
-        def start(at: int) -> int:
-            return max((end for _, end in cuts if end <= at), default=0)
-
-        def end(at: int) -> int:
-            return min((begin for begin, _ in cuts if begin >= at), default=len(text))
-
-        found = [(m.start(), end(m.end())) for m in self.ahead.finditer(text)]
-        found += [(start(m.start()), end(m.end())) for m in self.in_clause.finditer(text)]
-        found += [(start(m.start()), m.end()) for m in self.behind.finditer(text)]
-        return found
-
-
-class ClaimPattern:
-    """A disclaimable claim pattern: a match inside a negated clause ("Emuqu
-    is not FDA-approved") is a disclaimer, not a claim, and does not count.
-    Same rule as `MedicalTermLexicon.claimMatch`, which the output guard uses."""
-
-    def __init__(self, compiled: re.Pattern[str], negated: NegatedClauses):
-        self.compiled, self.negated = compiled, negated
-        self.pattern = compiled.pattern
-
-    def search(self, text: str):
-        spans = None
-        for match in self.compiled.finditer(text):
-            spans = self.negated.spans(text) if spans is None else spans
-            if not any(begin <= match.start() < end for begin, end in spans):
-                return match
-        return None
-
-
-def negated_clause_finder(repo_root: Path) -> NegatedClauses:
-    source = (repo_root / DISCLAIMER_PATH).read_text(encoding="utf-8")
-    compiled = [_compile_concept(source, name, DISCLAIMER_PATH)[0]
-                for name in ("negationAhead", "negationInClause", "negationBehind", "clauseBreak")]
-    return NegatedClauses(*compiled)
-
-
-def _compile_concept(source: str, name: str, path: str) -> tuple[re.Pattern[str], str]:
-    """The compiled alternation and id of the concept `name` in `source`."""
-    concept = re.search(
-        r'static let %s = Concept\(\s*\n\s*id: "([^"]+)",(.*?)\n    \)\n' % re.escape(name),
-        source,
-        re.DOTALL,
-    )
-    if concept is None:
-        # Fail closed: a concept the list names but the parser cannot find
-        # would otherwise drop out of the every-locale check while the run
-        # still reports clean.
-        raise MissingScanPath(f"{path}: a group names {name}, whose Concept block was not found")
-
-    def alternatives(tag: str) -> list[str]:
-        # Both spellings occur: the array on one line, and the array spread
-        # over many with the closing bracket on its own. A pattern that only
-        # handles the multi-line form silently drops every CJK and Arabic
-        # alternative, because those are written inline — a Japanese claim
-        # probe sails through while the German one is caught.
-        start = concept.group(2).find(tag + ": [")
-        if start < 0:
-            return []
-        cursor = concept.group(2).index("[", start)
-        depth, end = 0, cursor
-        while end < len(concept.group(2)):
-            char = concept.group(2)[end]
-            if char == "[":
-                depth += 1
-            elif char == "]":
-                depth -= 1
-                if depth == 0:
-                    break
-            end += 1
-        body = re.sub(r"//[^\n]*", "", concept.group(2)[cursor:end])
-        return [item.replace("\\\\", "\\") for item in re.findall(r'"((?:[^"\\]|\\.)*)"', body)]
-
-    latin, unbounded = alternatives("latin"), alternatives("unbounded")
-    branches = []
-    if latin:
-        branches.append(r"\b(?:" + "|".join(latin) + r")\b")
-    if unbounded:
-        branches.append("(?:" + "|".join(unbounded) + ")")
-    if not branches:
-        raise MissingScanPath(f"{path}: concept {concept.group(1)} has no latin or unbounded alternatives")
-    try:
-        compiled = re.compile("(?:" + "|".join(branches) + ")", re.IGNORECASE)
-    except re.error as exc:
-        raise MissingScanPath(f"{path}: concept {concept.group(1)} does not compile: {exc}")
-    return compiled, concept.group(1)
 
 
 def translated_claim_patterns(repo_root: Path) -> list[tuple[re.Pattern[str], str]]:
@@ -580,14 +468,55 @@ def translated_claim_patterns(repo_root: Path) -> list[tuple[re.Pattern[str], st
         raise MissingScanPath(f"{LEXICON_PATH}: neverInStaticCopy not found")
     names = re.findall(r"\b([a-z]\w+)\b", re.sub(r"//[^\n]*", "", group.group(1)))
 
-    disclaimer = negated_clause_finder(repo_root)
-    disclaimable = set(_group_names(repo_root / DISCLAIMER_PATH, "disclaimableClaims"))
     patterns: list[tuple[re.Pattern[str], str]] = []
     for name in names:
-        compiled, concept_id = _compile_concept(source, name, LEXICON_PATH)
-        if name in disclaimable:
-            compiled = ClaimPattern(compiled, disclaimer)
-        patterns.append((compiled, f"Regulated claim ({concept_id}) in a translated string."))
+        concept = re.search(
+            r'static let %s = Concept\(\s*\n\s*id: "([^"]+)",(.*?)\n    \)\n' % re.escape(name),
+            source,
+            re.DOTALL,
+        )
+        if concept is None:
+            # Fail closed: a concept the list names but the parser cannot find
+            # would otherwise drop out of the every-locale check while the run
+            # still reports clean.
+            raise MissingScanPath(f"{LEXICON_PATH}: neverInStaticCopy names {name}, whose Concept block was not found")
+
+        def alternatives(tag: str) -> list[str]:
+            # Both spellings occur: the array on one line, and the array spread
+            # over many with the closing bracket on its own. A pattern that only
+            # handles the multi-line form silently drops every CJK and Arabic
+            # alternative, because those are written inline — a Japanese claim
+            # probe sails through while the German one is caught.
+            start = concept.group(2).find(tag + ": [")
+            if start < 0:
+                return []
+            cursor = concept.group(2).index("[", start)
+            depth, end = 0, cursor
+            while end < len(concept.group(2)):
+                char = concept.group(2)[end]
+                if char == "[":
+                    depth += 1
+                elif char == "]":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                end += 1
+            body = re.sub(r"//[^\n]*", "", concept.group(2)[cursor:end])
+            return [item.replace("\\\\", "\\") for item in re.findall(r'"((?:[^"\\]|\\.)*)"', body)]
+
+        latin, unbounded = alternatives("latin"), alternatives("unbounded")
+        branches = []
+        if latin:
+            branches.append(r"\b(?:" + "|".join(latin) + r")\b")
+        if unbounded:
+            branches.append("(?:" + "|".join(unbounded) + ")")
+        if not branches:
+            raise MissingScanPath(f"{LEXICON_PATH}: concept {concept.group(1)} has no latin or unbounded alternatives")
+        try:
+            compiled = re.compile("(?:" + "|".join(branches) + ")", re.IGNORECASE)
+        except re.error as exc:
+            raise MissingScanPath(f"{LEXICON_PATH}: concept {concept.group(1)} does not compile: {exc}")
+        patterns.append((compiled, f"Regulated claim ({concept.group(1)}) in a translated string."))
     if not patterns:
         raise MissingScanPath(f"{LEXICON_PATH}: no usable concepts in neverInStaticCopy")
     return patterns
@@ -631,15 +560,6 @@ def main() -> int:
     except re.error as exc:
         sys.stderr.write(f"copy_linter: regex compile failed: {exc}\n")
         return 2
-    try:
-        negated = negated_clause_finder(repo_root)
-    except MissingScanPath as exc:
-        sys.stderr.write(f"copy_linter: {exc}\n")
-        return 2
-    # A clearance, diagnosis or treatment pattern marked `disclaimable` does
-    # not fire inside a negated clause, as in the translated patterns.
-    patterns = [(ClaimPattern(pattern, negated) if item.get("disclaimable") else pattern, reason)
-                for (pattern, reason), item in zip(patterns, raw_patterns)]
 
     try:
         translated_patterns = translated_claim_patterns(repo_root)
