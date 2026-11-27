@@ -171,18 +171,10 @@ struct DataSettingsPage: View {
             parts.append(String(localized: "Synced \(delta) sessions to iCloud.", bundle: LanguageManager.appBundle))
             parts.append(String(localized: "Total uploaded: \(syncManager.uploadedCount).", bundle: LanguageManager.appBundle))
         }
-        if let waiting = notUpToDateLine { parts.append(waiting) }
+        if let warning = syncWarning { parts.append(warning) }
+        if syncWait == .uploading { parts.append(Self.syncingText) }
         guard parts.isEmpty else { return parts.joined(separator: " ") }
         return String(localized: "Up to date. \(syncManager.uploadedCount) sessions in iCloud.", bundle: LanguageManager.appBundle)
-    }
-
-    /// Why an idle sync is not up to date, or nil when it is.
-    @MainActor
-    private var notUpToDateLine: String? {
-        guard !syncManager.isUpToDate else { return nil }
-        guard syncManager.archive.hasCompleteIndex else { return CloudSyncMessages.historyNotReadable }
-        let waiting = syncManager.uploadsWaitingCount
-        return waiting > 0 ? CloudSyncMessages.uploadsWaiting(waiting) : nil
     }
 
     var body: some View {
@@ -236,25 +228,6 @@ struct DataSettingsPage: View {
             syncStateLabel
         }
         .accessibilityElement(children: .combine)
-    }
-
-    @ViewBuilder
-    private var syncStateLabel: some View {
-        switch syncManager.syncState {
-        case .idle:
-            if let waiting = notUpToDateLine {
-                Text(waiting).foregroundColor(AppTheme.softGoldText).font(.caption)
-            } else {
-                Text("Up to date", bundle: LanguageManager.appBundle).foregroundColor(AppTheme.textSecondary)
-            }
-        case .syncing:
-            HStack(spacing: 6) {
-                ProgressView().scaleEffect(0.8)
-                Text("Syncing…", bundle: LanguageManager.appBundle).foregroundColor(AppTheme.textSecondary)
-            }
-        case let .error(message):
-            Text(message).foregroundColor(AppTheme.alert).font(.caption)
-        }
     }
 
     @ViewBuilder
@@ -377,15 +350,18 @@ struct DataSettingsPage: View {
         .accessibilityValue(Text("\(syncManager.uploadedCount) sessions uploaded", bundle: LanguageManager.appBundle))
     }
 
+    /// Only sessions whose upload failed (`failedUploadsWaitingCount`): the
+    /// pending queue also holds every save and edit queued to go up, which
+    /// is not a retry.
     @ViewBuilder
     private var pendingUploadRow: some View {
-        if syncManager.pendingUploadCount > 0 {
+        if syncManager.failedUploadsWaitingCount > 0 {
             HStack {
                 Label(String(localized: "Pending iCloud retry", bundle: LanguageManager.appBundle),
                       systemImage: "icloud.and.arrow.up")
                     .foregroundColor(AppTheme.softGold)
                 Spacer()
-                Text("\(syncManager.pendingUploadCount)")
+                Text("\(syncManager.failedUploadsWaitingCount)")
                     .foregroundColor(AppTheme.softGoldText)
                     .monospacedDigit()
             }

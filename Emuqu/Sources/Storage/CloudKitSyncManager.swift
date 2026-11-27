@@ -180,6 +180,17 @@ final class CloudKitSyncManager {
         outstandingUploadIds.count
     }
 
+    /// Sessions still waiting to go up (`outstandingUploadIds`) whose last
+    /// upload failed (`CloudKitSyncState.uploadFailureCounts`): the ones
+    /// Settings warns may not reach iCloud. One waiting because its upload
+    /// has not run yet, or is running now (each save is uploaded after it is
+    /// written, `uploadSession`), has not failed. Failure counts live in
+    /// memory, so after a relaunch a session counts here again once a retry
+    /// fails.
+    var failedUploadsWaitingCount: Int {
+        outstandingUploadIds.filter { (state.uploadFailureCounts[$0] ?? 0) > 0 }.count
+    }
+
     /// Whether Settings may say "Up to date": no sync running or failed,
     /// the archive's index loaded (an index that did not load lists none of
     /// the sessions the push should cover), and nothing waiting to go up.

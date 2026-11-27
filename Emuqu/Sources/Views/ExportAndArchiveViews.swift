@@ -202,17 +202,27 @@ struct ExportDataView: View {
     /// ceiling. Stream rows directly to a FileHandle and let each session's
     /// RRSeries go out of scope between iterations via `autoreleasepool`.
     private func exportRRData() {
-        beginExport()
+        guard beginExport() else { return }
         exportTask = Task { await runRRCSVExport() }
     }
 
     /// Clears the previous export's file and shortfall note so a warning
     /// never attaches to a different export's file. The previous file is
     /// deleted, not just forgotten: it is plaintext health data in tmp.
-    private func beginExport() {
-        isExporting = true
+    ///
+    /// False, with the reason shown, when the archive's index did not load:
+    /// each export walks the index, and over one that lists none or only
+    /// some of the sessions it wrote an empty or partial file that read as
+    /// the whole history (`HistoryExportGate`).
+    private func beginExport() -> Bool {
         removeExportFile()
         exportShortfall = nil
+        if let refusal = HistoryExportGate.refusal(indexComplete: collector.archive.hasCompleteIndex) {
+            exportError = refusal
+            return false
+        }
+        isExporting = true
+        return true
     }
 
     /// The screen is going away: cancel a running export (its file is then
@@ -347,7 +357,7 @@ struct ExportDataView: View {
     }
 
     private func exportCSV() {
-        beginExport()
+        guard beginExport() else { return }
         exportTask = Task { await runSummaryCSVExport() }
     }
 
@@ -410,7 +420,7 @@ struct ExportDataView: View {
     /// Stream session-by-session straight to disk inside an
     /// autoreleasepool so peak memory never exceeds one session's footprint.
     private func exportAllData() {
-        beginExport()
+        guard beginExport() else { return }
         exportTask = Task { await runFullExport() }
     }
 

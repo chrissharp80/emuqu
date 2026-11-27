@@ -19,8 +19,31 @@ extension SessionRecoveryCoordinator {
     /// save failed and is being retried in memory: recovering it from its
     /// backup as well would save it twice. A recording that died with the
     /// app is not live, and still shows.
+    ///
+    /// The scan also brings into their nights the fuller backups that stand
+    /// beside an archived fragment of them (`mergeStrandedFullerBackups`):
+    /// the scan's iCloud pull is what saves such a backup here.
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await recoveryService.checkForLostSessions(excludingLive: { liveRecordingIds() })
+        let lost = await recoveryService.checkForLostSessions(excludingLive: { liveRecordingIds() })
+        await mergeStrandedFullerBackups()
+        return lost
+    }
+
+    /// Each backup holding beats its archived night lacks
+    /// (`SessionRecoveryService.strandedFullerBackupIds`) is merged into that
+    /// night, analysed and scored as a recovery is.
+    func mergeStrandedFullerBackups() async {
+        var merged = 0
+        for id in recoveryService.strandedFullerBackupIds(excluding: liveRecordingIds()) {
+            let wrote = await recoveryService.mergeStrandedBackup(
+                id,
+                analyze: { [self] session, window, flags, capacity in await morning.analyze(session, window: window, flags: flags, peakCapacity: capacity) },
+                analyzeWithCapacity: { [self] session, capacity in await morning.analyze(session, peakCapacity: capacity) },
+                computeRecoveryScore: { [self] session, analysisResult in await enrichedRecoveryScore(session: session, analysisResult: analysisResult) }
+            )
+            if wrote { merged += 1 }
+        }
+        if merged > 0 { await MainActor.run { archiveSignal.notifyChanged() } }
     }
 
     /// The sessions recording right now, being ended, or finished and waiting
@@ -120,7 +143,18 @@ extension SessionRecoveryCoordinator {
         if session?.state == .complete {
             await MainActor.run { archiveSignal.notifyChanged() }
         }
+        if let session, session.state == .paused { await holdKeptPausedNight(session) }
         return session
+    }
+
+    /// The archive kept a paused copy of the night holding more than its
+    /// backup (`SessionRecoveryService.archivedCopyHoldingMore`): it is still
+    /// paused, not saved. It goes on the Record tab, as a Resume puts it, so
+    /// the night can be resumed or finished there, which is what the caller
+    /// then says. Not while another recording holds the Record tab.
+    private func holdKeptPausedNight(_ session: HRVSession) async {
+        guard !sessionState.isCollecting, streamingLifecycle.pausedSession == nil else { return }
+        await holdPaused(session)
     }
 
     private func recoverHRVFromBackup(_ sessionId: UUID, recordedType: SessionType?) async -> HRVSession? {
@@ -766,8 +800,35 @@ extension SessionRecoveryCoordinator {
         return strapRecorder.device.isRecordingOnDevice
     }
 
-    func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> Bool {
-        guard let session = await recoveryService.recoverToPausedState(
+    /// What Resume made of an interrupted recording.
+    enum PausedRecovery: Equatable {
+        /// The night is paused, on the Record tab.
+        case paused
+        /// The archive held a finished copy of it with more beats than its
+        /// backup (`SessionRecoveryService.archivedCopyHoldingMore`): that
+        /// copy was kept as it is, and there is nothing to resume.
+        case saved(SessionType)
+        /// Nothing could be restored.
+        case failed
+    }
+
+    /// Resume after a crash. Only a paused night is put on the Record tab: a
+    /// kept finished copy put there offered Resume and Done for a night
+    /// already saved, and Done saved it again.
+    func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> PausedRecovery {
+        guard let session = await pausedRecovery(sessionId, sessionType: sessionType) else { return .failed }
+        guard session.state == .paused else {
+            recordingStore.clear(ifItIs: sessionId)
+            return .saved(session.sessionType)
+        }
+        await holdPaused(session)
+        recordingStore.clear(ifItIs: sessionId)
+        return .paused
+    }
+
+    /// The paused night the service rebuilds, or the fuller copy it keeps.
+    private func pausedRecovery(_ sessionId: UUID, sessionType: SessionType) async -> HRVSession? {
+        await recoveryService.recoverToPausedState(
             sessionId,
             sessionType: sessionType,
             analyze: { [self] session, window, flags, capacity in
@@ -776,15 +837,16 @@ extension SessionRecoveryCoordinator {
             analyzeWithCapacity: { [self] session, capacity in
                 await morning.analyze(session, peakCapacity: capacity)
             }
-        ) else {
-            return false
-        }
+        )
+    }
+
+    /// Puts a paused night on the Record tab, with Resume and Done, as it
+    /// stands after a relaunch.
+    private func holdPaused(_ session: HRVSession) async {
         await MainActor.run { enterPausedState(session) }
         // Resume arms the strap by the night's own capture choice, not the default.
         if let usesDeviceBackup = recordingStore.captureMode() { overnightRun.usesDeviceBackup = usesDeviceBackup }
         recordingStore.persistPaused(sessionId: session.id)
-        recordingStore.clear(ifItIs: sessionId)
-        return true
     }
 
     @MainActor

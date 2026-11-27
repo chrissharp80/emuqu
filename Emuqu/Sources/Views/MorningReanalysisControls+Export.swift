@@ -29,12 +29,20 @@ extension MorningReanalysisControls {
         vm.isHistoricalSession ? (session.vitalsSnapshot ?? vm.recoveryVitals) : vm.recoveryVitals
     }
 
+    /// The report compares the night with the nights before it, which the
+    /// archive's index lists: nil while that index did not load, so no report
+    /// is drawn against a history it never saw (`HistoryExportGate`).
+    private var historyRefusal: String? {
+        HistoryExportGate.refusal(indexComplete: collector.archive.hasCompleteIndex)
+    }
+
     /// `onFailure` receives the user-facing reason when no PDF was produced.
     func exportPDF(
         style: PDFReportGenerator.ReportStyle = .comprehensive,
         sections: PDFReportGenerator.ReportSections = .all,
         onFailure: @escaping @MainActor (String) -> Void
     ) {
+        if let historyRefusal { return onFailure(historyRefusal) }
         vm.isGeneratingPDF = true
         Task {
             let url = await renderPDFAsync(style: style, sections: sections)
@@ -64,6 +72,7 @@ extension MorningReanalysisControls {
         sections: PDFReportGenerator.ReportSections = .all,
         onFailure: @escaping @MainActor (String) -> Void
     ) {
+        if let historyRefusal { return onFailure(historyRefusal) }
         vm.isGeneratingEmailPDF = true
         Task {
             let url = await renderPDFAsync(style: style, sections: sections)

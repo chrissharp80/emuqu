@@ -9,8 +9,9 @@ protocol SealableBackupStore: AnyObject {
     func mergeIndexIfLaunchReadFailed() throws
     /// The index row of `sessionId`, or nil.
     func existingIndexEntry(_ sessionId: UUID) -> RawRRBackup.BackupIndex?
-    /// The points file of the session and any set aside from it.
-    func appendPointFiles(of sessionId: UUID) -> [URL]
+    /// The points file of the session and any set aside from it; throws
+    /// when they cannot be listed.
+    func appendPointFiles(of sessionId: UUID) throws -> [URL]
     /// Writes `points` as the session's one-shot backup and indexes it.
     /// The caller is on the store's `appendQueue`.
     @discardableResult

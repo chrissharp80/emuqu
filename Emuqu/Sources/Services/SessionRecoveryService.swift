@@ -130,7 +130,7 @@ final class SessionRecoveryService {
     /// below this can never become a recovered session — surfacing them
     /// would loop the user through "Recover All → fails → still shown".
     /// Keep in sync with `stopSession`'s `rrPoints.count >= 120` guard.
-    private static let minRecoverableBeatCount = 120
+    static let minRecoverableBeatCount = 120
 
     /// Rate-limit pullCloudBackupsToLocal — running it on every scan
     /// causes the "never ends" loop where the list re-populates from
@@ -603,17 +603,7 @@ final class SessionRecoveryService {
     /// alert and for each backup "Recover All" goes through.
     func retrieveBackupWithParentMerge(_ sessionId: UUID) async -> BackupData? {
         guard let backup = storedBackup(sessionId) else { return nil }
-        var allPoints = backup.points
-        var sessionStart = backup.captureDate
-        if let parent = parentSession(of: sessionId),
-           let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty {
-            allPoints = Self.parentMergedPoints(
-                parentSeries: parentSeries, parentStart: parent.startDate,
-                childPoints: backup.points, childStart: backup.captureDate
-            )
-            sessionStart = parent.startDate
-            debugLog("[SessionRecoveryService] Merged parent \(parent.id.uuidString.prefix(8)): \(parentSeries.points.count) + \(backup.beatCount) beats")
-        }
+        let (allPoints, sessionStart) = pointsOnParentClock(backup, sessionId: sessionId)
         let series = RRSeries(points: allPoints, sessionId: sessionId, startDate: sessionStart)
         return BackupData(
             backup: backup,
@@ -622,6 +612,21 @@ final class SessionRecoveryService {
             sessionStart: sessionStart,
             endDate: Self.backupEndDate(backup)
         )
+    }
+
+    /// A resumed segment's backup with its parent's beats in front, on the
+    /// parent's clock; the backup as it is for a session with no parent.
+    /// A backup that already holds the parent (`backupHoldsParent`) is not
+    /// merged again.
+    func pointsOnParentClock(_ backup: RawRRBackup.BackupEntry, sessionId: UUID) -> (points: [RRPoint], start: Date) {
+        guard let parent = parentSession(of: sessionId),
+              let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty else { return (backup.points, backup.captureDate) }
+        let points = Self.parentMergedPoints(
+            parentSeries: parentSeries, parentStart: parent.startDate,
+            childPoints: backup.points, childStart: backup.captureDate
+        )
+        debugLog("[SessionRecoveryService] Parent \(parent.id.uuidString.prefix(8)) on the clock of \(sessionId.uuidString.prefix(8)): \(points.count) beats from a backup of \(backup.beatCount)")
+        return (points, parent.startDate)
     }
 
     /// The series' artifact flags, detected off the main actor.
@@ -637,17 +642,49 @@ final class SessionRecoveryService {
     /// so they are shifted by the larger of the parent's recorded duration
     /// and the gap between the two start dates — the same rule the other
     /// pause/resume merges use — so the resumed half lands after the first
-    /// instead of on top of it.
+    /// instead of on top of it. Points that already hold the parent
+    /// (`backupHoldsParent`) are returned as they are.
     nonisolated static func parentMergedPoints(
         parentSeries: RRSeries,
         parentStart: Date,
         childPoints: [RRPoint],
         childStart: Date
     ) -> [RRPoint] {
+        guard !backupHoldsParent(childPoints: childPoints, childStart: childStart, parentSeries: parentSeries, parentStart: parentStart) else {
+            return childPoints
+        }
         let parentDurationMs = parentSeries.points.last?.endMs ?? 0
         let dateOffsetMs = MillisecondOffset.between(childStart, and: parentStart, fallback: 0)
         let offsetMs = max(parentDurationMs, dateOffsetMs)
         return parentSeries.points + childPoints.map { $0.shifted(by: offsetMs) }
+    }
+
+    /// Whether a resumed segment's backup already holds its parent's beats,
+    /// so merging the parent in again would put them in twice. A pause, a
+    /// stop or a merge repair writes the merged night over the segment's
+    /// backup (`MorningProcessingService.backupRawDataAsync`), and an app
+    /// killed before that night is archived leaves the merged backup for
+    /// recovery. Such a backup is marked twice: it counts from the parent's
+    /// start, while a segment's own beats count from its resume, always after
+    /// the parent began (`childStart` up to `parentClockTolerance` past it,
+    /// the second a stored date may lose); and its points begin with the
+    /// parent's.
+    nonisolated static func backupHoldsParent(
+        childPoints: [RRPoint], childStart: Date, parentSeries: RRSeries, parentStart: Date
+    ) -> Bool {
+        if childStart <= parentStart.addingTimeInterval(parentClockTolerance) { return true }
+        return beginsWithParent(childPoints, parentPoints: parentSeries.points)
+    }
+
+    /// A stored capture date keeps whole seconds; a resume is never within a
+    /// second of its parent's start.
+    nonisolated static let parentClockTolerance: TimeInterval = 1
+
+    /// Whether `points` begin with every one of the parent's beats, at the
+    /// same offsets: the parent's beats are already in them.
+    nonisolated static func beginsWithParent(_ points: [RRPoint], parentPoints: [RRPoint]) -> Bool {
+        guard !parentPoints.isEmpty, points.count >= parentPoints.count else { return false }
+        return zip(points, parentPoints).allSatisfy { $0.t_ms == $1.t_ms && $0.rr_ms == $1.rr_ms }
     }
 
     /// The raw-RR backup for a session, or nil when there isn't one or it

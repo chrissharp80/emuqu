@@ -494,7 +494,7 @@ extension HelpContent {
                         "Deletes propagate across devices — delete on one, gone on all",
                         "A full sync when you open the app or return to it, unless one ran in the last 10 minutes (30 minutes at launch)",
                         "Session data is ZLIB compressed before upload (~80-90% size reduction)",
-                        "Sync status in Settings → iCloud & Data: Up to date, Syncing…, or the error, with the last sync time"
+                        "Sync status in Settings → iCloud & Data: Up to date; Syncing… while a sync runs or a save waits to upload; how many sessions wait to retry after an upload failed; a note when your history on this iPhone can't be read yet; or the error, with the last sync time"
                     ]),
                     .heading("Off by Default"),
                     .text("iCloud sync is off until you turn it on, during onboarding or in Settings. Turning it off stops future syncs but doesn't delete already-synced data from iCloud."),

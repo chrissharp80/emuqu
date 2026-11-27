@@ -103,15 +103,27 @@ extension EmuquApp {
             return
         }
         defer { InterruptedWorkoutAutoRecovery.end(info.sessionId) }
-        let success = await collector.recovery.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
-        await MainActor.run { showRecoveryOutcome(success: success) }
+        let outcome = await collector.recovery.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
+        await MainActor.run { recoveryResultMessage = message(for: outcome) }
     }
 
-    @MainActor
-    private func showRecoveryOutcome(success: Bool) {
-        recoveryResultMessage = success
-            ? String(localized: "Your session data has been restored. Go to the Record tab to resume or finish.", bundle: languageManager.bundle)
-            : String(localized: "Could not restore the session. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
+    /// Says what Resume did: a night kept finished in the archive is saved,
+    /// not waiting on the Record tab.
+    private func message(for outcome: SessionRecoveryCoordinator.PausedRecovery) -> String {
+        switch outcome {
+        case .paused: pausedNightMessage
+        case let .saved(type): savedMessage(type)
+        case .failed:
+            String(localized: "Could not restore the session. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
+        }
+    }
+
+    private var pausedNightMessage: String {
+        String(localized: "Your session data has been restored. Go to the Record tab to resume or finish.", bundle: languageManager.bundle)
+    }
+
+    private func savedMessage(_ type: SessionType) -> String {
+        String(localized: "\(type.displayName) session saved to your archive.", bundle: languageManager.bundle)
     }
 
     /// Save as Complete: recover and archive the partial session as-is.
@@ -213,14 +225,17 @@ extension EmuquApp {
 
     /// The message names the type the session was saved as: a backup of an
     /// interrupted night too short to be one is saved as a quick reading
-    /// (`SessionRecoveryService.recoveredSessionType`).
+    /// (`SessionRecoveryService.recoveredSessionType`). A night the archive
+    /// kept paused, its copy there holding more than the backup, is not
+    /// saved: it is on the Record tab to resume or finish, and the message
+    /// says so.
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
         let recovered = await collector.recovery.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
         collector.recordingStore.clear(ifItIs: info.sessionId)
         guard let recovered else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
-        return String(localized: "\(recovered.sessionType.displayName) session saved to your archive.", bundle: languageManager.bundle)
+        return recovered.state == .paused ? pausedNightMessage : savedMessage(recovered.sessionType)
     }
 
     func dismissInterruptedSession() {

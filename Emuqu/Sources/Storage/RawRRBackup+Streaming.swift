@@ -262,13 +262,19 @@ extension RawRRBackup {
     /// Always merged by timestamp, so a beat written twice (an append retried
     /// after a partial write) is recovered once. Without siblings the live
     /// file must exist.
+    ///
+    /// Throws when any part cannot be read: the directory listing that names
+    /// the siblings, or a sibling itself. What the other parts hold is not the
+    /// backup, and returned as if it were, the index count was lowered to it
+    /// (`checkRecoveredCount`) and recovery archived part of the night as
+    /// recovered. The backup stays as it is for a later read.
     func readAllPointLines(sessionId: UUID, decoder: JSONDecoder) throws -> [RRPoint] {
         let livePath = pointsURL(for: sessionId)
-        let siblings = corruptedSiblingNames(of: livePath)
+        let siblings = try listedCorruptedSiblingNames(of: livePath)
         var byTime: [Int64: RRPoint] = [:]
         for name in siblings {
             let url = backupDirectory.appendingPathComponent(name)
-            for point in (attempt("RawRRBackup.readSibling") { try readPointLines(at: url, sessionId: sessionId, decoder: decoder) } ?? []) {
+            for point in try readPointLines(at: url, sessionId: sessionId, decoder: decoder) {
                 byTime[point.t_ms] = point
             }
         }
@@ -280,12 +286,19 @@ extension RawRRBackup {
         return byTime.values.sorted { $0.t_ms < $1.t_ms }
     }
 
-    /// Names of the `.corrupted_*` files set aside from this points file.
+    /// Names of the `.corrupted_*` files set aside from this points file;
+    /// none when the directory cannot be listed. For the storage total only
+    /// (`totalBackupSize`): a read, a discard or a re-seal lists them with
+    /// `listedCorruptedSiblingNames`.
     func corruptedSiblingNames(of livePath: URL) -> [String] {
+        attempt("RawRRBackup.listSiblings") { try listedCorruptedSiblingNames(of: livePath) } ?? []
+    }
+
+    /// Names of the `.corrupted_*` files set aside from this points file;
+    /// throws when the directory cannot be listed.
+    func listedCorruptedSiblingNames(of livePath: URL) throws -> [String] {
         let prefix = livePath.lastPathComponent + ".corrupted_"
-        return (attempt("RawRRBackup.listSiblings") {
-            try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
-        } ?? []).filter { $0.hasPrefix(prefix) }
+        return try fileManager.contentsOfDirectory(atPath: backupDirectory.path).filter { $0.hasPrefix(prefix) }
     }
 
     /// Lines that do not decode (a torn write, or a sealed line whose key is
@@ -387,22 +400,30 @@ extension RawRRBackup {
     }
 
     /// The append-format files of a session: its header, points file and any
-    /// `.corrupted_*` points files set aside from it.
-    func appendFiles(of sessionId: UUID) -> [URL] {
-        [headerURL(for: sessionId)] + appendPointFiles(of: sessionId)
+    /// `.corrupted_*` points files set aside from it. Throws when the folder
+    /// cannot be listed (`appendPointFiles`).
+    func appendFiles(of sessionId: UUID) throws -> [URL] {
+        [headerURL(for: sessionId)] + (try appendPointFiles(of: sessionId))
     }
 
-    /// The points file of a session and any set aside from it.
-    func appendPointFiles(of sessionId: UUID) -> [URL] {
+    /// The points file of a session and any set aside from it. Throws when
+    /// the folder cannot be listed: without the set-aside files, a discard
+    /// left their beats on disk while reporting every file gone
+    /// (`removeEveryFile`), and a re-seal left them in plain text while taking
+    /// the session off the queue (`RawBackupSealer.reencrypt`).
+    func appendPointFiles(of sessionId: UUID) throws -> [URL] {
         let points = pointsURL(for: sessionId)
-        return [points] + corruptedSiblingNames(of: points).map { backupDirectory.appendingPathComponent($0) }
+        return [points] + (try listedCorruptedSiblingNames(of: points)).map { backupDirectory.appendingPathComponent($0) }
     }
 
     /// Remove the append-only files of a session (`appendFiles`), returning
-    /// any still on disk; each failure is logged.
+    /// any still on disk; each failure is logged. When the folder cannot be
+    /// listed, the header and live points file go and any set-aside file
+    /// stays, holding beats the replacing backup also holds.
     @discardableResult
     func cleanupAppendFiles(for sessionId: UUID) -> [URL] {
-        BackupFiles.remove(appendFiles(of: sessionId), using: fileManager)
+        let files = attempt("RawRRBackup.listAppendFiles") { try appendFiles(of: sessionId) }
+        return BackupFiles.remove(files ?? [headerURL(for: sessionId), pointsURL(for: sessionId)], using: fileManager)
     }
 
     /// A read error (the file locked by data protection, EPERM) is not
