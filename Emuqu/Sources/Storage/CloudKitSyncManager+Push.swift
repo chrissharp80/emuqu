@@ -604,8 +604,8 @@ extension CloudKitSyncManager {
 
     // MARK: - Live Backup (Delegated)
 
-    func uploadLiveBackup(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
-        await liveBackup.upload(sessionId: sessionId, points: points, deviceId: deviceId, force: force)
+    func uploadLiveBackup(sessionId: UUID, points: [RRPoint], recordingStart: Date, deviceId: String?, force: Bool = false) async {
+        await liveBackup.upload(sessionId: sessionId, points: points, recordingStart: recordingStart, deviceId: deviceId, force: force)
     }
 
     func deleteLiveBackup(sessionId: UUID) async {

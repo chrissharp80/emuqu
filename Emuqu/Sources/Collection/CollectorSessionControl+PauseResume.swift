@@ -19,9 +19,14 @@ extension CollectorSessionControl {
     /// reconnect exhaustion auto-pauses), a Stop or a Discard returns without
     /// touching the night. Returns nil then, and when the paused night could
     /// not be archived.
+    ///
+    /// The night is paused when Pause is tapped (`pausedAt`), not once the
+    /// strap download and the analysis that follow it are done: those take
+    /// minutes, and "Paused … ago" and the resume window count from it.
     func pauseOvernightStreaming() async -> HRVSession? {
         guard let claim = streamingLifecycle.claimOvernightEnding() else { return nil }
         defer { streamingLifecycle.releaseOvernightEnding(claim) }
+        let pausedAt = Date()
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "OvernightPause")
         defer { bgTask.end() }
         await overnightStreaming.endDeviceRecordingArming()
@@ -32,23 +37,23 @@ extension CollectorSessionControl {
         let originalSession = sessionState.currentSession ?? HRVSession()
 
         if let data = await overnightStreaming.gatherOvernightData() {
-            return await pauseWithFullAnalysis(data: data)
+            return await pauseWithFullAnalysis(data: data, pausedAt: pausedAt)
         }
-
-        // Short-recording path: not enough data for analysis, but still save
-        // whatever we have so the user can resume and accumulate more data.
-        // gatherOvernightData() already stopped streaming, backed up raw data,
-        // and set collectedPoints — we just need to build a paused session.
-        return await pauseWithShortRecording(originalSession: originalSession)
+        return await pauseWithShortRecording(originalSession: originalSession, pausedAt: pausedAt)
     }
 
     // MARK: - pauseOvernightStreaming Helpers
+    //
+    // Short-recording path: not enough data for analysis, but whatever there
+    // is is still saved so the user can resume and accumulate more.
+    // gatherOvernightData() already stopped streaming, backed up raw data and
+    // set collectedPoints; only the paused session is left to build.
 
     /// Full analysis pause path: merge parent data, analyze, archive, update UI.
     /// A night the archive would not take is not published as paused
     /// (`publishUnsavedPause`); the strap's beats the gather downloaded were
     /// backed up by the gather, before the analysis.
-    private func pauseWithFullAnalysis(data: OvernightStreamingCoordinator.OvernightDataResult) async -> HRVSession? {
+    private func pauseWithFullAnalysis(data: OvernightStreamingCoordinator.OvernightDataResult, pausedAt: Date) async -> HRVSession? {
         let merged = overnightStreaming.mergeParentSessionData(data: data)
         let totalBeats = merged.points.count
         await MainActor.run {
@@ -60,7 +65,7 @@ extension CollectorSessionControl {
             deviceBeats: data.deviceBeats, awaitsReview: false
         )
         pausedSession.state = .paused
-        pausedSession.pausedDate = Date()
+        pausedSession.pausedDate = pausedAt
         guard await archiveAndPersistPause(pausedSession, label: "Paused") else {
             publishUnsavedPause(pausedSession)
             return nil
@@ -77,14 +82,14 @@ extension CollectorSessionControl {
     /// none) would drop the start of the night. Its beats are the streamed
     /// ones, already in the stream's backup, so a night the archive would not
     /// take only goes unpublished.
-    private func pauseWithShortRecording(originalSession: HRVSession) async -> HRVSession? {
+    private func pauseWithShortRecording(originalSession: HRVSession, pausedAt: Date) async -> HRVSession? {
         let points = await MainActor.run { sessionState.collectedPoints }
         debugLog("[RRCollector] ⏸ Short recording (\(points.count) beats) — saving for resume without analysis")
         let merged = overnightStreaming.mergeParentSessionData(data: OvernightStreamingCoordinator.OvernightDataResult(
             points: points, baseSession: originalSession, streamingBeats: points.count,
             deviceBeats: nil, dataSource: "streaming", reconnectCount: 0
         ))
-        let pausedSession = CollectorSessionControl.shortPausedSession(from: merged.baseSession, points: merged.points)
+        let pausedSession = CollectorSessionControl.shortPausedSession(from: merged.baseSession, points: merged.points, pausedAt: pausedAt)
         guard await archiveAndPersistPause(pausedSession, label: "Short paused") else {
             publishUnsavedPause(pausedSession)
             return nil
@@ -97,12 +102,13 @@ extension CollectorSessionControl {
     }
 
     /// `originalSession` is the segment itself, or the segment re-anchored to
-    /// its parent's start when the parent's beats were merged in.
-    private static func shortPausedSession(from originalSession: HRVSession, points: [RRPoint]) -> HRVSession {
+    /// its parent's start when the parent's beats were merged in. It ends,
+    /// and is paused, when Pause was tapped.
+    static func shortPausedSession(from originalSession: HRVSession, points: [RRPoint], pausedAt: Date) -> HRVSession {
         HRVSession(
             id: originalSession.id,
             startDate: originalSession.startDate,
-            endDate: Date(),
+            endDate: pausedAt,
             state: .paused,
             sessionType: originalSession.sessionType,
             rrSeries: RRSeries(points: points, sessionId: originalSession.id, startDate: originalSession.startDate),
@@ -110,7 +116,7 @@ extension CollectorSessionControl {
             artifactFlags: nil,
             deviceProvenance: originalSession.deviceProvenance,
             linkedSessionIds: originalSession.linkedSessionIds,
-            pausedDate: Date()
+            pausedDate: pausedAt
         )
     }
 

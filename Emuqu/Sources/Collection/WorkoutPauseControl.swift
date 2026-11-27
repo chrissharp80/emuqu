@@ -46,15 +46,26 @@ final class WorkoutPauseControl {
         debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
     }
 
-    /// Resume the active workout. No-op if not paused.
-    func resume() {
+    /// Resume the active workout, now or, for a resume asked for earlier than
+    /// it arrived (a Watch Resume), at `resumedAt`
+    /// (`WorkoutRecorder.resumeFromWatch`). No-op if not paused.
+    func resume(at resumedAt: Date? = nil) {
         guard case .recording = lifecycle.phase, lifecycle.isPaused else { return }
         lifecycle.isPaused = false
         lifecycle.autoPaused = false
-        lifecycle.pausedMotion.resume(pedometer: sensors.pedometer.distanceMeters, footPod: sensors.footPodDistanceMeters())
-        lifecycle.pauseTimeline.resume(now: Date())
+        lifecycle.pausedMotion.resume(
+            pedometer: sensors.pedometer.distanceMeters, footPod: sensors.footPodDistanceMeters(), resumedAt: resumedAt
+        )
+        lifecycle.pauseTimeline.resume(now: resumedAt ?? Date())
         sensors.startedLocation?.isPaused = false
         autoPause.reset()
         debugLog("[WorkoutRecorder] resumed")
+    }
+
+    /// Records the motion counters while paused, once a tick, so a resume
+    /// dated earlier can end the paused stretch where it was asked for.
+    func notePausedMotion(at date: Date) {
+        guard lifecycle.isPaused else { return }
+        lifecycle.pausedMotion.note(pedometer: sensors.pedometer.distanceMeters, footPod: sensors.footPodDistanceMeters(), at: date)
     }
 }

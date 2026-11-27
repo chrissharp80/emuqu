@@ -768,14 +768,14 @@ extension CloudKitSyncManagerTests {
         let points = [RRPoint(t_ms: 0, rr_ms: 1000)]
         let before = await liveBackupProblems()
 
-        await backup.upload(sessionId: UUID(), points: points, deviceId: nil, force: true)
-        await backup.upload(sessionId: UUID(), points: points, deviceId: nil, force: true)
+        await backup.upload(sessionId: UUID(), points: points, recordingStart: Date(), deviceId: nil, force: true)
+        await backup.upload(sessionId: UUID(), points: points, recordingStart: Date(), deviceId: nil, force: true)
         let afterRealFailures = await liveBackupProblems()
         XCTAssertEqual(afterRealFailures - before, 1, "a real failure is reported once per run")
 
         for code in [CKError.Code.networkUnavailable, .notAuthenticated] {
             failure.error = CKError(code)
-            await backup.upload(sessionId: UUID(), points: points, deviceId: nil, force: true)
+            await backup.upload(sessionId: UUID(), points: points, recordingStart: Date(), deviceId: nil, force: true)
         }
         let afterOutsideCauses = await liveBackupProblems()
         XCTAssertEqual(afterOutsideCauses - before, 1, "no network or no iCloud account is not a problem")

@@ -101,14 +101,19 @@ final class CloudKitLiveBackupManager {
     /// Same gate as session uploads (`CloudKitSyncManager.cloudUploadsAllowed`):
     /// nothing goes up before onboarding has asked about iCloud, and nothing
     /// to an iCloud account other than the one sync is enabled for.
-    func upload(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
+    ///
+    /// `recordingStart` is when the session began, the moment the beats'
+    /// `t_ms` count from. It goes up sealed with the beats
+    /// (`LiveBackupPayload`), and a device that restores the backup dates the
+    /// night by it.
+    func upload(sessionId: UUID, points: [RRPoint], recordingStart: Date, deviceId: String?, force: Bool = false) async {
         guard isUploadDue(pointCount: points.count, force: force), !ForgottenSessions.ids.contains(sessionId) else { return }
         lastUpload = Date()
         guard await confirmAccount() else { return }
         do {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
-            let assetURL = try Self.attachUpload(of: points, sessionId: sessionId, to: record)
+            let assetURL = try Self.attachUpload(of: points, recordingStart: recordingStart, sessionId: sessionId, to: record)
             try await saveWithAsset(record, at: assetURL)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud")
             await noteUploaded(sessionId)
@@ -129,9 +134,10 @@ final class CloudKitLiveBackupManager {
         if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
     }
 
-    /// The record's only plain field is the first upload's time, kept: a
-    /// pulling device dates the night by it, and the recovery query selects on
-    /// it. The beat count travels inside the encrypted asset (recovery counts
+    /// The record's only plain field is the first upload's time, kept: the
+    /// recovery query selects and orders on it, and a pulling device dates a
+    /// backup from an older build, whose payload carries no recording start,
+    /// by it. The beat count travels inside the encrypted asset (recovery counts
     /// the decoded points) and the strap ID was never read back by any build;
     /// older builds wrote both in the clear, so both are cleared. (`deviceId`
     /// stays in `upload`'s signature: the callers pass it, and the local backup
@@ -178,11 +184,9 @@ final class CloudKitLiveBackupManager {
     /// the night and encodes the whole accumulated buffer (25k+ points by
     /// morning), so the transient JSONEncoder tree is freed at once instead of
     /// growing all night.
-    private static func compressedPoints(_ points: [RRPoint]) throws -> Data {
+    private static func compressedPoints(_ points: [RRPoint], recordingStart: Date) throws -> Data {
         try autoreleasepool {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let compressed = try DataCompression.compress(try encoder.encode(points))
+            let compressed = try DataCompression.compress(try LiveBackupPayload.encode(points, recordingStart: recordingStart))
             return try CloudPayloadCodec.sealForUpload(compressed)
         }
     }
@@ -192,9 +196,9 @@ final class CloudKitLiveBackupManager {
     /// the caller to remove once the save has read it. The one place the
     /// uploaded record's contents are decided, so a test can read exactly what
     /// goes to iCloud.
-    static func attachUpload(of points: [RRPoint], sessionId: UUID, to record: CKRecord) throws -> URL {
+    static func attachUpload(of points: [RRPoint], recordingStart: Date, sessionId: UUID, to record: CKRecord) throws -> URL {
         setPlainFields(of: record)
-        let sealed = try compressedPoints(points)
+        let sealed = try compressedPoints(points, recordingStart: recordingStart)
         // A unique filename avoids collisions between overlapping uploads.
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("live_\(sessionId.uuidString)_\(UUID().uuidString.prefix(8))")
@@ -348,7 +352,8 @@ final class CloudKitLiveBackupManager {
     /// Decode one queried record into a summary. Nil when the record is
     /// missing a required field, its asset can't be unsealed, decompressed
     /// or decoded, or it holds no beats. The beat count is the decoded
-    /// points' count. A record that failed to fetch, or lacks a field, is
+    /// points' count, and the recording's start is the payload's, nil for a
+    /// payload from an older build. A record that failed to fetch, or lacks a field, is
     /// logged too, so a backup that exists but cannot be offered leaves a
     /// trace; one that cannot be read is logged at error level. Either is
     /// still left out of the recovery list: there are no beats to recover
@@ -364,9 +369,9 @@ final class CloudKitLiveBackupManager {
             return nil
         }
         do {
-            let points = try Self.decodePoints(at: fileURL, archiveKey: archiveKey)
+            let (points, start) = try Self.decodePayload(at: fileURL, archiveKey: archiveKey)
             guard !points.isEmpty else { return nil }
-            return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points)
+            return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points, recordingStart: start)
         } catch {
             debugLog("[CloudKit] Live backup \(sessionIdStr.prefix(8)) is present but unreadable: \(error)",
                      level: .error)
@@ -388,12 +393,10 @@ final class CloudKitLiveBackupManager {
     ///
     /// The exact inverse of `compressedPoints`, in that order. The live-backup
     /// defect in `CloudPayloadCodec`'s header was these two halves disagreeing.
-    private static func decodePoints(at fileURL: URL, archiveKey: EncryptionManager) throws -> [RRPoint] {
+    static func decodePayload(at fileURL: URL, archiveKey: EncryptionManager) throws -> (points: [RRPoint], recordingStart: Date?) {
         let raw = try Data(contentsOf: fileURL)
         let jsonData = try DataCompression.decompress(CloudPayloadCodec.decode(raw, archiveKey: archiveKey))
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([RRPoint].self, from: jsonData)
+        return try LiveBackupPayload.decode(jsonData)
     }
 }
 

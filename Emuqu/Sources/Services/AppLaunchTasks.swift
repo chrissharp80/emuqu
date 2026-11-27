@@ -108,11 +108,9 @@ extension EmuquApp {
     @MainActor
     func appLevelWatchResumeListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutResume)
-        for await _ in stream {
+        for await note in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
-            if case .recording = recorder.lifecycle.phase {
-                recorder.pauseControl.resume()
-            }
+            recorder.resumeFromWatch(tappedAt: note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date)
         }
     }
 

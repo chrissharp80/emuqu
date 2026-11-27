@@ -23,7 +23,7 @@ extension OvernightStreamingCoordinator {
     func gatherOvernightData() async -> OvernightStreamingCoordinator.OvernightDataResult? {
         let overnight = self
         let (baseSession, streamingPoints, reconnectCount) = await overnight.stopStreamingInfrastructure()
-        await overnight.backupStreamingData(streamingPoints, sessionId: baseSession.id)
+        await overnight.backupStreamingData(streamingPoints, sessionId: baseSession.id, startDate: baseSession.startDate)
         let internalPoints = await overnight.fetchNightFromStrap(
             baseSession: baseSession, streamingPoints: streamingPoints,
             isVeritySense: morning.isVeritySenseDevice(baseSession)

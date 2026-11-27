@@ -122,12 +122,14 @@ extension MorningProcessingService {
 
     /// Backup raw RR data before any processing, off the main thread.
     /// Overnight sessions can serialize to 1.5MB+ JSON; doing this inline
-    /// on the caller's actor caused morning-processing stalls.
-    func backupRawDataAsync(points: [RRPoint], sessionId: UUID, deviceId: String?, dataSource: String) async {
+    /// on the caller's actor caused morning-processing stalls. Dated by
+    /// `startDate`, the start the points' `t_ms` count from: a resumed
+    /// segment's points arrive here on its parent's clock.
+    func backupRawDataAsync(points: [RRPoint], sessionId: UUID, startDate: Date, deviceId: String?, dataSource: String) async {
         let backup = rawBackup
         await Task.detached(priority: .utility) {
             do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: deviceId)
+                try backup.backup(points: points, sessionId: sessionId, deviceId: deviceId, captureDate: startDate)
             } catch {
                 debugLog("[MorningProcessingService] Warning: Failed to backup \(dataSource) RR data: \(error)")
             }

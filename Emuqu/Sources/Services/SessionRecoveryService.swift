@@ -344,9 +344,11 @@ final class SessionRecoveryService {
         Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
     }
 
+    /// Dated by the recording's start (`LiveBackupSummary.sessionStart`):
+    /// recovery takes the local backup's capture date as the session start.
     private func savePulledBackup(_ backup: LiveBackupSummary) {
         do {
-            try rawBackup.backup(points: backup.points, sessionId: backup.sessionId, deviceId: nil, captureDate: backup.captureDate)
+            try rawBackup.backup(points: backup.points, sessionId: backup.sessionId, deviceId: nil, captureDate: backup.sessionStart)
             debugLog("[SessionRecoveryService] \u{2601}\u{fe0f} Pulled \(backup.beatCount) beats from iCloud (session \(backup.sessionId.uuidString.prefix(8)))")
         } catch {
             debugLog("[SessionRecoveryService] \u{274c} Failed to save iCloud backup locally: \(error)")

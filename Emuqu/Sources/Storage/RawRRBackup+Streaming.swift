@@ -14,7 +14,12 @@ extension RawRRBackup {
     ///
     /// Switching a one-shot backup to this format replaces it, so the switch
     /// follows `backup()`'s rule: never over a backup that holds more beats.
-    func appendBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil) throws {
+    ///
+    /// `captureDate` is when the recording began, and dates the header and
+    /// the index row as `backup()`'s does: a caller that knows it wins, then
+    /// the date the backup already has, and the moment of the first append
+    /// only when neither is known. Recovery takes it as the session start.
+    func appendBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws {
         try mergeIndexIfLaunchReadFailed()
         indexLock.lock()
         let existingEntry = index.first { $0.id == sessionId }
@@ -23,11 +28,12 @@ extension RawRRBackup {
         // Nothing new to write: only an index save a failed write left owed.
         guard points.count > previousCount else { return try saveIndexIfOwed() }
         let pointsPath = pointsURL(for: sessionId)
-        let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, newCount: points.count)
+        let start = captureDate ?? existingEntry?.captureDate
+        let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, captureDate: start, newCount: points.count)
         try writeAppendData(try encodedLines(points[previousCount...], sessionId: sessionId), to: pointsPath, sessionId: sessionId) {
             try encodedLines(points[...], sessionId: sessionId)
         }
-        try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count)
+        try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count, captureDate: start)
         if switchesFormat, let legacyName = existingEntry?.fileName { removeReplacedLegacyFile(legacyName) }
     }
 
@@ -50,11 +56,11 @@ extension RawRRBackup {
     /// new file holds every point and the index names it (`appendBackup`):
     /// deleted first, a failed write or a crash in between left neither copy.
     private func startAppendFormatIfNew(
-        _ existingEntry: BackupIndex?, sessionId: UUID, deviceId: String?, newCount: Int
+        _ existingEntry: BackupIndex?, sessionId: UUID, deviceId: String?, captureDate: Date?, newCount: Int
     ) throws -> Bool {
         guard existingEntry == nil || existingEntry?.backedUpCount == nil else { return false }
         try refuseReplacingLargerBackup(existingEntry, newCount: newCount)
-        try startAppendFormat(sessionId: sessionId, deviceId: deviceId, existingEntry: existingEntry)
+        try startAppendFormat(sessionId: sessionId, deviceId: deviceId, existingEntry: existingEntry, captureDate: captureDate)
         return true
     }
 
@@ -73,12 +79,13 @@ extension RawRRBackup {
     /// explicitly, so the overnight appends keep working while the device is
     /// locked.
     ///
-    /// The header keeps a replaced one-shot backup's capture date: recovery
-    /// uses it as the session start, and the moment of the switch is not that.
+    /// The header is dated by the recording's start (`captureDate`), else
+    /// keeps a replaced one-shot backup's capture date: recovery uses it as
+    /// the session start, and the moment of the switch is not that.
     func startAppendFormat(
-        sessionId: UUID, deviceId: String?, existingEntry: BackupIndex?
+        sessionId: UUID, deviceId: String?, existingEntry: BackupIndex?, captureDate: Date? = nil
     ) throws {
-        let header = BackupHeader(id: sessionId, captureDate: existingEntry?.captureDate ?? Date(), deviceId: deviceId)
+        let header = BackupHeader(id: sessionId, captureDate: captureDate ?? existingEntry?.captureDate ?? Date(), deviceId: deviceId)
         try writeHeaderUnlessReadable(header)
         try keepOrStartPointsFile(sessionId)
     }
@@ -205,12 +212,12 @@ extension RawRRBackup {
 
     /// No per-backup hash in the append format — integrity is count-based.
     func updateAppendIndex(
-        sessionId: UUID, existingEntry: BackupIndex?, beatCount: Int
+        sessionId: UUID, existingEntry: BackupIndex?, beatCount: Int, captureDate: Date? = nil
     ) throws {
         let now = Date()
         let updatedEntry = BackupIndex(
             id: sessionId,
-            captureDate: existingEntry?.captureDate ?? now,
+            captureDate: captureDate ?? existingEntry?.captureDate ?? now,
             fileName: nil,
             beatCount: beatCount,
             hash: "",

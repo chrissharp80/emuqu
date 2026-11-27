@@ -72,6 +72,8 @@ extension WorkoutTicker {
                 lifecycle.pauseTimeline.activeSeconds(sessionStart: $0, now: Date())
             } ?? 0
             lifecycle.elapsedSeconds = max(lifecycle.elapsedSeconds + 1, wallActive)
+        } else {
+            pauseControl.notePausedMotion(at: Date())
         }
         incrementalBackupTick()
     }
@@ -278,21 +280,18 @@ extension WorkoutTicker {
     private func runIncrementalBackup(buffer: [RRPoint]) {
         guard let session = lifecycle.currentSession else { return }
         let sessionId = session.id
+        let startDate = session.startDate
         let deviceId = core.strapLink.connectedDeviceId
         let bufferSnapshot = buffer  // copy before handing off
         let backup = core.rawBackup
         let cloudSyncManager = core.cloudSyncManager
         Task.detached(priority: .utility) {
             let didBackup = backup.incrementalBackup(
-                points: bufferSnapshot,
-                sessionId: sessionId,
-                deviceId: deviceId
+                points: bufferSnapshot, sessionId: sessionId, deviceId: deviceId, captureDate: startDate
             )
             guard didBackup else { return }
             await cloudSyncManager.uploadLiveBackup(
-                sessionId: sessionId,
-                points: bufferSnapshot,
-                deviceId: deviceId
+                sessionId: sessionId, points: bufferSnapshot, recordingStart: startDate, deviceId: deviceId
             )
         }
         persistWorkoutTrackIfChanged(session: session, sessionId: sessionId)

@@ -22,7 +22,8 @@ extension Notification.Name {
     /// `WatchConnectivityBridge.stopTappedAtKey` when the Watch stamped one.
     static let watchRequestedWorkoutPause = Notification.Name("FlowRecoveryWatchRequestedWorkoutPause")
 
-    /// Posted when the Watch requests resume.
+    /// Posted when the Watch requests resume, with the tap's time under
+    /// `WatchConnectivityBridge.stopTappedAtKey` when the Watch stamped one.
     static let watchRequestedWorkoutResume = Notification.Name("FlowRecoveryWatchRequestedWorkoutResume")
 
     /// Posted when the user taps Save & Done on the Watch summary.
@@ -168,8 +169,9 @@ final class WatchConnectivityBridge: NSObject {
     /// the phone, not sent back.
     var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> WatchControlRefusal?)?
 
-    /// The `watchRequestedWorkoutStop` and `watchRequestedWorkoutPause`
-    /// userInfo key for the `Date` the End or Pause was tapped on the wrist.
+    /// The `watchRequestedWorkoutStop`, `watchRequestedWorkoutPause` and
+    /// `watchRequestedWorkoutResume` userInfo key for the `Date` the End,
+    /// Pause or Resume was tapped on the wrist.
     nonisolated static let stopTappedAtKey = "tappedAt"
 
     /// Called on the main actor when the Watch asks us to stop the active
@@ -187,8 +189,10 @@ final class WatchConnectivityBridge: NSObject {
     var onPauseWorkoutFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to resume the
-    /// active workout. Reply-contract matches the others.
-    var onResumeWorkoutFromWatch: (() -> WatchControlRefusal?)?
+    /// active workout, with when the Resume was tapped (the message's `ts`;
+    /// nil when it carries none): a queued Resume arrives after the tap, and
+    /// the workout resumes at the tap. Reply-contract matches the others.
+    var onResumeWorkoutFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the user taps Save & Done on the
     /// Watch summary. The workout has already been archived at stop

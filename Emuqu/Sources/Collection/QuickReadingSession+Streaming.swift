@@ -117,13 +117,13 @@ extension QuickReadingSession {
         let buffer = strapStream.streamedRRPoints
         let deviceId = strapRecorder.linkState.connectedDeviceId
         let didBackup = rawBackup.incrementalBackup(
-            points: buffer, sessionId: session.id, deviceId: deviceId
+            points: buffer, sessionId: session.id, deviceId: deviceId, captureDate: session.startDate
         )
         guard didBackup else { return }
         let sessionId = session.id
         let cloudSyncManager = self.cloudSyncManager
         Task(priority: .utility) {
-            await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, deviceId: deviceId)
+            await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, recordingStart: session.startDate, deviceId: deviceId)
         }
     }
 
@@ -162,7 +162,7 @@ extension QuickReadingSession {
         let elapsedHoursForBattery = streamingLifecycle.streamingHoursForBattery
         let rrPoints = strapStream.stopStreaming()
         await publishQuickStreamingStopped(rrPoints: rrPoints, elapsedHours: elapsedHoursForBattery)
-        await overnightStreaming.backupStreamingData(rrPoints, sessionId: baseSession.id)
+        await overnightStreaming.backupStreamingData(rrPoints, sessionId: baseSession.id, startDate: baseSession.startDate)
         // A slow heart's 2-minute reading ran on until it had these (see
         // `quickReadingComplete`); one stopped early can still fall short.
         guard rrPoints.count >= Self.minimumQuickReadingBeats else {
