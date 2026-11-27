@@ -352,8 +352,8 @@ final class RRModelsTests: XCTestCase {
         let built = load([], metrics: metrics(yesterdayTrimp: 80, todayTrimp: 5))
         let context = try XCTUnwrap(SessionDataMigrations.recalibratedContext(load: built, anchor: trainingNow, old: nil))
         let acceptance = try XCTUnwrap(TrainingContext(from: built, relativeTo: trainingNow))
-        XCTAssertEqual(context.yesterdayTrimp, 80)
-        XCTAssertEqual(context.yesterdayTrimp, acceptance.yesterdayTrimp)
+        XCTAssertEqual(context.yesterdayLoad, 80)
+        XCTAssertEqual(context.yesterdayLoad, acceptance.yesterdayLoad)
         XCTAssertEqual(context.ctl, acceptance.ctl)
     }
 

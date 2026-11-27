@@ -102,7 +102,7 @@ final class HolisticDailyReport: Sendable {
         units: UnitsPreference,
         sleepSchedule: SleepSchedule,
         temperatureUnit: TemperatureUnit = .regionDefault,
-        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
+        liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil, loadFTP: TrainingLoadPrecedence.FTPAnchors = .none,
         config: Config = Config()
     ) {
         self.workoutSession = workoutSession
@@ -124,7 +124,7 @@ final class HolisticDailyReport: Sendable {
             workoutSession: workoutSession, overnightSession: overnightSession,
             recentOvernightSessions: recentOvernightSessions, userMaxHR: userMaxHR,
             sleepSchedule: sleepSchedule, liveLoad: reportLoad
-        )
+        ).readingLoad(at: loadFTP)
     }
 
     // MARK: Entry point
@@ -260,7 +260,7 @@ final class HolisticDailyReport: Sendable {
                 atl: live.atl,
                 ctl: live.ctl,
                 tsb: live.tsb,
-                yesterdayTrimp: workoutSession.trainingSnapshot?.yesterdayTrimp ?? 0,
+                yesterdayTrimp: workoutSession.trainingSnapshot?.yesterdayLoad ?? 0,
                 vo2Max: workoutSession.trainingSnapshot?.vo2Max,
                 daysSinceHardWorkout: workoutSession.trainingSnapshot?.daysSinceHardWorkout,
                 recentWorkouts: workoutSession.trainingSnapshot?.recentWorkouts

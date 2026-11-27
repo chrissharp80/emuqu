@@ -235,7 +235,7 @@ extension DeepDiveReportRenderer {
         in context: UIGraphicsPDFRendererContext,
         pageRect: CGRect
     ) -> CGFloat {
-        guard training.yesterdayTrimp > 0 else { return yPosition }
+        guard training.yesterdayTRIMP > 0 else { return yPosition }
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let bundle = LanguageManager.appBundle
         var y = ensureSpace(needed: 40, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
@@ -467,13 +467,13 @@ private func sleepTrendSummary(_ trend: PDFReportGenerator.SleepTrendData, bundl
 
 private func yesterdayTrimpRow(training: TrainingContext, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
-        name: String(localized: "Yesterday's TRIMP", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.yesterdayTrimp),
+        name: String(localized: "Yesterday's TRIMP", bundle: bundle), value: String(format: "%.0f", locale: LanguageManager.appLocale, training.yesterdayTRIMP),
         explanation: String(localized: "Training impulse from your most recent day of training. TRIMP combines duration and intensity (heart rate zones) into a single load metric. Values <50 are light; 50–150 moderate; 150–300 hard; >300 very hard. Recovery from yesterday's session directly influences today's HRV and readiness.", bundle: bundle),
-        interpretation: training.yesterdayTrimp < 50 ? String(localized: "Light day — minimal recovery demand", bundle: bundle) :
+        interpretation: training.yesterdayTRIMP < 50 ? String(localized: "Light day — minimal recovery demand", bundle: bundle) :
             (
-                training.yesterdayTrimp < 150 ? String(localized: "Moderate load — normal recovery expected within 24h", bundle: bundle) :
+                training.yesterdayTRIMP < 150 ? String(localized: "Moderate load — normal recovery expected within 24h", bundle: bundle) :
                     (
-                        training.yesterdayTrimp < 300 ? String(localized: "Hard session — may take 24–48h for full HRV recovery", bundle: bundle) :
+                        training.yesterdayTRIMP < 300 ? String(localized: "Hard session — may take 24–48h for full HRV recovery", bundle: bundle) :
                             String(localized: "Very hard — expect 36–72h for complete parasympathetic rebound", bundle: bundle)
                     )
             )

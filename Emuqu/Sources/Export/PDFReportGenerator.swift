@@ -417,7 +417,7 @@ private func mergedTrainingContext(
         atl: live.atl,
         ctl: live.ctl,
         tsb: live.tsb,
-        yesterdayTrimp: frozen?.yesterdayTrimp ?? 0,
+        yesterdayTrimp: frozen?.yesterdayLoad ?? 0,
         vo2Max: frozen?.vo2Max,
         daysSinceHardWorkout: frozen?.daysSinceHardWorkout,
         recentWorkouts: frozen?.recentWorkouts

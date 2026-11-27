@@ -121,12 +121,10 @@ enum CloudSessionPayload {
 
     // MARK: Stripping
 
+    /// The recorded load figures on their recorded scale: the copy is the
+    /// snapshot without its Health readings, not a rescaled one.
     private static func trainingWithoutHealthKitReadings(_ context: TrainingContext) -> TrainingContext {
-        TrainingContext(
-            atl: context.atl, ctl: context.ctl, tsb: context.tsb,
-            yesterdayTrimp: context.yesterdayTrimp, vo2Max: nil,
-            daysSinceHardWorkout: context.daysSinceHardWorkout, recentWorkouts: nil
-        )
+        context.withHealthReadings(vo2Max: nil, recentWorkouts: nil)
     }
 
     private static func analysisWithoutHealthKitReadings(_ result: HRVAnalysisResult) -> HRVAnalysisResult {
@@ -206,11 +204,7 @@ enum CloudSessionPayload {
     private static func restoring(_ remote: TrainingContext?, from local: TrainingContext?) -> TrainingContext? {
         guard let remote else { return local }
         guard let local, remote.vo2Max == nil, remote.recentWorkouts == nil else { return remote }
-        return TrainingContext(
-            atl: remote.atl, ctl: remote.ctl, tsb: remote.tsb,
-            yesterdayTrimp: remote.yesterdayTrimp, vo2Max: local.vo2Max,
-            daysSinceHardWorkout: remote.daysSinceHardWorkout, recentWorkouts: local.recentWorkouts
-        )
+        return remote.withHealthReadings(vo2Max: local.vo2Max, recentWorkouts: local.recentWorkouts)
     }
 
     /// The local training context, and, when both copies are the same

@@ -335,7 +335,7 @@ Inputs:
 On rest days ATL already carries yesterday's load, and the freshness bonus handles dissipation.
 
 1. **Acute fatigue.** With recent loads, `raw = Σ load_i · e^(−h_i/24)` and `acute = 0.30 · raw`. Without them, `raw = todayTrimp` and `acute = 0.35 · todayTrimp`.
-2. **Base.** If CTL ≥ 2.1, map `(ATL + acute)/CTL` piecewise-linearly through (0 → 100), (0.8 → 85), (1.0 → 70), (1.3 → 50), (1.5 → 30) and (2.0 → 10). The base is held at 10 above 2.0, and a ratio ≤ 0 gives 100. Below CTL 3.2, the base is `max(10, 100 − 0.5·(ATL + raw))`.
+2. **Base.** Map `(ATL + acute)/max(CTL, 100/7)` piecewise-linearly through (0 → 100), (0.8 → 85), (1.0 → 70), (1.3 → 50), (1.5 → 30) and (2.0 → 10). The base is held at 10 above 2.0, and a ratio ≤ 0 gives 100. The floor, 100/7 ≈ 14.3 TSS/day, is one hour at threshold a week; below it the ratio is taken against the floor, so the base is continuous and non-decreasing in CTL for a given load.
 3. **ACWR damper.** This step applies only if ACWR > 1.3.
    - `p = min(0.05 + 0.5·(ACWR − 1.3), 0.40) · min(max(CTL, 0)/50, 1)`.
    - If R_rec ≥ 70, `p ← min(p, 0.10)`.
@@ -367,7 +367,7 @@ ATL_m and CTL_m come from the frozen snapshot, or are 0 if it is missing. The fr
 
 **Other rules.** Without training metrics, readiness equals the recovery score. When readiness differs by at least 3 points from the morning-anchor readiness (the model at the frozen morning ATL/CTL with no training), the narrative says training "pulled readiness down" or rest "lifted" it.
 
-**Why it works.** Readiness asks whether there is capacity for more load today. ATL/CTL answers this relative to what the user is accustomed to. ATL updates once a day, so the 72 h acute term (τ = 24 h) makes this morning's session count now and fade over about a day. Below CTL 3.2 the ratio is numerically unstable, so a strain branch takes over. The ACWR penalty is scaled by CTL/50 because the ratio is unstable at low chronic load [14]. It is capped at 10% when recovery is at least 70, so a ratio cannot overrule a good morning HRV-based recovery score. The blend is asymmetric for the same reason. An optimistic load model is only partly trusted, and less so at low CTL; a pessimistic one is lifted modestly. Freezing the morning value makes history reproducible, and interpolating from it keeps the live figure continuous at acceptance.
+**Why it works.** Readiness asks whether there is capacity for more load today. ATL/CTL answers this relative to what the user is accustomed to. ATL updates once a day, so the 72 h acute term (τ = 24 h) makes this morning's session count now and fade over about a day. Near a CTL of zero the ratio is numerically unstable (a 30 TSS walk at CTL 2 reads as a ratio of about 6), so the ratio divides by at least one threshold-hour a week. At that floor the first segment of the map takes about 0.57 points per TSS of a same-day workout, the rate of a strain model of 0.5 points per TSS of ATL plus the undamped load, so a beginner's light session reads as a strain model reads it. A switch between two models at a CTL boundary would instead drop a beginner's base from about 80 to 10 on the day CTL crossed it. The ACWR penalty is scaled by CTL/50 because the ratio is unstable at low chronic load [14]. It is capped at 10% when recovery is at least 70, so a ratio cannot overrule a good morning HRV-based recovery score. The blend is asymmetric for the same reason. An optimistic load model is only partly trusted, and less so at low CTL; a pessimistic one is lifted modestly. Freezing the morning value makes history reproducible, and interpolating from it keeps the live figure continuous at acceptance.
 
 ### 3.6 Fusing the two strap paths
 
@@ -569,9 +569,9 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 *Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: 0.95 × best NP; read-time power TSS); emuqu 8abc6d7, 2026-10-03 (current form: rolling 20-minute window with 90% coverage).
 
-**N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL branch, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
+**N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL floor, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
 - **Acute fatigue.** A 72 h exponentially decaying term (τ = 24 h, weight 0.30, over workouts since the start of the morning reading's day) is added to ATL inside a piecewise capacity-ratio map.
-- **Low-CTL branch.** Below a CTL of 2.1 TSS/day (3.2 on the Banister TRIMP scale the boundary was set on, ÷ 1.52, the TRIMP of an hour at threshold at the default anchors per 100 TSS), the score switches to a strain branch.
+- **Low-CTL floor.** The capacity ratio divides by at least 100/7 ≈ 14.3 TSS/day, one hour at threshold a week, so the base is continuous and non-decreasing in CTL with no switch to another model. The fitness-base boundary of 2.1 TSS/day (3.2 on the Banister TRIMP scale it was set on, ÷ 1.52, the TRIMP of an hour at threshold at the default anchors per 100 TSS) only gates whether the training advice reads the ACWR.
 - **ACWR penalty.** Any penalty above an ACWR of 1.3 is scaled by min(CTL/50, 1) and capped at 10% when the morning recovery score is at least 70.
 - **Freshness.** A capped bonus is added for ATL dissipated since the morning.
 - **Blend.** The result is blended asymmetrically with the recovery score: excess trust is min(CTL/40, 1) × 0.55, and deficit uplift is 0.30.
@@ -831,11 +831,10 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | acuteFatigueTauHours | 24 | h | Acute decay |
 | acuteFatigueCoefficient | 0.30 | — | With recent loads |
 | acuteFatigueFallbackCoefficient | 0.35 | — | todayTrimp fallback |
-| ctlThreshold | 2.1 | TSS/day | Low-CTL branch |
-| novelLoadStrainCoefficient | 0.5 | — | Low-CTL branch |
+| ctlThreshold | 2.1 | TSS/day | Fitness-base boundary for ACWR advice |
+| capacityRatioCTLFloor | 100/7 ≈ 14.3 | TSS/day | Smallest CTL the capacity ratio divides by |
 | strainThreshold | 1600 | TSS-scale strain | Monotony warning (Foster's 2500 session-RPE band is near 600 at 4.2 AU per TSS, but monotony is capped at 10 here, so the TSS-scale level the strap has used is kept) |
 | capacity map | 0→100, 0.8→85, 1.0→70, 1.3→50, 1.5→30, 2.0→10 | — | Base readiness |
-| readinessFloor | 10 | points | Floor |
 | acwrOverreachingThreshold | 1.3 | — | Penalty starts |
 | penalty base / slope / cap | 0.05 / 0.50 / 0.40 | — | ACWR penalty |
 | acwrFullConfidenceCTL | 50 | load | Confidence ramp |

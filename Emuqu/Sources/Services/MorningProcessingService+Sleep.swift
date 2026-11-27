@@ -151,12 +151,9 @@ extension MorningProcessingService {
         series: RRSeries, effectiveStartDate: Date, recordingEnd: Date, attempt: Int
     ) async -> (sleepData: SleepData?, abortRetries: Bool) {
         do {
-            let fetchedSleep = try await healthKit.fetchSleepData(
-                for: effectiveStartDate, recordingEnd: recordingEnd, rrPoints: series.points
+            let sleepData = try await healthKit.fetchNightSleep(
+                for: effectiveStartDate, recordingEnd: recordingEnd, rrPoints: series.points, nightAnchor: effectiveStartDate
             )
-            // Credit the day-before's qualifying nap toward 24h sleep duration.
-            let napMinutes = await healthKit.fetchDaytimeNapMinutes(nightAnchoredAt: effectiveStartDate)
-            let sleepData = napMinutes > 0 ? fetchedSleep.withNapSleepMinutes(napMinutes) : fetchedSleep
             return (sleepData.nightSleepMinutes > 0 ? sleepData : nil, false)
         } catch {
             debugLog("[MorningProcessingService] Sleep fetch failed on attempt \(attempt): \(error)")

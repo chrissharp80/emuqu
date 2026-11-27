@@ -52,9 +52,8 @@ enum ReadinessScoring {
     ///
     /// ### 2. Capacity Ratio (primary signal)
     ///
-    /// When CTL ≥ 2.1 (`ctlThreshold`, established training history):
     ///   effectiveLoad = ATL + acuteFatigue
-    ///   capacityRatio = effectiveLoad / CTL
+    ///   capacityRatio = effectiveLoad / max(CTL, 100/7)
     ///
     /// Maps to 0-100 via piecewise linear:
     ///   ratio 0.0  → 100 (fully rested, no fatigue)
@@ -64,9 +63,12 @@ enum ReadinessScoring {
     ///   ratio 1.5  → 30  (sharp recent increase over the chronic base)
     ///   ratio 2.0+ → 10  (extreme overload)
     ///
-    /// When CTL < 2.1 (no training history):
-    ///   Pure strain-based: any load is novel, readiness drops fast.
-    ///   readiness = max(10, 100 - totalLoad × 0.5)
+    /// Below a CTL of 100/7 ≈ 14.3 TSS/day (`capacityRatioCTLFloor`, one
+    /// hour at threshold a week) the ratio is taken against that floor, so
+    /// a beginner's load is judged against a minimal habitual base rather
+    /// than divided by a near-zero CTL. Readiness is continuous and
+    /// non-decreasing in CTL for a given load: no CTL boundary switches it
+    /// to another model.
     ///
     /// ### 3. ACWR modifier (load spike detection)
     ///
@@ -123,13 +125,9 @@ enum ReadinessScoring {
         acuteChronicRatio: Double? = nil,
         recentWorkoutLoads: [WorkoutLoad]? = nil
     ) -> Double {
-        let (acuteFatigue, rawAcuteFatigue) = computeAcuteFatigue(
-            todayTrimp: todayTrimp, recentWorkoutLoads: recentWorkoutLoads
-        )
+        let acuteFatigue = computeAcuteFatigue(todayTrimp: todayTrimp, recentWorkoutLoads: recentWorkoutLoads)
 
-        var readiness = computeBaseReadiness(
-            ctl: ctl, atl: atl, acuteFatigue: acuteFatigue, rawAcuteFatigue: rawAcuteFatigue
-        )
+        var readiness = computeBaseReadiness(ctl: ctl, atl: atl, acuteFatigue: acuteFatigue)
 
         readiness = applyACWRModifier(
             readiness,
@@ -148,16 +146,16 @@ enum ReadinessScoring {
     // MARK: - Readiness Helpers
 
     /// Compute acute fatigue from recent workouts or today's TRIMP fallback:
-    /// the raw load from `rawAcuteFatigue` and its scaled share.
+    /// the raw load from `rawAcuteFatigue`, scaled.
     private static func computeAcuteFatigue(
         todayTrimp: Double,
         recentWorkoutLoads: [WorkoutLoad]?
-    ) -> (scaled: Double, raw: Double) {
+    ) -> Double {
         let raw = rawAcuteFatigue(todayTrimp: todayTrimp, recentWorkoutLoads: recentWorkoutLoads)
         if let loads = recentWorkoutLoads, !loads.isEmpty {
-            return (raw * RecoveryScoreConstants.Readiness.acuteFatigueCoefficient, raw)
+            return raw * RecoveryScoreConstants.Readiness.acuteFatigueCoefficient
         }
-        return (raw * RecoveryScoreConstants.Readiness.acuteFatigueFallbackCoefficient, raw)
+        return raw * RecoveryScoreConstants.Readiness.acuteFatigueFallbackCoefficient
     }
 
     /// The unscaled acute-fatigue load: the 24h-decayed TRIMP sum of
@@ -171,21 +169,14 @@ enum ReadinessScoring {
         }
     }
 
-    /// Compute base readiness from capacity ratio (CTL >= threshold) or novel load model.
-    private static func computeBaseReadiness(
-        ctl: Double, atl: Double, acuteFatigue: Double, rawAcuteFatigue: Double
-    ) -> Double {
-        let effectiveLoad = atl + acuteFatigue
-
-        guard ctl >= RecoveryScoreConstants.Readiness.ctlThreshold else {
-            let totalLoad = atl + rawAcuteFatigue
-            return max(
-                RecoveryScoreConstants.Readiness.readinessFloor,
-                RecoveryScoreConstants.Readiness.readinessAtZero - totalLoad * RecoveryScoreConstants.Readiness.novelLoadStrainCoefficient
-            )
-        }
-
-        let capacityRatio = effectiveLoad / ctl
+    /// Base readiness from the capacity ratio (ATL + acute fatigue) / CTL,
+    /// with CTL floored at `capacityRatioCTLFloor`: below that base the
+    /// ratio is taken against the floor, so readiness is one continuous,
+    /// non-decreasing function of CTL for a given load, with no switch
+    /// between models at a threshold.
+    static func computeBaseReadiness(ctl: Double, atl: Double, acuteFatigue: Double) -> Double {
+        let base = max(ctl, RecoveryScoreConstants.Readiness.capacityRatioCTLFloor)
+        let capacityRatio = (atl + acuteFatigue) / base
         // A NaN ratio (NaN load) stays NaN, so `calculateReadiness`'s finite
         // guard degrades it to the midpoint; the map would read it as 100.
         return capacityRatio.isNaN ? capacityRatio : mapCapacityRatioToReadiness(capacityRatio)

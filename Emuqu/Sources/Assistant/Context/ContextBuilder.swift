@@ -271,7 +271,7 @@ enum ContextBuilder {
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
         into hasher: inout Hasher
     ) {
-        hasher.combine(training.map { [$0.atl, $0.ctl, $0.tsb, $0.yesterdayTrimp] })
+        hasher.combine(training.map { [$0.atl, $0.ctl, $0.tsb, $0.yesterdayLoad] })
         hasher.combine(training?.vo2Max)
         hasher.combine(training?.daysSinceHardWorkout)
         hasher.combine(liveLoad.map { [$0.atl, $0.ctl, $0.tsb] })
@@ -529,7 +529,7 @@ extension ContextBuilder {
                 ctl: t.ctl,
                 tsb: t.tsb,
                 acwr: t.acuteChronicRatio,
-                yesterdayTrimp: t.yesterdayTrimp,
+                yesterdayTrimp: t.yesterdayLoad,
                 daysSinceHardWorkout: t.daysSinceHardWorkout,
                 vo2Max: t.vo2Max
             )
@@ -566,7 +566,7 @@ extension ContextBuilder {
             tags: session.tags.map(\.name),
             atl: session.trainingSnapshot?.atl, ctl: session.trainingSnapshot?.ctl,
             tsb: session.trainingSnapshot?.tsb, acwr: session.trainingSnapshot?.acuteChronicRatio,
-            yesterdayTrimp: session.trainingSnapshot?.yesterdayTrimp,
+            yesterdayTrimp: session.trainingSnapshot?.yesterdayLoad,
             analysisTitle: title, scoreMessage: englishScoreMessage(session, liveLoad: liveLoad),
             deepSleepMinutes: snapshot?.deepSleepMinutes, remSleepMinutes: snapshot?.remSleepMinutes,
             coreSleepMinutes: coreSleepMinutes(snapshot), awakeMinutes: snapshot?.awakeMinutes,

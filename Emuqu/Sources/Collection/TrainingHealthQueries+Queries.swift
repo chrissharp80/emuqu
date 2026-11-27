@@ -39,8 +39,8 @@ extension TrainingHealthQueries {
     /// Deduplicate workouts that cover the same physical session.
     ///
     /// Workouts are taken in start order; each one not yet absorbed starts a
-    /// cluster, and a later workout starting within 30 minutes of it joins
-    /// the cluster when either rule holds (`collapseDuplicates`):
+    /// cluster, and a later workout starting before it ends joins the
+    /// cluster when either rule holds (`collapseDuplicates`):
     ///   1. Same type, starting within 5 minutes of it, and their spans
     ///      intersect (two separate same-type workouts — an aborted start,
     ///      then the real one — do not intersect and stay apart).
@@ -67,10 +67,12 @@ extension TrainingHealthQueries {
     /// Absorb every later workout that covers the same physical session into
     /// the one starting at `i`, returning whichever copy carries the richest data.
     ///
-    /// The scan window is 30 min so a session
-    /// and its own HealthKit back-fill still collapse even when their start
-    /// times drift apart (the archive start and the Apple-Health export start
-    /// rarely align to the minute). Same-type near-starts still merge on the
+    /// The scan runs over every workout that starts before the anchor ends,
+    /// the only ones whose spans can intersect it, however far their start
+    /// drifted: a session and its own HealthKit back-fill whose starts do not
+    /// align, or an imported GPX track of a long hike and the app's own
+    /// recording of it started an hour in, are one session by time overlap,
+    /// not by how close their starts are. Same-type near-starts still merge on the
     /// tight 5-min rule (when their spans intersect); drifted or
     /// differently-typed copies merge only on a STRONG span overlap (≥60% of
     /// the shorter), which won't fuse two genuinely distinct back-to-back
@@ -84,15 +86,27 @@ extension TrainingHealthQueries {
         var best = anchor
         for j in (i + 1) ..< sorted.count where !consumed.contains(j) {
             let other = sorted[j]
+            guard other.date < endDate(of: anchor) else { break }
             let gap = other.date.timeIntervalSince(anchor.date)
-            guard gap <= 1800 else { break }
             guard isSameSession(anchor, other, startGap: gap) else { continue }
             consumed.insert(j)
-            if workoutDataScore(other) > workoutDataScore(best) {
-                best = other
-            }
+            best = preferred(best, other)
         }
         return best
+    }
+
+    /// Which of two copies of one session counts. Copies that each cover
+    /// most of the other are the same recording, and the richer one wins;
+    /// a copy nested in a longer one covers only part of the training (a
+    /// recording started an hour into an imported hike), so the longer one
+    /// counts, as `yields` decides between the archive and Health.
+    nonisolated private static func preferred(
+        _ current: HealthKitManager.WorkoutSummary, _ other: HealthKitManager.WorkoutSummary
+    ) -> HealthKitManager.WorkoutSummary {
+        guard coversMostOfBoth(current, other) else {
+            return other.durationMinutes > current.durationMinutes ? other : current
+        }
+        return workoutDataScore(other) > workoutDataScore(current) ? other : current
     }
 
     /// Merge workouts with the H10 ARCHIVE authoritative for anything the app

@@ -123,6 +123,17 @@ struct RecoveryVitals: Codable, Sendable, Equatable {
         return replacingRestingHeartRate(nil)
     }
 
+    /// The copy the sleep-HR part of the score reads: `restingHeartRate`
+    /// only when it is `strapSleepHR`, the strap's sleep HR for the night,
+    /// the measure `BaselineTracker.meanHRBaseline` is built from. Apple
+    /// Health's resting HR in its place is daytime-rest physiology with no
+    /// baseline of its own here, so it is neither scored against the
+    /// sleep-HR baseline nor quoted as the night's sleep HR.
+    func keepingOnlyStrapSleepHR(_ strapSleepHR: Double?) -> RecoveryVitals {
+        guard let restingHeartRate, restingHeartRate != strapSleepHR else { return self }
+        return replacingRestingHeartRate(nil)
+    }
+
     private func replacingRestingHeartRate(_ heartRate: Double?) -> RecoveryVitals {
         RecoveryVitals(
             respiratoryRate: respiratoryRate,

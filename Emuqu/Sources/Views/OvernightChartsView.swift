@@ -317,9 +317,8 @@ struct OvernightChartsView<InterChartContent: View>: View {
     ///   "HR chart still empty after crash", where the crash truncated BOTH
     ///   the recording AND the sleep.)
     private func needsGapFill(_ stats: OvernightStats) -> Bool {
-        let recordingStartMs = session.rrSeries?.points.first?.t_ms ?? 0
-        let recordingEndMs = session.rrSeries?.points.last?.endMs ?? 0
-        let recordingDurationMs = recordingEndMs - recordingStartMs
+        // Real-clock span: the sleep duration it is compared with is wall time.
+        let recordingDurationMs = BeatTimeline.spanMs(session.rrSeries?.points ?? [])
         let sleepDurationMs: Int64 = {
             guard let hk = healthKitSleep, let s = hk.sleepStart, let e = hk.sleepEnd else { return 0 }
             return MillisecondOffset.between(e, and: s, fallback: 0)

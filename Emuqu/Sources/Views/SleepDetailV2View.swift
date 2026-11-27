@@ -98,17 +98,14 @@ struct SleepDetailV2View: View {
             ?? RecoveryScoreCalculator.calculateSleepScore(sleepData: sleepData, typicalSleepHours: typicalSleepHours, userAge: userAge) ?? 0
     }
 
-    /// Per-field merge with strap-meanHR override for sleep HR.
-    /// See `VitalsDetailV2View.effectiveVitals` for rationale — this
-    /// view applies the same fix so the Sleep HR stat row reads the
-    /// strap's nocturnal analysis-window mean instead of Apple's
-    /// daytime RHR sample even on sessions accepted before the
-    /// strap-override path existed.
+    /// Per-field merge with the strap's sleep HR as the only sleep HR. The
+    /// stat row is labelled "Sleep HR", so Apple's daytime resting HR, a
+    /// different measure, never fills it; without a strap sleep HR it
+    /// shows no value.
     private var effectiveVitals: RecoveryVitals? {
         let stored = recoveryVitals.map { session.withSleepHeartRate($0) }
         let fresh = refreshedVitals
-        let strapHR = VitalsDetailV2View.strapMeanHR(of: session)
-        let mergedRHR = strapHR ?? stored?.restingHeartRate ?? fresh?.restingHeartRate
+        let mergedRHR = VitalsDetailV2View.strapMeanHR(of: session)
         if fresh == nil, stored == nil { return heartRateOnlyVitals(mergedRHR) }
         return RecoveryVitals(
             respiratoryRate: fresh?.respiratoryRate ?? stored?.respiratoryRate,
@@ -248,7 +245,9 @@ struct SleepDetailV2View: View {
     private static func refetchSleep(for session: HRVSession, from collector: RRCollector) async -> SleepData? {
         let recordingEnd = session.endDate ?? session.startDate.addingTimeInterval(8 * 3600)
         do {
-            return try await collector.healthKit.sleepQueries.fetchSleepData(for: session.startDate, recordingEnd: recordingEnd)
+            return try await collector.healthKit.service.fetchNightSleep(
+                for: session.startDate, recordingEnd: recordingEnd, rrPoints: nil, nightAnchor: session.startDate
+            )
         } catch {
             debugLog("[SleepDetail] HealthKit sleep refresh failed: \(error)", level: .warning)
             return nil

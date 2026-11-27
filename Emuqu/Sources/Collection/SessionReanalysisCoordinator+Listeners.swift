@@ -267,8 +267,9 @@ extension SessionReanalysisCoordinator {
     private func freshPlausibleSleep(for session: HRVSession, sessionEnd: Date) async -> SleepData? {
         let fresh: SleepData?
         do {
-            fresh = try await healthKit.fetchSleepData(
-                for: session.startDate, recordingEnd: sessionEnd, rrPoints: session.rrSeries?.points
+            fresh = try await healthKit.fetchNightSleep(
+                for: session.startDate, recordingEnd: sessionEnd, rrPoints: session.rrSeries?.points,
+                nightAnchor: session.startDate
             )
         } catch {
             debugLog("[AutoRescore.sleep] HK fetch failed: \(error.localizedDescription)", level: .warning)
@@ -441,8 +442,9 @@ extension SessionReanalysisCoordinator {
     ) async -> SleepData? {
         let sleep: SleepData?
         do {
-            sleep = try await healthKit.fetchSleepData(
-                for: session.startDate, recordingEnd: sessionEnd, rrPoints: session.rrSeries?.points
+            sleep = try await healthKit.fetchNightSleep(
+                for: session.startDate, recordingEnd: sessionEnd, rrPoints: session.rrSeries?.points,
+                nightAnchor: session.startDate
             )
         } catch {
             debugLog("[CloudKitBackfill] sleep fetch failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
