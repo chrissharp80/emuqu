@@ -86,7 +86,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
 
 The repository is set up so that a regression cannot land quietly.
 
-- **Fifty scripted gates** run in `make ci`: copy perimeter, science
+- **More than forty scripted gates** run in `make ci`: copy perimeter, science
   register, scoring governance (the constants hash is tied to the version
   string), localization coverage, orphans and resolution, SBOM drift,
   declaration length and type size limits, `try?` on write paths, singleton
@@ -95,16 +95,16 @@ The repository is set up so that a regression cannot land quietly.
 - **The gates are tested.** One script plants a violation for each gate and
   proves it goes red. Another proves each gate fails closed on a missing
   input. A third proves each is wired into CI.
-- **Tests.** Over 4,000 unit tests and 100 UI tests, including snapshot tests for
+- **Tests.** Over 4,000 unit tests and over 100 UI tests, including snapshot tests for
   the score views, characterization tests for the collector's observable
   surface, and negative tests for the gates. Coverage floors are measured and
   ratcheted, and are never restated in prose, so they cannot drift.
 - **Strict build.** Warnings are errors in every Debug and Release build of
   the app and the watch app. The project builds in Swift 6
   language mode with complete strict concurrency. There is no `try!`, `as!`,
-  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's 220,000 lines,
+  `fatalError`, force-unwrap, `TODO` or `FIXME` in the app's code,
   and SwiftLint fails CI on the first `fatalError` or force-unwrap;
-  three `preconditionFailure` calls guard hard-coded literals.
+  four `preconditionFailure` calls guard hard-coded literals.
 - **Ship hygiene.** Privacy manifest, purpose strings for every entitlement,
   API keys in the Keychain and never in iCloud, GitHub Actions pinned to
   commit SHAs, an SBOM for the eleven Swift packages, CodeQL, and a costed CI
