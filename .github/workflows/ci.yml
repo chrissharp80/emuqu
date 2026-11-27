@@ -74,7 +74,7 @@ jobs:
   lint-and-budgets:
     name: Lint + tech-debt budgets
     runs-on: macos-26
-    # measured ~5 min; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
+    # measured ~38 min, most of it the scoring-gate plants (~40 s each); a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
     timeout-minutes: 50
     steps:
       - name: Checkout
