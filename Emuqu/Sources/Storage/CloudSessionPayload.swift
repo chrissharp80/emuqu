@@ -100,12 +100,16 @@ enum CloudSessionPayload {
     /// (a record written before these were stripped) is kept as it came.
     ///
     /// The vitals snapshot's sleep HR follows the iCloud copy's analysis and
-    /// quality (`HRVSession.refreshSleepHeartRate`): a reanalysis made on the
-    /// other device moves the window, and the local snapshot holds the strap
-    /// heart rate of the window it replaced.
+    /// quality (`HRVSession.refreshSleepHeartRate`) when that gives another
+    /// sleep HR than this device's copy: a reanalysis made on the other device
+    /// moves the window, and the local snapshot holds the strap heart rate of
+    /// the window it replaced. An edit that left the analysis as it was (notes,
+    /// tags) keeps the local snapshot as it stands.
     static func restoringLocalOnlyFields(into merged: inout HRVSession, from local: HRVSession) {
         merged.vitalsSnapshot = merged.vitalsSnapshot ?? local.vitalsSnapshot
-        merged.refreshSleepHeartRate(replacing: local)
+        if merged.strapSleepHeartRate != local.strapSleepHeartRate {
+            merged.refreshSleepHeartRate(replacing: local)
+        }
         merged.trainingSnapshot = restoring(merged.trainingSnapshot, from: local.trainingSnapshot)
         merged.analysisResult = merged.analysisResult.map { restoring($0, from: local.analysisResult) }
         merged.scoreBreakdown = restoring(merged.scoreBreakdown, from: local.scoreBreakdown)

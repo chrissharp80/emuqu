@@ -329,9 +329,10 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(stored.aiContext, ["coaching": "easy day"])
     }
 
-    /// A score-only pass sets the score and nothing it does not compute: the
-    /// window mark, the artifact flags and the quality class stay as stored.
-    func testAScoreOnlyWriteLeavesTheWindowFlagsAndQualityAlone() throws {
+    /// A score-only pass sets the score and what it scored with, the quality
+    /// class it classified against the night's current sleep, and nothing it
+    /// does not compute: the window mark and the artifact flags stay as stored.
+    func testAScoreOnlyWriteKeepsTheWindowAndFlagsAndStoresTheQualityItScoredWith() throws {
         var read = overnight()
         read.recoveryScore = 6.1
         read.windowUserAdjusted = true
@@ -348,7 +349,7 @@ final class ReanalysisServiceTests: XCTestCase {
         let stored = try XCTUnwrap(try archive.retrieve(read.id))
         XCTAssertEqual(stored.recoveryScore, 7.4)
         XCTAssertEqual(stored.windowUserAdjusted, true)
-        XCTAssertEqual(stored.hrvDataQuality, .insufficient)
+        XCTAssertEqual(stored.hrvDataQuality, .preSleep)
         XCTAssertNil(stored.artifactFlags)
     }
 

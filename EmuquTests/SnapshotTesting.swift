@@ -176,18 +176,33 @@ extension SnapshotTesting {
     static let stableInterval: TimeInterval = 0.25
     static let settleChecks = 8
 
+    /// Further checks allowed while a spinner is on screen. A view computing
+    /// off the main actor ("Preparing charts...") draws the same frame twice
+    /// with animations off, which is not a settled screen; on a loaded host
+    /// the work can outlast `settleChecks`.
+    static let loadingChecks = 40
+
     @MainActor
     private static func settle(_ window: UIWindow) -> CGImage? {
         window.layoutIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(settleInterval))
         var previous = restingCapture(window)
-        for _ in 0 ..< settleChecks {
+        for check in 0 ..< settleChecks + loadingChecks {
             RunLoop.main.run(until: Date().addingTimeInterval(stableInterval))
             let next = restingCapture(window)
-            if let next, let previous, sameBytes(next, previous) { return next }
+            let loading = showsSpinner(window)
+            if !loading, let next, let previous, sameBytes(next, previous) { return next }
+            if !loading, check >= settleChecks { return next }
             previous = next
         }
         return previous
+    }
+
+    /// Whether a progress spinner is visible anywhere under `view`.
+    @MainActor
+    static func showsSpinner(_ view: UIView) -> Bool {
+        if view is UIActivityIndicatorView, !view.isHidden, view.alpha > 0 { return true }
+        return view.subviews.contains { showsSpinner($0) }
     }
 
     /// The window as a screen opens: every vertically scrolling view at its

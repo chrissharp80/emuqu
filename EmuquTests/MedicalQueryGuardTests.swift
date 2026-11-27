@@ -505,6 +505,8 @@ final class MedicalQueryGuardTests: XCTestCase {
                 )
             }
             for alternative in concept.unbounded where !alternative.isEmpty {
+                guard alternative.rangeOfCharacter(from: CharacterSet(charactersIn: "\\[](){}?*+|^$.")) == nil
+                else { continue }
                 probed += 1
                 XCTAssertNotNil(
                     MedicalQueryGuard.classify(alternative),

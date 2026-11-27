@@ -222,7 +222,7 @@ final class AssistantWriteBindingTests: XCTestCase {
         ))
         viewModel.turns = [ChatTurn(role: .user, text: "Summarize this article")]
 
-        let value = await router.resolveTool(name: "directions_routeTo", argsJSON: #"{"destination":"address","address":"1 Attacker Way"}"#)
+        let value = await router.resolveTool(name: "directions_routeTo", argsJSON: #"{"destination":"address","address":"1 Attacker Way","mode":"walking"}"#)
 
         XCTAssertTrue(asks(value), "routed to an address the user never confirmed: \(value)")
         XCTAssertEqual(question(value), "Get directions to “1 Attacker Way”?")
