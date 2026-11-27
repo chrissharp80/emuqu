@@ -239,7 +239,7 @@ extension CloudPullCoordinator {
         // the Trash and has not uploaded yet: its upload overrides the
         // tombstone, and deleting it here undid the restore.
         if deletedFlag == 1, !manager.trashRestore.isRestored(sessionId) {
-            let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionIdString)
+            let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionIdString, deletedAt: record.modificationDate)
             return RecordOutcome(new: counts.new, deleted: counts.deleted)
         }
         if deletedFlag == CloudKitSyncManager.keptOnDeviceMarker {
@@ -425,24 +425,28 @@ extension CloudPullCoordinator {
     /// the tombstone brought the session back everywhere, so on a conflict
     /// with a tombstone — batch push or direct upload — the deletion wins and
     /// is applied here, the same way a pull applies it.
-    func applyDeletionMetDuringUpload(_ sessionId: UUID) {
-        let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionId.uuidString)
+    func applyDeletionMetDuringUpload(_ sessionId: UUID, deletedAt: Date?) {
+        let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionId.uuidString, deletedAt: deletedAt)
         if counts.deleted > 0 { manager.pullVersion += 1 }
         debugLog("[CloudKit] Upload of \(sessionId.uuidString.prefix(8)) met a deletion from another device — applying it")
     }
 
     /// Handle a soft-deleted remote record by deleting the local copy if it exists
-    /// (`removeLocalCopy`).
+    /// (`removeLocalCopy`). `deletedAt` is when the tombstone was written to
+    /// iCloud (its record's modification date), kept as the deletion's time
+    /// here: dated by when this device applied it, the deletion read as newer
+    /// than a Trash restore made since on the deleting device, and the next
+    /// sync rewrote the tombstone over that restore.
     ///
     /// A local copy that could not be removed stays in the archive, and in
     /// the sync state: the deletion is not counted, the sync ends as an error
     /// rather than "Up to date", and the next pull, which lists the tombstone
     /// again, tries once more.
-    func handleDeletedRecord(sessionId: UUID, sessionIdString: String) -> (new: Int, deleted: Int) {
+    func handleDeletedRecord(sessionId: UUID, sessionIdString: String, deletedAt: Date?) -> (new: Int, deleted: Int) {
         var deletedCount = 0
         if manager.archive.store.exists(sessionId) {
             do {
-                try removeLocalCopy(sessionId)
+                try removeLocalCopy(sessionId, deletedAt: deletedAt)
                 deletedCount = 1
             } catch {
                 debugLog("[CloudKit] Pull: Failed to delete local session \(sessionIdString.prefix(8)): \(error)", level: .warning)
@@ -468,16 +472,16 @@ extension CloudPullCoordinator {
     /// `pendingUploadIds`: an edit made offline, say) goes to this device's
     /// Trash instead, so the change is not lost unrecoverably; removed as
     /// above when the Trash cannot take it.
-    private func removeLocalCopy(_ sessionId: UUID) throws {
+    private func removeLocalCopy(_ sessionId: UUID, deletedAt: Date?) throws {
         if manager.state.pendingUploadIds.contains(sessionId) {
             do {
-                try manager.archive.delete(sessionId)
+                try manager.archive.delete(sessionId, deletedAt: deletedAt)
                 return
             } catch {
                 debugLog("[CloudKit] Pull: the Trash could not keep \(sessionId.uuidString.prefix(8))'s unsynced change: \(error)", level: .warning)
             }
         }
-        try manager.archive.deleteWithoutTrash(sessionId)
+        try manager.archive.deleteWithoutTrash(sessionId, deletedAt: deletedAt)
         if !manager.archive.store.discardTrashed(sessionId) {
             debugLog("[CloudKit] Pull: \(sessionId.uuidString.prefix(8)) left a copy in the Trash, removed when the Trash expires", level: .warning)
         }

@@ -98,6 +98,15 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertEqual(quarantine([keeper, loser]), [loser.sessionId])
     }
 
+    /// Two entries of one session id are one recording listed twice, never a
+    /// keeper and its duplicate: nothing of that night is retired.
+    func testTwoEntriesOfOneSessionAreNotADuplicatePair() {
+        let id = UUID()
+        let first = entry(id: id, date: date(day: 10, hour: 22), endDate: date(day: 11, hour: 6), recoveryScore: 7.0)
+        let second = entry(id: id, date: date(day: 10, hour: 22), endDate: date(day: 11, hour: 6))
+        XCTAssertEqual(quarantine([first, second]), [])
+    }
+
     /// Disjoint same-night segments are split nights, not duplicates —
     /// they belong to `relinkSameNightSessions`, never to quarantine.
     func testDisjointSameNightSegmentsAreNotQuarantined() {

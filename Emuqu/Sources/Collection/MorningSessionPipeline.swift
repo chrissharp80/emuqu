@@ -36,6 +36,10 @@ final class MorningSessionPipeline {
     let settingsManager: SettingsManager
     let sleepBoundaryResolver: SleepBoundaryResolver
     let streamingLifecycle: StreamingLifecycle
+    /// Tonight's strap beats when they went to a backup of their own beside
+    /// the night's (`backUpDownloadedNight`), until the night is archived
+    /// holding them (`archiveForReview`).
+    var nightRescue: NightRescue?
 
     init(
         acceptanceService: SessionAcceptanceService,

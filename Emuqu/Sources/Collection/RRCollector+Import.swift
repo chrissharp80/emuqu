@@ -47,7 +47,7 @@ struct SessionImport {
             throw RRCollector.CollectorError.importNotAnalyzed
         }
         guard !archive.store.holdsCopy(of: session) else { throw RRCollector.CollectorError.duplicateImport }
-        let session = scoredForSave([session])[0]
+        let session = await scoredForSave([session])[0]
         let entry = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
         let merged = entry.sessionId != session.id
         let saved = merged ? archive.retrieveOrLog(entry.sessionId) ?? session : session
@@ -76,7 +76,7 @@ struct SessionImport {
             debugLog("[RRCollector] ERROR: No valid sessions to save!")
             return 0
         }
-        let scored = scoredForSave(validSessions)
+        let scored = await scoredForSave(validSessions)
         let savedCount: Int
         do {
             savedCount = try archive.store.archiveBatch(scored)
@@ -126,22 +126,17 @@ struct SessionImport {
     /// nights before it: the stored ones and the earlier nights of
     /// `sessions`, merged by the baseline's own rules
     /// (`BaselineTracker.PendingNights`), so the nights of one import are
-    /// scored as they would have been recorded one morning at a time.
-    func scoredForSave(_ sessions: [HRVSession]) -> [HRVSession] {
+    /// scored as they would have been recorded one morning at a time. A night
+    /// older than the stored nights reach is scored against its window
+    /// rebuilt from the archive (`ImportScoring`), off the main actor.
+    func scoredForSave(_ sessions: [HRVSession]) async -> [HRVSession] {
         let settings = settingsManager.settings
-        var nights = baselineTracker.pendingNights()
-        var scored: [HRVSession] = []
-        for session in sessions.sorted(by: { $0.startDate < $1.startDate }) {
-            let context = RescoreContext(
-                baselineStats: baselineTracker.recoveryBaselineStats(excludingNightOf: session, sleepSchedule: settings.sleepSchedule, in: nights),
-                typicalSleepHours: settings.typicalSleepHours,
-                scoringConfig: RecoveryScoreCalculator.ScoringConfiguration(from: settings)
-            )
-            let result = Self.scored(session, context: context)
-            baselineTracker.admit(result, to: &nights, sleepSchedule: settings.sleepSchedule)
-            scored.append(result)
-        }
-        return scored
+        let scoring = ImportScoring(
+            baselineTracker: baselineTracker, archive: archive, sleepSchedule: settings.sleepSchedule,
+            typicalSleepHours: settings.typicalSleepHours,
+            scoringConfig: RecoveryScoreCalculator.ScoringConfiguration(from: settings)
+        )
+        return await Task.detached(priority: .userInitiated) { scoring.scored(sessions) }.value
     }
 
     /// Whether a saved import gets a recovery score: an overnight or a nap

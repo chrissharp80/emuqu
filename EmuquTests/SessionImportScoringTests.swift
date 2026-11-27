@@ -103,6 +103,32 @@ final class SessionImportScoringTests: XCTestCase {
         XCTAssertNotEqual(last.recoveryScore, storedOnly, "the earlier imported nights are in its baseline")
     }
 
+    /// A night imported from before every stored night: the baseline holds
+    /// only later nights, the archive holds ten earlier ones. It is scored
+    /// against those ten, rebuilt from the archive, not on the absolute bands.
+    func testAnImportOlderThanTheStoredNightsIsScoredAgainstTheArchivedNightsBeforeIt() async throws {
+        let schedule = settings.settings.sleepSchedule
+        let earlier = (111 ... 120).map { importedNight(daysAgo: $0, rmssd: 60) }
+        for night in earlier { try archive.archive(night) }
+        tracker.rebuildFromSessions((1 ... 5).map { importedNight(daysAgo: $0, rmssd: 55) }, sleepSchedule: schedule)
+        let night = importedNight(daysAgo: 100, rmssd: 40)
+        let rebuilt = try XCTUnwrap(BaselineTracker.recoveryBaselineStats(rebuiltFrom: earlier, beforeNightOf: night, sleepSchedule: schedule))
+
+        try await sessionImport.save(night)
+
+        let score = try XCTUnwrap(archive.retrieve(night.id)?.recoveryScore)
+        XCTAssertEqual(score, try XCTUnwrap(scoreOf(night, against: rebuilt)), accuracy: 1e-9)
+        XCTAssertNotEqual(score, scoreOf(night, against: nil), "scored with no baseline")
+    }
+
+    private func scoreOf(_ night: HRVSession, against baseline: BaselineTracker.RecoveryBaselineStats?) -> Double? {
+        let context = RescoreContext(
+            baselineStats: baseline, typicalSleepHours: settings.settings.typicalSleepHours,
+            scoringConfig: RecoveryScoreCalculator.ScoringConfiguration(from: settings.settings)
+        )
+        return SessionImport.scored(night, context: context).recoveryScore
+    }
+
     /// A single import is scored when it is saved.
     func testASingleImportIsScored() async throws {
         let stored = storedNights()

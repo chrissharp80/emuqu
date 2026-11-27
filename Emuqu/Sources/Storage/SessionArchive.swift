@@ -192,6 +192,7 @@ final class SessionArchive: Sendable {
     func boot() {
         retryFailedIndexLoad()
         store.finishInterruptedDeletes()
+        normalizeIndexIdentity()
         reconcileOrphanFiles()
         healInterruptedRewrites()
         logTombstoneSummary()
@@ -259,11 +260,11 @@ final class SessionArchive: Sendable {
             return
         }
         archiveLock.lock()
-        let indexedFiles = Set(state.index.map(\.filePath))
+        let indexed = IndexedFiles(state.index)
         let deleted = state.deletedSessionIds.union(ForgottenSessions.ids)
         archiveLock.unlock()
         let newEntries = files.compactMap {
-            orphanEntry(for: $0, indexedFiles: indexedFiles, deleted: deleted)
+            orphanEntry(for: $0, indexed: indexed, deleted: deleted)
         }
         guard !newEntries.isEmpty else { return }
         adoptOrphans(newEntries)
@@ -300,16 +301,16 @@ final class SessionArchive: Sendable {
     /// are written encrypted, so a plain JSON decode skipped every real orphan
     /// as "undecodable" and a lost index could only be rebuilt by hand.
     private func orphanEntry(
-        for file: URL, indexedFiles: Set<String>, deleted: Set<UUID>
+        for file: URL, indexed: IndexedFiles, deleted: Set<UUID>
     ) -> SessionArchiveEntry? {
         let name = file.lastPathComponent
         guard file.pathExtension == "json",
               !reservedFileNames.contains(name),
-              !indexedFiles.contains(name)
+              !indexed.contains(fileNamed: name)
         else { return nil }
         // Skip files of sessions the user deleted, or deleted forever.
         let bareId = (name as NSString).deletingPathExtension
-        if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) { return nil }
+        if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) || indexed.sessionIds.contains(uuid) { return nil }
         guard let data = attempt("Archive.readOrphan", { try Data(contentsOf: file) }),
               let session = attempt("Archive.decodeOrphan", {
                   try ArchiveStore.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
@@ -318,6 +319,7 @@ final class SessionArchive: Sendable {
             debugLog("[Archive] reconcileOrphanFiles: skipping undecodable orphan \(name)")
             return nil
         }
+        guard !indexed.sessionIds.contains(session.id) else { return nil }
         return SessionArchiveEntry.make(
             from: session, hash: SessionFileCodec.sha256Hex(data), filePath: name
         )
@@ -327,8 +329,10 @@ final class SessionArchive: Sendable {
     /// concurrent `archive()` write of the same file can't duplicate an entry.
     private func adoptOrphans(_ newEntries: [SessionArchiveEntry]) {
         archiveLock.lock()
-        let currentFiles = Set(state.index.map(\.filePath))
-        let toAdopt = newEntries.filter { !currentFiles.contains($0.filePath) }
+        let current = IndexedFiles(state.index)
+        let toAdopt = newEntries.filter {
+            !current.contains(fileNamed: $0.filePath) && !current.sessionIds.contains($0.sessionId)
+        }
         if !toAdopt.isEmpty {
             state.index.append(contentsOf: toAdopt)
             _ = attempt("Archive.save") { try state.saveIndex() }

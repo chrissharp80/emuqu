@@ -82,16 +82,26 @@ extension ReanalysisService {
     nonisolated static func rebuiltBaseline(
         for session: HRVSession, candidates: [SessionArchiveEntry], in archive: SessionArchive, sleepSchedule: SleepSchedule
     ) -> BaselineTracker.RecoveryBaselineStats? {
+        let sessions = windowSessions(from: candidates, sleepSchedule: sleepSchedule) {
+            archive.retrieveLightweightOrLog($0, caller: "scoringBaseline")
+        }
+        return BaselineTracker.recoveryBaselineStats(rebuiltFrom: sessions, beforeNightOf: session, sleepSchedule: sleepSchedule)
+    }
+
+    /// The baseline candidates among `candidates` (newest first), loaded by
+    /// `load` until one more night than the window holds is in hand.
+    nonisolated static func windowSessions(
+        from candidates: [SessionArchiveEntry], sleepSchedule: SleepSchedule, load: (UUID) -> HRVSession?
+    ) -> [HRVSession] {
         var sessions: [HRVSession] = []
         var nights = Set<Date>()
         for entry in candidates {
             guard nights.count <= BaselineTracker.recoveryWindowNights else { break }
-            guard let loaded = archive.retrieveLightweightOrLog(entry.sessionId, caller: "scoringBaseline"),
-                  BaselineTracker.isBaselineCandidate(loaded) else { continue }
+            guard let loaded = load(entry.sessionId), BaselineTracker.isBaselineCandidate(loaded) else { continue }
             sessions.append(loaded)
             nights.insert(sleepSchedule.nightKey(for: loaded.startDate))
         }
-        return BaselineTracker.recoveryBaselineStats(rebuiltFrom: sessions, beforeNightOf: session, sleepSchedule: sleepSchedule)
+        return sessions
     }
 }
 

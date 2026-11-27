@@ -634,7 +634,7 @@ extension ArchiveMigrations {
         }
         var retirements: [DuplicateRetirement] = []
         for (_, dayEntries) in grouped where dayEntries.count > 1 {
-            let unlinked = dayEntries.filter { !linkedIds.contains($0.sessionId) }
+            let unlinked = SessionArchiveEntry.oneEntryPerSession(dayEntries.filter { !linkedIds.contains($0.sessionId) })
             guard unlinked.count > 1 else { continue }
             if hasRecentEntry(unlinked, now: now) { continue }
             retirements += containedDuplicates(in: unlinked)
