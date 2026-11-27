@@ -53,6 +53,12 @@ final class CloudKitLiveBackupManager {
         set { UserDefaults.standard.set(Array(newValue), forKey: Self.backedUpKey) }
     }
 
+    /// Sessions whose live backup in iCloud this device uploaded. Another
+    /// device's backup pulled here for recovery is never among them.
+    var uploadedHereIds: Set<UUID> {
+        Set(backedUpIds.compactMap(UUID.init(uuidString:)))
+    }
+
     /// The recovery list's length, and the size of each page of the
     /// listing it is chosen from.
     private static let recoveryLimit = 10

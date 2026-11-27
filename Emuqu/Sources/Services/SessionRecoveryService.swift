@@ -262,16 +262,56 @@ final class SessionRecoveryService {
     }
 
     /// Saves each pulled backup this device does not hold, and retires the
-    /// cloud copy of each it holds or the user deleted.
+    /// cloud copy of each whose night is over or that this device uploaded
+    /// (`cloudBackupDisposition`).
     private func seed(_ cloudBackups: [LiveBackupSummary], excluding live: Set<UUID>) {
         guard !cloudBackups.isEmpty else { return }
-        let retired = Set(archive.store.entries.map(\.sessionId))
-            .union(rawBackup.allBackups().map(\.id))
-            .union(archive.store.deletedIds)
-            .union(ForgottenSessions.ids)
+        let holdings = CloudBackupHoldings(
+            finished: Set(archive.store.entries.map(\.sessionId))
+                .union(archive.store.deletedIds)
+                .union(ForgottenSessions.ids),
+            heldLocally: Set(rawBackup.allBackups().map(\.id)),
+            uploadedHere: cloudSyncManager.liveBackupsUploadedHere
+        )
         for backup in cloudBackups where !live.contains(backup.sessionId) {
-            if retired.contains(backup.sessionId) { retireCloudBackup(backup.sessionId) } else { savePulledBackup(backup) }
+            switch Self.cloudBackupDisposition(of: backup.sessionId, holdings: holdings) {
+            case .retire: retireCloudBackup(backup.sessionId)
+            case .save: savePulledBackup(backup)
+            case .keep: continue
+            }
         }
+    }
+
+    /// What this device knows of the sessions behind iCloud's live backups.
+    struct CloudBackupHoldings {
+        /// Archived, deleted, or deleted forever here.
+        let finished: Set<UUID>
+        /// Sessions with a local raw backup, this device's own or pulled.
+        let heldLocally: Set<UUID>
+        /// Sessions whose iCloud backup this device uploaded.
+        let uploadedHere: Set<UUID>
+    }
+
+    /// What a scan does with one iCloud live backup.
+    enum CloudBackupDisposition: Equatable {
+        /// Delete the iCloud copy.
+        case retire
+        /// Save it as a local raw backup.
+        case save
+        /// Leave both copies as they are.
+        case keep
+    }
+
+    /// A backup whose night is over here, or that this device uploaded and
+    /// holds locally, is retired. One held locally only because a scan here
+    /// pulled it belongs to another device, which may still be recording
+    /// that night: its iCloud copy is that recording's crash-safety backup
+    /// and stays until the night is archived or deleted. Anything else is
+    /// saved for recovery.
+    static func cloudBackupDisposition(of id: UUID, holdings: CloudBackupHoldings) -> CloudBackupDisposition {
+        if holdings.finished.contains(id) { return .retire }
+        guard holdings.heldLocally.contains(id) else { return .save }
+        return holdings.uploadedHere.contains(id) ? .retire : .keep
     }
 
     /// Already have it locally — retire the cloud copy.

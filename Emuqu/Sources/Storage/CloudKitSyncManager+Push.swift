@@ -299,7 +299,7 @@ extension CloudKitSyncManager {
         CloudKitSessionFreshness.noteSeen(CloudKitSessionFreshness.modifiedAt(of: serverRecord))
         let serverFlag = serverRecord["isDeleted"] as? Int64 ?? 0
         if serverFlag == 1, !trashRestore.isRestored(sessionId) {
-            pull.applyDeletionMetDuringUpload(sessionId)
+            pull.applyDeletionMetDuringUpload(sessionId, deletedAt: serverRecord.modificationDate)
             return false
         }
         guard overwrites(serverRecord, with: prepared, sessionId: sessionId) else { return false }
@@ -610,6 +610,12 @@ extension CloudKitSyncManager {
 
     func deleteLiveBackup(sessionId: UUID) async {
         await liveBackup.delete(sessionId: sessionId)
+    }
+
+    /// Sessions whose live backup in iCloud this device uploaded
+    /// (`CloudKitLiveBackupManager.uploadedHereIds`).
+    var liveBackupsUploadedHere: Set<UUID> {
+        liveBackup.uploadedHereIds
     }
 
     /// iCloud's live backups; nil when sync is off, throws when iCloud

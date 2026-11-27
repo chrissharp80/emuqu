@@ -216,6 +216,31 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertTrue(collector.strapGuards.isStrapRecordingSaved(startedAt: start))
     }
 
+    /// A clean night whose stream holds a few more beats than the strap's
+    /// file: the night is scored on the strap's beats, which cannot replace
+    /// the larger stream backup and go to one of their own. Once the night is
+    /// saved, that copy goes, and no lost session is left behind for it.
+    func testASavedNightScoredOnASlightlyShorterStrapFileLeavesNoLostSession() async throws {
+        let radio = FakeStrapRadio()
+        let start = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 8 * 3600).rounded(.down))
+        radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 2_000))
+        let collector = makeCollector(radio)
+        ledgerFromBeforeTheRecordings(of: collector)
+        var night = completeNight(startingAt: start.addingTimeInterval(-60))
+        let backup = collector.morning.rawBackup
+        let stream = (0 ..< 2_050).map { RRPoint(t_ms: Int64($0) * 900, rr_ms: 900) }
+        _ = try backup.backup(points: stream, sessionId: night.id, captureDate: night.startDate)
+        let recording = try await collector.polarManager.recording.fetchRecording(recordedSince: night.startDate, budget: .unattended)
+        let strapBeats = recording.points(onClockOf: night.startDate)
+        night.rrSeries = RRSeries(points: strapBeats, sessionId: night.id, startDate: night.startDate)
+
+        await collector.overnightStreaming.keepDownloadedNight(strapBeats, chosen: strapBeats, usedDevice: true, baseSession: night)
+        XCTAssertTrue(collector.strapGuards.isStrapRecordingSaved(startedAt: start), "the strap's beats are backed up")
+        collector.morning.archiveForReview(night)
+
+        XCTAssertEqual(backup.allBackups().map(\.id), [night.id], "a second backup of the saved night is left for Lost Sessions")
+    }
+
     /// A download ledger whose record began before every recording in these
     /// tests, so none of them falls back to the rule for recordings older
     /// than the record (`StrapDownloadLedger.predatesRecord`).

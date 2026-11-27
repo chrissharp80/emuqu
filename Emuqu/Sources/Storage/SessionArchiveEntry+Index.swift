@@ -133,3 +133,15 @@ extension SessionArchiveEntry {
         (sourceSchemaVersion ?? 0) > Self.currentSchemaVersion
     }
 }
+
+extension SessionArchiveEntry {
+    /// `entries` with each session id once, the first of each kept. Two
+    /// entries of one id are one recording listed twice, never a keeper and
+    /// its duplicate: duplicate cleanup retiring the "loser" would quarantine
+    /// the keeper's own file and tombstone its id, deleting the night on
+    /// every device.
+    static func oneEntryPerSession(_ entries: [SessionArchiveEntry]) -> [SessionArchiveEntry] {
+        var seen = Set<UUID>()
+        return entries.filter { seen.insert($0.sessionId).inserted }
+    }
+}

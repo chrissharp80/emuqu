@@ -194,4 +194,26 @@ final class LostSessionRecoveryTests: XCTestCase {
         XCTAssertTrue(InterruptedWorkoutAutoRecovery.isRunning(workout.id), "launch recovery released the alert's claim")
         XCTAssertNil(UserDefaults.standard.dictionary(forKey: Self.attemptsKey), "an attempt was counted")
     }
+
+    // MARK: - iCloud live backups
+
+    /// Another device's live backup that a scan here pulled is not deleted
+    /// from iCloud on the next scan: that device may still be recording the
+    /// night, and the iCloud copy is its crash-safety backup.
+    func testABackupPulledFromAnotherDeviceKeepsItsICloudCopy() {
+        let night = UUID()
+        let holdings = SessionRecoveryService.CloudBackupHoldings(finished: [], heldLocally: [night], uploadedHere: [])
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: night, holdings: holdings), .keep)
+    }
+
+    /// A backup this device uploaded and still holds is retired from iCloud,
+    /// a finished night's is retired whoever uploaded it, and one not held
+    /// here is saved for recovery.
+    func testOwnAndFinishedBackupsAreRetiredAndNewOnesSaved() {
+        let own = UUID(), finished = UUID(), unseen = UUID()
+        let holdings = SessionRecoveryService.CloudBackupHoldings(finished: [finished], heldLocally: [own], uploadedHere: [own])
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: own, holdings: holdings), .retire)
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: finished, holdings: holdings), .retire)
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: unseen, holdings: holdings), .save)
+    }
 }

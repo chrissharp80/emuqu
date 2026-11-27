@@ -249,6 +249,24 @@ final class CloudPullRecordTests: XCTestCase {
         XCTAssertTrue(archive.store.exists(after.id))
     }
 
+    /// Device A deletes at 10:00 and restores at 10:05; this device applies
+    /// A's tombstone at 10:10. The deletion keeps A's time, so A's restore
+    /// reads as the newer change and is adopted here, not deleted again.
+    func testADeletionFromAnotherDeviceKeepsItsOwnTimeSoALaterRestoreWins() async throws {
+        let deletedThere = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 600).rounded(.down))
+        let session = night()
+        try archive.archive(session)
+
+        _ = manager.pull.handleDeletedRecord(sessionId: session.id, sessionIdString: session.id.uuidString, deletedAt: deletedThere)
+
+        XCTAssertEqual(try XCTUnwrap(archive.store.deletionTime(of: session.id)).timeIntervalSince1970, deletedThere.timeIntervalSince1970, accuracy: 0.001)
+        let restore = try restoredRecord(of: session)
+        restore[TrashRestoreCoordinator.restoredAtField] = deletedThere.addingTimeInterval(300) as CKRecordValue
+        let adopted = await manager.pull.processRemoteRecord(restore, forgotten: [])
+        XCTAssertEqual(adopted.new, 1, "a restore made after the original deletion lost to the time it was applied here")
+        XCTAssertTrue(archive.store.exists(session.id))
+    }
+
     /// The upload that replaces the tombstone carries the time the restore was
     /// made here, not the time of the upload.
     func testTheRestoreUploadCarriesTheTimeOfTheRestore() {
