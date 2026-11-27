@@ -234,7 +234,6 @@ enum WorkoutAnalysisSnapshotBuilder {
                 below: below, between: btwn, above: above, alphaTotal: alphaTotal
             ),
             decouplingPercent: inputs.decouplingPercent,
-            durationSec: inputs.durationSec,
             trimp: inputs.trimp,
             elevationGain: inputs.elevationGainMeters
         )
@@ -419,7 +418,6 @@ enum WorkoutAnalysisSnapshotBuilder {
     private static func buildHowYouDidNarrative(
         bands: Alpha1BandMinutes,
         decouplingPercent: Double?,
-        durationSec: TimeInterval,
         trimp: Double?,
         elevationGain: Double?
     ) -> String {
@@ -429,7 +427,9 @@ enum WorkoutAnalysisSnapshotBuilder {
                 totalMin: bands.total, below: bands.below, btwn: bands.between, above: bands.above
             ))
         }
-        if let decoupling = decouplingPercent, durationSec >= 600 {
+        // `decouplingPercent` is already nil below the decoupling minimums
+        // (`WorkoutAnalyzer.isLongEnoughForDecoupling`), which read moving time.
+        if let decoupling = decouplingPercent {
             parts.append(decouplingSentence(decoupling))
         }
         if let trimp { parts.append(loadSentence(trimp)) }

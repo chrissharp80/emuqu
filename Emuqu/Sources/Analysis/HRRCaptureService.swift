@@ -118,9 +118,9 @@ final class HRRCaptureService {
 
     /// Tier 3 — Apple's precomputed HRR, if a Watch workout detected the
     /// session. Added only when neither strap nor Watch produced a 1-minute
-    /// reading.
+    /// reading, by the rule the summary reads it with (`bestAtOneMinute`).
     private func appendAppleHRRIfMissing(_ samples: inout [HRRSample], stopDate: Date, stopHR: Int) async {
-        guard !samples.contains(where: { $0.offsetSec >= 55 && $0.offsetSec <= 65 }) else { return }
+        guard samples.bestAtOneMinute == nil else { return }
         guard let appleHRR = await captureAppleHealthKitHRR(stopDate: stopDate, stopHR: stopHR) else {
             debugLog("[HRRCaptureService] tier 3 — no Apple-computed HRR available (no Watch workout in ±5 min window)")
             return
@@ -225,7 +225,7 @@ final class HRRCaptureService {
             guard wait == .ready else { continue }
             guard let hr = strapHR(at: target) else { break }
             samples.append(HRRSample(
-                offsetSec: target, hr: hr, drop: stopHR - hr,
+                offsetSec: Self.measuredOffsetSec(since: stopDate), hr: hr, drop: stopHR - hr,
                 peakHR: stopHR, provenance: .strap
             ))
         }
@@ -233,6 +233,14 @@ final class HRRCaptureService {
     }
 
     private enum TargetWait { case ready, missed, cancelled }
+
+    /// The seconds since Stop at which a reading was actually taken. A read
+    /// that runs late (`lateReadToleranceSec`) is stored at its own time, so
+    /// `bestAtOneMinute` / `bestAtTwoMinutes` judge it by when it was taken,
+    /// not by the target it was aiming for.
+    nonisolated static func measuredOffsetSec(since stopDate: Date, now: Date = Date()) -> Int {
+        max(0, Int(now.timeIntervalSince(stopDate).rounded()))
+    }
 
     /// A target already passed by at most this much is still read now, as
     /// the Watch tier accepts a sample this far from its target.
@@ -388,8 +396,8 @@ final class HRRCaptureService {
         return (results as? [HKQuantitySample]) ?? []
     }
 
-    /// The nearest HK sample to each target offset, rejecting anything more
-    /// than 15 s away — the Watch's passive sampling can be sparse during rest
+    /// The nearest HK sample to each target offset, stored at the offset it
+    /// was taken at, rejecting anything more than 15 s away — the Watch's passive sampling can be sparse during rest
     /// — and any reading at or above `stopHR`: HR that has not fallen since
     /// Stop (the user moving) is not a recovery and would store a negative drop.
     private func watchHRRSamples(
@@ -400,12 +408,15 @@ final class HRRCaptureService {
         var results: [HRRSample] = []
         var rejected = 0
         for target in [60, 120] where target <= captureWindowSec {
-            guard let hr = Self.nearestHR(in: samples, at: stopDate.addingTimeInterval(TimeInterval(target))),
+            guard let (hr, takenAt) = Self.nearestHR(in: samples, at: stopDate.addingTimeInterval(TimeInterval(target))),
                   stopHR - hr > 0 else {
                 rejected += 1
                 continue
             }
-            results.append(HRRSample(offsetSec: target, hr: hr, drop: stopHR - hr, peakHR: stopHR, provenance: .watchSamples))
+            results.append(HRRSample(
+                offsetSec: Self.measuredOffsetSec(since: stopDate, now: takenAt), hr: hr, drop: stopHR - hr,
+                peakHR: stopHR, provenance: .watchSamples
+            ))
         }
         if results.isEmpty, rejected > 0 {
             debugLog("[HRRCaptureService] tier 2 — \(samples.count) HK samples present but none within 15s of a target with HR below stop HR (\(rejected) rejected)")
@@ -413,13 +424,13 @@ final class HRRCaptureService {
         return results
     }
 
-    /// The bpm of the sample nearest `targetTime`, or nil when none lies
-    /// within 15 s of it.
-    private static func nearestHR(in samples: [HKQuantitySample], at targetTime: Date) -> Int? {
+    /// The bpm of the sample nearest `targetTime` and when it was taken, or
+    /// nil when none lies within 15 s of it.
+    private static func nearestHR(in samples: [HKQuantitySample], at targetTime: Date) -> (Int, Date)? {
         guard let nearest = samples.min(by: {
             abs($0.startDate.timeIntervalSince(targetTime)) < abs($1.startDate.timeIntervalSince(targetTime))
         }), abs(nearest.startDate.timeIntervalSince(targetTime)) <= 15 else { return nil }
-        return Int(nearest.quantity.doubleValue(for: HKUnit(from: "count/min")).rounded())
+        return (Int(nearest.quantity.doubleValue(for: HKUnit(from: "count/min")).rounded()), nearest.startDate)
     }
 
     // MARK: - Tier 3 — Apple's computed heartRateRecoveryOneMinute

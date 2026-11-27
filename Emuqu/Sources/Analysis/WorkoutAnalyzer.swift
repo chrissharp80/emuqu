@@ -564,7 +564,8 @@ enum WorkoutAnalyzer {
     /// toward neither pace nor HR: a mid-run café stop otherwise sat in one
     /// half as slow moving time and read as a large efficiency loss.
     ///
-    /// Minimums: session ≥ 5 minutes AND ≥ 500m covered. Below those, the
+    /// Minimums: ≥ 5 minutes AND ≥ 500 m of moving session
+    /// (`isLongEnoughForDecoupling`). Below those, the
     /// half-session efficiency ratio explodes into nonsense values
     /// (observed "-274.4%" for a 2-minute house walk). Return nil instead
     /// and let the UI hide the metric.
@@ -575,10 +576,11 @@ enum WorkoutAnalyzer {
         pauses: TrackPauses = TrackPauses()
     ) -> DecouplingResult {
         let empty = DecouplingResult(decouplingPercent: nil, overallEfficiencyFactor: nil)
-        guard track.count >= 4, trackIsLongEnoughForDecoupling(track) else { return empty }
+        guard track.count >= 4 else { return empty }
         let hrSamples = hrSamplesWithWallClock(rrPoints: rrPoints, startDate: startDate)
         let halves = movingHalves(track: track, hrSamples: hrSamples, pauses: pauses)
-        guard let ef1 = halves.first.efficiency, let ef2 = halves.second.efficiency, ef1 > 0 else { return empty }
+        guard isLongEnoughForDecoupling(halves.first.merged(with: halves.second)),
+              let ef1 = halves.first.efficiency, let ef2 = halves.second.efficiency, ef1 > 0 else { return empty }
         return DecouplingResult(
             decouplingPercent: (ef1 - ef2) / ef1 * 100.0,
             // Overall EF uses the whole moving session.
@@ -666,19 +668,18 @@ enum WorkoutAnalyzer {
         }
     }
 
+    /// Shortest moving time decoupling is reported for, live or finished.
+    static let decouplingMinimumMovingSeconds = 300
+    /// Shortest moving distance decoupling is reported for.
+    static let decouplingMinimumDistanceMeters = 500.0
+
     /// Below 5 minutes or 500 m the half-session efficiency ratio explodes into
     /// nonsense (an observed "-274.4%" for a 2-minute house walk), so the
-    /// metric is withheld rather than shown.
-    private static func trackIsLongEnoughForDecoupling(_ track: [CLLocation]) -> Bool {
-        guard let firstStamp = track.first?.timestamp, let last = track.last else { return false }
-        let totalDuration = last.timestamp.timeIntervalSince(firstStamp)
-        var totalDistance = 0.0
-        // empty-range-ok: the `track.first` / `track.last` guard above proves
-        // count >= 1, and `1 ..< 1` is a valid empty range.
-        for i in 1 ..< track.count {
-            totalDistance += track[i].distance(from: track[i - 1])
-        }
-        return totalDuration >= 300 && totalDistance >= 500
+    /// metric is withheld rather than shown. Read on the moving session the
+    /// halves are built from (`movingHalves`), so a pause neither counts
+    /// toward the minimum nor sits in a half.
+    static func isLongEnoughForDecoupling(_ moving: MovingHalf) -> Bool {
+        moving.seconds >= Double(decouplingMinimumMovingSeconds) && moving.distance >= decouplingMinimumDistanceMeters
     }
 
     // MARK: - Polyline encoding

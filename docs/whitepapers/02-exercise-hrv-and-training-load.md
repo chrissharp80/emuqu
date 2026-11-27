@@ -161,7 +161,7 @@ For archived sessions:
 1. Require at least 64 RR points and re-stamp them on the gap-corrected timeline.
 2. Take the duration as the stored duration, else the last offset; it must exceed 120 s.
 3. For t = 120, 140, … ≤ duration, take the beats with offset in [t − 120 s, t) by a two-pointer sweep, which is O(n).
-4. For each window of at least 64 beats, clean it and reject it above 0.06; otherwise run DFA and emit `(t, α1, R²)`.
+4. For each window of at least 64 beats that spans at least 118 s, from its first beat's start to its last beat's end (the live dual gate; the slice is cut at a fixed time, so its span runs to the end of its last beat, where the live buffer's runs to the newest beat's start), clean it and reject it above 0.06; otherwise run DFA and emit `(t, α1, R²)`. A window whose first part fell in a dropout is not fitted on the seconds left.
 5. Each per-second sample then takes the latest reading at or before its offset if that reading is less than 20 s old, else nil.
 
 **Why the same pipeline.** Running the live filter, window, cadence and rejection offline lets older sessions benefit and keeps live and post-session numbers comparable. The gap-corrected timeline places each window where it really was. The 20 s limit is one cadence, so a sample carries only the reading that would have been on screen at that moment.
@@ -404,7 +404,7 @@ Pa:Hr decoupling [11] works as follows:
 2. Compute the efficiency factor `EF = (distance/seconds)/mean HR` for each half, on the gap-corrected timeline.
 3. Report `(EF₁ − EF₂)/EF₁ × 100`.
 
-The metric is withheld under 5 minutes or 500 m.
+The metric is withheld under 5 minutes or 500 m of moving time and moving distance, the session the halves are built from, so a pause counts toward neither. The live estimate starts at the same 5 minutes of active time, and the summary sentence appears whenever the metric does.
 
 ---
 

@@ -251,17 +251,29 @@ extension MorningProcessingService {
     }
 
     /// The archived recording behind `entry` as a segment, or nil when it has
-    /// no beats or is very short (< 30 min) — likely a quick test, demo, or
-    /// accidental recording that shouldn't contaminate overnight data.
+    /// no beats or is very short (`isMergeableLength`) — likely a quick
+    /// test, demo, or accidental recording that shouldn't contaminate
+    /// overnight data.
     nonisolated private static func mergeableSegment(_ entry: SessionArchiveEntry, in archive: SessionArchive) -> NightSegment? {
         guard let archived = archive.retrieveOrLog(entry.sessionId),
               let archivedSeries = archived.rrSeries, !archivedSeries.points.isEmpty
         else { return nil }
-        guard archivedSeries.durationMinutes >= 30 else {
-            debugLog("[MorningProcessing] Skipping short session \(entry.sessionId) (\(String(format: "%.1f", archivedSeries.durationMinutes)) min) from same-night merge")
+        guard isMergeableLength(archivedSeries.points) else {
+            debugLog("[MorningProcessing] Skipping short session \(entry.sessionId) from same-night merge")
             return nil
         }
         return NightSegment(startDate: archived.startDate, points: archivedSeries.points, sessionId: entry.sessionId)
+    }
+
+    /// Shortest recording worth merging into a night.
+    nonisolated static let minimumMergeableMinutes: Int64 = 30
+
+    /// Whether a recording lasted `minimumMergeableMinutes` of real time
+    /// (`BeatTimeline.spanMs`). The beat-sum length leaves out every
+    /// interval a dropout lost or the sensor rejected, so a streamed or
+    /// Verity Sense segment that ran for half an hour could measure less.
+    nonisolated static func isMergeableLength(_ points: [RRPoint]) -> Bool {
+        BeatTimeline.spanMs(points) >= minimumMergeableMinutes * 60_000
     }
 
     /// Archived overnight entries, other than the base session, that share

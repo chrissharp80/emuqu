@@ -195,9 +195,20 @@ final class WorkoutLiveTrendsSampleMetricsTests: XCTestCase {
         ))
     }
 
-    func testDecouplingIsSilentBeforeTenMinutes() {
+    /// The live estimate and the finished workout share one minimum.
+    func testLiveDecouplingStartsAtTheSameMinimumAsTheSavedFigure() {
+        let minimum = WorkoutAnalyzer.decouplingMinimumMovingSeconds
         XCTAssertNil(WorkoutLiveTrends.aerobicDecouplingPercent(
-            samples: WorkoutFixture.samples(count: 600, hr: { _ in 145 }, pace: { _ in 300 })
+            samples: WorkoutFixture.samples(count: minimum, hr: { _ in 145 }, pace: { _ in 300 })
+        ))
+        XCTAssertNotNil(WorkoutLiveTrends.aerobicDecouplingPercent(
+            samples: WorkoutFixture.samples(count: minimum + 1, hr: { _ in 145 }, pace: { _ in 300 })
+        ))
+    }
+
+    func testDecouplingIsSilentBeforeFiveMinutes() {
+        XCTAssertNil(WorkoutLiveTrends.aerobicDecouplingPercent(
+            samples: WorkoutFixture.samples(count: 300, hr: { _ in 145 }, pace: { _ in 300 })
         ))
     }
 

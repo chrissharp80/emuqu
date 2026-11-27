@@ -668,7 +668,9 @@ enum WorkoutRecoveryService {
     /// trailing rest begins.
     ///
     /// Only trims when the drop is SUSTAINED — matching "HR drops clearly for
-    /// 1–2 minutes". ~4 windows of 20 beats ≈ 80+ beats of trailing rest.
+    /// 1–2 minutes": the beats after the last active window must last
+    /// `minimumTrailingRestMs` of real time (`BeatTimeline.spanMs`), not a
+    /// beat count, which lasts less the higher the HR.
     static func trimTrailingRest(_ points: [RRPoint]) -> [RRPoint] {
         let windowBeats = 20
         guard points.count > windowBeats * 8 else { return points }
@@ -682,10 +684,13 @@ enum WorkoutRecoveryService {
         var lastActiveWindow = -1
         for (idx, hr) in windows.enumerated() where hr >= threshold { lastActiveWindow = idx }
         guard lastActiveWindow >= 0, lastActiveWindow < windows.count - 1 else { return points }
-        guard windows.count - 1 - lastActiveWindow >= 4 else { return points }
+        guard BeatTimeline.spanMs(Array(points[((lastActiveWindow + 1) * windowBeats)...])) >= minimumTrailingRestMs else { return points }
         let cutWindow = min(windows.count, lastActiveWindow + 1 + 2) // short cooldown
         return Array(points[0 ..< min(points.count, cutWindow * windowBeats)])
     }
+
+    /// Shortest trailing rest that is trimmed: the lower end of "1–2 minutes".
+    static let minimumTrailingRestMs: Int64 = 60_000
 
     /// Windowed HR across the whole recording.
     private static func windowedHeartRates(_ points: [RRPoint], windowBeats: Int) -> [Double] {

@@ -117,6 +117,14 @@ enum FrequencyDomainAnalyzer {
     /// multiple of another.
     private static let vlfMinDuration: Double = 10.0
 
+    /// The time `sampleCount` evenly spaced samples span, first to last, in
+    /// minutes: the duration the resampled run was built from
+    /// (`sampleCount = duration · fs + 1`), so every VLF gate reads the
+    /// same length for the same beats.
+    static func spanMinutes(sampleCount: Int, fs: Double) -> Double {
+        Double(max(0, sampleCount - 1)) / fs / 60.0
+    }
+
     // MARK: - Welch Configuration
 
     /// Default segment length for Welch's method (256 samples = 64 sec at 4 Hz)
@@ -211,10 +219,10 @@ enum FrequencyDomainAnalyzer {
         let fs = resampleFrequency
         guard let psd = pooledWelchPSD(signals, segLen: defaultWelchSegmentLength) else {
             guard let longest = signals.max(by: { $0.count < $1.count }), longest.count >= 64 else { return nil }
-            return computePSD(signal: longest, fs: fs, usableWindowMin: Double(longest.count - 1) / fs / 60.0)
+            return computePSD(signal: longest, fs: fs, usableWindowMin: spanMinutes(sampleCount: longest.count, fs: fs))
         }
         let bands = bandPowers(psd: psd, fs: fs, fftN: defaultWelchSegmentLength)
-        let minutes = Double(signals.reduce(0) { $0 + $1.count }) / fs / 60.0
+        let minutes = signals.reduce(0.0) { $0 + spanMinutes(sampleCount: $1.count, fs: fs) }
         let vlf = minutes >= vlfMinDuration
             ? pooledWelchPSD(signals, segLen: vlfWelchSegmentLength).map { bandPowers(psd: $0, fs: fs, fftN: vlfWelchSegmentLength).vlf }
             : nil
@@ -311,7 +319,7 @@ enum FrequencyDomainAnalyzer {
             ),
             fs: fs, fftN: segLen
         )
-        let windowMin = usableWindowMin ?? (Double(data.count) / fs / 60.0)
+        let windowMin = usableWindowMin ?? spanMinutes(sampleCount: data.count, fs: fs)
         return metrics(vlf: windowMin >= vlfMinDuration ? vlfPower(data: data, fs: fs) : nil, lf: bands.lf, hf: bands.hf)
     }
 
@@ -544,7 +552,7 @@ enum FrequencyDomainAnalyzer {
             return FrequencyDomainMetrics(vlf: nil, lf: 0, hf: 0, lfHfRatio: nil, totalPower: 0)
         }
         let bands = bandPowers(psd: psd, fs: fs, fftN: fftN)
-        let windowMin = usableWindowMin ?? (Double(sampleCount) / fs / 60.0)
+        let windowMin = usableWindowMin ?? spanMinutes(sampleCount: sampleCount, fs: fs)
         return FrequencyDomainMetrics(
             vlf: windowMin >= vlfMinDuration ? bands.vlf : nil,
             lf: bands.lf,

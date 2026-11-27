@@ -218,7 +218,18 @@ final class LiveDFAAnalyzer {
     ///
     /// Both conditions have to hold: enough beats AND enough elapsed time.
     private var hasEnoughDataForFit: Bool {
-        rollingBuffer.count >= minBeatsForFit && bufferSpanSec >= windowSec - Self.windowSpanSlackSec
+        Self.isFullWindow(beats: rollingBuffer.count, spanSec: bufferSpanSec, minBeats: minBeatsForFit, windowSec: windowSec)
+    }
+
+    /// Both conditions a window must meet before α1 is fitted on it, live
+    /// and offline (`WorkoutAlpha1Reanalyzer`) alike: at least `minBeats`
+    /// beats, and a span of at least `windowSec` less `windowSpanSlackSec`.
+    /// Each caller measures the span up to where its window ends: here the
+    /// newest beat's start (the buffer is cut back from it), offline the
+    /// end of the slice's last beat (the slice is cut at a fixed time). A
+    /// full window then falls short by at most one interval on either path.
+    nonisolated static func isFullWindow(beats: Int, spanSec: Double, minBeats: Int, windowSec: TimeInterval) -> Bool {
+        beats >= minBeats && spanSec >= windowSec - windowSpanSlackSec
     }
 
     /// How far short of `windowSec` a FULL window is allowed to measure.
@@ -233,7 +244,7 @@ final class LiveDFAAnalyzer {
     /// `isArtifactBeat` uses for an implausibly slow beat. Anything longer is
     /// not a beat gap, it is missing data, and the beat-count condition is what
     /// catches that.
-    private static let windowSpanSlackSec: TimeInterval = 2.0
+    nonisolated static let windowSpanSlackSec: TimeInterval = 2.0
 
     /// Time covered by the rolling buffer on the analyzer's beat clock
     /// (`BeatClock`), in seconds — the clock `trimToWindow` cuts on too.
