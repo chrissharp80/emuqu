@@ -156,6 +156,9 @@ struct PauseTimeline: Equatable, Sendable {
         pause(atElapsed: elapsed, now: date)
     }
 
+    /// When the pause still open began; nil when none is.
+    var openPauseStart: Date? { openPause?.startedAt }
+
     mutating func resume(now: Date) {
         guard let open = openPause else { return }
         spans.append(Span(atElapsed: open.atElapsed, seconds: max(0, now.timeIntervalSince(open.startedAt))))
@@ -230,22 +233,58 @@ struct PauseTimeline: Equatable, Sendable {
 /// Cumulative motion counters keep running through a pause. This records
 /// where each stood when the pause began and how much they moved before the
 /// workout resumed, so the walk back to the car is not added to the run.
+///
+/// While paused it also keeps the counters as each tick read them
+/// (`note(pedometer:footPod:at:)`), so a resume dated before it reached the
+/// phone (a Watch Resume that arrived late) ends the left-out stretch at the
+/// tap, and the ground covered after the tap counts.
 struct PausedMotionLedger: Equatable, Sendable {
+    /// The counters at one moment of the open pause.
+    struct Reading: Equatable, Sendable {
+        let at: Date
+        let pedometer: Double
+        let footPod: Double
+    }
+
     private var pedometerAtPause: Double?
     private var footPodAtPause: Double?
     private var pedometerExcluded: Double = 0
     private var footPodExcluded: Double = 0
+    /// The open pause's readings, oldest first, kept to the last
+    /// `maxPausedReadings`: a Watch Resume older than the phone's queued
+    /// intent lifetime is dropped before it gets here.
+    private var pausedReadings: [Reading] = []
+    static let maxPausedReadings = 300
 
     mutating func pause(pedometer: Double, footPod: Double) {
         pedometerAtPause = pedometer
         footPodAtPause = footPod
+        pausedReadings = []
     }
 
-    mutating func resume(pedometer: Double, footPod: Double) {
-        pedometerExcluded += Self.moved(since: pedometerAtPause, now: pedometer)
-        footPodExcluded += Self.moved(since: footPodAtPause, now: footPod)
+    /// Records where the counters stand at `date`, while a pause is open.
+    mutating func note(pedometer: Double, footPod: Double, at date: Date) {
+        guard pedometerAtPause != nil else { return }
+        pausedReadings.append(Reading(at: date, pedometer: pedometer, footPod: footPod))
+        if pausedReadings.count > Self.maxPausedReadings { pausedReadings.removeFirst(pausedReadings.count - Self.maxPausedReadings) }
+    }
+
+    /// Ends the paused stretch at the counters' current values, or, for a
+    /// resume dated `resumedAt`, at the last reading taken at or before it
+    /// (the pause's own start when there is none).
+    mutating func resume(pedometer: Double, footPod: Double, resumedAt: Date? = nil) {
+        let end = resumedAt.map { reading(at: $0) } ?? Reading(at: .distantFuture, pedometer: pedometer, footPod: footPod)
+        pedometerExcluded += Self.moved(since: pedometerAtPause, now: end.pedometer)
+        footPodExcluded += Self.moved(since: footPodAtPause, now: end.footPod)
         pedometerAtPause = nil
         footPodAtPause = nil
+        pausedReadings = []
+    }
+
+    /// The counters as they stood at `date` during the open pause.
+    private func reading(at date: Date) -> Reading {
+        pausedReadings.last { $0.at <= date }
+            ?? Reading(at: date, pedometer: pedometerAtPause ?? 0, footPod: footPodAtPause ?? 0)
     }
 
     /// The pedometer distance with every paused stretch, including one still

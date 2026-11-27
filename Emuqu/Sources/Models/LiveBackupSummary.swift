@@ -16,9 +16,20 @@ struct LiveBackupSummary: Equatable, Sendable {
     /// Beats the backup holds, counted from its decoded payload.
     let beatCount: Int
 
-    /// When the backup was written.
+    /// When the backup first reached iCloud: the record's plain field, which
+    /// the recovery listing selects and orders on. Not when the recording
+    /// began; see `sessionStart`.
     let captureDate: Date
 
     /// The decoded RR payload.
     let points: [RRPoint]
+
+    /// When the recording began, sealed in the payload
+    /// (`LiveBackupPayload`); nil for a backup an older build uploaded.
+    var recordingStart: Date?
+
+    /// The start the beats' `t_ms` count from, which a restored night is
+    /// dated by: the recording's own start, or, for a backup that carries
+    /// none, its first upload.
+    var sessionStart: Date { recordingStart ?? captureDate }
 }

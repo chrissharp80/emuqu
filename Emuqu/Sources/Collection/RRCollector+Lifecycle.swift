@@ -70,6 +70,7 @@ extension RRCollector {
             points: buffer,
             sessionId: session.id,
             deviceId: polarManager.linkState.connectedDeviceId,
+            captureDate: session.startDate,
             force: true
         )
         debugLog("[RRCollector] 🛟 Emergency backup flush: \(buffer.count) beats saved to disk")

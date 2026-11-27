@@ -283,7 +283,7 @@ final class MorningProcessingService {
     /// main-thread stall when backed up inline.
     private func run(_ request: OvernightRequest) async -> ProcessingResult {
         await backupRawDataAsync(
-            points: request.points, sessionId: request.baseSession.id,
+            points: request.points, sessionId: request.baseSession.id, startDate: request.baseSession.startDate,
             deviceId: request.deviceId, dataSource: request.dataSource
         )
         // Step 2: Build series, merge same-night sessions

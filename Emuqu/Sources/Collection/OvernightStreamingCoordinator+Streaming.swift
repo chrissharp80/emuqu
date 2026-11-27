@@ -186,13 +186,14 @@ extension OvernightStreamingCoordinator {
             points: buffer,
             sessionId: session.id,
             deviceId: deviceId,
+            captureDate: session.startDate,
             force: force
         )
         guard didBackup else { return }
         let sessionId = session.id
         let cloudSyncManager = self.cloudSyncManager
         Task(priority: .utility) {
-            await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, deviceId: deviceId)
+            await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, recordingStart: session.startDate, deviceId: deviceId)
         }
     }
 
@@ -305,7 +306,7 @@ extension OvernightStreamingCoordinator {
         defer { bgTask.end() }
         await endDeviceRecordingArming()
         let (baseSession, streamingPoints, reconnectCount) = await stopStreamingInfrastructure()
-        await backupStreamingData(streamingPoints, sessionId: baseSession.id)
+        await backupStreamingData(streamingPoints, sessionId: baseSession.id, startDate: baseSession.startDate)
         let isVeritySense = morning.isVeritySenseDevice(baseSession)
         let finalSession = await scoreStoppedNight(
             baseSession: baseSession, streamingPoints: streamingPoints,
@@ -673,14 +674,15 @@ extension OvernightStreamingCoordinator {
 
     /// Backs up streaming data for crash safety. Runs off the main thread so
     /// the JSON encode + SHA256 + file write doesn't stall the UI for large
-    /// sessions (overnight = ~1.5MB JSON).
-    func backupStreamingData(_ points: [RRPoint], sessionId: UUID) async {
+    /// sessions (overnight = ~1.5MB JSON). Dated by `startDate`, the start
+    /// the points' `t_ms` count from.
+    func backupStreamingData(_ points: [RRPoint], sessionId: UUID, startDate: Date) async {
         guard !points.isEmpty else { return }
         let backup = rawBackup
         let did = strapLinkControl.state.connectedDeviceId
         await Task.detached(priority: .utility) {
             do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
+                try backup.backup(points: points, sessionId: sessionId, deviceId: did, captureDate: startDate)
                 debugLog("[RRCollector] Streaming data backed up (\(points.count) beats)")
             } catch {
                 debugLog("[RRCollector] Failed to backup streaming data: \(error)", level: .error)

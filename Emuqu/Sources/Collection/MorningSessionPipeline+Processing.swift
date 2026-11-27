@@ -303,7 +303,7 @@ extension MorningSessionPipeline {
     @discardableResult
     func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async -> Bool {
         guard let devicePoints, !devicePoints.isEmpty else { return false }
-        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return true }
+        if usedDevice, await backUpMergedNight(chosen, of: baseSession) { return true }
         guard let rescueId = writeRescueBackup(devicePoints, baseSession: baseSession) else { return false }
         if usedDevice { nightRescue = NightRescue(sessionId: baseSession.id, backupId: rescueId, beats: devicePoints.count) }
         return true
@@ -331,13 +331,15 @@ extension MorningSessionPipeline {
         }
     }
 
-    /// Replaces the night's backup with `points`; false when it was not written.
-    private func backUpMergedNight(_ points: [RRPoint], sessionId: UUID) async -> Bool {
+    /// Replaces the night's backup with `points`, dated by the night's start,
+    /// the clock the merged points are on; false when it was not written.
+    private func backUpMergedNight(_ points: [RRPoint], of night: HRVSession) async -> Bool {
         let backup = rawBackup
         let did = strapLink.connectedDeviceId
+        let (sessionId, startDate) = (night.id, night.startDate)
         return await Task.detached(priority: .utility) {
             do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
+                try backup.backup(points: points, sessionId: sessionId, deviceId: did, captureDate: startDate)
                 return true
             } catch {
                 debugLog("[RRCollector] Failed to back up the merged night (\(points.count) beats): \(error)", level: .error)
