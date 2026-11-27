@@ -305,6 +305,7 @@ until you turn it on, and the hosted AI providers ask for consent first.
 | Weather for outdoor workouts | Coordinates rounded to about 1 km | MET Norway (CC BY 4.0) |
 | Nearby roads and trails | Approximate coordinates | Overpass (OpenStreetMap) |
 | Street names and addresses | Coordinates | Apple's geocoder and Apple Maps |
+| Place search, walking directions and a workout report's route map | The area they cover | Apple Maps |
 | Elevation | Route coordinates rounded to about 11 m | OpenTopoData |
 | WhisperKit voice input, once chosen | Nothing about you; the speech model is downloaded once | Hugging Face (huggingface.co) |
 

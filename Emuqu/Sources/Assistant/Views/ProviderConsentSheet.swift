@@ -167,7 +167,7 @@ struct ProviderConsentSheet: View {
     /// Overpass instances (`OverpassClient.endpoints`), which have different
     /// operators.
     static var locationServicesBullet: String {
-        String(localized: "Location-aware features send your (approximate) coordinates to a few free services — Overpass (OpenStreetMap: nearby roads and trails, at overpass.private.coffee or overpass-api.de), MET Norway (weather during outdoor workouts) and OpenTopoData (elevation). Street names come from Apple's geocoder. No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle)
+        String(localized: "Location-aware features send your (approximate) coordinates to a few free services — Overpass (OpenStreetMap: nearby roads and trails, at overpass.private.coffee or overpass-api.de), MET Norway (weather during outdoor workouts) and OpenTopoData (elevation). Street names come from Apple's geocoder. Place searches and directions use Apple Maps. No account, no Emuqu server; subject to each service's policy.", bundle: LanguageManager.appBundle)
     }
 
     /// Claude is the one provider that searches the web on its own side, with

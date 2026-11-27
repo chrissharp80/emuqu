@@ -135,7 +135,8 @@ only network destinations are: the cloud AI providers the user consented to
 (own key); Tavily (opt-in web search, own key); Anthropic's server-side web
 search when enabled with Claude; MET Norway (workout weather with location
 rounded to ~1 km); Overpass/OpenStreetMap (trails and nearby
-roads); Apple's geocoder and Apple Maps `MKLocalSearch`; OpenTopoData (route
+roads); Apple's geocoder and Apple Maps (`MKLocalSearch`, `MKDirections`, and
+the workout PDF's `MKMapSnapshotter`); OpenTopoData (route
 elevation, after the workout); Hugging Face (one-time WhisperKit model
 download); Apple CloudKit (iCloud sync, off until the user turns it on,
 encrypted on device before upload, Apple Health data left out); Apple's server speech recognizer when on-device recognition

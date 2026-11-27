@@ -254,7 +254,10 @@ struct PrivacyPolicyView: View {
         PolicyBlock(
             title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
             sentences: [
-                String(localized: "These services are Anthropic, OpenAI, Google, xAI and DeepSeek for the AI assistant, Tavily for web search, and Apple for speech recognition and address lookup.", bundle: LanguageManager.appBundle),
+                String(
+                    localized: "These services are Anthropic, OpenAI, Google, xAI and DeepSeek for the AI assistant, Tavily for web search, and Apple for speech recognition, address lookup, Apple Maps place search and directions, and the route map in a workout's PDF report.",
+                    bundle: LanguageManager.appBundle
+                ),
                 String(localized: "They also include MET Norway for weather, Overpass for trails and nearby roads, OpenTopoData for elevation, and Hugging Face for the speech model download.", bundle: LanguageManager.appBundle),
                 String(localized: "Data reaches these services only when you use a feature that needs them.", bundle: LanguageManager.appBundle),
                 String(localized: "A cloud AI provider receives nothing until you add your own key and agree to what it will receive, and Tavily nothing until you add your own Tavily key.", bundle: LanguageManager.appBundle),
