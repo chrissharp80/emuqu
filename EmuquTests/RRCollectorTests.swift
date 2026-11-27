@@ -234,6 +234,31 @@ final class RRCollectorSaveResultTests: XCTestCase {
 
     /// A stored re-score reports true, and the tags carried on the session
     /// (the auto-accept's pre-night tags) reach the archive with it.
+    /// A rescore request (late Apple Health sleep, a training heal) for a
+    /// night whose window the user picked keeps the pick: the window, the
+    /// flag that marks it, and the analysis it gave.
+    func testARescoreRequestKeepsAWindowPickedByHand() async throws {
+        var session = night()
+        let points = (0 ..< 900).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: 1000 + [20, -5, -20, 5][$0 % 4]) }
+        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: nightStart)
+        session.analysisResult = analysis()
+        // A training load already frozen, so the score-only pass never asks HealthKit for it.
+        session.trainingSnapshot = TrainingContext(
+            atl: 10, ctl: 10, tsb: 0, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
+        session.windowUserAdjusted = true
+        session.recoveryScore = 8.8
+        try archive.archive(session)
+
+        await makeReanalysis().handleRescoreRequest(sessionId: session.id, reason: "sleep")
+
+        let stored = try XCTUnwrap(try archive.retrieve(session.id))
+        XCTAssertEqual(stored.windowUserAdjusted, true, "the rescore cleared the manual window")
+        XCTAssertEqual(stored.analysisResult?.windowStart, 0)
+        XCTAssertEqual(stored.analysisResult?.windowEnd, 400)
+        XCTAssertNotEqual(stored.analysisResult?.isReanalysis, true, "the rescore replaced the picked analysis")
+    }
+
     func testScoreUpdateReportsTheStoredReArchiveWithItsTags() async throws {
         var session = night()
         session.analysisResult = analysis()

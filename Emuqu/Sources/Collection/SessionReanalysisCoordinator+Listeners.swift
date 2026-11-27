@@ -63,7 +63,11 @@ extension SessionReanalysisCoordinator {
     /// delta can be detected and surfaced as a "score changed while you were
     /// away" banner. A session the archive cannot read is skipped, as one it
     /// does not hold is; the read failure is logged at `.error`.
-    private func handleRescoreRequest(sessionId: UUID, reason: String) async {
+    ///
+    /// A window the user picked is kept: the full reanalysis skips that night
+    /// (`preserveManualWindow`), and the score-only recompute then scores the
+    /// picked window from the changed sleep or training inputs.
+    func handleRescoreRequest(sessionId: UUID, reason: String) async {
         let stored = ArchivedSessionRead.read(sessionId, from: archive, caller: "Auto-rescore").session
         let priorScore = stored?.recoveryScore
         if reason == "training" {
@@ -75,7 +79,7 @@ extension SessionReanalysisCoordinator {
             return
         }
         debugLog("[Auto-rescore] reanalyzing session — prior score=\(session.recoveryScore ?? -1)")
-        if let updated = await reanalyzeSession(session) {
+        if let updated = await reanalyzeSession(session, preserveManualWindow: true) {
             debugLog("[Auto-rescore] complete — new score=\(updated.recoveryScore ?? -1)")
             finishRescore(sessionId: sessionId, prior: priorScore, updated: updated, reason: reason)
             return
@@ -83,7 +87,7 @@ extension SessionReanalysisCoordinator {
         await scoreOnlyFallback(sessionId: sessionId, priorScore: priorScore, reason: reason)
     }
 
-    /// Full reanalyze refused (no rrSeries, etc). Score-only
+    /// Full reanalyze refused (no rrSeries, a window the user picked, etc). Score-only
     /// recompute is the safety net — at minimum it heals a
     /// corrupted training snapshot and rebuilds the breakdown
     /// from the existing analysisResult. Better than leaving

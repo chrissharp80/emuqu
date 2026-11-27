@@ -99,25 +99,38 @@ final class SessionReanalysisCoordinator {
     /// trailing pass over the freshly written session, since it may carry
     /// newer inputs (sleep that landed after the running pass read HealthKit),
     /// as `autoRefreshTodaysSleepIfImproved` does.
-    func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery) async -> HRVSession? {
+    ///
+    /// `preserveManualWindow: true` is for an automatic pass: a night whose
+    /// window the user picked (`windowUserAdjusted`, read from the archived
+    /// copy) is left alone and nil is returned, as the bulk pass does.
+    func reanalyzeSession(
+        _ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery, preserveManualWindow: Bool = false
+    ) async -> HRVSession? {
         if inFlightReanalyses.contains(session.id) {
             pendingReanalyses.insert(session.id)
             return await coalescedInFlightSession(session)
         }
         inFlightReanalyses.insert(session.id)
         defer { inFlightReanalyses.remove(session.id) }
-        var result = await reanalyzeOnce(session, method: method)
+        var result = await reanalyzeOnce(session, method: method, preserveManualWindow: preserveManualWindow)
         while pendingReanalyses.remove(session.id) != nil {
             debugLog("[Reanalyze] trailing pass for \(session.id.uuidString.prefix(8)) — requested while in flight")
-            result = await reanalyzeOnce(session, method: method) ?? result
+            result = await reanalyzeOnce(session, method: method, preserveManualWindow: preserveManualWindow) ?? result
         }
         return result
     }
 
     /// One pass over the session as it is on disk now, with the training load
-    /// as of the session's day held for the pass.
-    private func reanalyzeOnce(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
+    /// as of the session's day held for the pass. A window picked by hand on
+    /// that copy ends the pass first when `preserveManualWindow` is set.
+    private func reanalyzeOnce(
+        _ session: HRVSession, method: WindowSelectionMethod, preserveManualWindow: Bool
+    ) async -> HRVSession? {
         let fullSession = await fullSessionFromDisk(session)
+        if preserveManualWindow, fullSession.windowUserAdjusted == true {
+            debugLog("[Reanalyze] \(session.id.uuidString.prefix(8)) keeps the window picked by hand, not reanalysed")
+            return nil
+        }
         let sessionDate = fullSession.endDate ?? fullSession.startDate
         let pastDay = await scoring.holdPastDayTrainingLoad(asOf: sessionDate)
         defer { if let pastDay { scoring.releasePastDayTrainingLoad(pastDay) } }

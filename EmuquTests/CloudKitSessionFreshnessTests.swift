@@ -106,6 +106,45 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertGreaterThan(try XCTUnwrap(stored.modifiedAt), try XCTUnwrap(remote.modifiedAt))
     }
 
+    /// A window picked by hand on the other device, on a copy that had not
+    /// pulled the fold made here: the beats only this device holds are put
+    /// back, and the pick keeps its analysis, its score and its flag, its
+    /// window pointing at the same beats in the larger series.
+    func testAWindowPickedOnADeviceThatMissedAFoldKeepsItsAnalysisAndScore() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        var (local, newer) = try archivedSessionWithNewerICloudCopy(in: archive)
+        local.analysisResult = Self.analysis(windowStart: 0, windowEnd: 100)
+        local.recoveryScore = 4.0
+        _ = try archive.archive(local, skipSameNightMerge: true)
+        let localBeats = local.rrSeries?.points ?? []
+        var remote = newer
+        remote.rrSeries = RRSeries(points: Array(localBeats.suffix(120)), sessionId: local.id, startDate: local.startDate)
+        remote.analysisResult = Self.analysis(windowStart: 20, windowEnd: 100)
+        remote.windowUserAdjusted = true
+        remote.recoveryScore = 8.8
+
+        let result = try XCTUnwrap(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+
+        XCTAssertTrue(result.keptLocalBeats)
+        let stored = try XCTUnwrap(try archive.retrieve(local.id))
+        XCTAssertEqual(stored.rrSeries?.points.count, 200)
+        XCTAssertEqual(stored.windowUserAdjusted, true)
+        XCTAssertEqual(stored.recoveryScore, 8.8, "the score of the window the user picked was replaced")
+        XCTAssertEqual(stored.analysisResult?.windowStart, 100, "the picked window no longer points at its first beat")
+        XCTAssertEqual(stored.analysisResult?.windowEnd, 180, "the picked window no longer points at its last beat")
+    }
+
+    private static func analysis(windowStart: Int, windowEnd: Int) -> HRVAnalysisResult {
+        let base = SnapshotFixtures.analysisResult()
+        return HRVAnalysisResult(
+            windowStart: windowStart, windowEnd: windowEnd, timeDomain: base.timeDomain,
+            frequencyDomain: base.frequencyDomain, nonlinear: base.nonlinear, ansMetrics: base.ansMetrics,
+            artifactPercentage: base.artifactPercentage, cleanBeatCount: windowEnd - windowStart,
+            analysisDate: base.analysisDate
+        )
+    }
+
     /// A segment unlinked on the other device took its beats with it on
     /// purpose: the newer copy wins as it is, and the beats stay out.
     func testAnUnlinkFromAnotherDeviceIsNotUndone() throws {
@@ -123,6 +162,27 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
 
         XCTAssertFalse(result.keptLocalBeats)
         XCTAssertEqual(try archive.retrieve(local.id)?.rrSeries?.points.count, 120, "an unlink made on another device was undone")
+    }
+
+    /// A morning answer cleared on the other device stays cleared when the
+    /// beats only this device holds are put back.
+    func testAnAnswerClearedOnADeviceThatMissedAFoldStaysCleared() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        var (local, newer) = try archivedSessionWithNewerICloudCopy(in: archive)
+        local.morningFeeling = 2
+        local.perceivedReadiness = 0.4
+        _ = try archive.archive(local, skipSameNightMerge: true)
+        var remote = newer
+        remote.rrSeries = RRSeries(points: Array(local.rrSeries?.points.prefix(120) ?? []), sessionId: local.id, startDate: local.startDate)
+        remote.morningFeeling = nil
+        remote.perceivedReadiness = nil
+
+        _ = try XCTUnwrap(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+
+        let stored = try XCTUnwrap(try archive.retrieve(local.id))
+        XCTAssertNil(stored.morningFeeling, "a feeling cleared on the other device came back")
+        XCTAssertNil(stored.perceivedReadiness, "a rating cleared on the other device came back")
     }
 
     /// A newer copy holding every beat replaces the local one as before.

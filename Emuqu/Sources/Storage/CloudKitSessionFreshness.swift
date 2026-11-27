@@ -271,9 +271,11 @@ enum CloudKitSessionFreshness {
     /// beats to the session; another device that edits the session (a tag, a
     /// feeling) before it pulls the fold uploads a copy without them, and
     /// last-writer-wins alone would drop those beats on every device. The
-    /// other device's edit is kept: tags, notes and imported metrics stay as
-    /// that copy has them, so a tag removed there is not added back. True
-    /// when beats were put back.
+    /// other device's edit is kept: the user's content (tags, notes, the
+    /// morning feeling, the perceived readiness) and imported metrics stay as
+    /// that copy has them, so a tag removed there is not added back, and a
+    /// window picked there keeps its analysis and score
+    /// (`SessionMerger.shouldAdoptImportedAnalysis`). True when beats were put back.
     ///
     /// Only when the other copy keeps every segment this one links: an
     /// unlink there (`ReanalysisService` unlinking a segment) removed that
@@ -283,13 +285,21 @@ enum CloudKitSessionFreshness {
         guard (local.rrSeries?.points.count ?? 0) > (merged.rrSeries?.points.count ?? 0),
               Set(local.linkedSessionIds ?? []).isSubset(of: Set(merged.linkedSessionIds ?? []))
         else { return false }
-        let edits = (tags: merged.tags, notes: merged.notes, importedMetrics: merged.importedMetrics)
+        let edits = merged
         guard SessionMerger.mergeSessionData(from: local, into: &merged) else { return false }
-        merged.tags = edits.tags
-        merged.notes = edits.notes
-        merged.importedMetrics = edits.importedMetrics
+        keepUserContent(of: edits, in: &merged)
         debugLog("[CloudKit] Pull: kept the beats only this device holds in the newer iCloud copy", level: .info)
         return true
+    }
+
+    /// The user's content and imported metrics as `edited` has them.
+    private static func keepUserContent(of edited: HRVSession, in merged: inout HRVSession) {
+        merged.tags = edited.tags
+        merged.notes = edited.notes
+        merged.morningFeeling = edited.morningFeeling
+        merged.morningFeelingTags = edited.morningFeelingTags
+        merged.perceivedReadiness = edited.perceivedReadiness
+        merged.importedMetrics = edited.importedMetrics
     }
 
     private static func keepSleep(of local: HRVSession, in merged: inout HRVSession) {

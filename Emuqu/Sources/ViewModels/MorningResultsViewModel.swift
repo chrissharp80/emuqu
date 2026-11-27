@@ -145,7 +145,7 @@ final class MorningResultsViewModel {
     /// so two quick answers reach the archive in the order they were given
     /// and the last one is what stays stored.
     private func persistPerceivedReadiness(_ value: Double?, scored: HRVSession, revertTo previous: HRVSession) {
-        let (sessionId, archive) = (session.id, services.sessionArchive)
+        let (sessionId, archive) = (archivedSessionId, services.sessionArchive)
         let earlier = perceivedReadinessWrite
         perceivedReadinessWrite = Task {
             await earlier?.value
@@ -653,7 +653,7 @@ final class MorningResultsViewModel {
     /// and a retrieve that finishes after a later bump was made is dropped, so
     /// an older copy never replaces a newer one.
     func applyExternalArchiveUpdate() {
-        let sessionId = session.id
+        let sessionId = archivedSessionId
         let (shown, archive) = (displaySession, services.sessionArchive)
         archiveUpdateGeneration &+= 1
         let generation = archiveUpdateGeneration
@@ -692,6 +692,13 @@ final class MorningResultsViewModel {
         guard let lhsData = attempt("morningResults.encodeArchived", { try encoder.encode(lhs) }),
               let rhsData = attempt("morningResults.encodeShown", { try encoder.encode(rhs) }) else { return false }
         return lhsData == rhsData
+    }
+
+    /// The id the archive holds this night under: its own, or that of the
+    /// night it was folded into (`SessionArchive.archivedId(of:)`), whose
+    /// copy holds this night's beats and takes its edits.
+    private var archivedSessionId: UUID {
+        services.sessionArchive.archivedId(of: session.id)
     }
 
     /// Show the archived copy, including the sleep and vitals it was scored

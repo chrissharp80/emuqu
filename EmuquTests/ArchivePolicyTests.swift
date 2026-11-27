@@ -366,6 +366,52 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertNotNil(target.importedMetrics)
     }
 
+    /// A recording folded into a night already archived brings the user's own
+    /// answers with it: the morning feeling, the perceived readiness and notes
+    /// that differ, as a retired duplicate's are carried into its keeper.
+    func testAFoldCarriesTheUsersOwnAnswers() {
+        let existing = makeSession(points: rrPoints(count: 400), withAnalysis: true, recoveryScore: 7.5, notes: "kept")
+        var imported = makeSession(points: rrPoints(count: 200), withAnalysis: true, notes: "late dinner")
+        imported.morningFeeling = 2
+        imported.morningFeelingTags = []
+        imported.perceivedReadiness = 0.4
+
+        var target = existing
+        XCTAssertTrue(SessionMerger.mergeSessionData(from: imported, into: &target))
+
+        XCTAssertEqual(target.morningFeeling, 2, "the feeling given on the folded recording was lost")
+        XCTAssertEqual(target.perceivedReadiness, 0.4, "the rating given on the folded recording was lost")
+        XCTAssertEqual(target.notes, "kept\n\nlate dinner")
+    }
+
+    /// A window the user picked on the existing session is kept over an
+    /// imported analysis backed by more beats, with the score it gave.
+    func testAPickedWindowIsKeptOverALargerImport() {
+        var existing = makeSession(points: rrPoints(count: 200), withAnalysis: true, recoveryScore: 8.8)
+        existing.windowUserAdjusted = true
+        let imported = makeSession(points: rrPoints(count: 400), withAnalysis: true, recoveryScore: 2.5)
+
+        var target = existing
+        SessionMerger.apply(SessionMerger.mergeOutcome(imported: imported, existing: existing), from: imported, to: &target)
+
+        XCTAssertEqual(target.recoveryScore, 8.8, "the picked window's score was replaced")
+        XCTAssertEqual(target.windowUserAdjusted, true)
+    }
+
+    /// An imported window the user picked is taken with its flag, so later
+    /// automatic passes keep it too.
+    func testAPickedImportedWindowIsTakenWithItsFlag() {
+        let existing = makeSession(points: rrPoints(count: 400), withAnalysis: true, recoveryScore: 2.5)
+        var imported = makeSession(points: rrPoints(count: 200), withAnalysis: true, recoveryScore: 8.8)
+        imported.windowUserAdjusted = true
+
+        var target = existing
+        SessionMerger.apply(SessionMerger.mergeOutcome(imported: imported, existing: existing), from: imported, to: &target)
+
+        XCTAssertEqual(target.recoveryScore, 8.8)
+        XCTAssertEqual(target.windowUserAdjusted, true, "the picked window lost its flag in the merge")
+    }
+
     /// Nothing to merge → no changes reported (the `changed == false`
     /// contract callers use to decide whether to re-archive).
     func testNoChangesWhenNothingToMerge() {
@@ -408,13 +454,13 @@ final class ArchivePolicyTests: XCTestCase {
         loser.morningFeelingTags = []
         loser.perceivedReadiness = 0.4
 
-        XCTAssertTrue(ArchiveMigrations.carryUserContent(from: loser, into: &keeper))
+        XCTAssertTrue(SessionMerger.carryUserContent(from: loser, into: &keeper))
 
         XCTAssertEqual(keeper.tags.map(\.id), [ReadingTag.morning.id, ReadingTag.alcohol.id])
         XCTAssertEqual(keeper.notes, "kept\n\nlate dinner")
         XCTAssertEqual(keeper.morningFeeling, 2)
         XCTAssertEqual(keeper.perceivedReadiness, 0.4)
-        XCTAssertFalse(ArchiveMigrations.carryUserContent(from: loser, into: &keeper), "carried twice")
+        XCTAssertFalse(SessionMerger.carryUserContent(from: loser, into: &keeper), "carried twice")
     }
 
     /// The keeper's own answers stay; a copy with nothing new changes nothing.
@@ -424,20 +470,20 @@ final class ArchivePolicyTests: XCTestCase {
         var loser = makeSession(points: nil, notes: "same")
         loser.morningFeeling = 1
 
-        XCTAssertFalse(ArchiveMigrations.carryUserContent(from: loser, into: &keeper))
+        XCTAssertFalse(SessionMerger.carryUserContent(from: loser, into: &keeper))
         XCTAssertEqual(keeper.morningFeeling, 4)
-        XCTAssertEqual(ArchiveMigrations.mergedNotes(nil, "only"), "only")
-        XCTAssertEqual(ArchiveMigrations.mergedNotes("mine", nil), "mine")
-        XCTAssertEqual(ArchiveMigrations.mergedNotes("mine", ""), "mine")
+        XCTAssertEqual(SessionMerger.mergedNotes(nil, "only"), "only")
+        XCTAssertEqual(SessionMerger.mergedNotes("mine", nil), "mine")
+        XCTAssertEqual(SessionMerger.mergedNotes("mine", ""), "mine")
     }
 
     /// A copy whose file could not be moved is carried again on the next
     /// pass: notes the keeper already holds as whole paragraphs are not
     /// appended again, while text that only appears inside a paragraph is.
     func testNotesAlreadyCarriedAreNotAppendedAgain() {
-        XCTAssertEqual(ArchiveMigrations.mergedNotes("A\n\nB", "B"), "A\n\nB")
-        XCTAssertEqual(ArchiveMigrations.mergedNotes("B\n\nA", "B"), "B\n\nA")
-        XCTAssertEqual(ArchiveMigrations.mergedNotes("A\n\nB\n\nC", "B\n\nC"), "A\n\nB\n\nC")
-        XCTAssertEqual(ArchiveMigrations.mergedNotes("AB", "B"), "AB\n\nB")
+        XCTAssertEqual(SessionMerger.mergedNotes("A\n\nB", "B"), "A\n\nB")
+        XCTAssertEqual(SessionMerger.mergedNotes("B\n\nA", "B"), "B\n\nA")
+        XCTAssertEqual(SessionMerger.mergedNotes("A\n\nB\n\nC", "B\n\nC"), "A\n\nB\n\nC")
+        XCTAssertEqual(SessionMerger.mergedNotes("AB", "B"), "AB\n\nB")
     }
 }

@@ -508,7 +508,7 @@ extension ArchiveMigrations {
             guard var keeper = try archive.store._retrieve(keeperId) else { return false }
             var changed = false
             for loser in try loserIds.compactMap({ try archive.store._retrieve($0) }) {
-                changed = Self.carryUserContent(from: loser, into: &keeper) || changed
+                changed = SessionMerger.carryUserContent(from: loser, into: &keeper) || changed
             }
             guard changed else { return false }
             keeper.modifiedAt = CloudKitSessionFreshness.stamp()
@@ -518,42 +518,6 @@ extension ArchiveMigrations {
             debugLog("[Archive] dedupe: could not carry the content of \(loserIds.count) duplicate(s) into \(keeperId.uuidString.prefix(8)) — kept this pass: \(error)", level: .warning)
             return nil
         }
-    }
-
-    /// The keeper with what the user added to a retired copy of the same
-    /// recording: the tags it lacks, the copy's notes (taken when the keeper
-    /// has none, appended when both differ), and the morning feeling, its
-    /// tags and the perceived readiness when the keeper has none. False when
-    /// nothing changed. The keeper's sleep and window edits stay its own:
-    /// they belong to the analysis its score was computed from.
-    static func carryUserContent(from loser: HRVSession, into keeper: inout HRVSession) -> Bool {
-        let keeperTagIds = Set(keeper.tags.map(\.id))
-        let newTags = loser.tags.filter { !keeperTagIds.contains($0.id) }
-        keeper.tags += newTags
-        let notes = mergedNotes(keeper.notes, loser.notes)
-        let notesChanged = notes != keeper.notes
-        keeper.notes = notes
-        let takesFeeling = keeper.morningFeeling == nil && loser.morningFeeling != nil
-        if takesFeeling {
-            keeper.morningFeeling = loser.morningFeeling
-            keeper.morningFeelingTags = keeper.morningFeelingTags ?? loser.morningFeelingTags
-        }
-        let takesReadiness = keeper.perceivedReadiness == nil && loser.perceivedReadiness != nil
-        if takesReadiness { keeper.perceivedReadiness = loser.perceivedReadiness }
-        return !newTags.isEmpty || notesChanged || takesFeeling || takesReadiness
-    }
-
-    /// The keeper's notes with a retired copy's: the copy's when the keeper
-    /// has none, both, blank-line apart, when they differ. Unchanged when the
-    /// keeper's paragraphs already hold the copy's notes whole: a copy whose
-    /// file could not be moved is carried again on the next pass, and its
-    /// notes must not be appended a second time.
-    static func mergedNotes(_ keeper: String?, _ loser: String?) -> String? {
-        guard let loser, !loser.isEmpty, loser != keeper else { return keeper }
-        guard let keeper, !keeper.isEmpty else { return loser }
-        let separator = "\n\n"
-        guard !(separator + keeper + separator).contains(separator + loser + separator) else { return keeper }
-        return keeper + separator + loser
     }
 
     /// Move each duplicate's file into QuarantinedDuplicates/, returning where
