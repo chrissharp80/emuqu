@@ -1429,6 +1429,28 @@ mutate "recovery_drops_pauses" "EmuquTests/RecoveredWorkoutReviewTests" \
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/WorkoutRecoveryService.swift');s=p.read_text();o='        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
+# A recording rejected as unusable scores from the baseline; its own awake
+# heart rate must not then be scored as sleep heart rate.
+mutate "unusable_recording_hr_scored_as_sleep_hr" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='let night = useBaselineHRV ? inputs.droppingRecordingHeartRate() : inputs';assert s.count(o)==1;p.write_text(s.replace(o,'let night = inputs'))"
+
+# The strap's mean heart rate stands for sleep heart rate only on a usable recording.
+mutate "sleep_hr_rule_ignores_hrv_quality" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/HRVSession+SleepHeartRate.swift');s=p.read_text();o='guard isReliableForHRVAggregates,\n              let meanHR';assert s.count(o)==1;p.write_text(s.replace(o,'guard let meanHR'))"
+
+# On a strap+stream composite night a sleep start inside the strap's own
+# stretch maps onto that stretch, not past it.
+mutate "wall_clock_offset_skips_internal_beats" "EmuquTests/WindowSelectionTests" \
+    "Emuqu/Sources/Analysis/WindowSelector+Scoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/WindowSelector+Scoring.swift');s=p.read_text();o='(\$0.wallClockMs ?? \$0.t_ms) >= wallElapsedMs';assert s.count(o)==1;p.write_text(s.replace(o,'(\$0.wallClockMs ?? Int64.min) >= wallElapsedMs'))"
+
+# A first night scored without a baseline is re-scored after a sleep edit.
+mutate "first_night_keeps_score_from_before_edit" "EmuquTests/SessionImmutabilityTests" \
+    "Emuqu/Sources/Services/ReanalysisService+Baseline.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService+Baseline.swift');s=p.read_text();o='let stored = session.scoreBreakdown,\n              !scoredWithoutBaseline(stored) else';assert s.count(o)==1;p.write_text(s.replace(o,'session.scoreBreakdown != nil else'))"
+
 mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=' || words == [\"interval\", \"ms\"]';assert s.count(o)==1;p.write_text(s.replace(o,''))"
