@@ -37,7 +37,7 @@ enum ScoringVersion {
     /// token by token, with every constant it reaches wherever declared, the
     /// band tables and the table this binding names among them, and fails
     /// while the hash moves and this version does not.
-    static let current = "v3.5.nov2026"
+    static let current = "v3.6.nov2026"
 
     /// What a score decoded without a version is called.
     ///
