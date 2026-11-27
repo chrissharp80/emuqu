@@ -491,7 +491,7 @@ final class CloudKitSyncManager {
             let record = prepared.record
             defer { cleanupTempAsset(for: record) }
             try await saveUploadRecord(record, sessionId: sessionId)
-        } catch is CloudUploadStopped {
+        } catch is CloudUploadStopped, CloudAccountGuard.Halt.stopped {
             debugLog("[CloudKit] Upload of \(sessionId.uuidString.prefix(8)) not sent: sync was switched off or the account changed while it was prepared")
         } catch {
             await handleUploadError(error, sessionId: sessionId)

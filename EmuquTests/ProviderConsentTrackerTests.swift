@@ -103,6 +103,17 @@ final class ProviderConsentTrackerTests: XCTestCase {
         }
     }
 
+    /// The WhisperKit model, fetched from Hugging Face on first use, is
+    /// loaded only for a voice session with voice mode on; Apple Speech
+    /// never needs it.
+    func testTheWhisperKitModelIsUsedOnlyWithVoiceModeOn() {
+        let whisperKitApplies = STTProviderKind.effective(preferred: .whisperKit) == .whisperKit
+        XCTAssertFalse(VoiceConversationController.usesWhisperKit(preferred: .whisperKit, voiceModeOn: false))
+        XCTAssertFalse(VoiceConversationController.usesWhisperKit(preferred: .apple, voiceModeOn: true))
+        XCTAssertFalse(VoiceConversationController.usesWhisperKit(preferred: .apple, voiceModeOn: false))
+        XCTAssertEqual(VoiceConversationController.usesWhisperKit(preferred: .whisperKit, voiceModeOn: true), whisperKitApplies)
+    }
+
     /// The tool gate refuses a provider without consent and lets Apple
     /// Intelligence, which needs none, through.
     func testTheToolGateRefusesAProviderWithoutConsent() throws {

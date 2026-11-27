@@ -78,6 +78,13 @@ final class StaleWriteTests: XCTestCase {
         XCTAssertTrue(CloudKitLiveBackupManager.keepsAwaitingDeletion(savedBefore: 0, savedNow: 1))
     }
 
+    /// With iCloud Sync off nothing goes to iCloud: a live backup's delete
+    /// waits in `backedUpIds` for the full sync after sync is turned on.
+    func testALiveBackupDeleteWaitsWhileSyncIsOff() {
+        XCTAssertFalse(CloudKitLiveBackupManager.deletesNow(syncEnabled: false))
+        XCTAssertTrue(CloudKitLiveBackupManager.deletesNow(syncEnabled: true))
+    }
+
     // MARK: - Review ids
 
     /// A night saved for review after another session took the recorder
