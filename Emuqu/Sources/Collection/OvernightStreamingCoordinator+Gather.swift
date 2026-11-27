@@ -68,9 +68,8 @@ extension OvernightStreamingCoordinator {
     }
 
     /// The strap's beats are kept before the analysis runs, as the morning
-    /// stop keeps them: the download is already on record, and the stream's
-    /// backup alone would let the next arming clear the strap's copy. No
-    /// source chosen fails the session, rescuing the download.
+    /// stop keeps them (`keepDownloadedNight`): the stream's backup does not
+    /// hold them. No source chosen fails the session, rescuing the download.
     private func keepingDownload(
         _ chosen: (points: [RRPoint], source: String, usesDeviceBeats: Bool)?, internalPoints: [RRPoint]?, baseSession: HRVSession
     ) async -> (points: [RRPoint], source: String, usesDeviceBeats: Bool)? {
@@ -78,7 +77,7 @@ extension OvernightStreamingCoordinator {
             await failRescuingDownload(internalPoints, baseSession: baseSession)
             return nil
         }
-        await morning.backUpDownloadedNight(
+        await keepDownloadedNight(
             internalPoints, chosen: chosen.points, usedDevice: chosen.usesDeviceBeats, baseSession: baseSession
         )
         return chosen
@@ -86,7 +85,9 @@ extension OvernightStreamingCoordinator {
 
     /// Fail the session, backing up first the strap beats no session will hold.
     private func failRescuingDownload(_ internalPoints: [RRPoint]?, baseSession: HRVSession) async {
-        morning.rescueDownloadedBeats(internalPoints, baseSession: baseSession)
+        if morning.rescueDownloadedBeats(internalPoints, baseSession: baseSession) {
+            strapRecorder.device.noteDownloadsSaved(recordedSince: baseSession.startDate)
+        }
         _ = await morning.failSession(from: baseSession)
     }
 }

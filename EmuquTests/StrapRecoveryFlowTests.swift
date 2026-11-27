@@ -152,7 +152,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         collector.polarManager.deviceRecording.storedExerciseDate = start
         XCTAssertTrue(collector.strapGuards.hasUnrecoveredData, "never downloaded: the user's missing data")
 
-        collector.polarManager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: start)
+        collector.polarManager.deviceRecording.downloadLedger.markSaved(recordingStartedAt: start)
         XCTAssertTrue(
             collector.strapGuards.hasUnrecoveredData,
             "downloaded but stored nowhere on the device: still the user's missing data"
@@ -168,6 +168,66 @@ final class StrapRecoveryFlowTests: XCTestCase {
             XCTAssertEqual(error as? RRCollector.CollectorError, .strapRecordingAlreadySaved)
         }
         XCTAssertFalse(fetched(radio))
+    }
+
+    // MARK: - A download is saved only once its beats are on disk
+
+    /// The app dies after the morning download and before the strap's beats
+    /// reach a backup: only the night's streaming backup, dated by the
+    /// night's start, is on disk, and it holds only the beats that arrived
+    /// live. The strap's copy is still the user's missing data, so the next
+    /// arming does not clear it.
+    func testADownloadNotYetBackedUpStaysRecoverable() async throws {
+        let radio = FakeStrapRadio()
+        let start = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 8 * 3600).rounded(.down))
+        radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 2_000))
+        let collector = makeCollector(radio)
+        ledgerFromBeforeTheRecordings(of: collector)
+        _ = try collector.morning.rawBackup.backup(points: liveStream(), sessionId: UUID(), captureDate: start)
+
+        _ = try await collector.polarManager.recording.fetchRecording(recordedSince: nil, budget: .unattended)
+
+        XCTAssertFalse(collector.strapGuards.isStrapRecordingSaved(startedAt: start), "the strap's beats are only in memory")
+        XCTAssertTrue(collector.strapGuards.hasUnrecoveredData)
+    }
+
+    /// A backup of the downloaded night that cannot be written leaves the
+    /// recording off the saved record and is shown; once one is written, the
+    /// recording is saved.
+    func testAFailedBackupOfTheDownloadedNightIsNotSaved() async throws {
+        let radio = FakeStrapRadio()
+        let start = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 8 * 3600).rounded(.down))
+        radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 2_000))
+        let collector = makeCollector(radio)
+        ledgerFromBeforeTheRecordings(of: collector)
+        let night = completeNight(startingAt: start.addingTimeInterval(-60))
+        let backup = collector.morning.rawBackup
+        _ = try backup.backup(points: liveStream(), sessionId: night.id, captureDate: night.startDate)
+        let recording = try await collector.polarManager.recording.fetchRecording(recordedSince: night.startDate, budget: .unattended)
+        let strapBeats = recording.points(onClockOf: night.startDate)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: backup.backupDirectory.path)
+        await collector.overnightStreaming.keepDownloadedNight(strapBeats, chosen: strapBeats, usedDevice: true, baseSession: night)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: backup.backupDirectory.path)
+
+        XCTAssertFalse(collector.strapGuards.isStrapRecordingSaved(startedAt: start), "no backup holds the strap's beats")
+        XCTAssertNotNil(collector.sessionState.lastError, "the failed backup is shown")
+        await collector.overnightStreaming.keepDownloadedNight(strapBeats, chosen: strapBeats, usedDevice: true, baseSession: night)
+        XCTAssertTrue(collector.strapGuards.isStrapRecordingSaved(startedAt: start))
+    }
+
+    /// A download ledger whose record began before every recording in these
+    /// tests, so none of them falls back to the rule for recordings older
+    /// than the record (`StrapDownloadLedger.predatesRecord`).
+    private func ledgerFromBeforeTheRecordings(of collector: RRCollector) {
+        let defaults = UserDefaults(suiteName: "StrapRecoveryFlowTests-\(UUID().uuidString)") ?? .standard
+        defaults.set(Date.distantPast, forKey: "strapDownloadLedgerSince")
+        collector.polarManager.deviceRecording.downloadLedger = StrapDownloadLedger(defaults: defaults)
+    }
+
+    /// Beats that arrived live over Bluetooth, fewer than the strap recorded.
+    private func liveStream() -> [RRPoint] {
+        (0 ..< 500).map { RRPoint(t_ms: Int64($0) * 900, rr_ms: 900) }
     }
 
     // MARK: - Which archived night a download belongs to
@@ -237,7 +297,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let collector = makeCollector(FakeStrapRadio())
         let nightStart = Date().addingTimeInterval(-9 * 3600)
         let armed = nightStart.addingTimeInterval(2 * 3600)
-        collector.polarManager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: armed)
+        collector.polarManager.deviceRecording.downloadLedger.markSaved(recordingStartedAt: armed)
         XCTAssertFalse(collector.strapGuards.isStrapRecordingSaved(startedAt: armed), "stored nowhere on the device yet")
 
         _ = try archive.archive(completeNight(startingAt: nightStart), skipSameNightMerge: true)
@@ -251,7 +311,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
     func testASessionThatEndedBeforeTheRecordingDoesNotHoldIt() throws {
         let collector = makeCollector(FakeStrapRadio())
         let armed = Date().addingTimeInterval(-3 * 3600)
-        collector.polarManager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: armed)
+        collector.polarManager.deviceRecording.downloadLedger.markSaved(recordingStartedAt: armed)
         for type in [SessionType.quick, .workout, .overnight] {
             var ended = completeNight(startingAt: armed.addingTimeInterval(-3600))
             ended.sessionType = type

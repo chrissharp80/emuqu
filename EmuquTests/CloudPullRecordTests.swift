@@ -31,7 +31,9 @@ final class CloudPullRecordTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        hostDefaults = HostDefaults.setAside(HostDefaults.cloudSyncBookkeeping + ["cloudkit.restoredFromTrash"])
+        hostDefaults = HostDefaults.setAside(
+            HostDefaults.cloudSyncBookkeeping + ["cloudkit.restoredFromTrash", "cloudkit.restoredFromTrashAt"]
+        )
     }
 
     override func tearDown() async throws {
@@ -215,6 +217,52 @@ final class CloudPullRecordTests: XCTestCase {
         let record = try liveRecord(of: session)
         record["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
         return record
+    }
+
+    /// A deletion made here at `deletedAt` meets a restore made on another
+    /// device: the restore's own time decides, whatever the record's
+    /// modification date.
+    func testARestoreIsAdoptedOnlyWhenItWasMadeAfterTheDeletionHere() async throws {
+        let deletedAt = Date().addingTimeInterval(-3600)
+        let before = night()
+        try archive.archive(before)
+        XCTAssertTrue(try archive.delete(before.id))
+        archive.store.reinstateDeletion(before.id, deletedAt: deletedAt)
+        let earlierRestore = try restoredRecord(of: before)
+        earlierRestore[TrashRestoreCoordinator.restoredAtField] = deletedAt.addingTimeInterval(-600) as CKRecordValue
+
+        let kept = await manager.pull.processRemoteRecord(earlierRestore, forgotten: [])
+
+        XCTAssertEqual(kept.new, 0, "a restore made before this deletion undid it")
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(before.id))
+
+        let after = night(startingAt: 1_790_100_000)
+        try archive.archive(after)
+        XCTAssertTrue(try archive.delete(after.id))
+        archive.store.reinstateDeletion(after.id, deletedAt: deletedAt)
+        let laterRestore = try restoredRecord(of: after)
+        laterRestore[TrashRestoreCoordinator.restoredAtField] = deletedAt.addingTimeInterval(600) as CKRecordValue
+
+        let adopted = await manager.pull.processRemoteRecord(laterRestore, forgotten: [])
+
+        XCTAssertEqual(adopted.new, 1, "a restore made after this deletion was not adopted")
+        XCTAssertTrue(archive.store.exists(after.id))
+    }
+
+    /// The upload that replaces the tombstone carries the time the restore was
+    /// made here, not the time of the upload.
+    func testTheRestoreUploadCarriesTheTimeOfTheRestore() {
+        let id = UUID()
+        let restoredAt = Date(timeIntervalSince1970: 1_790_000_000)
+        manager.trashRestore.noteRestored(id, at: restoredAt)
+        let tombstone = record(of: id, isDeleted: 1)
+
+        manager.trashRestore.markIfReplacingTombstone(tombstone, sessionId: id)
+
+        XCTAssertEqual(tombstone["isDeleted"] as? Int64, TrashRestoreCoordinator.restoredMarker)
+        XCTAssertEqual(TrashRestoreCoordinator.restoredAt(of: tombstone), restoredAt)
+        manager.trashRestore.clear(id)
+        XCTAssertNil(manager.trashRestore.restoreTime(of: id))
     }
 
     /// The restore is imported, the deletion dropped and the Trash copy removed.

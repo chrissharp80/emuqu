@@ -37,7 +37,10 @@ final class CollectorMigrationParityTests: XCTestCase {
     private let migrationFlagKeys = [
         "didRunWorkoutSleepCleanup_v1",
         "didRunInsufficientDataMigration_v1",
-        "didRunTrimpRepairMigration_v1"
+        "didRunTrimpRepairMigration_v1",
+        "didRunTrimpRepairMigration_v1_attempts",
+        "didRunTrainingRecalibration_v1_banister064",
+        "didRunTrainingRecalibration_v1_banister064_attempts"
     ]
     // `lazy` rather than assigned in `setUp`: `clearMigrationFlags()` must run
     // before the collector exists, and deferring construction to first use in
@@ -124,7 +127,7 @@ final class CollectorMigrationParityTests: XCTestCase {
     /// flags live in the host's standard defaults, so clearing them for good
     /// would make the host re-run all three migrations against the user's
     /// real archive on its next launch.
-    private var savedMigrationFlags: [String: Bool] = [:]
+    private var savedMigrationFlags: [String: Any] = [:]
 
     override func setUp() async throws {
         try await super.setUp()
@@ -247,6 +250,7 @@ final class CollectorMigrationParityTests: XCTestCase {
     /// repair rewrites the session's training snapshot from HealthKit's load
     /// (ATL 30, CTL 40) and sets the flag.
     func testTrimpRepairMigrationRewritesTheTrainingSnapshot() async throws {
+        UserDefaults.standard.set(true, forKey: "didRunTrainingRecalibration_v1_banister064")
         let session = trainedSession()
         try seed(session)
 
@@ -273,6 +277,7 @@ final class CollectorMigrationParityTests: XCTestCase {
 
     /// First run on an empty archive has no candidates and marks the flag.
     func testTrimpRepairMigrationOnEmptyArchiveMarksFlag() async throws {
+        UserDefaults.standard.set(true, forKey: "didRunTrainingRecalibration_v1_banister064")
         await migrations.runTrimpRepairMigrationIfNeeded()
 
         XCTAssertEqual(
@@ -283,6 +288,73 @@ final class CollectorMigrationParityTests: XCTestCase {
                       "The repair over an empty archive must mark itself complete")
     }
 
+    /// A night HealthKit did not answer the workout query for (a locked
+    /// store, a timeout) keeps its snapshot, and the repair is not marked
+    /// done: it runs again on a later launch, and rewrites the night once
+    /// HealthKit answers.
+    func testTrimpRepairLeavesAnUnansweredNightAsStoredAndRunsAgain() async throws {
+        UserDefaults.standard.set(true, forKey: "didRunTrainingRecalibration_v1_banister064")
+        let session = trainedSession()
+        try seed(session)
+        healthKit.workoutQueryAnswers = false
+
+        await migrations.runTrimpRepairMigrationIfNeeded()
+
+        let kept = try XCTUnwrap(collector.archive.retrieve(session.id))
+        XCTAssertEqual(kept.trainingSnapshot?.atl, 1, "an unanswered query rewrote the stored snapshot")
+        XCTAssertEqual(kept.trainingSnapshot?.ctl, 1)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "didRunTrimpRepairMigration_v1"))
+
+        healthKit.workoutQueryAnswers = true
+        await migrations.runTrimpRepairMigrationIfNeeded()
+
+        XCTAssertEqual(try XCTUnwrap(collector.archive.retrieve(session.id)).trainingSnapshot?.ctl, 40)
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "didRunTrimpRepairMigration_v1"))
+    }
+
+    /// The recalibration leaves an unanswered night as stored and runs again,
+    /// but only `maxTrainingMigrationAttempts` times: then it stops retrying,
+    /// still without rewriting the night.
+    func testTrainingRecalibrationLeavesAnUnansweredNightAsStoredAndRetriesABoundedNumberOfTimes() async throws {
+        var session = trainedSession()
+        session.recoveryScore = 7
+        try seed(session)
+        healthKit.workoutQueryAnswers = false
+        let recalibration = SessionDataMigrations(
+            archive: collector.archive, healthKit: healthKit, sleepQueries: collector.healthKit.sleepQueries,
+            settingsManager: SettingsManager(settingsURL: tempDir.appendingPathComponent("user_settings.json")),
+            baselineTracker: collector.baselineTracker, reanalysisService: makeReanalysisService()
+        )
+        let key = "didRunTrainingRecalibration_v1_banister064"
+
+        for pass in 1 ..< SessionDataMigrations.maxTrainingMigrationAttempts {
+            await recalibration.runTrainingRecalibrationIfNeeded()
+            XCTAssertFalse(UserDefaults.standard.bool(forKey: key), "marked done on pass \(pass) with a night unanswered")
+        }
+        await recalibration.runTrainingRecalibrationIfNeeded()
+
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: key), "the retries are bounded")
+        let kept = try XCTUnwrap(collector.archive.retrieve(session.id))
+        XCTAssertEqual(kept.trainingSnapshot?.atl, 1, "an unanswered query rewrote the stored snapshot")
+        XCTAssertEqual(kept.trainingSnapshot?.ctl, 1)
+    }
+
+    /// The Troubleshooting repair goes through the same path: an unanswered
+    /// night is counted and left as stored.
+    func testTheTrainingRepairLeavesAnUnansweredNightAsStored() async throws {
+        let session = trainedSession()
+        try seed(session)
+        healthKit.workoutQueryAnswers = false
+
+        let result = await makeReanalysisService().repairTrainingSnapshots(
+            sessions: ArchivedSessions(archive: collector.archive, caller: "test")
+        )
+
+        XCTAssertEqual(result.unanswered, 1)
+        XCTAssertEqual(result.repaired, 0)
+        XCTAssertEqual(try XCTUnwrap(collector.archive.retrieve(session.id)).trainingSnapshot?.ctl, 1)
+    }
+
     // MARK: - Helpers
 
     /// Saves the host's values of the flags, then clears them.
@@ -290,7 +362,7 @@ final class CollectorMigrationParityTests: XCTestCase {
         let defaults = UserDefaults.standard
         savedMigrationFlags = [:]
         for key in migrationFlagKeys {
-            if let value = defaults.object(forKey: key) as? Bool { savedMigrationFlags[key] = value }
+            if let value = defaults.object(forKey: key) { savedMigrationFlags[key] = value }
             defaults.removeObject(forKey: key)
         }
     }

@@ -134,7 +134,7 @@ extension DeviceRecordingSession {
     /// review, and presented for acceptance.
     func assembleDownloadedSession(_ recording: StrapRecording, placement: DownloadPlacement) async -> HRVSession {
         let devicePoints = recording.points(onClockOf: placement.startDate)
-        backupRawData(devicePoints, sessionId: placement.sessionId, startDate: placement.startDate)
+        keepDownloadedBeats(devicePoints, of: recording, placement: placement)
         guard devicePoints.count >= DataSourceSelector.minimumValidBeats else {
             debugLog("[RRCollector] Downloaded recording holds \(devicePoints.count) beats — too few to analyse")
             return await makeFailedSession(from: placement.failedBase, error: RRCollector.CollectorError.insufficientData)
@@ -146,6 +146,20 @@ extension DeviceRecordingSession {
         // Discard leaves it exactly as it was.
         if !archive.store.exists(session.id) { morning.archiveForReview(session) }
         return session
+    }
+
+    /// The session's backup takes the downloaded beats; one it will not take
+    /// (it would replace a larger backup) goes to a rescue backup of its own
+    /// (`StrapRecordingState.rescueToBackup`). The recording goes on the saved
+    /// record only once one of them is on disk, so an app killed before then,
+    /// or two failed writes, leave the strap's copy recoverable.
+    private func keepDownloadedBeats(_ devicePoints: [RRPoint], of recording: StrapRecording, placement: DownloadPlacement) {
+        guard !devicePoints.isEmpty else { return }
+        if backupRawData(devicePoints, sessionId: placement.sessionId, startDate: placement.startDate) {
+            strapRecorder.device.noteSaved(recording)
+        } else if !strapRecorder.device.rescueToBackup(recording) {
+            debugLog("[RRCollector] The downloaded beats are on no backup; the strap keeps its copy", level: .error)
+        }
     }
 
     /// The device recording is the base; an archived night's beats only fill
@@ -373,8 +387,9 @@ extension DeviceRecordingSession {
     }
 
     /// Backup raw RR data immediately (non-fatal on failure)
-    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) {
-        guard !points.isEmpty else { return }
+    @discardableResult
+    func backupRawData(_ points: [RRPoint], sessionId: UUID, startDate: Date? = nil) -> Bool {
+        guard !points.isEmpty else { return false }
         do {
             try rawBackup.backup(
                 points: points,
@@ -382,8 +397,10 @@ extension DeviceRecordingSession {
                 deviceId: strapLink.connectedDeviceId,
                 captureDate: startDate
             )
+            return true
         } catch {
             debugLog("[RRCollector] Warning: Failed to backup raw RR data: \(error)", level: .warning)
+            return false
         }
     }
 

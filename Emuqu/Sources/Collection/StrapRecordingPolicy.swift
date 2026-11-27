@@ -206,13 +206,13 @@ enum StrapRecordingPolicy {
     static func holdsUnrecoveredRecording(
         hasStoredRecording: Bool,
         storedRecordingStart: Date?,
-        alreadyDownloaded: Bool,
+        beatsSaved: Bool,
         predatesDownloadRecord: Bool,
         heldOnDisk: Bool
     ) -> Bool {
         guard hasStoredRecording, storedRecordingStart != nil else { return false }
         return !recordingIsSaved(
-            alreadyDownloaded: alreadyDownloaded, predatesDownloadRecord: predatesDownloadRecord,
+            beatsSaved: beatsSaved, predatesDownloadRecord: predatesDownloadRecord,
             heldOnDisk: heldOnDisk
         )
     }
@@ -220,18 +220,21 @@ enum StrapRecordingPolicy {
     /// Whether the app already holds a recording the strap stores. Only a
     /// saved recording may be cleared from the strap.
     ///
-    /// It must have been downloaded (or begun before the app kept that
-    /// record) AND be on this device: an archived session or a rescue backup
-    /// near its start (`heldOnDisk`). A download alone is not enough: the
-    /// record is written when the beats arrive, before anything stores them,
-    /// so a backup that fails or an app killed before the night is saved
-    /// would leave a recording marked downloaded that only the strap holds,
-    /// and the next start would clear it. A recording read twice files a second rescue
-    /// backup; that is the cost of never clearing one the app lacks.
+    /// Its beats must have been written to disk by the flow that downloaded
+    /// them (`beatsSaved`, `StrapDownloadLedger.markSaved`), or it began before
+    /// the app kept that record, AND the device must still hold them: an
+    /// archived session or a backup near its start (`heldOnDisk`). A download
+    /// alone is not enough, and nor is a backup near its start: the night's
+    /// own streaming backup is dated by the night's start and holds only the
+    /// beats that arrived live, so an app killed, or a backup write that
+    /// fails, between the download and the save would leave a recording only
+    /// the strap holds, and the next start would clear it. A recording read
+    /// twice files a second rescue backup; that is the cost of never clearing
+    /// one the app lacks.
     static func recordingIsSaved(
-        alreadyDownloaded: Bool, predatesDownloadRecord: Bool, heldOnDisk: Bool
+        beatsSaved: Bool, predatesDownloadRecord: Bool, heldOnDisk: Bool
     ) -> Bool {
-        (alreadyDownloaded || predatesDownloadRecord) && heldOnDisk
+        (beatsSaved || predatesDownloadRecord) && heldOnDisk
     }
 
     // MARK: - Arming the strap's own recording

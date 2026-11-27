@@ -7,8 +7,8 @@ import Foundation
 ///
 /// It implements only the protocol's requirements and answers every query
 /// with "no HealthKit data": empty sleep, no Watch HR estimate, zero training
-/// load, no vitals, and exports that succeed. `daytimeRestingHR` and
-/// `trainingLoadMetrics` are the answers a test sets. A test that needs another answer (a HealthKit error,
+/// load, no vitals, and exports that succeed. `daytimeRestingHR`,
+/// `trainingLoadMetrics` and `workoutQueryAnswers` are the answers a test sets. A test that needs another answer (a HealthKit error,
 /// real sleep, vitals) adds a settable property here and uses it, rather than
 /// the mock carrying knobs no test drives. `fetchDaytimeNapMinutes` and
 /// `estimateSleepFromRR` come from the protocol's extension (no naps; the
@@ -47,6 +47,16 @@ final class MockHealthKitService: HealthKitServiceProtocol {
             acuteChronicRatio: nil,
             metrics: trainingLoadMetrics
         )
+    }
+
+    /// Whether HealthKit answers the workout query behind
+    /// `calculateTrainingLoadIfAnswered(relativeTo:)`; false is a store that
+    /// is locked or a query that timed out.
+    var workoutQueryAnswers = true
+
+    func calculateTrainingLoadIfAnswered(relativeTo date: Date) async -> HealthKitManager.TrainingLoad? {
+        guard workoutQueryAnswers else { return nil }
+        return await calculateTrainingLoad(relativeTo: date)
     }
 
     func fetchRecoveryVitals(relativeTo _: Date) async -> RecoveryVitals {

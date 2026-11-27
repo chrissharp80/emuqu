@@ -37,21 +37,43 @@ extension SessionDataMigrations {
     ///     the write, not to the copy loaded before the HealthKit query, so
     ///     a change saved meanwhile is kept.
     ///
+    ///   • A night HealthKit did not answer the workout query for (the store
+    ///     locked, a timeout) is left as stored: read as no workouts, its load
+    ///     would be the archive's workouts alone. The flag is then left unset
+    ///     and the migration runs again on a later launch, up to
+    ///     `maxTrainingMigrationAttempts` (`finishTrainingMigration`).
+    ///
     /// Runs in the background well after launch (UI has to be live
     /// first — HealthKit calls can be several hundred ms each).
     func runTrainingRecalibrationIfNeeded() async {
-        let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: Self.trainingRecalibrationKey) else { return }
+        guard !trainingRecalibrationFinished else { return }
         let sessions = archivedSessions
-        var candidates = 0
-        var touched = 0
+        var tally = (candidates: 0, touched: 0, unanswered: 0)
         for index in 0 ..< sessions.count {
             guard let session = await sessions.session(at: index), Self.isRecalibrationCandidate(session) else { continue }
-            candidates += 1
-            if await recalibrate(session) { touched += 1 }
+            tally.candidates += 1
+            switch await recalibrate(session) {
+            case .rewritten: tally.touched += 1
+            case .unanswered: tally.unanswered += 1
+            case .leftAsStored: break
+            }
         }
-        defaults.set(true, forKey: Self.trainingRecalibrationKey)
-        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(candidates) candidate sessions.")
+        let finished = Self.finishTrainingMigration(key: Self.trainingRecalibrationKey, complete: tally.unanswered == 0)
+        debugLog("[TrainingRecalibration] \(finished ? "Complete" : "Pass done, runs again"). Touched \(tally.touched) of \(tally.candidates) candidate sessions (\(tally.unanswered) unanswered).")
+    }
+
+    /// Whether the recalibration has run to completion (or given up retrying).
+    var trainingRecalibrationFinished: Bool {
+        UserDefaults.standard.bool(forKey: Self.trainingRecalibrationKey)
+    }
+
+    /// What one night's recalibration did.
+    enum RecalibrationOutcome {
+        case rewritten
+        /// Nothing to correct, no load for that date, or the write failed.
+        case leftAsStored
+        /// HealthKit did not answer the workout query; the night is retried.
+        case unanswered
     }
 
     /// Sessions with a frozen snapshot are the only ones that carry
@@ -69,22 +91,23 @@ extension SessionDataMigrations {
     /// that date — usually "too far back for the fetch window" — are skipped
     /// with their snapshot left alone.
     ///
-    /// Returns whether the session was rewritten.
-    private func recalibrate(_ session: HRVSession) async -> Bool {
-        guard session.analysisResult != nil else { return false }
+    /// A date HealthKit did not answer the workout query for leaves the
+    /// session as stored (`calculateTrainingLoadIfAnswered`).
+    private func recalibrate(_ session: HRVSession) async -> RecalibrationOutcome {
+        guard session.analysisResult != nil else { return .leftAsStored }
         let anchor = Self.trainingAnchor(of: session)
-        let load = await healthKit.calculateTrainingLoad(relativeTo: anchor)
+        guard let load = await healthKit.calculateTrainingLoadIfAnswered(relativeTo: anchor) else { return .unanswered }
         guard let newCtx = Self.recalibratedContext(load: load, anchor: anchor, old: session.trainingSnapshot) else {
-            return false
+            return .leftAsStored
         }
         do {
             try archive.update(session.id, requestingReupload: false) { stored in
                 Self.applyCorrectedContext(newCtx, to: &stored)
             }
-            return true
+            return .rewritten
         } catch {
             debugLog("[TrainingRecalibration] Failed to archive \(session.id.uuidString.prefix(8)): \(error)")
-            return false
+            return .leftAsStored
         }
     }
 

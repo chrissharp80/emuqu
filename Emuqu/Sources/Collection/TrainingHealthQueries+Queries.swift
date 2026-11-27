@@ -686,11 +686,13 @@ extension TrainingHealthQueries {
 
     /// The last `days` calendar days of training, today included: every
     /// archive workout plus the HealthKit ones that don't overlap it
-    /// (`mergeArchiveAuthoritative`). Both fetches reach back to the start of
-    /// the day `days` days ago, one day more than that, so the merge is
-    /// trimmed to the window the weekly load score is normalised over.
-    private func recentMergedWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
-        let healthKitWorkouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
+    /// (`mergeArchiveAuthoritative`). `healthKitWorkouts` are the caller's
+    /// fetch of the same days (`fetchRecentWorkouts`). Both reach back to the
+    /// start of the day `days` days ago, one day more than that, so the merge
+    /// is trimmed to the window the weekly load score is normalised over.
+    private func recentMergedWorkouts(
+        days: Int, relativeTo referenceDate: Date, healthKitWorkouts: [HealthKitManager.WorkoutSummary]
+    ) async -> [HealthKitManager.WorkoutSummary] {
         let archive = self.archive()
         let ftp = TrainingLoadPrecedence.FTPAnchors.current(access.settingsProvider())
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
@@ -772,11 +774,45 @@ extension TrainingHealthQueries {
     /// VO2max and its 30-day trend come from the metrics, which
     /// `calculateTrainingMetrics` (`applyVO2Max`) has already read once.
     func calculateTrainingLoad(days: Int = 7, forMorningReading: Bool = true, relativeTo referenceDate: Date = Date()) async -> HealthKitManager.TrainingLoad {
-        let workouts = await recentMergedWorkouts(days: days, relativeTo: referenceDate)
+        let recent = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
+        return await trainingLoad(
+            days: days, forMorningReading: forMorningReading, relativeTo: referenceDate,
+            recentHealthKit: recent, extendedHealthKit: nil
+        )
+    }
+
+    /// `calculateTrainingLoad`, but nil when HealthKit did not answer either
+    /// workout query (`queryWorkouts`: the store locked, an error, a
+    /// timeout). A caller that rewrites a stored snapshot from the result
+    /// must not take a query that failed for a period with no workouts: the
+    /// load would read low, from the archive's workouts alone.
+    func answeredTrainingLoad(
+        days: Int = 7, forMorningReading: Bool = true, relativeTo referenceDate: Date
+    ) async -> HealthKitManager.TrainingLoad? {
+        guard let recent = await queryWorkouts(days: days, relativeTo: referenceDate),
+              let extended = await queryWorkouts(days: Self.ewmaLookbackDays, relativeTo: referenceDate) else {
+            debugLog("[TrainingHealthQueries] Health did not answer the workout query for \(referenceDate); no load built", level: .warning)
+            return nil
+        }
+        return await trainingLoad(
+            days: days, forMorningReading: forMorningReading, relativeTo: referenceDate,
+            recentHealthKit: recent, extendedHealthKit: extended
+        )
+    }
+
+    /// The load built from HealthKit workouts already fetched: `recentHealthKit`
+    /// for the last `days` days, and `extendedHealthKit` for the EWMA chain
+    /// (nil fetches it, reading a failed query as none).
+    private func trainingLoad(
+        days: Int, forMorningReading: Bool, relativeTo referenceDate: Date,
+        recentHealthKit: [HealthKitManager.WorkoutSummary], extendedHealthKit: [HealthKitManager.WorkoutSummary]?
+    ) async -> HealthKitManager.TrainingLoad {
+        let workouts = await recentMergedWorkouts(days: days, relativeTo: referenceDate, healthKitWorkouts: recentHealthKit)
         let anchors = await trainingHeartRateAnchors()
         let metrics = await calculateTrainingMetrics(
             restingHR: anchors.restingHR, userMaxHR: anchors.maxHR,
-            forMorningReading: forMorningReading, relativeTo: referenceDate
+            forMorningReading: forMorningReading, relativeTo: referenceDate,
+            preloadedHealthKitWorkouts: extendedHealthKit
         )
         var load = Self.trainingLoad(
             workouts: workouts, days: days, anchors: anchors, vo2Max: metrics.vo2MaxLatest,

@@ -149,6 +149,7 @@ enum CloudKitSessionFreshness {
         if let sessionId {
             debugLog("[CloudKit] Upload failed for \(sessionId.uuidString.prefix(8)): \(text)")
         }
+        TrashRestoreCoordinator.noteRejection(ofFieldIn: text, isSchemaRejection: isSchemaRejection(error))
         guard text.contains(modifiedAtField), text.contains("production schema") || isSchemaRejection(error) else { return }
         fieldRejected.withLock { $0 = true }
         debugLog("[CloudKit] Session record field \(modifiedAtField) is not in the production schema — uploading without it; edits will not propagate until it is deployed", level: .error)
@@ -173,15 +174,19 @@ enum CloudKitSessionFreshness {
     /// overrides a server tombstone whatever its stamp: a restore does not
     /// stamp an edit, and yielding to the tombstone would leave it in iCloud
     /// with nothing for the pull to import. A server record already carrying
-    /// the restore marker keeps it, since every upload writes `isDeleted = 0`:
-    /// losing it would let a device that deleted the session earlier delete
-    /// it again.
-    /// Server fields this build does not write (older builds wrote plaintext
-    /// health values) are cleared, so the record holds only what `local` holds.
+    /// the restore marker keeps it and the restore's time
+    /// (`TrashRestoreCoordinator.carryRestore`), since every upload writes
+    /// `isDeleted = 0` and no time: losing the marker would let a device that
+    /// deleted the session earlier delete it again, and a time moved to this
+    /// upload would let a restore undo a deletion made after it.
+    /// Other server fields this build does not write (older builds wrote
+    /// plaintext health values) are cleared, so the record holds only what
+    /// `local` holds.
     static func overwrite(
         _ server: CKRecord, with local: CKRecord, restoring: Bool = false, yieldingIn state: inout CloudKitSyncState
     ) -> Bool {
         let serverDeleted = server["isDeleted"] as? Int64
+        let serverRestoredAt = TrashRestoreCoordinator.restoredAt(of: server)
         let sessionId = UUID(uuidString: server.recordID.recordName)
         let tie = onTie(serverVersion: server.recordChangeTag, heldVersion: sessionId.flatMap { state.recordVersions[$0] })
         let decision = decide(localModifiedAt: modifiedAt(of: local), remoteModifiedAt: modifiedAt(of: server), onTie: tie)
@@ -196,9 +201,9 @@ enum CloudKitSessionFreshness {
         for key in local.allKeys() {
             server[key] = local[key]
         }
-        if serverDeleted == TrashRestoreCoordinator.restoredMarker {
-            server["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
-        }
+        TrashRestoreCoordinator.carryRestore(
+            onto: server, serverDeleted: serverDeleted, restoredAt: serverRestoredAt, modifiedAt: server.modificationDate
+        )
         return true
     }
 

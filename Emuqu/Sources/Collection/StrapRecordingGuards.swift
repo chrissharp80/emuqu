@@ -111,7 +111,7 @@ struct StrapRecordingGuards {
     func isStrapRecordingSaved(startedAt start: Date) -> Bool {
         let ledger = strapRecording.downloadLedger
         return StrapRecordingPolicy.recordingIsSaved(
-            alreadyDownloaded: ledger.wasDownloaded(recordingStartedAt: start),
+            beatsSaved: ledger.wasSaved(recordingStartedAt: start),
             predatesDownloadRecord: ledger.predatesRecord(start),
             heldOnDisk: archiveHoldsSession(runningAt: start, slackMinutes: 30, in: archive)
                 || rawBackup.holdsBackup(capturedWithin: 30 * 60, of: start)

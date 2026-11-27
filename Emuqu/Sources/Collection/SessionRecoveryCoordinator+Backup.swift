@@ -178,6 +178,7 @@ extension SessionRecoveryCoordinator {
             keepUnsavedDownload(strap?.recording)
             return nil
         }
+        if let strap { strapRecorder.device.noteSaved(strap.recording) }
         await MainActor.run {
             archiveSignal.notifyChanged()
             // Surface for review/trim instead of silently keeping a
@@ -222,11 +223,12 @@ extension SessionRecoveryCoordinator {
         let points: [RRPoint]
     }
 
-    /// The download is on record as soon as its beats arrive
-    /// (`StrapRecordingPolicy.recordingIsSaved`), so a session that could not
-    /// be saved with them must not leave them only in memory: they are kept
-    /// as a rescue backup, offered in Lost Sessions, and the strap is not
-    /// cleared over them.
+    /// A session that could not be saved with the strap's beats must not
+    /// leave them only in memory: they are kept as a rescue backup, offered in
+    /// Lost Sessions, and the strap is not cleared over them
+    /// (`StrapRecordingPolicy.recordingIsSaved`). A session that was saved
+    /// with them puts the recording on the saved record itself
+    /// (`StrapRecordingState.noteSaved`).
     private func keepUnsavedDownload(_ recording: StrapRecording?) {
         guard let recording else { return }
         let keptAside = strapRecorder.device.rescueToBackup(recording)
@@ -418,9 +420,16 @@ extension SessionRecoveryCoordinator {
             keepUnsavedDownload(strap.recording)
             return .failed
         }
+        return await noteAugmented(outcome.session, from: strap, mergedCount: merged.count)
+    }
+
+    /// The augmented workout is in the archive with the strap's beats, so
+    /// the strap's copy is on the saved record.
+    private func noteAugmented(_ session: HRVSession, from strap: PulledStrapRecording, mergedCount: Int) async -> StrapAugmentResult {
+        strapRecorder.device.noteSaved(strap.recording)
         await MainActor.run { archiveSignal.notifyChanged() }
-        let dur = (outcome.session.endDate ?? outcome.session.startDate).timeIntervalSince(outcome.session.startDate)
-        return .merged(durationSec: dur, beats: outcome.session.rrSeries?.points.count ?? merged.count)
+        let dur = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
+        return .merged(durationSec: dur, beats: session.rrSeries?.points.count ?? mergedCount)
     }
 
     enum OvernightAugmentResult {
@@ -549,7 +558,7 @@ extension SessionRecoveryCoordinator {
             debugLog("[RRCollector] augmentOvernight: archive failed: \(error)")
             written = nil
         }
-        if written == nil { keepUnsavedDownload(strap.recording) }
+        if written == nil { keepUnsavedDownload(strap.recording) } else { strapRecorder.device.noteSaved(strap.recording) }
         return written
     }
 

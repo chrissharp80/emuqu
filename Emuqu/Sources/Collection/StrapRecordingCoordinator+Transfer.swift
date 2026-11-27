@@ -144,8 +144,11 @@ extension StrapRecordingCoordinator {
         return PolarManager.PolarError.fetchFailed("Cancelled by user")
     }
 
-    /// The strap keeps its copy after a download, so it still holds one, and
-    /// the download is on record so the copy is not offered again.
+    /// The strap keeps its copy after a download, so it still holds one. The
+    /// download is on record, but not as saved: the beats are only in memory
+    /// until the flow that took them writes them to disk and says so
+    /// (`noteSaved`, `noteDownloadsSaved`), and until then the strap's copy
+    /// stays recoverable and is never cleared.
     private func noteDownloaded(_ recording: StrapRecording, showsProgress: Bool) async {
         device.recordingState = .idle
         device.hasStoredExercise = true
@@ -229,7 +232,7 @@ extension StrapRecordingCoordinator {
     /// next start is not refused for a recording that no longer runs. A stop
     /// that a download follows waits for the file to finalize. A recording
     /// whose beats the session saved from the stream (`streamHoldsIt`) goes on
-    /// the download record.
+    /// the saved record.
     ///
     /// A deadline (`Deadline.race`) that has already given up on this
     /// stop cancels the task but cannot cancel the strap's status query, whose
@@ -256,7 +259,7 @@ extension StrapRecordingCoordinator {
         try await api.stopRecording(deviceId)
         let startedAt = StrapExerciseDecoder.recordingStart(fromExerciseId: status.entryId)
         markRecordingStopped(startedAt: startedAt)
-        if streamHoldsIt, let startedAt { device.downloadLedger.markDownloaded(recordingStartedAt: startedAt) }
+        if streamHoldsIt, let startedAt { device.downloadLedger.markSaved(recordingStartedAt: startedAt) }
         if awaitFinalize { await awaitH10FileFinalize(api: api, deviceId: deviceId, entryId: status.entryId, showsProgress: showsProgress) }
         return true
     }
@@ -330,7 +333,7 @@ extension StrapRecordingCoordinator {
     ///
     /// `streamHoldsIt` is true when the session already saved this
     /// recording's beats from the live stream. The stopped recording then goes
-    /// on the download record, so the next start's rescue does not download
+    /// on the saved record (`StrapDownloadLedger.markSaved`), so the next start's rescue does not download
     /// it again; without it a walk's complete stream looked lost at bedtime.
     func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async {
         guard StrapRecordingPolicy.shouldStopDeviceRecording(

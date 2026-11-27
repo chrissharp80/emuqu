@@ -39,7 +39,11 @@ extension ReanalysisService {
         let sessionEnd = session.endDate ?? session.startDate.addingTimeInterval(Self.assumedSessionLength)
         guard let newSleep = await fetchSleep(for: session, sessionEnd: sessionEnd) else { return false }
         guard Self.shouldRetroApply(to: session, newSleep: newSleep, sessionEnd: sessionEnd) else { return false }
-        return persistRetroApply(newSleep, sessionId: session.id, sessionEnd: sessionEnd)
+        await prepareScoringBaseline(for: session)
+        // Read before the write: the baseline can read the archive's index,
+        // which the update holds locked while its closure runs.
+        let inputs = sleepRescoreInputs(for: session, sessionEnd: sessionEnd)
+        return persistRetroApply(newSleep, sessionId: session.id, sessionEnd: sessionEnd, inputs: inputs)
     }
 
     /// A session with no end date is treated as a twelve-hour window — long
@@ -144,11 +148,13 @@ extension ReanalysisService {
     /// that copy. Then sync. Nothing here writes to Apple Health; sleep
     /// reaches it only through `HealthWriteAndObserve.exportSessionMetrics`, when
     /// `exportSleepData` is on and Emuqu is the night's only sleep source.
-    private func persistRetroApply(_ newSleep: SleepData, sessionId: UUID, sessionEnd: Date) -> Bool {
+    private func persistRetroApply(
+        _ newSleep: SleepData, sessionId: UUID, sessionEnd: Date, inputs: SleepBoundaryWrite.Inputs
+    ) -> Bool {
         var written: HRVSession?
         do {
             try archive.update(sessionId, requestingReupload: false) { stored in
-                written = retroApplied(newSleep, to: &stored, sessionEnd: sessionEnd)
+                written = Self.retroApplied(newSleep, to: &stored, sessionEnd: sessionEnd, inputs: inputs)
             }
         } catch {
             debugLog("[ReanalysisService] Sleep retro-apply: save failed for \(sessionId.uuidString.prefix(8)): \(error)")
@@ -162,10 +168,12 @@ extension ReanalysisService {
     /// The skip rules on the archived copy, then the new sleep, the
     /// re-classification and the re-score. Nil (copy unchanged) when a rule
     /// now skips the session, e.g. the user adjusted its sleep meanwhile.
-    private func retroApplied(_ newSleep: SleepData, to stored: inout HRVSession, sessionEnd: Date) -> HRVSession? {
-        guard Self.shouldRetroApply(to: stored, newSleep: newSleep, sessionEnd: sessionEnd) else { return nil }
-        Self.applySleepBoundaries(newSleep, to: &stored, sessionStart: stored.startDate)
-        rescoreAfterSleepChange(&stored, sessionEnd: sessionEnd)
+    private static func retroApplied(
+        _ newSleep: SleepData, to stored: inout HRVSession, sessionEnd: Date, inputs: SleepBoundaryWrite.Inputs
+    ) -> HRVSession? {
+        guard shouldRetroApply(to: stored, newSleep: newSleep, sessionEnd: sessionEnd) else { return nil }
+        applySleepBoundaries(newSleep, to: &stored, sessionStart: stored.startDate)
+        SleepBoundaryWrite.rescore(&stored, sessionEnd: sessionEnd, inputs: inputs)
         return stored
     }
 
@@ -218,6 +226,7 @@ extension ReanalysisService {
     private func applyDeterministicScore(
         to session: inout HRVSession, result: HRVAnalysisResult, training: TrainingContext?
     ) {
+        guard !Self.keepsStoredScore(session, baseline: scoringBaseline(for: session)) else { return }
         let scored = deterministicRecoveryScore(for: session, result: result)
         session.recoveryScore = scored.score
         session.scoreBreakdown = scored.breakdown
@@ -326,6 +335,7 @@ extension ReanalysisService {
     private func writeSleepEdit(
         _ edit: SleepBoundaryWrite.Edit, readFrom read: HRVSession
     ) async throws -> SleepBoundaryWrite.Outcome {
+        await prepareScoringBaseline(for: read)
         let inputs = sleepRescoreInputs(for: read, sessionEnd: read.endDate ?? read.startDate)
         let archive = archive
         return try await Task.detached(priority: .userInitiated) {
@@ -355,14 +365,6 @@ extension ReanalysisService {
         Task { self.onSessionUploaded(sessionToUpload) }
     }
 
-    /// Recalculate the recovery score after a retro-apply changed the
-    /// session's sleep: `SleepBoundaryWrite.rescore` with the inputs captured
-    /// here (`sleepRescoreInputs`), anchored to `sessionEnd`.
-    private func rescoreAfterSleepChange(_ session: inout HRVSession, sessionEnd: Date) {
-        let inputs = sleepRescoreInputs(for: session, sessionEnd: sessionEnd)
-        SleepBoundaryWrite.rescore(&session, sessionEnd: sessionEnd, inputs: inputs)
-    }
-
     /// Diagnostic result from training snapshot repair.
     struct TrainingRepairResult {
         let totalSessions: Int
@@ -370,6 +372,9 @@ extension ReanalysisService {
         var nilContext: Int
         var repaired: Int
         var errors: Int
+        /// Sessions left as stored because HealthKit did not answer the
+        /// workout query for their date.
+        var unanswered: Int = 0
         var sampleLog: String = ""
     }
 
@@ -407,18 +412,20 @@ extension ReanalysisService {
 
         progress(analysed.count, analysed.count)
         Task { @MainActor in self.onArchiveChanged() }
-        debugLog("[ReanalysisService] Training repair complete: \(result.repaired)/\(result.candidates) updated, \(result.nilContext) nil context, \(result.errors) errors")
+        debugLog("[ReanalysisService] Training repair complete: \(result.repaired)/\(result.candidates) updated, \(result.nilContext) nil context, \(result.unanswered) unanswered, \(result.errors) errors")
         return result
     }
 
     /// Rebuild one session's training snapshot and persist it, folding the
-    /// outcome into `result`.
+    /// outcome into `result`. A date HealthKit did not answer the workout
+    /// query for (the store locked, a timeout) leaves the session as stored:
+    /// read as no workouts, it would rewrite the snapshot with a load built
+    /// from the archive's workouts alone.
     ///
     /// Kept as its own function so the repair loop's body stays short.
     private func repairSnapshot(for session: HRVSession, into result: inout TrainingRepairResult) async {
         let referenceDate = Self.morningAnchor(for: session)
-        let load = await healthKit.calculateTrainingLoad(relativeTo: referenceDate)
-
+        guard let load = await answeredTrainingLoad(for: session, at: referenceDate, into: &result) else { return }
         guard var freshContext = TrainingContext(from: load, relativeTo: referenceDate) else {
             debugLog("[ReanalysisService] Training repair: nil context for \(session.id.uuidString.prefix(8)) — metrics=\(load.metrics != nil)")
             result.nilContext += 1
@@ -434,6 +441,19 @@ extension ReanalysisService {
             debugLog("[ReanalysisService] Failed to repair training snapshot: \(error)")
             result.errors += 1
         }
+    }
+
+    /// The training load as of `referenceDate`; nil, counted as unanswered,
+    /// when HealthKit did not answer the workout query.
+    private func answeredTrainingLoad(
+        for session: HRVSession, at referenceDate: Date, into result: inout TrainingRepairResult
+    ) async -> HealthKitManager.TrainingLoad? {
+        guard let load = await healthKit.calculateTrainingLoadIfAnswered(relativeTo: referenceDate) else {
+            debugLog("[ReanalysisService] Training repair: HealthKit did not answer for \(session.id.uuidString.prefix(8)), left as stored")
+            result.unanswered += 1
+            return nil
+        }
+        return load
     }
 
     /// 5 AM on the morning the session ended, so the EWMA matches the original

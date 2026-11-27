@@ -183,10 +183,12 @@ enum SleepBoundaryWrite {
     /// `ReanalysisService.rescoredBreakdown` against the frozen training
     /// context (the session's, else its analysis's, else
     /// `inputs.fallbackTraining`), anchored to `sessionEnd`. A session with
-    /// no analysis is left as it is.
+    /// no analysis is left as it is, and so is the score of one no baseline
+    /// can be built for (`ReanalysisService.keepsStoredScore`).
     static func rescore(_ session: inout HRVSession, sessionEnd: Date, inputs: Inputs) {
         guard let result = session.analysisResult else { return }
         ReanalysisService.reclassifyHRVQuality(of: &session, result: result, baselineStats: inputs.context.baselineStats)
+        guard !ReanalysisService.keepsStoredScore(session, baseline: inputs.context.baselineStats) else { return }
         let trainingContext = session.trainingSnapshot ?? result.trainingContext ?? inputs.fallbackTraining
         let breakdown = ReanalysisService.rescoredBreakdown(
             of: session, result: result, training: trainingContext, referenceDate: sessionEnd, context: inputs.context

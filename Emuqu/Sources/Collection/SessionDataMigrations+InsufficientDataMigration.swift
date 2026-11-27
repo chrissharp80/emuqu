@@ -61,10 +61,13 @@ extension SessionDataMigrations {
               ReanalysisService.hasInsufficientData(
                   session: session, analysisResult: result, baselineRmssd: exp(baseline.lnRmssdMean)
               ) else { return false }
+        // Read before the write: the baseline can read the archive's index,
+        // which the update holds locked while its closure runs.
+        let context = reanalysisService.rescoreContext(for: session)
         do {
             try archive.update(session.id, requestingReupload: false) { stored in
                 stored.hrvDataQuality = .insufficient
-                applyBaselineRescore(&stored)
+                Self.applyBaselineRescore(&stored, context: context)
             }
             debugLog("[InsufficientDataMigration] Rescored session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery vs baseline")
             return true
@@ -81,12 +84,12 @@ extension SessionDataMigrations {
     /// replaces a daytime resting HR, the acceptance-time ANS-balance term is
     /// kept, and the staleness penalty is measured at the night, not today —
     /// so an old night is not marked down for the time since.
-    private func applyBaselineRescore(_ updated: inout HRVSession) {
+    private static func applyBaselineRescore(_ updated: inout HRVSession, context: RescoreContext) {
         guard let result = updated.analysisResult else { return }
         let bestTraining = updated.trainingSnapshot ?? result.trainingContext
-        let newBreakdown = reanalysisService.rescoredBreakdown(
+        let newBreakdown = ReanalysisService.rescoredBreakdown(
             of: updated, result: result, training: bestTraining,
-            referenceDate: updated.endDate ?? updated.startDate
+            referenceDate: updated.endDate ?? updated.startDate, context: context
         )
         updated.recoveryScore = RecoveryScoreCalculator.toTenScale(newBreakdown.compositeScore)
         updated.scoreBreakdown = newBreakdown

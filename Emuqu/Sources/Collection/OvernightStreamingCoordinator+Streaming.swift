@@ -364,7 +364,7 @@ extension OvernightStreamingCoordinator {
         let (finalPoints, dataSource, finalDeviceBeats) = selectBestDataSource(
             streamingPoints: streamingPoints, devicePoints: fetched.devicePoints, baseSession: baseSession
         )
-        await morning.backUpDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
+        await keepDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
         return await analyzeAndFinalizeOvernight(
             finalPoints: finalPoints, baseSession: baseSession,
             streamingBeats: streamingPoints.count, deviceBeats: finalDeviceBeats,
@@ -519,8 +519,20 @@ extension OvernightStreamingCoordinator {
     /// would clear the strap's only copy. The night uses the stream.
     private func keepDownloadSkipped(_ recording: StrapRecording?, baseSession: HRVSession) async {
         debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
-        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)
+        if let recording, morning.rescueDownloadedBeats(recording.points(onClockOf: baseSession.startDate), baseSession: baseSession) {
+            strapRecorder.device.noteSaved(recording)
+        }
         await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+    }
+
+    /// Backs up the strap beats the night downloaded
+    /// (`MorningSessionPipeline.backUpDownloadedNight`) and, only once they
+    /// are on disk, puts the night's recording on the saved record. An app
+    /// that dies before, or a backup that fails, leaves the strap's copy
+    /// recoverable, never cleared by the next arming.
+    func keepDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
+        guard await morning.backUpDownloadedNight(devicePoints, chosen: chosen, usedDevice: usedDevice, baseSession: baseSession) else { return }
+        strapRecorder.device.noteDownloadsSaved(recordedSince: baseSession.startDate)
     }
 
     /// The night's Skip and its arming are read once, by the gate: both are
@@ -793,6 +805,7 @@ extension OvernightStreamingCoordinator {
         let (points, source, _) = selectBestDataSource(
             streamingPoints: streamingPoints, devicePoints: devicePoints, baseSession: baseSession
         )
+        await keepDownloadedNight(devicePoints, chosen: points, usedDevice: true, baseSession: baseSession)
         return await finalizeFallbackSession(data: OvernightDataResult(
             points: points, baseSession: baseSession,
             streamingBeats: streamingPoints.count, deviceBeats: devicePoints.count,

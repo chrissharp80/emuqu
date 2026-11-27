@@ -44,16 +44,21 @@ struct StrapRecording: Sendable, Equatable {
     }
 }
 
-/// The strap recordings this app has already downloaded, by start time.
+/// The strap recordings this app has downloaded, and those whose beats it has
+/// written to disk, by start time.
 ///
 /// The strap keeps its copy after a download, by design, so "the strap holds
 /// a recording" alone cannot tell the Record screen whether anything is
 /// missing; without this record it offered the same, already-saved night on
-/// every connect. Every download goes through `fetchRecording`, which writes
-/// here, so the record is complete from the moment it began (`since`).
+/// every connect. Every download goes through `fetchRecording`, which notes
+/// it here. A download is only in memory until the flow that took it writes
+/// the beats to a backup or the archive and notes that (`markSaved`): only a
+/// saved recording may be cleared from the strap, so an app that dies, or a
+/// write that fails, between the two leaves the strap's copy recoverable.
 struct StrapDownloadLedger {
     private let defaults: UserDefaults
     private static let startsKey = "strapDownloadedRecordingStarts"
+    private static let savedKey = "strapSavedRecordingStarts"
     private static let sinceKey = "strapDownloadLedgerSince"
     /// Enough for weeks of nights and workouts; only the strap's current
     /// recording is ever asked about.
@@ -72,20 +77,46 @@ struct StrapDownloadLedger {
     }
 
     func markDownloaded(recordingStartedAt start: Date) {
-        let key = Self.key(for: start)
-        var starts = defaults.array(forKey: Self.startsKey) as? [Double] ?? []
-        guard !starts.contains(key) else { return }
-        starts.append(key)
-        defaults.set(Array(starts.suffix(Self.capacity)), forKey: Self.startsKey)
+        append(Self.key(for: start), to: Self.startsKey)
     }
 
     func wasDownloaded(recordingStartedAt start: Date) -> Bool {
-        let starts = defaults.array(forKey: Self.startsKey) as? [Double] ?? []
-        return starts.contains(Self.key(for: start))
+        starts(under: Self.startsKey).contains(Self.key(for: start))
+    }
+
+    /// The recording's beats are on disk, in a backup or an archived session.
+    func markSaved(recordingStartedAt start: Date) {
+        append(Self.key(for: start), to: Self.savedKey)
+    }
+
+    func wasSaved(recordingStartedAt start: Date) -> Bool {
+        starts(under: Self.savedKey).contains(Self.key(for: start))
+    }
+
+    /// Marks saved every downloaded recording that began at or after `since`:
+    /// a session that only has the downloaded beats, not the recording, saves
+    /// the one it downloaded for itself (`fetchRecording(recordedSince:)`
+    /// takes only a recording that began at or after the session's start).
+    func markDownloadsSaved(recordedSince since: Date) {
+        let floor = Self.key(for: since)
+        for key in starts(under: Self.startsKey) where key >= floor {
+            append(key, to: Self.savedKey)
+        }
     }
 
     func predatesRecord(_ start: Date) -> Bool {
         start < since
+    }
+
+    private func starts(under key: String) -> [Double] {
+        defaults.array(forKey: key) as? [Double] ?? []
+    }
+
+    private func append(_ start: Double, to key: String) {
+        var starts = starts(under: key)
+        guard !starts.contains(start) else { return }
+        starts.append(start)
+        defaults.set(Array(starts.suffix(Self.capacity)), forKey: key)
     }
 
     /// Whole seconds: the H10's id holds no more, and the same recording read
