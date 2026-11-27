@@ -249,9 +249,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         started.startActivity(with: Date())
         // `@Sendable`: HealthKit calls this on its own queue, and a closure
         // formed in this main-actor type would otherwise assert main there.
+        let attempt = ObjectIdentifier(started)
         workoutBuilder.beginCollection(withStart: Date()) { @Sendable collecting, error in
             guard !collecting, let error else { return }
-            Task { @MainActor in self.noteStartFailure(error) }
+            Task { @MainActor in self.noteStartFailure(error, of: attempt) }
         }
         watchForPhoneSilence()
     }
@@ -259,9 +260,25 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// Not fatal — the phone stays authoritative for the canonical recording —
     /// but the user needs to know wrist-HR fallback will not fire for this
     /// session, or a strap drop leaves a dead HR display with no explanation.
-    private func noteStartFailure(_ error: Error) {
+    ///
+    /// `attempt` is the session the failed start made (nil when none was
+    /// made). HealthKit reports a failed collection later, so the message is
+    /// shown only while that session is still the current one: a report for
+    /// a session already stopped, or replaced by a new start, says nothing
+    /// about the workout on the wrist now.
+    private func noteStartFailure(_ error: Error, of attempt: ObjectIdentifier? = nil) {
         let message = String(localized: "Wrist HR fallback not started: \(error.localizedDescription). Open Emuqu on your iPhone to verify Apple Health permissions.")
-        Task { @MainActor in self.lastStartError = message }
+        Task { @MainActor in
+            guard Self.failureIsCurrent(attempt, current: self.session.map(ObjectIdentifier.init)) else { return }
+            self.lastStartError = message
+        }
+    }
+
+    /// Whether a start failure belongs to the session now running: one with
+    /// no session of its own (the start threw) always does.
+    nonisolated static func failureIsCurrent(_ attempt: ObjectIdentifier?, current: ObjectIdentifier?) -> Bool {
+        guard let attempt else { return true }
+        return attempt == current
     }
 
     func stop() {

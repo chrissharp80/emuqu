@@ -28,10 +28,14 @@ extension DeviceRecordingSession {
     ///
     /// Refused while a night is paused or being ended: that night owns the
     /// current session and the recording phase, and an ending is still taking
-    /// its recording off the strap.
+    /// its recording off the strap. The start publishes its session once the
+    /// strap has answered, so it holds the recorder until then and no other
+    /// recording starts meanwhile (`SessionState.RecorderClaim`).
     /// - Parameter sessionType: The type of session (overnight, nap, or quick)
     func startSession(sessionType: SessionType = .overnight) async throws {
         try strapGuards.requireConnectedWithNoNightHeld(starting: "a strap recording")
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
         // The strap's own answer, not a flag a stopped recording left behind.
         await strapRecorder.refreshRecordingState(
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
@@ -95,7 +99,15 @@ extension DeviceRecordingSession {
         // The download runs from the tap; see `stopOvernightStreaming`.
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "DeviceRecordingStop")
         defer { bgTask.end() }
-        let base = resolveBaseSession()
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
+        return await downloadAndAssemble(base: resolveBaseSession())
+    }
+
+    /// The stop's download and analysis, which publish the night when they
+    /// are done. The stop holds the recorder over them, so no recording
+    /// starts under them (`SessionState.RecorderClaim`).
+    private func downloadAndAssemble(base: HRVSession?) async -> HRVSession {
         strapRecorder.beginTransfer()
         let recording: StrapRecording
         do {
@@ -572,6 +584,12 @@ extension DeviceRecordingSession {
         verifyResult: Verification.Result,
         windowResult: WindowSelector.WindowSelectionResult?
     ) async {
+        // The analysis began by putting this night on the recorder
+        // (`beginAnalyzingSession`); a session that took it since keeps it.
+        guard !sessionState.recorderTaken(since: finalSession.id) else {
+            debugLog("[RRCollector] Night \(finalSession.id.uuidString.prefix(8)) analysed after another session took the recorder; it is not put up for review", level: .warning)
+            return
+        }
         let deviation = baselineTracker.deviation(for: finalSession)
         sessionState.currentSession = finalSession
         sessionState.verificationResult = verifyResult

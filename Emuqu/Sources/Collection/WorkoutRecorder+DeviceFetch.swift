@@ -191,6 +191,17 @@ extension WorkoutRecorder {
         _ = stream.stopStreaming()
         debugLog("[WorkoutRecorder] acknowledgeFinished — stopped lingering Polar stream")
     }
+
+    /// `acknowledgeFinished` for the summary of `workoutId` only. A caller
+    /// that suspended first (a delete from the summary) may resume after
+    /// another workout finished and owns the summary; that one is left.
+    func acknowledgeFinished(of workoutId: UUID) {
+        guard lifecycle.finishedSession?.id == workoutId else {
+            debugLog("[WorkoutRecorder] acknowledgeFinished — another workout's summary is showing; leaving it")
+            return
+        }
+        acknowledgeFinished()
+    }
 }
 
 // MARK: - File-scope helpers

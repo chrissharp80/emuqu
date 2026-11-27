@@ -68,6 +68,7 @@ struct StrapRecordingGuards {
     /// a Verity Sense it ended the workout's live heart rate. Throws
     /// `alreadyRecording` or `notConnected`; `what` names the start in the log.
     func requireConnectedWithNoNightHeld(starting what: String) throws {
+        try sessionState.refuseStartWhileClaimed(starting: what)
         guard !streamingLifecycle.isPaused, !streamingLifecycle.isEndingOvernight else {
             debugLog("[RRCollector] Not starting \(what): a night is paused or being ended", level: .warning)
             throw RRCollector.CollectorError.alreadyRecording

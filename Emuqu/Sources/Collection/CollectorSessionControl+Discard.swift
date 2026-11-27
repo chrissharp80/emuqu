@@ -59,9 +59,16 @@ extension CollectorSessionControl {
     /// keep their backups, and the error is shown: if nothing was deleted the
     /// pause stays as it was, otherwise the recorder returns to the pause of
     /// the segment that is left, so Discard can be tapped again.
+    ///
+    /// The discard holds the recorder while the iCloud deletes run, so
+    /// Resume and the starts are refused under it (`SessionState.RecorderClaim`),
+    /// and it resets the recorder unless another session took it since
+    /// (`SessionState.recorderTaken`).
     func discardPausedRecording() async {
         guard let paused = streamingLifecycle.pausedSession, paused.state == .paused else { return }
         debugLog("[RRCollector] 🗑 Discarding paused night \(paused.id.uuidString.prefix(8))")
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
         for id in pausedChain(from: paused) {
             do {
                 try archive.delete(id)
@@ -70,7 +77,7 @@ extension CollectorSessionControl {
             }
             await removeKeptCopies(of: id)
         }
-        resetSession()
+        if !sessionState.recorderTaken(since: paused.id) { resetSession() }
         archiveSignal.notifyChanged()
     }
 
@@ -94,10 +101,15 @@ extension CollectorSessionControl {
     /// ending is in progress the strap's recording is that night's, still to
     /// be downloaded or saved, and nothing is touched; also false. So is a
     /// live workout's backup recording, with `alreadyRecording` shown.
+    /// The discard holds the recorder until it is done
+    /// (`SessionState.RecorderClaim`), and what it clears afterwards is its
+    /// own recording's only (`forgetDiscarded`).
     func discardDeviceRecording() async -> Bool {
         guard !strapGuards.isHeldElsewhere("discarding") else { return false }
         let session = sessionState.currentSession
         debugLog("[RRCollector] 🗑 Discarding strap recording \(session?.id.uuidString.prefix(8) ?? "-")")
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
         do {
             try await strapRecorder.discardStoredExercises()
         } catch {
@@ -106,9 +118,19 @@ extension CollectorSessionControl {
             return false
         }
         if let session { await removeKeptCopies(of: session.id) }
-        recordingStore.clear()
-        resetSession()
+        forgetDiscarded(session?.id)
         return true
+    }
+
+    /// The discarded recording's marker and session state go; a recording
+    /// another session put on the recorder since keeps its own.
+    private func forgetDiscarded(_ sessionId: UUID?) {
+        guard let sessionId else {
+            recordingStore.clear()
+            return resetSession()
+        }
+        recordingStore.clear(ifItIs: sessionId)
+        if !sessionState.recorderTaken(since: sessionId) { resetSession() }
     }
 
     static let strapCopyKeptReason =

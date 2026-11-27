@@ -150,12 +150,22 @@ extension QuickReadingSession {
     ///
     /// Safety: if this is an overnight streaming session, route to the proper
     /// overnight flow instead.
+    ///
+    /// The backup and analysis that follow the stop publish the reading when
+    /// they are done, so the stop holds the recorder over them and no
+    /// recording starts under them (`SessionState.RecorderClaim`).
     func stopStreamingSession() async -> HRVSession? {
         guard streamingLifecycle.isStreamingMode else { return nil }
         if streamingLifecycle.isOvernightStreaming {
             debugLog("[RRCollector] ⚠️ stopStreamingSession() called during overnight streaming - redirecting to stopOvernightStreaming()")
             return await overnightStreaming.stopOvernightStreaming()
         }
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
+        return await stopQuickReading()
+    }
+
+    private func stopQuickReading() async -> HRVSession {
         streamingLifecycle.stopStreamingTimer()
         streamingLifecycle.isStreamingMode = false
         let baseSession = sessionState.currentSession ?? HRVSession()
@@ -219,7 +229,7 @@ extension QuickReadingSession {
             analysisResult: nil,
             artifactFlags: nil
         )
-        recordingStore.clear()
+        recordingStore.clear(ifItIs: baseSession.id)
         await MainActor.run {
             sessionState.currentSession = failedSession
             sessionState.lastError = RRCollector.CollectorError.insufficientData
@@ -268,16 +278,18 @@ extension QuickReadingSession {
         }
     }
 
-    /// Archives a completed streaming session and updates baselines.
+    /// Archives a completed streaming session and updates baselines. The
+    /// recording marker cleared is this reading's own: a workout may have
+    /// started, and saved its marker, while the reading was analysed.
     private func archiveAndFinalizeStreamingSession(_ session: HRVSession) async {
         guard session.state == .complete else {
-            recordingStore.clear()
+            recordingStore.clear(ifItIs: session.id)
             return
         }
         do {
             try archive.archive(session)
             rawBackup.markAsArchived(session.id)
-            recordingStore.clear()
+            recordingStore.clear(ifItIs: session.id)
             baselineTracker.update(with: session, sleepSchedule: settingsManager.settings.sleepSchedule)
             await MainActor.run { archiveSignal.notifyChanged() }
             let cloudSync = cloudSyncManager // read before the hop

@@ -68,6 +68,24 @@ final class WorkoutStrapOwnershipTests: XCTestCase {
         XCTAssertFalse(stream.isStreaming)
     }
 
+    /// A delete from the summary resumes after its trash write; another
+    /// workout finished meanwhile owns the summary and keeps it.
+    func testADeleteAcknowledgesOnlyTheSummaryOfTheWorkoutItDeleted() {
+        let recorder = makeRecorder()
+        let deleted = HRVSession(sessionType: .workout)
+        let showing = HRVSession(sessionType: .workout)
+        recorder.lifecycle.phase = .finished
+        recorder.lifecycle.finishedSession = showing
+
+        recorder.acknowledgeFinished(of: deleted.id)
+        XCTAssertEqual(recorder.lifecycle.phase, .finished)
+        XCTAssertEqual(recorder.lifecycle.finishedSession?.id, showing.id)
+
+        recorder.acknowledgeFinished(of: showing.id)
+        XCTAssertEqual(recorder.lifecycle.phase, .idle)
+        XCTAssertNil(recorder.lifecycle.finishedSession)
+    }
+
     /// A Watch workout never started a stream: the beats a stopped strap
     /// stream kept from an earlier recording are not counted or read as this
     /// workout's heart rate.

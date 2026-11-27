@@ -91,4 +91,76 @@ final class SessionState {
     /// Cached result of `findRecentPausedSession()` — surfaces the resume
     /// banner. Refreshed on every archive signal bump.
     var recentPausedSession: HRVSession?
+
+    /// The holds on the recorder taken by work that spans suspensions and
+    /// writes this state when it resumes (`RecorderClaim`).
+    private(set) var recorderClaims: [RecorderClaim] = []
+
+    @ObservationIgnored private var recorderClaimsMade = 0
+}
+
+// MARK: - Recorder claims
+
+extension SessionState {
+    /// One caller's hold on the recorder while its work runs across
+    /// suspensions: a strap recording's start, a stop's download and
+    /// analysis, a review's acceptance, a discard, a crash recovery to the
+    /// pause. Each publishes into `currentSession` and the phase, or clears
+    /// them, when it resumes, so a recording started meanwhile would be the
+    /// one it overwrote. While a claim is held no recording starts
+    /// (`blocksStart`); several callers may hold one each.
+    struct RecorderClaim: Equatable {
+        fileprivate let number: Int
+        /// When the caller took the claim.
+        let claimedAt: Date
+    }
+
+    /// How old a claim must be before a start may take it as left behind.
+    /// Every step under a claim is bounded (the strap budgets, the Health
+    /// timeouts, the analysis); half an hour also covers work the system
+    /// suspended briefly in the background, as for a night's ending
+    /// (`StreamingLifecycle.staleEndingClaimAge`).
+    static let staleRecorderClaimAge: TimeInterval = 30 * 60
+
+    /// Takes a claim for the caller, which releases it when its work is done.
+    func claimRecorder(now: Date = Date()) -> RecorderClaim {
+        recorderClaimsMade += 1
+        let claim = RecorderClaim(number: recorderClaimsMade, claimedAt: now)
+        recorderClaims.append(claim)
+        return claim
+    }
+
+    /// The caller's work is over. Only its own claim goes.
+    func releaseRecorder(_ claim: RecorderClaim) {
+        recorderClaims.removeAll { $0 == claim }
+    }
+
+    /// Whether a claim younger than `staleRecorderClaimAge` is held, so a
+    /// recording must not start. An older one belongs to a caller that never
+    /// returned and no longer blocks; that caller still checks
+    /// `recorderTaken(since:)` before it writes.
+    func blocksStart(now: Date = Date()) -> Bool {
+        recorderClaims.contains { now.timeIntervalSince($0.claimedAt) < Self.staleRecorderClaimAge }
+    }
+
+    /// No recording starts while work that resumes into the session state
+    /// holds the recorder (`blocksStart`): a stop's analysis, a review's
+    /// acceptance, a discard or a crash recovery would publish over the new
+    /// recording, or clear it. Throws `alreadyRecording`; `what` names the
+    /// start in the log.
+    func refuseStartWhileClaimed(starting what: String) throws {
+        guard blocksStart() else { return }
+        debugLog("[RRCollector] Not starting \(what): an earlier session's work still holds the recorder", level: .warning)
+        throw RRCollector.CollectorError.alreadyRecording
+    }
+
+    /// Whether a session other than `before`, the one a caller found on the
+    /// recorder before it suspended (nil for none), is on it now. Work that
+    /// resumes writes or clears the session state only when it is not: a
+    /// recording that took the recorder meanwhile keeps it. No session at all
+    /// has taken nothing.
+    func recorderTaken(since before: UUID?) -> Bool {
+        guard let current = currentSession else { return false }
+        return current.id != before
+    }
 }

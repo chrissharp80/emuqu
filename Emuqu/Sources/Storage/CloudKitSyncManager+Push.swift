@@ -173,7 +173,9 @@ extension CloudKitSyncManager {
             await keepOnDevice(sessionId)
             return nil
         } catch {
-            await handlePrepFailure(error, sessionId: sessionId)
+            // A prep the stall watchdog abandoned reports nothing into the
+            // sync that already owns the state.
+            if !Task.isCancelled { await handlePrepFailure(error, sessionId: sessionId) }
             return nil
         }
     }
@@ -216,6 +218,9 @@ extension CloudKitSyncManager {
     /// have stops CloudKit for this launch; anything else queues the session
     /// for a retry. Returns true when the push cycle must stop.
     func handleSaveFailure(_ error: Error, sessionId: UUID) async -> Bool {
+        // A save the stall watchdog abandoned fails into a sync that already
+        // owns the state: nothing is marked, and the cycle ends.
+        guard !Task.isCancelled else { return true }
         if let ckError = error as? CKError, Self.isZoneGone(ckError) {
             return await handleZoneGone(ckError, sessionId: sessionId)
         }
@@ -444,6 +449,8 @@ extension CloudKitSyncManager {
                 try await markKeptOnDevice(CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID))
             } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
                 debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) has no iCloud copy to remove (\(error.code.rawValue))")
+            } catch is CloudUploadStopped {
+                return
             } catch {
                 state.markFailed(sessionId)
                 debugLog("[CloudKit] Push: could not remove the iCloud copy of \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
@@ -468,11 +475,17 @@ extension CloudKitSyncManager {
     /// (`reuploadSessionsMissingFromCloud`). Listed with this marker, it is
     /// left alone by the pull and counts as present. Fetched without its
     /// payload; throws `.unknownItem` when there is no record.
+    ///
+    /// The fetch suspends, so the write goes only while the account is still
+    /// the confirmed one and the sync was not abandoned; otherwise it throws
+    /// `CloudUploadStopped` with nothing written, and the session is not
+    /// marked kept on device for an account that was not asked.
     func markKeptOnDevice(_ recordID: CKRecord.ID) async throws {
         let fetched = try await privateDB.records(for: [recordID], desiredKeys: ["isDeleted"])
         guard let record = try fetched[recordID]?.get() else { throw CKError(.unknownItem) }
         record["isDeleted"] = Self.keptOnDeviceMarker as CKRecordValue
         record["sessionData"] = nil
+        guard CloudAccountIdentity.isConfirmed, !Task.isCancelled else { throw CloudUploadStopped() }
         _ = try await privateDB.save(record)
     }
 

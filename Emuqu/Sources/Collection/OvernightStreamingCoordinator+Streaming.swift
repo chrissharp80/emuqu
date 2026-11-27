@@ -103,7 +103,8 @@ extension OvernightStreamingCoordinator {
     }
 
     /// A night or a resumed segment may start only once no earlier ending
-    /// owns the recorder: the ending's download, analysis and publish would
+    /// owns the recorder, nor any other work that resumes into the session
+    /// state (`SessionState.refuseStartWhileClaimed`): the ending's download, analysis and publish would
     /// otherwise overwrite the new night's session and phase. While one is in
     /// progress the start throws `alreadyRecording` (the strap's recording is
     /// still being taken off it) and the claim stays held. A claim left
@@ -111,6 +112,7 @@ extension OvernightStreamingCoordinator {
     /// `StreamingLifecycle.staleEndingClaimAge`, is dropped and logged.
     @MainActor
     func refuseWhileEndingInProgress() throws {
+        try sessionState.refuseStartWhileClaimed(starting: "a night")
         switch streamingLifecycle.clearEndingForNewNight() {
         case .clear:
             return
