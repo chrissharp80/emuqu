@@ -180,9 +180,13 @@ extension QuickReadingSession {
         return finalSession
     }
 
-    /// Auto-disconnect Verity Sense to prevent battery drain.
-    private func disconnectVeritySenseAfterQuickSession() {
-        guard strapRecorder.linkState.connectedDeviceType == .veritySense else { return }
+    /// Auto-disconnect Verity Sense to prevent battery drain. The reading
+    /// stopped its stream before its analysis; a session started on the
+    /// sensor since (a workout, another reading) keeps it
+    /// (`StrapStreamSession.mayReleaseLink`).
+    func disconnectVeritySenseAfterQuickSession() {
+        guard strapRecorder.linkState.connectedDeviceType == .veritySense,
+              strapStream.mayReleaseLink(after: nil, recording: strapRecorder.device) else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after session end")
         strapRecorder.discovery.disconnect()
     }

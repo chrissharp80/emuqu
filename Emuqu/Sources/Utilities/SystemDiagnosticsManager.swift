@@ -72,6 +72,9 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// it fires regardless of run-loop activity (which matters during
     /// background recording when there's no UI tick).
     private var samplingTimer: DispatchSourceTimer?
+    /// The recordings sampling is running for, read and written on
+    /// `samplingQueue`.
+    private var samplingHolders = SamplingHolders()
     private let samplingQueue = DispatchQueue(label: "com.chrissharp.flowrecovery.diagnostics", qos: .utility)
 
     @objc dynamic var memoryWarningCount: Int = 0
@@ -137,9 +140,14 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// 5-second cadence is dense enough to catch a 30-second-warning →
     /// kill window but light enough that 4 hours of sampling is ~3000
     /// samples = ~120 KB of JSONL.
-    func startSamplingDuringRecording() {
+    ///
+    /// A workout and a Record screen recording can run at once (a Watch
+    /// workout during a night), so each says which it is: the sampler runs
+    /// until the last of them stops.
+    func startSamplingDuringRecording(for holder: SamplingHolder) {
         samplingQueue.async { [weak self] in
             guard let self else { return }
+            self.samplingHolders.add(holder)
             self.samplingTimer?.cancel()
             self.trimIfNeeded(self.memoryTraceURL, maxBytes: Self.memoryTraceMaxBytes)
             let timer = DispatchSource.makeTimerSource(queue: self.samplingQueue)
@@ -155,8 +163,10 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
 
     /// Stop sampling. Call when recording ends normally so we don't
     /// run the timer in the foreground app indefinitely.
-    func stopSamplingAfterRecording() {
+    /// One recording still running keeps it sampling.
+    func stopSamplingAfterRecording(for holder: SamplingHolder) {
         samplingQueue.async { [weak self] in
+            guard self?.samplingHolders.remove(holder) == true else { return }
             self?.samplingTimer?.cancel()
             self?.samplingTimer = nil
             self?.sampleMemoryAndThermal(reason: "stop")

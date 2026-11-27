@@ -25,6 +25,10 @@ struct RecordingCore {
     let strapBattery: StrapBatteryUsageTracker
     /// The straps this app knows.
     let strapPairings: StrapPairings
+    /// The Record screen's recordings on the same strap: a night being
+    /// stopped, paused or discarded still holds it while its recording is
+    /// taken off and its link released.
+    let recordScreenLifecycle: StreamingLifecycle
 
     /// The Health store and settings HealthKit reads and exports run through.
     let healthAccess: HealthKitAccess

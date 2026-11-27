@@ -121,7 +121,7 @@ extension CollectorSessionControl {
     private func stopStreamingWithoutKeeping() {
         let elapsedHours = streamingLifecycle.streamingHoursForBattery
         streamingLifecycle.stopStreamingTimer()
-        services.systemDiagnosticsManager.stopSamplingAfterRecording()
+        services.systemDiagnosticsManager.stopSamplingAfterRecording(for: .recordScreen)
         streamingLifecycle.isStreamingMode = false
         _ = strapStream.stopStreaming()
         strapBattery.recordRecordingHours(elapsedHours)

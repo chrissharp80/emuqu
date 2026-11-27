@@ -143,12 +143,16 @@ final class SessionRecoveryService {
     /// anything is discarded, or a recording under two minutes old lost its
     /// crash-safety backup here.
     func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await pullCloudBackupsToLocalIfDue(excluding: live)
-        let archivedIds = Set(archive.store.entries.map(\.sessionId))
-        let deletedIds = archive.store.deletedIds
-        let orphans = rawBackup.allBackups().filter {
-            !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
-        }
+        await checkForLostSessions(excludingLive: { live })
+    }
+
+    /// `liveIds` is read after the iCloud pull, which can wait on the network
+    /// for seconds: a recording started meanwhile writes its first backup at
+    /// once, and with the set read before the wait that backup was short of
+    /// the recovery floor, discarded here, and its iCloud copy retired.
+    func checkForLostSessions(excludingLive liveIds: () -> Set<UUID>) async -> [(id: UUID, date: Date, beatCount: Int)] {
+        await pullCloudBackupsToLocalIfDue(excludingLive: liveIds)
+        let orphans = unarchivedBackups(excluding: liveIds())
         let counts = beatCounts(of: orphans)
         // Backups too short to analyze, counted after a fuller file of them
         // is adopted, are discarded permanently so they stop showing up on
@@ -163,6 +167,15 @@ final class SessionRecoveryService {
         }
         if !lost.isEmpty { debugLog("[SessionRecoveryService] Found \(lost.count) lost sessions with backups") }
         return lost
+    }
+
+    /// Backups with no archived or deleted session, other than the live ones.
+    private func unarchivedBackups(excluding live: Set<UUID>) -> [RawRRBackup.BackupEntry] {
+        let archivedIds = Set(archive.store.entries.map(\.sessionId))
+        let deletedIds = archive.store.deletedIds
+        return rawBackup.allBackups().filter {
+            !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
+        }
     }
 
     /// Each lost backup's beat count. One below `minRecoverableBeatCount` is
@@ -220,14 +233,14 @@ final class SessionRecoveryService {
     /// Only a pull that read iCloud starts the wait: one that failed (offline,
     /// iCloud busy) or was not made (sync off) is tried again at the next
     /// scan, not five minutes later with the user's backups unseen.
-    private func pullCloudBackupsToLocalIfDue(excluding live: Set<UUID>) async {
+    private func pullCloudBackupsToLocalIfDue(excludingLive liveIds: () -> Set<UUID>) async {
         let defaults = UserDefaults.standard
         let last = defaults.double(forKey: Self.cloudPullKey)
         let now = Date().timeIntervalSince1970
         if last > 0, now - last < Self.cloudPullMinInterval {
             return
         }
-        if await pullCloudBackupsToLocal(excluding: live) {
+        if await pullCloudBackupsToLocal(excludingLive: liveIds) {
             defaults.set(now, forKey: Self.cloudPullKey)
         }
     }
@@ -249,6 +262,13 @@ final class SessionRecoveryService {
     /// failed (logged), which is not the same as iCloud holding no backups.
     @discardableResult
     func pullCloudBackupsToLocal(excluding live: Set<UUID>) async -> Bool {
+        await pullCloudBackupsToLocal(excludingLive: { live })
+    }
+
+    /// `liveIds` is read once iCloud has answered, so a recording started
+    /// during the read is left alone too.
+    @discardableResult
+    func pullCloudBackupsToLocal(excludingLive liveIds: () -> Set<UUID>) async -> Bool {
         let cloudBackups: [LiveBackupSummary]
         do {
             guard let fetched = try await cloudSyncManager.fetchLiveBackups() else { return false }
@@ -257,7 +277,7 @@ final class SessionRecoveryService {
             debugLog("[SessionRecoveryService] iCloud backups could not be read: \(error.localizedDescription) — tried again at the next scan", level: .warning)
             return false
         }
-        seed(cloudBackups, excluding: live)
+        seed(cloudBackups, excluding: liveIds())
         return true
     }
 

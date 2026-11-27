@@ -10,6 +10,8 @@ struct StrapRecordingGuards {
     let streamingLifecycle: StreamingLifecycle
     /// The strap's link, for whether it is connected.
     let strapLink: StrapLinkState
+    /// The strap's stream, for whether a session is buffering on it.
+    let strapStream: StrapStreamSession
     /// What the strap's own memory holds, and the downloads on record.
     let strapRecording: StrapRecordingState
     let recordingStore: RecordingStateStore
@@ -56,14 +58,22 @@ struct StrapRecordingGuards {
     }
 
     /// A quick reading or a strap-only recording may start only with the
-    /// strap connected and no night paused or being ended: that night owns
-    /// the current session and the recording phase until it is resumed,
-    /// finished or saved, and an ending is still taking its recording off the
-    /// strap. Throws `alreadyRecording` or `notConnected`; `what` names the
-    /// start in the log.
+    /// strap connected, no night paused or being ended, and no session
+    /// buffering on the strap: a paused night owns the current session and
+    /// the recording phase until it is resumed, finished or saved, an ending
+    /// is still taking its recording off the strap, and a workout on the
+    /// strap streams from its start until its heart-rate recovery is
+    /// captured. A strap-only recording started under a workout's stream was
+    /// stopped and downloaded as that workout's backup at its finish, and on
+    /// a Verity Sense it ended the workout's live heart rate. Throws
+    /// `alreadyRecording` or `notConnected`; `what` names the start in the log.
     func requireConnectedWithNoNightHeld(starting what: String) throws {
         guard !streamingLifecycle.isPaused, !streamingLifecycle.isEndingOvernight else {
             debugLog("[RRCollector] Not starting \(what): a night is paused or being ended", level: .warning)
+            throw RRCollector.CollectorError.alreadyRecording
+        }
+        guard !strapStream.isStreaming else {
+            debugLog("[RRCollector] Not starting \(what): another session is buffering on the strap", level: .warning)
             throw RRCollector.CollectorError.alreadyRecording
         }
         guard strapLink.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }

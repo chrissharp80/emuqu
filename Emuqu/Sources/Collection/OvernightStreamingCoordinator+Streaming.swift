@@ -66,7 +66,7 @@ extension OvernightStreamingCoordinator {
         overnightRun.usesDeviceBackup = useDeviceInternalBackup
         try strapStream.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
-        services.systemDiagnosticsManager.startSamplingDuringRecording()
+        services.systemDiagnosticsManager.startSamplingDuringRecording(for: .recordScreen)
         if useDeviceInternalBackup, strapLinkControl.state.connectedDeviceType != .veritySense {
             launchDeviceRecordingLoop()  // H10-only internal-recording backup
         }
@@ -343,9 +343,12 @@ extension OvernightStreamingCoordinator {
     /// A Verity Sense night is scored from the stream alone (the morning never
     /// downloads from it), so nothing is left to pull and the sensor is
     /// released once the night is scored, or has failed for too short a stream.
-    /// A night started on it since the stop let go of the ending keeps it.
-    private func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
-        guard isVeritySense, !streamingLifecycle.isOvernightStreaming else { return }
+    /// A night started on it since the stop let go of the ending keeps it,
+    /// and so does any other session buffering on it or a transfer using it
+    /// (`StrapStreamSession.mayReleaseLink`).
+    func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
+        guard isVeritySense, !streamingLifecycle.isOvernightStreaming,
+              strapStream.mayReleaseLink(after: nil, recording: strapRecorder.device) else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after overnight session")
         strapDiscovery.disconnect()
     }
@@ -656,7 +659,7 @@ extension OvernightStreamingCoordinator {
     /// The morning stop and the pause's gather both stop through here.
     func stopStreamingInfrastructure() async -> (HRVSession, [RRPoint], Int) {
         streamingLifecycle.stopStreamingTimer()
-        services.systemDiagnosticsManager.stopSamplingAfterRecording()
+        services.systemDiagnosticsManager.stopSamplingAfterRecording(for: .recordScreen)
         streamingLifecycle.isStreamingMode = false
         let baseSession = sessionState.currentSession ?? HRVSession()
         let reconnectCount = strapStream.streamingReconnectCount

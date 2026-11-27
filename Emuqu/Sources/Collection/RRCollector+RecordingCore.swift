@@ -5,7 +5,7 @@ extension RRCollector {
     var strapGuards: StrapRecordingGuards {
         StrapRecordingGuards(
             sessionState: sessionState, streamingLifecycle: streamingLifecycle,
-            strapLink: polarManager.linkState, strapRecording: polarManager.deviceRecording,
+            strapLink: polarManager.linkState, strapStream: polarManager.stream, strapRecording: polarManager.deviceRecording,
             recordingStore: recordingStore, archive: archive, rawBackup: rawBackup, recorderBox: services.recorderBox
         )
     }
@@ -17,7 +17,7 @@ extension RRCollector {
             strapLink: polarManager.linkState, strapStream: polarManager.stream,
             strapRecording: polarManager.deviceRecording, strapRecorder: polarManager.recording,
             strapDiscovery: polarManager.discovery, strapBattery: polarManager.battery,
-            strapPairings: polarManager.pairings, healthAccess: healthKit.access, heartRate: healthKit.heartRate,
+            strapPairings: polarManager.pairings, recordScreenLifecycle: streamingLifecycle, healthAccess: healthKit.access, heartRate: healthKit.heartRate,
             training: healthKit.training, healthSampleStore: healthKit.sampleReplacer.store, archive: archive,
             cloudSyncManager: cloudSyncManager, rawBackup: rawBackup,
             analysisPipeline: analysisPipeline, archiveSignal: archiveSignal
