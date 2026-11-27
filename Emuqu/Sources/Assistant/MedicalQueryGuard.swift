@@ -53,6 +53,12 @@ enum MedicalQueryGuard {
         case symptom
         case selfHarm
         case injury
+
+        /// Whether the reply names the local emergency number: the crisis,
+        /// symptom and injury replies do, the rhythm reply does not. A
+        /// message that gets one of these must reach the guard however the
+        /// app is set up and whatever it just said.
+        var namesEmergencyNumber: Bool { self != .rhythm }
     }
 
     // MARK: - Compiled patterns

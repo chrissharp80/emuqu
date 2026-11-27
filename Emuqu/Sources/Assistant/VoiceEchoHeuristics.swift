@@ -134,6 +134,19 @@ enum VoiceEchoHeuristics {
         "нет", "لا", "いいえ", "아니", "아니요", "아뇨", "不", "不要", "别"
     ]
 
+    /// Whether a transcript must reach the guard even though it overlaps what
+    /// the app just said. Someone answering the crisis reply with "I want to
+    /// end my life" repeats its words ("sorry", "feeling", "life"), and the
+    /// overlap rules would drop that as echo with no reply at all. A message
+    /// the guard answers with the emergency number is never echo, unless the
+    /// app's own last reply classifies the same way: the English crisis reply
+    /// says "in danger" and the Arabic injury reply "خطير", so the tail of
+    /// either one heard back must still be dropped rather than answered.
+    static func mustReachGuard(_ transcript: String, lastAssistantTurn: String) -> Bool {
+        guard let trigger = MedicalQueryGuard.classify(transcript), trigger.namesEmergencyNumber else { return false }
+        return MedicalQueryGuard.classify(lastAssistantTurn) != trigger
+    }
+
     static func threshold(forTokenCount count: Int) -> Double {
         count <= shortTranscriptTokenCount ? shortTranscriptEchoThreshold : longTranscriptEchoThreshold
     }

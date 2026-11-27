@@ -489,9 +489,11 @@ extension VoiceConversationController {
 
     /// Echo check specifically for in-flight TTS — compares against what the
     /// AI has STREAMED during the current turn, not what it said last turn.
+    /// A crisis or emergency report is never echo: it interrupts the reply.
     @MainActor
     func isLikelyEchoOfCurrentResponse(_ candidate: String) -> Bool {
-        VoiceEchoHeuristics.isEchoOfInFlightResponse(
+        guard !VoiceEchoHeuristics.mustReachGuard(candidate, lastAssistantTurn: currentResponseText) else { return false }
+        return VoiceEchoHeuristics.isEchoOfInFlightResponse(
             candidate: candidate,
             streamedSoFar: currentResponseText
         )
