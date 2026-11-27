@@ -975,8 +975,9 @@ extension AssistantToolRunner {
     /// new in-flight request from the view-model's bookkeeping.
     /// Also drains any message that was queued by `send(text:)` while the
     /// stream was in flight, so a follow-up the user typed/spoke during
-    /// the previous response doesn't get lost.
-    func finishStream(generation: Int) async {
+    /// the previous response doesn't get lost. A `spokenReply` (voice chat) has its confirmation
+    /// question count as asked only once voice has spoken it (`AssistantActionConfirmations.markSpoken`).
+    func finishStream(generation: Int, spokenReply: Bool) async {
         guard generation == owner.streamGeneration else {
             debugLog("[Assistant] finishStream skipped — stream gen \(generation) is stale (current=\(owner.streamGeneration))")
             return
@@ -984,7 +985,7 @@ extension AssistantToolRunner {
         owner.isStreaming = false
         owner.streamTask = nil
         owner.streamingTurn = nil
-        if owner.actionConfirmations.settleAtReplyEnd(in: &owner.turns, replyQueued: owner.pendingSendOnFinish != nil) { owner.store.save(owner.turns) }
+        if owner.actionConfirmations.settleAtReplyEnd(in: &owner.turns, replyQueued: owner.pendingSendOnFinish != nil, spokenReply: spokenReply) { owner.store.save(owner.turns) }
 
         // Drain queued send. We move it to a local first because dispatch()
         // will bump owner.streamGeneration / reset owner.isStreaming on its own; if it

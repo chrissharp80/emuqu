@@ -16,7 +16,8 @@ import Foundation
 // repeats the same call AND the user's very next message, which only the
 // user can write, is a short, explicit "yes" sent directly under the app's
 // question. A different reply, a later turn, a question that was never
-// shown, a message sent while the reply was still arriving
+// shown, a voice reply whose question was not spoken to the end
+// (`markSpoken`), a message sent while the reply was still arriving
 // (`lapseUnshown`), or `lifetime` passing, and the request lapses. One request is
 // pending at a time; a new one replaces it.
 // Writes whose content the model supplies (a memory fact, a contact, an
@@ -35,6 +36,12 @@ struct PendingAssistantAction: Equatable, Sendable {
     let question: String
     /// The reply the app showed `question` under; nil until it has.
     var promptTurnID: UUID?
+    /// Whether the user has been given `question`: as soon as it is shown
+    /// under a typed reply, and under a voice reply only once it has been
+    /// spoken to the end (`markSpoken`). A voice user may see no chat bubble
+    /// (the workout screens show none), and a workout alert can cut the
+    /// reply off before its question plays.
+    var delivered = false
 }
 
 @MainActor
@@ -74,11 +81,11 @@ final class AssistantActionConfirmations {
     }
 
     /// The pending request matches and has not expired, the app showed its
-    /// question under the reply just before the latest user message, that
-    /// reply answered the message the request was made during, and the
-    /// latest message says yes.
+    /// question under the reply just before the latest user message and gave
+    /// it to the user (`delivered`), that reply answered the message the
+    /// request was made during, and the latest message says yes.
     private func confirms(action: String, target: String, turns: [ChatTurn], now: Date) -> Bool {
-        guard let pending, pending.action == action, pending.target == target,
+        guard let pending, pending.action == action, pending.target == target, pending.delivered,
               now.timeIntervalSince(pending.requestedAt) <= Self.lifetime,
               let replyIndex = turns.lastIndex(where: { $0.role == .user }), replyIndex >= 2
         else { return false }
@@ -90,18 +97,28 @@ final class AssistantActionConfirmations {
     /// When a reply ends: shows the question of a request made during this
     /// turn under the reply, the last turn when it answers the latest user
     /// message. Nothing is shown when the reply is missing (a failed or
-    /// stopped stream); the request then cannot be confirmed. Returns
-    /// whether a question was shown.
+    /// stopped stream); the request then cannot be confirmed. Under a
+    /// `spokenReply` (voice chat) the question is not yet delivered: voice
+    /// speaks it after the reply and reports when it has played
+    /// (`markSpoken`). Returns whether a question was shown.
     @discardableResult
-    func showPending(in turns: inout [ChatTurn]) -> Bool {
+    func showPending(in turns: inout [ChatTurn], spokenReply: Bool) -> Bool {
         guard var request = pending, request.promptTurnID == nil,
               let replyIndex = turns.indices.last, turns[replyIndex].role == .assistant,
               turns.last(where: { $0.role == .user })?.id == request.requestTurnID
         else { return false }
         turns[replyIndex].confirmationPrompt = request.question
         request.promptTurnID = turns[replyIndex].id
+        request.delivered = !spokenReply
         pending = request
         return true
+    }
+
+    /// Voice chat has spoken the question shown under `promptTurnID` to the
+    /// end, so a "yes" to it now answers a question the user heard.
+    func markSpoken(promptTurnID: UUID) {
+        guard pending?.promptTurnID == promptTurnID else { return }
+        pending?.delivered = true
     }
 
     /// When a reply ends while a message the user sent during it is queued
@@ -121,12 +138,12 @@ final class AssistantActionConfirmations {
     /// queued to go next (`replyQueued`), in which case it lapses
     /// (`lapseUnshown`). Returns whether a question was shown.
     @discardableResult
-    func settleAtReplyEnd(in turns: inout [ChatTurn], replyQueued: Bool) -> Bool {
+    func settleAtReplyEnd(in turns: inout [ChatTurn], replyQueued: Bool, spokenReply: Bool) -> Bool {
         guard !replyQueued else {
             lapseUnshown()
             return false
         }
-        return showPending(in: &turns)
+        return showPending(in: &turns, spokenReply: spokenReply)
     }
 }
 

@@ -396,8 +396,11 @@ extension VoiceConversationController {
     @MainActor
     func finishInterjectionAfterError() {
         cancelLLM()
-        if let line = coachCue.takeFallback() { return speak(line, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) }
-        if !coachCue.isBusy { finishTriggerSpeech() }
+        if let line = coachCue.takeFallback() {
+            speak(line, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true)
+        } else if !coachCue.isBusy {
+            finishTriggerSpeech()
+        }
     }
 
     /// Urgency tier for trigger dispatch. Routine = "respect the

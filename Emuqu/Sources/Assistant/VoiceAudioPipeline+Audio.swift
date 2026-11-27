@@ -825,14 +825,19 @@ extension VoiceAudioPipeline {
     /// model's. The question is already in the app language, so it is
     /// spoken as a scripted line in that language's voice. It joins
     /// `currentResponseText`, which the barge-in echo check compares the
-    /// microphone against while it plays.
+    /// microphone against while it plays. The request can be confirmed only
+    /// once this line has played to the end
+    /// (`VoiceConversationController.confirmationLineEnded`); a reply voice
+    /// detached from (a workout alert preempting it) never speaks it, so its
+    /// request lapses.
     @MainActor
     func speakConfirmationQuestionIfShown() {
         let turns = controller.assistantViewModel.turns
         guard let idx = controller.activeAssistantIndex, turns.indices.contains(idx),
               turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt else { return }
         controller.currentResponseText += (controller.currentResponseText.isEmpty ? "" : " ") + question
-        controller.speak(question, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true)
+        guard let line = controller.speak(question, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) else { return }
+        controller.spokenConfirmation = (utterance: line, turnID: turns[idx].id)
     }
 
     /// Voice-mode network / API failure
