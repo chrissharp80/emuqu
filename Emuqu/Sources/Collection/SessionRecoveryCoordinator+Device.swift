@@ -33,7 +33,7 @@ extension SessionRecoveryCoordinator {
 
     @MainActor
     private static func exportIfEnabled(_ session: HRVSession, writes: HealthWriteAndObserve, settingsManager: SettingsManager) async {
-        guard settingsManager.settings.enableHealthKitExport else { return }
+        guard settingsManager.settings.exportsToAppleHealth else { return }
         do {
             try await writes.exportSessionMetrics(from: session)
             PendingNightExports.record(session.id, exported: true)

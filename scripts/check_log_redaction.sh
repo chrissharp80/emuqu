@@ -71,6 +71,13 @@ LOCATION_VALUE_PATTERN='\\\((String\(describing: *)?([^)]*\.)?('"$LOCATION_VALUE
 # The name of a saved route (free text the user typed) or of a place. A bare
 # `name` is not matched: in this codebase it mostly names a device or sport.
 PLACE_NAME_PATTERN='\\\((String\(describing: *)?([^)]*\.)?(savedRoute|route|osmHit|placemark|mapItem)\.name\)'
+# Other free text the user typed or named, under the names it is stored by:
+# a saved route's name copied out (`routeName`, `estimate.routeName`,
+# `extrapolationRouteName`), a contact's or a plan's name, a memory fact's
+# text, session notes and tags, and the name of a file they chose
+# (`originalFileName`). Bare or text-preserved; a count is not matched.
+USER_FIELD_NAMES='routeName|[a-z][A-Za-z]*RouteName|(contact|recipient|plan|fact|memory)\.(name|text)|factText|notes?|[a-z][A-Za-z]*Notes?|tags|[a-z][A-Za-z]*Tags|fileName|[a-z][A-Za-z]*FileName'
+USER_FIELD_PATTERN='\\\((String\(describing: *)?([^)]*\.)?('"$USER_FIELD_NAMES"')'"$TEXT_TRANSFORMS"'( \?\? "[^"]*")?\)'
 # A bare `\(rr)` and a member path `\(self.rrIntervals)` / `\(session.rr)` alike.
 # `samples` only bare: as a member it is a sample COUNT in this codebase
 # (`\(pass.samples)`), not a series.
@@ -91,7 +98,7 @@ CONCAT_PATTERN='"[[:space:]]*\+[[:space:]]*([A-Za-z_][A-Za-z0-9_]*\.)*('"$CONCAT
 # both names this repo gives one (`logger`, `log`) and when it is built in place
 # (`Logger(…)` then `.debug(…)`, the chained call allowed on the next line).
 LOGGER_LEVEL='(debug|info|notice|warning|error|fault|trace|critical|log)'
-LOG_CALL="(debugLog|debugLogExternal|(RuntimeLogger|DebugLogger)[.]shared[.]log|(log|[A-Za-z_]*[Ll]ogger|[A-Za-z_]+Log)[?]?[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(]"
+LOG_CALL="((?<![.\w])log[(](?=\")|(debugLog|debugLogExternal|(RuntimeLogger|DebugLogger)[.]shared[.]log|(log|[A-Za-z_]*[Ll]ogger|[A-Za-z_]+Log)[?]?[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(])"
 
 # A value wrapped in `String(describing:)` is the value, so every pattern
 # below also matches it wrapped. The logger's own sink
@@ -198,6 +205,7 @@ report "precise coordinates" "$GEO_PATTERN"
 report "raw beat/RR series" "$RAW_SERIES_PATTERN"
 report "user text / place names" "$USER_TEXT_PATTERN"
 report "route / place names" "$PLACE_NAME_PATTERN"
+report "user-named fields" "$USER_FIELD_PATTERN"
 report "location by variable name" "$LOCATION_NAME_PATTERN"
 report "location values" "$LOCATION_VALUE_PATTERN"
 report "sensitive values concatenated" "$CONCAT_PATTERN"

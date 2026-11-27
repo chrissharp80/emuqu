@@ -440,7 +440,10 @@ extension HelpContent {
                     .heading("Privacy"),
                     .bullets([
                         "Your data is stored on this device. Optional iCloud sync between your devices is encrypted on your iPhone first; readings from Apple Health are never uploaded to iCloud, but scores Emuqu computes from them are",
-                        "A cloud AI model you set up for Flo receives what its data-sharing notice lists, Apple Health readings included, once you accept that notice. When Apple Intelligence answers, it stays on your iPhone",
+                        """
+                        A cloud AI model you set up for Flo receives what its data-sharing notice lists, Apple Health readings included, once you accept that notice. \
+                        When Apple Intelligence answers, it stays on your iPhone. A place or directions lookup still sends your position to Apple Maps or OpenStreetMap
+                        """,
                         "iCloud sync goes to YOUR private CloudKit container — no third-party servers",
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
                         "Deleting the app deletes the data stored in it, raw RR backups included — iCloud sync or an export keeps it",
@@ -505,7 +508,8 @@ extension HelpContent {
                     .note("""
                         iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on your iPhone before upload. Readings from Apple Health (sleep, vitals, VO2max, workouts from Apple Health, \
                         Apple Watch heart rate, and birthday, sex and weight filled from Health) are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself. Your settings are backed up to iCloud too, \
-                        encrypted the same way; on another device, restore them from Settings → iCloud & Data → Restore Settings from iCloud. During a recording, its raw RR backup also uploads this way every 5 minutes.
+                        encrypted the same way; on another device, restore them from Settings → iCloud & Data → Restore Settings from iCloud. During a recording, its raw RR backup also uploads this way every 5 minutes. \
+                        Another device can open your synced data only if both have iCloud Keychain turned on.
                         """)
                 ]
             ),

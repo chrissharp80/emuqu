@@ -450,6 +450,18 @@ check "log_redaction/place_name" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedRoute(savedRoute: SavedRoute) { debugLog(\"route: \\(savedRoute.name)\") }'+chr(10))"
 
+# A saved route's name copied out of the route, and a chosen file's name
+# logged through a local `log(_:)` wrapper.
+check "log_redaction/user_named_field" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedRouteName(estimate: RouteTRIMPEstimate) { debugLog(\"route=\\(estimate.routeName)\") }'+chr(10))"
+
+check "log_redaction/log_wrapper" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedFile(originalFileName: String) { log(\"Source: \\(originalFileName)\") }'+chr(10))"
+
 # A call into Polar's firmware update reaches Zip's unzip, which an
 # allowance in security.yml says the app never does.
 check "unreached_advisories" \

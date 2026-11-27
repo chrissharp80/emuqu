@@ -329,7 +329,7 @@ extension WorkoutFinalizer {
         metadata.extrapolatedTRIMP = estimate.estimatedTRIMP
         metadata.extrapolationConfidence = estimate.confidence
         metadata.extrapolationRouteName = estimate.routeName
-        debugLog("[WorkoutRecorder.finalize] Route TRIMP estimate: \(String(format: "%.0f", estimate.estimatedTRIMP)) (recorded=\(metadata.luciaTRIMP.map { String(format: "%.0f", $0) } ?? "nil"), route=\(estimate.routeName), conf=\(String(format: "%.2f", estimate.confidence)), priorDominant=\(estimate.priorDominant))")
+        debugLog("[WorkoutRecorder.finalize] Route TRIMP estimate: \(String(format: "%.0f", estimate.estimatedTRIMP)) (recorded=\(metadata.luciaTRIMP.map { String(format: "%.0f", $0) } ?? "nil"), conf=\(String(format: "%.2f", estimate.confidence)), priorDominant=\(estimate.priorDominant))")
     }
 
     /// Finalize stage 8 — Concept2 PM5 rowing telemetry.

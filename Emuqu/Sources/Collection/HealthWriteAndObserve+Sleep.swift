@@ -166,8 +166,7 @@ extension HealthWriteAndObserve {
 
     /// Whether export to Apple Health, and this metric's export, are on now.
     private func allows(_ metric: KeyPath<UserSettings, Bool>) -> Bool {
-        let settings = access.settingsProvider()
-        return settings.enableHealthKitExport && settings[keyPath: metric]
+        access.settingsProvider().exportsReading(metric)
     }
 
     /// HRV: windowed SDNN across the recording, or the single measured

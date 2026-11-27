@@ -275,7 +275,7 @@ final class RRDataImporter: Sendable {
         do {
             data = try Data(contentsOf: url)
         } catch {
-            debugLog("[Import] Failed to read file \(url.lastPathComponent): \(error.localizedDescription)")
+            debugLog("[Import] Failed to read a .\(url.pathExtension) file: \(error.localizedDescription)")
             throw ImportError.unreadableFile
         }
         guard data.count <= Self.maxFileBytes else { throw ImportError.tooLarge }
@@ -293,12 +293,12 @@ final class RRDataImporter: Sendable {
         do {
             size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
         } catch {
-            debugLog("[Import] \(url.lastPathComponent): size unreadable: \(error.localizedDescription)", level: .warning)
+            debugLog("[Import] A .\(url.pathExtension) file's size is unreadable: \(error.localizedDescription)", level: .warning)
             throw ImportError.unreadableFile
         }
         guard let size else { throw ImportError.unreadableFile }
         guard size > maxBytes else { return }
-        debugLog("[Import] \(url.lastPathComponent) is \(size / 1_048_576) MB, over the import limit", level: .warning)
+        debugLog("[Import] A .\(url.pathExtension) file is \(size / 1_048_576) MB, over the import limit", level: .warning)
         throw ImportError.tooLarge
     }
 

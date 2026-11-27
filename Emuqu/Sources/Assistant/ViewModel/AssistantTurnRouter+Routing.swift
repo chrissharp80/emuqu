@@ -92,7 +92,8 @@ extension AssistantTurnRouter {
             proposedTier: proposedTier,
             tier3CapReached: tier3CapReached,
             mappings: mappings,
-            messageNeedsWebSearch: latestUserMessage.map { Self.messageNeedsWebSearch($0) } ?? false
+            messageNeedsWebSearch: latestUserMessage.map { Self.messageNeedsWebSearch($0) } ?? false,
+            webSearch: webSearchAccess()
         )
     }
 
@@ -642,13 +643,17 @@ extension AssistantTurnRouter {
     /// as they are now (`TurnRouter.webSearchEscalation`); nil keeps the turn
     /// on Apple.
     func webSearchEscalationTarget() -> (provider: AIProvider, model: ModelOption)? {
-        let access = TurnRouter.WebSearchAccess(
+        guard let target = TurnRouter.webSearchEscalation(inputs: makeTurnRouterInputs(tierStage: nil), access: webSearchAccess())
+        else { return nil }
+        return (liveProvider(for: target.id), target.model)
+    }
+
+    /// Settings → Flo → Web search and the Tavily key, as they are now.
+    private func webSearchAccess() -> TurnRouter.WebSearchAccess {
+        TurnRouter.WebSearchAccess(
             isEnabled: owner.services.settingsManager.settings.enableWebSearch,
             hasTavilyKey: owner.services.apiKeyStore.hasServiceKey(for: .tavilyWebSearch)
         )
-        guard let target = TurnRouter.webSearchEscalation(inputs: makeTurnRouterInputs(tierStage: nil), access: access)
-        else { return nil }
-        return (liveProvider(for: target.id), target.model)
     }
 
     /// Prompt-composition stage of `dispatch()`, also used by every fallback

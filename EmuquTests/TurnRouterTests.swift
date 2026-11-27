@@ -288,7 +288,8 @@ final class TurnRouterTests: XCTestCase {
             mappings: [
                 .quick: TurnRouter.MappingSnapshot(providerID: .apple, model: appleModel, collapsed: false)
             ],
-            messageNeedsWebSearch: true
+            messageNeedsWebSearch: true,
+            webSearch: TurnRouter.WebSearchAccess(isEnabled: true, hasTavilyKey: false)
         )
         let inputs = makeInputs(
             mode: .quick,
@@ -311,6 +312,37 @@ final class TurnRouterTests: XCTestCase {
             decision.logLines.last?.contains("web search: apple can't search the web; overriding to anthropic:") ?? false,
             "Override must be logged: \(decision.logLines)"
         )
+    }
+
+    // MARK: - Web search switched off
+
+    /// A web-search question stays where the tier put it while Settings →
+    /// Flo → Web search is off, or when no consented cloud could run the
+    /// search: moving it would send its context to a cloud for a search
+    /// that cannot happen.
+    func testWebSearch_OverrideNeedsASearchTheCloudCanRun() {
+        let cases: [(access: TurnRouter.WebSearchAccess, cloud: ProviderID, expected: ProviderID)] = [
+            (TurnRouter.WebSearchAccess(isEnabled: false, hasTavilyKey: true), .anthropic, .apple),
+            (TurnRouter.WebSearchAccess(isEnabled: false, hasTavilyKey: true), .grok, .apple),
+            (TurnRouter.WebSearchAccess(isEnabled: true, hasTavilyKey: false), .grok, .apple),
+            (TurnRouter.WebSearchAccess(isEnabled: true, hasTavilyKey: true), .grok, .grok),
+            (TurnRouter.WebSearchAccess(isEnabled: true, hasTavilyKey: false), .anthropic, .anthropic)
+        ]
+        for (access, cloud, expected) in cases {
+            let stage = TurnRouter.TierStage(
+                proposedTier: .quick,
+                tier3CapReached: false,
+                mappings: [.quick: TurnRouter.MappingSnapshot(providerID: .apple, model: appleModel, collapsed: false)],
+                messageNeedsWebSearch: true,
+                webSearch: access
+            )
+            let inputs = makeInputs(
+                mode: .quick, selected: .apple, selectedModel: appleModel,
+                providers: [.apple: appleState(), cloud: cloudState(cloud, consented: true)],
+                tierStage: stage
+            )
+            XCTAssertEqual(TurnRouter.route(inputs: inputs).providerID, expected, "\(access) with \(cloud)")
+        }
     }
 
     // MARK: - Web search + only unconsented clouds

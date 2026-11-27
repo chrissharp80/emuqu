@@ -127,7 +127,7 @@ struct WearablesSettingsPage: View {
         } header: {
             Text("Apple Health Export", bundle: LanguageManager.appBundle)
         } footer: {
-            Text("HRV and heart rate are written automatically after each recording. Sleep is only written when Apple Health had no sleep for the night but the strap detected it from your heart rate — the \u{201C}forgot your Watch\u{201D} case. Watch-recorded sleep is never overwritten.", bundle: LanguageManager.appBundle)
+            Text("HRV and heart rate are written automatically after each recording. Sleep is only written when Apple Health had no sleep for the night but the strap detected it from your heart rate — the \u{201C}forgot your Watch\u{201D} case. Watch-recorded sleep is never overwritten. Workouts you record in Emuqu are written too.", bundle: LanguageManager.appBundle)
         }
     }
 

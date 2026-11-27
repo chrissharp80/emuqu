@@ -37,7 +37,7 @@ extension MorningSessionPipeline {
         _ = try await acceptanceService.processAcceptance(
             session: session,
             inputs: inputs,
-            enableHealthKitExport: settings.enableHealthKitExport,
+            enableHealthKitExport: settings.exportsToAppleHealth,
             clearPersistedRecordingState: { [weak self] in
                 self?.recordingStore.clear(ifItIs: session.id)
             }
@@ -78,7 +78,7 @@ extension MorningSessionPipeline {
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule,
             exportMetrics: exportMetrics,
-            enableHealthKitExport: settings.enableHealthKitExport
+            enableHealthKitExport: settings.exportsToAppleHealth
         )
 
         if updated {

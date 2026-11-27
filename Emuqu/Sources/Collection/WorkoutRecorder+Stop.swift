@@ -539,8 +539,10 @@ extension WorkoutRecorder {
         // users not on the chat tab, the EmuquApp
         // root observer also catches it. The toggle gates the
         // auto-fire; on-demand generation from the post-summary
-        // button always works regardless.
-        guard settingsProvider().enableAutoCoachReport else { return }
+        // button always works regardless. With the AI Assistant off the
+        // Coach Report does not run, as that switch's description says.
+        let settings = settingsProvider()
+        guard settings.enableAutoCoachReport, settings.enableAIAssistant else { return }
         Self.scheduleCoachReportEmail(for: finalSession, settings: settingsProvider(), services: services)
     }
 
