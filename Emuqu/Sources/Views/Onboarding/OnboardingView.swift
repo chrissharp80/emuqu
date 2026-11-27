@@ -163,7 +163,7 @@ struct OnboardingView: View {
                 .accessibilityAddTraits(.isHeader)
 
             Text(
-                "Take your first reading when you're ready. You'll see a score from the first night, measured against your own baseline from the third. The Dashboard shows it once 14 nights have built that baseline.",
+                "Take your first reading when you're ready. You'll see a score from the first night, measured against your own baseline from the fourth. The Dashboard shows it once 14 nights have built that baseline.",
                 bundle: LanguageManager.appBundle
             )
             .scaledFont(size: 15)

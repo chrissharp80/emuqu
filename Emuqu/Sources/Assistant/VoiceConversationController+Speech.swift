@@ -215,20 +215,16 @@ extension VoiceConversationController {
         appStateCorrected(liveWorkoutCorrected(text))
     }
 
-    /// Live-workout claims (HR, power, α1, drift). Substitutions happen
-    /// back-to-front so earlier ranges stay valid as the string mutates.
+    /// Live-workout claims (HR, power, α1, drift), spliced by the same rule
+    /// the chat pipeline uses (`MetricsVerifier.correctedText`): back to
+    /// front, skipping a span that overlaps one already replaced.
     private func liveWorkoutCorrected(_ text: String) -> String {
         guard let snapshot = liveWorkoutSnapshotProvider?() else { return text }
         let discrepancies = MetricsVerifier.verify(text, against: snapshot)
         guard !discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
         MetricsVerifier.recordCorrections(discrepancies)
-        var corrected = text
-        let sorted = discrepancies.sorted { $0.range.lowerBound > $1.range.lowerBound }
-        for d in sorted {
-            corrected.replaceSubrange(d.range, with: d.actual)
-        }
-        return corrected
+        return MetricsVerifier.correctedText(from: text, applying: discrepancies) ?? text
     }
 
     /// App-state claims (TSB / ATL / CTL / ACWR, RMSSD, recovery score).

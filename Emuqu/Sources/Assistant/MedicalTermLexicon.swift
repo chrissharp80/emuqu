@@ -378,9 +378,9 @@ enum MedicalTermLexicon {
     static let prescription = Concept(
         id: "prescription",
         latin: [
-            // Not a coach's "prescribed pace" or "session prescription is 5x1k".
+            // Not a coach's "prescribed pace", "session prescription is 5x1k" or "your plan prescribes 3x10 min".
             "(?<!training\\s)(?<!workout\\s)(?<!session\\s)prescriptions?(?!\\s+(?:for\\s+(?:this|the|your|today['’]s)\\s+(?:week|session|workout|run|ride|day|intervals?)|is\\s+\\d))",
-            "prescrib(?:e|es|ed|ing)(?!\\s+(?:pace|workout|session|intensity|zone|effort|load|volume|reps|sets|intervals?|training|distance|duration|recovery\\s+(?:run|ride|day))\\b)",
+            "(?<!plan\\s)(?<!coach\\s)(?<!program\\s)(?<!schedule\\s)prescrib(?:e|es|ed|ing)(?!\\s+(?:an?\\s+(?:easy|hard|rest|long)\\s+)?(?:pace|workout|session|intensity|zone|effort|load|volume|reps|sets|intervals?|training|distance|duration|day|run|ride|week|recovery\\s+(?:run|ride|day))\\b)",
             "ordonnance", "prescrire",                // fr
             "receta\\s+m[ée]dica", "prescripci[óo]n", // es
             "prescri[çc][ãa]o", "receita\\s+m[ée]dica", // pt-BR
@@ -414,6 +414,11 @@ enum MedicalTermLexicon {
             "approvato\\s+dalla\\s+fda",              // it
             "medical[- ]grade", "clinical[- ]grade",
             "medizinische[rs]?\\s+qualit[äa]t",       // de
+            "(?:goedgekeurd|toegelaten)\\s+door\\s+de\\s+fda", "fda[- ]goedgekeurd", "medische\\s+kwaliteit", // nl
+            "godkendt\\s+af\\s+fda", "fda[- ]godkendt", "godkjent\\s+av\\s+fda", "fda[- ]godkjent", "medisinsk\\s+kvalitet", // da, nb
+            "godk[äa]nd\\s+av\\s+fda", "fda[- ]godk[äa]nd", "medicinsk\\s+kvalitet", // sv, da
+            "fda:n\\s+hyv[äa]ksym[äa]", "fda[- ]hyv[äa]ksytty", "l[äa][äa]ketieteellist[äa]\\s+laatua", // fi
+            "sam[þt]ykkt\\s+af\\s+fda", "fda[- ]sam[þt]ykkt", "l[æa]knisfr[æa][ðd]ileg\\w*\\s+g[æa][ðd]\\w*", // is
             "одобрено\\s+fda"                         // ru
         ],
         // Arabic must be covered across the whole concept, not one phrase.
@@ -703,9 +708,9 @@ extension MedicalTermLexicon {
         id: "speculative-diagnosis",
         latin: [
             // The claim is "you may HAVE <something>", never a past participle ("you
-            // may have gone out too fast") or a coach's offer ("du könntest heute locker
-            // laufen", "puedes tener un día libre", "du kan ha en lätt dag").
-            "you\\s+(?:may|might|could|likely)\\s+(?:have|be\\s+developing)\\s+(?!(?:been|gone|run|done|had|got|gotten|made|taken|felt|slept|held|kept|left|overdone|\\w+ed)\\b)\\w+",
+            // may have gone out too fast") or a coach's offer ("you could have a rest
+            // day", "du könntest heute locker laufen", "puedes tener un día libre").
+            "you\\s+(?:may|might|could|likely)\\s+(?:have|be\\s+developing)\\s+(?!(?:been|gone|run|done|had|got|gotten|made|taken|felt|slept|held|kept|left|overdone|\\w+ed)\\b|(?:(?:an?|some|more|the)\\s+)?(?:\\w+\\s+)?(?:days?|sessions?|workouts?|runs?|jogs?|rest|breaks?|time|chance)\\b)\\w+",
             "vous\\s+(?:avez\\s+peut-[êe]tre|pourriez\\s+avoir)",   // fr
             "puede\\s+que\\s+tengas(?:\\s+\\w+)?",
             "podr[íi]as?\\s+tener\\s+(?:una?|algo\\s+de)\\s+(?!d[íi]a|sesi[óo]n|semana|entreno|entrenamiento|descanso|rodaje|carrera)\\w+", // es

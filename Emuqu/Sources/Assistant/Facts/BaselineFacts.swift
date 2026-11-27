@@ -24,17 +24,22 @@ struct BaselineNamespace: FactNamespaceResolver {
     let services: FactServices
     let archive: SessionArchive
 
-    private struct Sample {
+    struct Sample {
         let date: Date
+        /// The morning the night belongs to (`SessionDay`).
+        let day: Date
         let rmssd: Double
         let hr: Double
     }
 
-    /// The latest overnight session in `all`, only if it is last night's.
-    /// Returning whatever is newest would label a recording from days ago
-    /// as "today".
-    private static func lastNight(in all: [Sample], now: Date = Date()) -> Sample? {
-        guard let latest = all.last, now.timeIntervalSince(latest.date) <= 36 * 3600 else { return nil }
+    /// The latest overnight session in `all`, only if it is last night's:
+    /// its wake day is today, the rule `DeterministicIntent.todaysOvernightEntry`
+    /// and the prompt's `recovery_score_today` use. An age limit is not that
+    /// rule: a night begun 23:00 two evenings ago is 33 hours old at 08:00,
+    /// so after a skipped night yesterday morning's deviation would be
+    /// presented as today's.
+    static func lastNight(in all: [Sample], now: Date = Date(), calendar: Calendar = .current) -> Sample? {
+        guard let latest = all.last, calendar.isDate(latest.day, inSameDayAs: now) else { return nil }
         return latest
     }
 
@@ -62,13 +67,13 @@ struct BaselineNamespace: FactNamespaceResolver {
     /// file is read; else from the session file.
     private func sample(for entry: SessionArchiveEntry) -> Sample? {
         if let rmssd = entry.meanRMSSD, let hr = entry.meanHR {
-            return rmssd > 0 ? Sample(date: entry.date, rmssd: rmssd, hr: hr) : nil
+            return rmssd > 0 ? Sample(date: entry.date, day: SessionDay.date(of: entry), rmssd: rmssd, hr: hr) : nil
         }
         guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
               let td = session.analysisResult?.timeDomain,
               td.rmssd > 0
         else { return nil }
-        return Sample(date: session.startDate, rmssd: td.rmssd, hr: td.meanHR)
+        return Sample(date: session.startDate, day: SessionDay.date(of: session), rmssd: td.rmssd, hr: td.meanHR)
     }
 
     /// The samples within the trailing `days` days (7 matches
@@ -258,7 +263,8 @@ struct BaselineNamespace: FactNamespaceResolver {
         .fixed(
             key: "baseline.is_established",
             description: """
-            Whether the personal baseline is established, by the app's rule: usable overnight readings on at least 3 different nights. Before that the recovery score has no baseline to compare against. Confidence keeps \
+            Whether the personal baseline is established, by the app's rule: usable overnight readings on at least 3 different nights. A night is scored against the nights before it, so the first score that uses the baseline is the 4th night's; \
+            the first 3 nights use general RMSSD bands. Confidence keeps \
             growing until about 7 nights. Counted from the session archive like baseline.days_of_history, so in rare cases it can say true a night before the score's own baseline does.
             """,
             valueType: "Bool",

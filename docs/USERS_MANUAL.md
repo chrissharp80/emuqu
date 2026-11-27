@@ -63,8 +63,8 @@ The main dashboard displays your recovery status at a glance.
   - **HRV + Sleep + Vitals** (Tier 3): full-signal day — overnight resting heart rate, respiratory rate, and wrist temperature contribute the 15% Vitals factor
 - **Vitals factor (15% of the score):** averages whichever sub-inputs are available — RHR (z-score against personal baseline), respiratory rate (deviation from 7-day baseline), wrist temperature (deviation banded 0.3 / 0.5 / 1.0°C). Missing inputs are dropped, not penalised. An average SpO2 below 95% over the 24 hours before the reading ends applies a separate −10 penalty after the composite (often reflects altitude or sleep apnea rather than recovery state).
 - **When the score appears** (counted in nights in your baseline — overnight readings only, one per night):
-  - Nights 1-2: the morning report scores the night on general HRV thresholds
-  - From night 3: the score compares you with your own baseline, cautiously until night 7
+  - Nights 1-3: the morning report scores the night on general HRV thresholds
+  - From night 4: the score compares you with your own baseline, cautiously through the first week
   - From night 14: the Dashboard shows the score and verdict; before that it shows "Building your baseline"
 - **Confidence pips next to the score:**
   - ●○○ "Building baseline" — nights 0-13, score not yet shown on the Dashboard

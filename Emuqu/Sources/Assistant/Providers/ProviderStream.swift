@@ -102,7 +102,7 @@ extension ProviderHTTP {
         provider: ProviderID,
         services: AIProviderServices,
         failure: (_ status: Int, _ body: Data) -> AIProviderError
-    ) async throws -> AsyncLineSequence<URLSession.AsyncBytes> {
+    ) async throws -> SSELines<URLSession.AsyncBytes> {
         try await requireConsent(for: provider, services: services)
         if let body = request.httpBody { ProviderRequestAudit.sentBodySink?(body) }
         let (bytes, response) = try await connect(request, provider: provider)
@@ -111,7 +111,7 @@ extension ProviderHTTP {
             let body = try await errorBody(bytes)
             throw failure(http.statusCode, body)
         }
-        return bytes.lines
+        return SSELines(bytes)
     }
 
     /// Throws `.consentWithdrawn` when `provider` has no data-sharing

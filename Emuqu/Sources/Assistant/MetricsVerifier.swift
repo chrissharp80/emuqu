@@ -339,7 +339,7 @@ enum MetricsVerifier {
     static func recoveryScoreClaims(in text: String, score10: Double) -> [Discrepancy] {
         claimsMatching(
             in: text,
-            pattern: #"\brecovery(?:\s+score)?(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))"#
+            pattern: notTheScoreBefore + #"\brecovery(?:\s+score)?(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?<value>\d+(?:\.\d+)?))"#
                 + #"\b(?!\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?|m|meters?|metres?|km|kilometers?|kilometres?|k|mi|miles?|yd|yards?|ft|feet|s|secs?|seconds?|bpm|beats?|w|watts?|laps?|reps?|x|sets?|rounds?|strides?|steps?|times)\b)"#,
             check: ClaimCheck(
                 actual: Double(RecoveryScoreCalculator.displayScore(score10 * 10)), tolerance: 4.0, metric: "recovery_score",
@@ -349,6 +349,10 @@ enum MetricsVerifier {
             }
         ).compactMap { onTheClaimsScale($0, score10: score10) }
     }
+
+    /// "Heart rate recovery", "HR recovery", "HRR" and "cardiac recovery" are
+    /// the beats per minute shed after effort, not the recovery score.
+    private static let notTheScoreBefore = #"(?<!\brate\s)(?<!\bHRR?\s)(?<!\bcardiac\s)"#
 
     /// A claim within tolerance on the 0–10 scale is the same score, so it is
     /// dropped. A wrong claim of 10 or under is a 0–10 claim and is corrected
@@ -639,11 +643,19 @@ enum MetricsVerifier {
     /// For an overnight value "last night" is now: "your RMSSD last night was
     /// 48 ms" and "last night you slept 6 hours" are claims about the night
     /// the check reads.
+    ///
+    /// The clause must also be about the entity the check reads. A nap, a
+    /// quick or live reading, or a workout has its own RMSSD and its own
+    /// sleep, so a number placed on one of them is not the overnight value;
+    /// sleep or rest is not the live workout; and a value the user reported
+    /// or another device showed is theirs to state. When the clause names
+    /// another referent the claim is left as written.
     private static func isAboutTheCurrentValue(_ range: NSRange, in ns: NSString, overnight: Bool = false) -> Bool {
         let sentence = sentenceRange(containing: range, in: ns)
         let scope = NSRange(location: sentence.location, length: clauseEnd(after: range, in: sentence, ns: ns) - sentence.location)
         let markers = overnight ? [earlierTimeMarkers, targetMarkers] : [earlierTimeMarkers, lastNightMarker, targetMarkers]
-        return !markers.contains { pattern in
+        let referents = [overnight ? notTheOvernightMarkers : notTheWorkoutMarkers, reportedElsewhereMarkers]
+        return !(markers + referents).contains { pattern in
             DebugLogger.compiledPattern(pattern, options: [.caseInsensitive])?
                 .firstMatch(in: ns as String, range: scope) != nil
         }
@@ -677,11 +689,36 @@ enum MetricsVerifier {
         "(?:mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?",
         #"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?"#,
         #"\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*"#,
-        #"\d{1,4}[/-]\d{1,2}(?:[/-]\d{2,4})?"#
+        #"\d{1,4}[/-]\d{1,2}(?:[/-]\d{2,4})?|(?:on\s+)?the\s+\d{1,2}(?:st|nd|rd|th)"#
     ].joined(separator: "|") + ")\\b"
 
     /// "Last night" is another time for a live or training-load value.
     private static let lastNightMarker = #"\blast\s+night\b"#
+
+    /// Another reading than the night's overnight: a nap, a quick or live
+    /// reading, a breathing session, a workout. "During the night" is still
+    /// the night, so "during" counts only before one of those.
+    private static let notTheOvernightMarkers = "\\b(?:" + [
+        #"nap(?:s|ped|ping)?|quick\s+(?:reading|check|measurement|test|session)s?|spot[-\s]?checks?|live|real[-\s]?time|right\s+now|at\s+the\s+moment"#,
+        #"this\s+reading|breath(?:e|ing)\s+(?:session|exercise)s?|watch\s+breathe|workouts?|exercis(?:e|ing)|mid[-\s]?(?:run|ride|workout|session)"#,
+        #"during\s+(?:your|the|this|that|a)\s+(?:nap|workout|run|ride|session|reading|exercise)"#,
+        #"(?:your|the|this|that|today['’]s)\s+(?:run|ride|swim|walk|hike|session|intervals?|reps?)"#
+    ].joined(separator: "|") + ")\\b"
+
+    /// Another state than the live workout: asleep, at rest, a nap, the
+    /// night.
+    private static let notTheWorkoutMarkers =
+        #"\b(?:overnight|asleep|sleep(?:ing)?|nap(?:s|ped|ping)?|at\s+rest|resting|while\s+(?:lying|sitting)|in\s+bed|this\s+morning)\b"#
+
+    /// A value someone else stated: the user ("you said 38", "you told me
+    /// your TSB is -8") or another device ("your Garmin shows 52"). The
+    /// prompt treats a value the user states as theirs, so rewriting it to
+    /// the app's would contradict them.
+    private static let reportedElsewhereMarkers = "\\b(?:" + [
+        #"you\s+(?:said|say|told|tell|mentioned|reported|noted|wrote|gave|saw|see|are\s+seeing)|you['’](?:re|ve)\s+(?:seeing|said|told|mentioned|reported)"#,
+        #"according\s+to\s+(?:you|your)|what\s+you\s+(?:told|said|gave|reported)|your\s+(?:own\s+)?(?:number|figure|reading)\s+of"#,
+        #"(?:your|the)\s+(?:watch|garmin|whoop|oura|polar\s+flow|elite\s?hrv|kubios|apple\s+watch|other\s+app|ring)\s+(?:says|said|shows|showed|reads|read|gave|reports|reported)"#
+    ].joined(separator: "|") + ")\\b"
 
     /// A summary, target, hypothetical, plan, negation or comparison rather
     /// than the value now: "average", "keep it", "if", "higher than",

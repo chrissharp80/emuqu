@@ -205,6 +205,21 @@ final class LiveClaimVerificationTests: XCTestCase {
         }
     }
 
+    /// Sleep, rest and a value another device showed are not the live
+    /// workout's reading.
+    func testAnotherStatesHeartRateIsNotTheLiveValue() {
+        let notLive = [
+            "Overnight, your HR is 52 bpm.",
+            "At rest your HR is 55 bpm.",
+            "You said your HR is 140 bpm.",
+            "Your watch shows your HR is 150 bpm."
+        ]
+        let snapshot = context(hr: 162, alpha1: 1.1, watts: 260)
+        for text in notLive {
+            XCTAssertTrue(MetricsVerifier.verify(text, against: snapshot).isEmpty, "Rewrote another state: \(text)")
+        }
+    }
+
     func testCurrentClaimsAreStillCheckedAroundTheNewRules() {
         let snapshot = context(hr: 162, alpha1: 1.1, watts: 260)
         let claims = [
