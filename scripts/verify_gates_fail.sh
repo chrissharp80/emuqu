@@ -1016,10 +1016,13 @@ check "scoring_governance/age_norm_edit" \
     "Emuqu/Sources/Analysis/HRVThresholds.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVThresholds.swift');s=p.read_text();o='case 20 ..< 30: 45.0';assert s.count(o)==1;p.write_text(s.replace(o,'case 20 ..< 30: 50.0'))"
 
-check "scoring_governance/inline_z_clamp" \
+# An inline clamp on a live score path moves the hash. (The percentile
+# z-clamp in `zToPercentileScore` is not on any score path, so it is not
+# hashed.)
+check "scoring_governance/inline_score_clamp" \
     "./scripts/check_scoring_governance.sh" \
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='max(-3.0, min(3.0, z))';assert s.count(o)==1;p.write_text(s.replace(o,'max(-2.5, min(2.5, z))'))"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift');s=p.read_text();o='if rmssd > 0 { return min(100, max(0, absoluteRMSSDScore(rmssd))) }';assert s.count(o)==1;p.write_text(s.replace(o,'if rmssd > 0 { return min(99, max(0, absoluteRMSSDScore(rmssd))) }'))"
 
 check "scoring_governance/sleep_cap_edit" \
     "./scripts/check_scoring_governance.sh" \
@@ -1126,6 +1129,44 @@ check "scoring_governance/nap_episode_gap_edit" \
     "Emuqu/Sources/Collection/SleepHealthQueries+Queries.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SleepHealthQueries+Queries.swift');s=p.read_text();o='iv.start.timeIntervalSince(prevEnd) > episodeGapSeconds';assert s.count(o)==1;p.write_text(s.replace(o,'iv.start.timeIntervalSince(prevEnd) >= episodeGapSeconds'))"
 
+# The hash covers what a stored score reaches, not a list: the baseline's
+# admission rule (an instance method the baseline update calls) and the night
+# key it counts nights by (a method on the sleep schedule) each change every
+# later score, and each must move the hash.
+check "scoring_governance/baseline_admission_always_true" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/BaselineTracker.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/BaselineTracker.swift');s=p.read_text();a='    private func admitsToBaseline(_ session: HRVSession, result: HRVAnalysisResult) -> Bool {'+chr(10);b='        return !result.isEstimated(.sdnn)'+chr(10)+'    }'+chr(10);assert s.count(a)==1 and s.count(b)==1;i=s.index(a)+len(a);j=s.index(b,i)+len(b);p.write_text(s[:i]+'        true'+chr(10)+'    }'+chr(10)+s[j:])"
+
+check "scoring_governance/night_key_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Models/SleepSchedule.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/SleepSchedule.swift');s=p.read_text();o='Calendar.current.startOfDay(for: firstWake(after: overnightWindowStart(relativeTo: date)))';assert s.count(o)==1;p.write_text(s.replace(o,'Calendar.current.startOfDay(for: date)'))"
+
+# A value handed to a hashed reader through storage is hashed where it is
+# stored: training load reads the resting HR that `WorkoutLoadRestingHR.record`
+# keeps in UserDefaults, so changing what it stores moves the hash.
+check "scoring_governance/persisted_resting_hr_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift');s=p.read_text();o='UserDefaults.standard.set([\"value\": value,';assert s.count(o)==1;p.write_text(s.replace(o,'UserDefaults.standard.set([\"value\": value * 2,'))"
+
+# A function with a closure default argument keeps its body under its own
+# name: an edit to the masked RMSSD estimator's body moves the hash.
+check "scoring_governance/body_after_closure_default_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='        guard pairCount >= 1 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard pairCount >= 2 else { return nil }'))"
+
+# The gate checks its own coverage. With the walker made to drop a closure
+# default argument's function, as it once did, that function's body is filed
+# under another declaration and the coverage check must go red. The gate is
+# read for its coverage findings alone, since the hash moves too.
+check "scoring_governance/coverage_hole_detected" \
+    '! grep -q "coverage: " <<<"$(./scripts/check_scoring_governance.sh 2>&1)"' \
+    "scripts/lib/scoring_hash.py" \
+    "import pathlib;p=pathlib.Path('scripts/lib/scoring_hash.py');s=p.read_text();o='scope.signature = self.pending';assert s.count(o)==1;p.write_text(s.replace(o,'scope.signature = None'))"
+
 # A change of hashing scheme must not open a window for a constant change:
 # with the base's baseline written under the older `static-lets` scheme, a
 # constant edited and the baseline rewritten under the current scheme still
@@ -1133,7 +1174,7 @@ check "scoring_governance/nap_episode_gap_edit" \
 # commits a `static-lets` baseline as the base, then takes the working copy's
 # constants and gate and records their current-scheme hash.
 check "scoring_governance/scheme_change_hides_constant_change" \
-    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s stored-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s stored-defuse\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-defuse | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
@@ -1143,20 +1184,20 @@ check "scoring_governance/scheme_change_hides_constant_change" \
 # current scheme, version unchanged, still fails, because the base's own
 # sources are hashed under the current scheme as well.
 check "scoring_governance/scheme_change_hides_operator_change" \
-    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s stored-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s stored-defuse\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-defuse | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
 
 # A base the current scheme cannot hash must fail, not skip the comparison:
-# with the base recorded under `decl-flow`, a scheme root that only the tree
-# declares (a constant appended to a hashed file) left the base's sources
-# unhashable, the comparison was skipped and the gate passed. A throwaway
-# clone commits the `decl-flow` base, then declares the root in a file no
-# scheme reads otherwise, and writes the baseline the tree hashes to.
+# with the base recorded under `decl-flow`, a stored field that only the tree
+# declares (a constant appended to a file no scheme reads otherwise) leaves
+# the base's sources unhashable, and the gate must say so rather than pass. A
+# throwaway clone commits the `decl-flow` base, then declares the field, and
+# writes the baseline the tree hashes to.
 check "scoring_governance/unhashable_base_is_an_error" \
-    'd="$BACKUP_DIR/unhashable_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-flow base" --allow-empty && printf "\nenum PlantedScoringRoot {\n    static let value = 1.0\n}\n" >> Emuqu/Sources/Utilities/Extensions.swift && printf "%s %s stored-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/unhashable_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-flow base" --allow-empty && printf "\nenum PlantedScoringRoot {\n    static let plantedScoringRootValue = 1.0\n}\n" >> Emuqu/Sources/Utilities/Extensions.swift && printf "%s %s stored-defuse\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-defuse | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "scripts/lib/scoring_hash.py" \
-    "import pathlib;p=pathlib.Path('scripts/lib/scoring_hash.py');s=p.read_text();o='    \"Emuqu/Sources/Models/RecoveryVitals.swift\": [\"RecoveryVitals\"],';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    \"Emuqu/Sources/Utilities/Extensions.swift\": [\"PlantedScoringRoot\"],'))"
+    "import pathlib;p=pathlib.Path('scripts/lib/scoring_hash.py');s=p.read_text();o='    \"BaselineTracker\": [\"historicalData\"],';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    \"PlantedScoringRoot\": [\"plantedScoringRootValue\"],'))"
 
 # The mutation harness credits a mutation only to a recorded assertion
 # failure. With that requirement taken out, a run that stopped after a test
