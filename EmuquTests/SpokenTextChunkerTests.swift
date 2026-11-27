@@ -146,14 +146,16 @@ final class SpokenTextChunkerTests: XCTestCase {
         )
     }
 
-    func testStripMarkdownRemovesNumberedListMarkers() {
+    /// The marker's punctuation goes and its number is spoken, as the chat
+    /// shows it (`testStripMarkdownKeepsListNumbers`).
+    func testStripMarkdownSpeaksNumberedListMarkersAsTheirNumber() {
         let input = """
         1. one
         2) two
         """
         XCTAssertEqual(
             SpokenTextChunker.stripMarkdownForSpeech(input),
-            "one\ntwo"
+            "1, one\n2, two"
         )
     }
 

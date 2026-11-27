@@ -138,10 +138,12 @@ extension MetricsVerifier {
     }
 
     /// In a table row, the header cell of the claim's column and the row's
-    /// first cell, which names the row.
+    /// first cell, which names the row. The column is the one the claim ends
+    /// in: a match starts at its label ("| Recovery | 55 |"), and the label's
+    /// column header ("Metric") says nothing about whose value the number is.
     private static func tableScopes(of range: NSRange, line: ScopeLine, above: [ScopeLine], in ns: NSString) -> [NSRange] {
         guard line.kind == .tableRow else { return [] }
-        let column = pipeOffsets(in: line.range, of: ns).filter { $0 < range.location }.count
+        let column = pipeOffsets(in: line.range, of: ns).filter { $0 < NSMaxRange(range) }.count
         let run = above.reversed().prefix { $0.kind == .tableRow || $0.kind == .tableRule }
         let header = run.last.flatMap { first in run.dropLast().last?.kind == .tableRule ? first : nil }
         return [header.flatMap { cell(column, of: $0.range, in: ns) }, cell(1, of: line.range, in: ns)].compactMap { $0 }

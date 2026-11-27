@@ -139,8 +139,10 @@ final class CompactRenderParityTests: XCTestCase {
     private static let algorithmLine = "Algorithm: v3 (Tier 3: HRV 60% / Sleep 25% / Vitals 15%; "
         + "Tier 2: HRV 70% / Sleep 30%, or HRV 85% / Sleep 15% on a night with HRV more than 1 SD below baseline "
         + "and a sleep score under 50; Tier 1: HRV only)"
+    /// Heading 12.7°, altitude 180.4 m and accuracy 5.9 m are rounded to the
+    /// nearest whole number, as every measured value shown is.
     private static let locationLine = "📍 LOCATION: on Main St, near 2nd Ave, in Springfield, IL, United States, "
-        + "heading N (12°), speed 1.5 m/s (5.4 km/h), alt 180m, GPS ±5m, (30s old)"
+        + "heading N (13°), speed 1.5 m/s (5.4 km/h), alt 180m, GPS ±6m, (30s old)"
 
     /// Compares line by line so a failure names the first line that drifted
     /// rather than dumping the whole prompt, then compares the counts so a
