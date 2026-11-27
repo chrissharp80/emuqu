@@ -383,7 +383,11 @@ extension RRDataImporter {
             debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - only \(points.count) beats (need \(Self.minimumBeatsPerSession))")
             return nil
         }
-        let sortedPoints = points.sorted { $0.timestamp < $1.timestamp }
+        // Ties keep the file's order: a composite an earlier build exported
+        // stamped a streamed batch's beats with one time.
+        let sortedPoints = points.enumerated()
+            .sorted { ($0.element.timestamp, $0.offset) < ($1.element.timestamp, $1.offset) }
+            .map(\.element)
         return FlowHRVMultiSessionResult.SessionRRData(
             sessionDate: sessionDateStr,
             date: start,
@@ -401,12 +405,12 @@ extension RRDataImporter {
     func createSessionFromFlowHRVData(_ sessionData: FlowHRVMultiSessionResult.SessionRRData, originalFileName: String) -> HRVSession {
         // `rrIntervals`, `timestamps` and `wallClocks` are built from the same
         // sorted beats, so they pair up one to one.
-        let points = sessionData.timestamps.indices.map { i in
+        let points = Self.spreadingSharedTimes(sessionData.timestamps.indices.map { i in
             RRPoint(
                 t_ms: sessionData.timestamps[i], rr_ms: sessionData.rrIntervals[i],
                 wallClockMs: sessionData.wallClock(at: i), followsRemovedBeat: sessionData.followsRemovedBeat(at: i)
             )
-        }
+        })
         var session = HRVSession(startDate: sessionData.date, sessionType: sessionData.sessionType ?? .overnight)
         session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: sessionData.date)
         // Where the last beat ends on the exported timeline, which runs past

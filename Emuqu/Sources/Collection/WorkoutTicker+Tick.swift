@@ -502,13 +502,20 @@ extension WorkoutTicker {
     /// clock the phone's own beats carry, so the two can be interleaved.
     ///
     /// Every beat has been through `WatchPayloadBounds.plausibleRRMillis`,
-    /// so every value is finite and inside the RR band before `Int(...)`.
+    /// so every value is finite and inside the RR band before `Int(...)`;
+    /// the ones it rejected yield no beat and mark the next one
+    /// (`WatchStrapBeat.placed`).
     private func synthesizeWatchRoutedPoints(_ beats: [WatchStrapBeat]) -> [RRPoint] {
         let base = streamClockBaseEpochMs
         let hr = WatchPayloadBounds.plausibleHeartRate(watchBridge.latestWatchStrapHR)
-        return WatchStrapBeat.placed(beats, after: capture.watchRouted.lastEndEpochMs).map { beat in
+        let lastEnd = capture.watchRouted.lastEndEpochMs
+        let placed = WatchStrapBeat.placed(beats, after: lastEnd, removedBefore: &capture.watchRouted.removedSinceLastBeat)
+        return placed.map { beat in
             alignWatchClock(toWallMs: beat.startEpochMs)
-            let point = RRPoint(t_ms: capture.watchRouted.cumulativeMs, rr_ms: beat.rrMs, wallClockMs: beat.startEpochMs - base, hr: hr)
+            let point = RRPoint(
+                t_ms: capture.watchRouted.cumulativeMs, rr_ms: beat.rrMs, wallClockMs: beat.startEpochMs - base,
+                hr: hr, followsRemovedBeat: beat.followsRemovedBeat
+            )
             capture.watchRouted.cumulativeMs += Int64(beat.rrMs)
             capture.watchRouted.lastEndEpochMs = beat.startEpochMs + Int64(beat.rrMs)
             return point

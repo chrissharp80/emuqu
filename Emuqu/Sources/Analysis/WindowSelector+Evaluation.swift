@@ -180,7 +180,10 @@ extension WindowSelector {
         let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: range)
         let removed = TimeDomainAnalyzer.beatsAfterRemovedBeat(in: series.points, range: range)
         return CleanBeats(
-            beats: CleanBeatWindow(rr: cleanRRs, indices: keptValues.map(\.index), breaks: breaks, afterRemovedBeat: removed),
+            beats: CleanBeatWindow(
+                rr: cleanRRs, indices: keptValues.map(\.index), breaks: breaks, afterRemovedBeat: removed,
+                removedBeatCounts: TimeDomainAnalyzer.removedBeatCounts(in: series.points, range: range)
+            ),
             rmssd: maskedRMSSD(rrValues, kept: kept, breaks: breaks.union(removed))
         )
     }

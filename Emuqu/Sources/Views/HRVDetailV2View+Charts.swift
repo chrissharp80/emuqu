@@ -84,15 +84,18 @@ extension HRVDetailV2View {
         var run = 0
     }
 
-    /// Every 4th beat, for chart performance.
+    /// Every 4th beat, for chart performance, each at its real time
+    /// (`BeatTimeline`): the beat clock leaves out a dropout and a Verity
+    /// Sense's rejected intervals, and the time axis would run short by them.
     static func sampledRRPoints(_ series: RRSeries?) -> [RRPlotPoint] {
         guard let series, !series.points.isEmpty else { return [] }
+        let beatTimes = BeatTimeline.ms(series.points)
         var out: [RRPlotPoint] = []
         var run = 0
         for (i, p) in series.points.enumerated() {
             if i > 0, !TimeDomainAnalyzer.isAdjacentBeat(series.points[i - 1], p) { run += 1 }
             guard i % 4 == 0 else { continue }
-            out.append(RRPlotPoint(id: i, elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms, run: run))
+            out.append(RRPlotPoint(id: i, elapsedSec: Double(beatTimes[i]) / 1000, rrMs: p.rr_ms, run: run))
         }
         return out
     }

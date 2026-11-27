@@ -19,6 +19,21 @@ struct CleanBeatWindow {
     /// (`RRPoint.followsRemovedBeat`). Not a break: DFA still interpolates
     /// across one, but no successive difference is taken across it.
     var afterRemovedBeat: Set<Int> = []
+    /// For each of `afterRemovedBeat`, how many beats the sensor removed
+    /// before it (`TimeDomainAnalyzer.removedBeatCounts`), so DFA
+    /// interpolates as many as were lost.
+    var removedBeatCounts: [Int: Int] = [:]
+
+    /// The beats missing between beat `k - 1` and beat `k` (`k > 0`, the
+    /// first before the second in the series): the artifact beats between
+    /// them in the series, and those the sensor removed before any series
+    /// beat after the first, up to the second.
+    func missingBeats(before k: Int) -> Int {
+        let (previous, next) = (indices[k - 1], indices[k])
+        guard next > previous else { return 0 }
+        let removed = ((previous + 1) ... next).reduce(0) { $0 + (removedBeatCounts[$1] ?? 0) }
+        return next - previous - 1 + removed
+    }
 
     /// Whether beat `k` and beat `k - 1` were neighbours in the series with
     /// no recording break and no removed interval between them. False for
@@ -243,6 +258,29 @@ enum TimeDomainAnalyzer {
         Set(range.clamped(to: 1 ..< max(1, points.count)).filter { points[$0].isAfterRemovedBeat })
     }
 
+    /// For each index in `range` whose beat follows an interval the sensor
+    /// removed (`beatsAfterRemovedBeat`), how many beats it removed: the time
+    /// before the beat on the real clock that no beat accounts for
+    /// (`BeatTimeline.untimedMs`), in beats of its two neighbours' mean
+    /// length, and at least one. The beat clock leaves that time out, so it
+    /// alone cannot say.
+    static func removedBeatCounts(in points: [RRPoint], range: Range<Int>) -> [Int: Int] {
+        let marked = beatsAfterRemovedBeat(in: points, range: range)
+        guard let lowest = marked.min() else { return [:] }
+        let timed = (lowest - 1) ..< min(points.count, range.upperBound)
+        let times = BeatTimeline.ms(points, in: timed)
+        let beats = Array(points[timed])
+        return Dictionary(uniqueKeysWithValues: marked.map { ($0, removedBeats(before: $0 - timed.lowerBound, times: times, beats: beats)) })
+    }
+
+    /// `removedBeatCounts` for one beat, `k` its place in `beats`.
+    private static func removedBeats(before k: Int, times: [Int64], beats: [RRPoint]) -> Int {
+        let untimedMs = Double(BeatTimeline.untimedMs(before: k, times: times, points: beats))
+        let typicalMs = Double(beats[k - 1].rr_ms + beats[k].rr_ms) / 2
+        guard typicalMs > 0 else { return 1 }
+        return max(1, Int((untimedMs / typicalMs).rounded()))
+    }
+
     /// The run of each of `indices` (ascending beat indices into `points`),
     /// counting from 0: a new run starts at an index when a beat not
     /// adjacent to its predecessor (`isAdjacentBeat`: a recording break, or
@@ -323,7 +361,8 @@ enum TimeDomainAnalyzer {
         let range = windowStart ..< windowEnd
         return CleanBeatWindow(
             rr: rr, indices: indices, breaks: beatsAfterRecordingBreak(in: series.points, range: range),
-            afterRemovedBeat: beatsAfterRemovedBeat(in: series.points, range: range)
+            afterRemovedBeat: beatsAfterRemovedBeat(in: series.points, range: range),
+            removedBeatCounts: removedBeatCounts(in: series.points, range: range)
         )
     }
 

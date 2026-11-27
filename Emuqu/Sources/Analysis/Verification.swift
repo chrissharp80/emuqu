@@ -215,11 +215,12 @@ struct Verification {
         value.formatted(.number.precision(.fractionLength(digits)))
     }
 
-    /// From the first beat's start to the last beat's end, so a series whose
-    /// timeline does not start at 0 is not measured as longer than it is.
+    /// From the first beat's start to the last beat's end on the real clock
+    /// (`BeatTimeline.spanMs`), so a series whose timeline does not start at
+    /// 0 is not measured as longer than it is, nor a streamed night with a
+    /// dropout or a Verity Sense night with rejected intervals as shorter.
     private func computeDurationHours(points: [RRPoint]) -> Double {
-        guard let first = points.first, let last = points.last else { return 0 }
-        return Double(last.endMs - first.t_ms) / 3_600_000.0
+        Double(BeatTimeline.spanMs(points)) / 3_600_000.0
     }
 
     private func checkDuration(
@@ -266,15 +267,13 @@ struct Verification {
         if rrMs > HRVThresholds.maximumRRIntervalMs { high += 1 }
     }
 
+    /// The longest real-clock stretch between two beats that no beat
+    /// accounts for (`BeatTimeline.untimedMs`). The beat clock `t_ms` stops
+    /// through a streamed dropout, so read on it a night that lost an hour
+    /// showed no gap at all.
     private func findMaxGap(points: [RRPoint]) -> Int64 {
-        guard points.count > 1 else { return 0 }
-
-        var maxGapMs: Int64 = 0
-        for i in 1 ..< points.count {
-            let gap = points[i].t_ms - points[i - 1].endMs
-            if gap > maxGapMs { maxGapMs = gap }
-        }
-        return maxGapMs
+        let times = BeatTimeline.ms(points)
+        return points.indices.dropFirst().map { BeatTimeline.untimedMs(before: $0, times: times, points: points) }.max() ?? 0
     }
 
     private func computeRRDrift(points: [RRPoint]) -> Double {

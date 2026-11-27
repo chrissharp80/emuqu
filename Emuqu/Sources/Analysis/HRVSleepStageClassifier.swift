@@ -160,11 +160,12 @@ enum HRVSleepStageClassifier {
     // MARK: - Feature Computation
 
     /// Five-minute feature windows over `[sleepStartMs, sleepEndMs)`, both
-    /// wall-clock ms from `recordingStart`. Beats are placed on the wall clock
-    /// (`exportTimeMs`), not the beat-sum clock `t_ms`, which falls behind real
-    /// time after a streamed night's BLE drops; so window membership, the
-    /// bounds and the window dates all sit on the one clock the callers'
-    /// bounds and the Watch's intervals use.
+    /// wall-clock ms from `recordingStart`. Beats are placed on the real
+    /// clock (`BeatTimeline`), not the beat-sum clock `t_ms`, which falls
+    /// behind real time after a streamed night's BLE drops and a Verity
+    /// Sense's rejected intervals; so window membership, the bounds and the
+    /// window dates all sit on the one clock the callers' bounds and the
+    /// Watch's intervals use.
     static func buildFeatureWindows(
         rrPoints: [RRPoint],
         sleepStartMs: Int64,
@@ -190,14 +191,12 @@ enum HRVSleepStageClassifier {
         return windows
     }
 
-    /// The beats re-timed on the wall clock (`t_ms` = `exportTimeMs`), in
-    /// time order. A series that is already ordered keeps its beat order
-    /// (beats of one BLE packet share a wall-clock stamp); a merged series
-    /// that is not is sorted, so the sweep never skips beats.
+    /// The beats re-timed on the real clock (`t_ms` = `BeatTimeline.ms`), in
+    /// beat order, which those times always rise with: the beats of one BLE
+    /// packet, which share its arrival time, are laid back from it by their
+    /// own intervals, so each window holds the beats that fell in it.
     static func wallClockTimed(_ rrPoints: [RRPoint]) -> [RRPoint] {
-        let timed = rrPoints.map { $0.retimed(t_ms: $0.exportTimeMs, wallClockMs: $0.wallClockMs) }
-        let ordered = zip(timed, timed.dropFirst()).allSatisfy { $0.t_ms <= $1.t_ms }
-        return ordered ? timed : timed.sorted { $0.t_ms < $1.t_ms }
+        zip(rrPoints, BeatTimeline.ms(rrPoints)).map { $0.retimed(t_ms: $1, wallClockMs: $0.wallClockMs) }
     }
 
     /// One window's features, or nil when the window is too sparse or too

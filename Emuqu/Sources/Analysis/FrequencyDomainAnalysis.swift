@@ -161,8 +161,15 @@ enum FrequencyDomainAnalyzer {
     /// a new run starting after every recording break
     /// (`TimeDomainAnalyzer.beatsAfterRecordingBreak`), also one that falls
     /// on a removed beat.
+    ///
+    /// Each beat sits at its real time (`BeatTimeline`), the axis a spectrum
+    /// is defined on (Task Force 1996; Kubios interpolates across removed
+    /// beats on it). The beat clock leaves out every interval a Verity Sense
+    /// rejected, so on it the series is shorter than the time it covers and
+    /// every frequency, LF and HF with it, reads high by the share removed.
     private static func cleanRuns(_ series: RRSeries, flags: [ArtifactFlags], range: Range<Int>) -> [CleanRun] {
         let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: range)
+        let beatTimes = BeatTimeline.ms(series.points, in: range)
         var runs: [CleanRun] = []
         var previous: Int?
         for i in range where !flags[i].isArtifact {
@@ -170,7 +177,7 @@ enum FrequencyDomainAnalyzer {
             if runs.isEmpty || previous.map({ spansBreak(breaks, after: $0, upTo: i) }) == true {
                 runs.append(CleanRun())
             }
-            runs[runs.count - 1].times.append((Double(point.t_ms) + Double(point.rr_ms) / 2.0) / 1_000.0)
+            runs[runs.count - 1].times.append((Double(beatTimes[i - range.lowerBound]) + Double(point.rr_ms) / 2.0) / 1_000.0)
             runs[runs.count - 1].rr.append(Double(point.rr_ms))
             previous = i
         }

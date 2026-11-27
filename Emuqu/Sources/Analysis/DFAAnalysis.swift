@@ -72,7 +72,9 @@ enum DFAAnalyzer {
     /// The window's beats as DFA input: split at every recording break, and
     /// with each run of removed beats inside a segment replaced by linear
     /// interpolation between the kept beats either side of it, one value per
-    /// removed beat.
+    /// removed beat (`CleanBeatWindow.missingBeats`): an artifact beat the
+    /// series holds, or a beat the sensor's quality gate removed before it
+    /// reached the series, counted from the time it took.
     ///
     /// Removed beats are interpolated, not dropped, because DFA works in
     /// beat index: dropping one makes its neighbours adjacent and shifts every
@@ -91,8 +93,7 @@ enum DFAAnalyzer {
                 segments.append(current)
                 current = []
             } else if k > 0 {
-                let missing = window.indices[k] - window.indices[k - 1] - 1
-                current += interpolation(from: window.rr[k - 1], to: window.rr[k], missing: missing)
+                current += interpolation(from: window.rr[k - 1], to: window.rr[k], missing: window.missingBeats(before: k))
             }
             current.append(window.rr[k])
         }

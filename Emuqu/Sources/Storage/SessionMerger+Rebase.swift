@@ -63,31 +63,67 @@ extension SessionMerger {
     // MARK: Window indices
 
     /// `result`'s window, an index range into `source`, re-pointed at the same
-    /// beats in `merged`. Both series must already be on one clock. Beats the
-    /// merge put before the window move it along by their number.
+    /// beats in `merged`, and every time it holds moved onto `merged`'s beat
+    /// clock. Both series must already count from one start. Beats the merge
+    /// put before the window move it along by their number; a merge sets each
+    /// beat's `t_ms` to its real start (`DataSourceSelector.mergePoints`), so
+    /// a time on `source`'s beat clock, which may run behind (a dropout, a
+    /// Verity Sense's rejected intervals), moves with the beat it lies on.
     static func reindexed(
         _ result: HRVAnalysisResult, from source: [RRPoint], onto merged: [RRPoint]
     ) -> HRVAnalysisResult {
-        let start = mergedIndex(of: result.windowStart, in: source, onto: merged)
-        let end = mergedIndex(of: result.windowEnd, in: source, onto: merged)
-        guard start != result.windowStart || end != result.windowEnd else { return result }
-        return withWindow(result, start: start, end: end)
+        let beats = BeatCorrespondence(source: source, merged: merged)
+        let start = beats.mergedIndex(of: result.windowStart)
+        let end = beats.mergedIndex(of: result.windowEnd)
+        let moved = movedTimes(result, by: beats.movedMs)
+        guard start != result.windowStart || end != result.windowEnd else { return moved }
+        return withWindow(moved, start: start, end: end)
     }
 
-    /// Where `source[index]` sits in `merged`: the first merged beat no more
-    /// than the duplicate tolerance before it. An index past the end maps
-    /// past the source's last beat.
-    private static func mergedIndex(of index: Int, in source: [RRPoint], onto merged: [RRPoint]) -> Int {
-        guard let last = source.last, index >= 0 else { return index }
-        let timeMs = index < source.count ? source[index].t_ms : last.endMs
-        let target = timeMs - DataSourceSelector.duplicateToleranceMs
-        var low = 0
-        var high = merged.count
-        while low < high {
-            let mid = (low + high) / 2
-            if merged[mid].t_ms < target { low = mid + 1 } else { high = mid }
+    /// `result` with every time it holds passed through `move`.
+    private static func movedTimes(_ result: HRVAnalysisResult, by move: (Int64) -> Int64) -> HRVAnalysisResult {
+        var moved = result
+        moved.windowStartMs = result.windowStartMs.map(move)
+        moved.windowEndMs = result.windowEndMs.map(move)
+        moved.organizedRecoveryZones = result.organizedRecoveryZones?.map {
+            HRVAnalysisResult.TimeRange(startMs: move($0.startMs), endMs: move($0.endMs))
         }
-        return low
+        moved.overnightNadirTimeMs = result.overnightNadirTimeMs.map(move)
+        return moved
+    }
+
+    /// Which beat of `merged` each beat of `source` became, matched on the
+    /// real clock (`BeatTimeline`), where both series agree.
+    private struct BeatCorrespondence {
+        let source: [RRPoint]
+        let merged: [RRPoint]
+        let sourceTimes: [Int64]
+        let mergedTimes: [Int64]
+
+        init(source: [RRPoint], merged: [RRPoint]) {
+            self.source = source
+            self.merged = merged
+            sourceTimes = BeatTimeline.ms(source)
+            mergedTimes = BeatTimeline.ms(merged)
+        }
+
+        /// Where `source[index]` sits in `merged`: the first merged beat no
+        /// more than the duplicate tolerance before it on the real clock. An
+        /// index past the end maps past the source's last beat.
+        func mergedIndex(of index: Int) -> Int {
+            guard let lastTime = sourceTimes.last, let last = source.last, index >= 0 else { return index }
+            let timeMs = index < sourceTimes.count ? sourceTimes[index] : lastTime + Int64(last.rr_ms)
+            return SessionMerger.firstIndex(atOrAfter: timeMs - DataSourceSelector.duplicateToleranceMs, in: mergedTimes)
+        }
+
+        /// A time on `source`'s beat clock on `merged`'s: the same distance
+        /// from the beat it lies at, which keeps its place in that beat.
+        func movedMs(_ ms: Int64) -> Int64 {
+            guard !source.isEmpty, !merged.isEmpty else { return ms }
+            let index = min(SessionMerger.firstIndex(atOrAfter: ms, in: source.map(\.t_ms)), source.count - 1)
+            let target = min(mergedIndex(of: index), merged.count - 1)
+            return merged[target].t_ms + (ms - source[index].t_ms)
+        }
     }
 
     /// `result`'s window re-pointed by time at `points`, a different series on
@@ -102,11 +138,17 @@ extension SessionMerger {
     /// Binary search: the first index whose beat starts at or after `timeMs`,
     /// or `points.count` when none does.
     private static func firstIndex(atOrAfter timeMs: Int64, in points: [RRPoint]) -> Int {
+        firstIndex(atOrAfter: timeMs, in: points.map(\.t_ms))
+    }
+
+    /// Binary search over ascending `times`: the first at or after `timeMs`,
+    /// or `times.count` when none is.
+    private static func firstIndex(atOrAfter timeMs: Int64, in times: [Int64]) -> Int {
         var low = 0
-        var high = points.count
+        var high = times.count
         while low < high {
             let mid = (low + high) / 2
-            if points[mid].t_ms < timeMs { low = mid + 1 } else { high = mid }
+            if times[mid] < timeMs { low = mid + 1 } else { high = mid }
         }
         return low
     }
