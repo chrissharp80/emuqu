@@ -17,7 +17,7 @@ import re
 import sys
 from decimal import Decimal, InvalidOperation
 
-CURRENT_SCHEME = "stored-reach"
+CURRENT_SCHEME = "stored-defuse"
 
 # --- static-lets ----------------------------------------------------------
 # `static let <name> = <number>` declarations only, in two files and two
@@ -1262,6 +1262,9 @@ class Program:
         values = {d for d in named if not self.is_function(d)}
         return values or named
 
+    def is_case(self, decl):
+        return any(self.index[name][key].get("raw", [("", 0)])[0][0] == "case" for name, key in self.decls[decl])
+
     def is_function(self, decl):
         return any(self.index[name][key].get("raw", [("", 0)])[0][0] in ("func", "init", "subscript")
                    for name, key in self.decls[decl])
@@ -1420,6 +1423,24 @@ class _DeclScan:
         self.params = {}
         self.feeds = []
         self.calls = []
+        # For `stored-defuse`: what each token refers to, where each local
+        # is defined, the expressions written into stored fields, and the
+        # arguments of each resolved call.
+        self.refs_at = {}
+        self.precise_at = set()
+        self.defs = {}
+        self.spans = []
+        self.call_args = []
+        self.param_list = []
+        self.param_writes = {}
+        self.closure_params = set()
+
+    def _ref(self, i, decls, precise=False):
+        self.out |= decls
+        if decls:
+            self.refs_at.setdefault(i, set()).update(decls)
+            if precise:
+                self.precise_at.add(i)
 
     def run(self):
         self._signature()
@@ -1439,6 +1460,24 @@ class _DeclScan:
             if prev in ("let", "var", "func", "case", "typealias") or (prev == "," and self._in_binding(i)):
                 self._bind(i)
                 continue
+            if prev in ("(", ",") and self._in_tuple_binding(i):
+                continue
+            if tok in self.params and (nxt in REACH_ASSIGN or (nxt == "." and i + 2 < len(toks) and toks[i + 2] in REACH_MUTATORS)):
+                self.param_writes.setdefault(tok, []).append((i + 2, self._statement_end(i + 2)))
+            if tok in self.env and tok not in self.params and nxt in REACH_ASSIGN:
+                self.defs.setdefault(tok, []).append((i + 2, self._statement_end(i + 2)))
+            elif tok in self.env and nxt == "." and i + 2 < len(toks) and toks[i + 2] in REACH_MUTATORS:
+                self.defs.setdefault(tok, []).append((i + 3, self._statement_end(i + 3)))
+            elif tok in self.env and nxt == "." and i + 3 < len(toks) and IDENT_RE.match(toks[i + 2]) and toks[i + 3] == "(" \
+                    and i and self.lines and self.lines[i - 1] != self.lines[i]:
+                # `local.method(...)` as a statement: a mutating call may change it.
+                self.defs.setdefault(tok, []).append((i + 2, self._statement_end(i + 2)))
+            elif tok in self.env and nxt == "[" and prev != ".":
+                close = _skip_balanced(self.raw, i + 1)
+                if close < len(toks) and toks[close] in REACH_ASSIGN:
+                    self.defs.setdefault(tok, []).append((i + 1, self._statement_end(close + 1)))
+            if prev == "&" and tok in self.env:
+                self.defs.setdefault(tok, []).append(self._enclosing_call(i))
             if prev == "for":
                 self._bind_for(i)
                 continue
@@ -1464,11 +1503,13 @@ class _DeclScan:
             context = self._argument_type(i - 3)
         called = i + 1 < len(toks) and toks[i + 1] in ("(", "{")
         found = self.p.typed_lookup(context, toks[i], called)
-        self.out |= found
+        self._ref(i, found)
         if toks[i] == "init":
             for tpath in context & self.p.types:
                 self.constructs.add(tpath)
-                self.out |= self.p.type_members(tpath)
+                self._ref(i, self.p.type_members(tpath))
+                if i + 1 < len(toks) and toks[i + 1] == "(":
+                    self.spans.append((frozenset(), frozenset({tpath}), (i + 2, _skip_balanced(self.raw, i + 1) - 1)))
         return self._types_of(found)
 
     def _argument_type(self, k):
@@ -1513,11 +1554,164 @@ class _DeclScan:
             out.add(name)
         return out
 
+    def _enclosing_call(self, i):
+        """The span of the call an `&argument` at toks[i] is passed to, its
+        callee chain included."""
+        toks = self.toks
+        depth, j = 0, i - 1
+        while j >= 0:
+            depth += {")": 1, "(": -1}.get(toks[j], 0)
+            if depth < 0:
+                break
+            j -= 1
+        if j < 0:
+            return (i, i + 1)
+        start = j
+        while start > 0 and (IDENT_RE.match(toks[start - 1]) or toks[start - 1] in (".", "?", "!")):
+            start -= 1
+        return (start, _skip_balanced(self.raw, j))
+
+    def closure_sources(self):
+        """{name: [(label, callee, position)]} for each parameter of a closure
+        passed as a labelled argument (`Editor(onSave: { data in ... })`):
+        its values are what the callee passes when it invokes `onSave`."""
+        if hasattr(self, "_closure_sources"):
+            return self._closure_sources
+        toks, out = self.toks, {}
+        for k in range(3, len(toks)):
+            if toks[k] != "{" or toks[k - 1] != ":" or not IDENT_RE.match(toks[k - 2]) or toks[k - 3] not in ("(", ","):
+                continue
+            names, m = [], k + 1
+            while m < len(toks) and (IDENT_RE.match(toks[m]) or toks[m] in (",", "(", ")")) and toks[m] != "in":
+                if IDENT_RE.match(toks[m]):
+                    names.append(toks[m])
+                m += 1
+            if m >= len(toks) or toks[m] != "in" or not names:
+                names = [f"${n}" for n in range(4)]  # shorthand parameters
+            depth, j = 0, k - 3
+            while j >= 0:
+                depth += {")": 1, "(": -1}.get(toks[j], 0)
+                if depth < 0:
+                    break
+                j -= 1
+            callee = toks[j - 1] if j > 0 else ""
+            for position, name in enumerate(names):
+                out.setdefault(name, []).append((toks[k - 2], callee, position))
+        self._closure_sources = out
+        return out
+
+    def _in_tuple_binding(self, i):
+        """`let (a, b) = expr`: each name is defined by the whole expression."""
+        toks = self.toks
+        j = i - 1
+        while j >= 0 and (IDENT_RE.match(toks[j]) or toks[j] in (",", "(")):
+            if toks[j] == "(":
+                break
+            j -= 1
+        if j < 1 or toks[j] != "(" or toks[j - 1] not in ("let", "var"):
+            return False
+        end = _skip_balanced(self.raw, j)
+        if end < len(toks) and toks[end] == "=":
+            self.defs.setdefault(toks[i], []).append((end + 1, self._statement_end(end + 1)))
+        return True
+
+    def controls(self, w):
+        """The condition spans that decide whether toks[w] runs: every
+        enclosing `if`, `while`, `for`, `switch`, and every `guard` before it
+        in an enclosing block."""
+        toks = self.toks
+        out = []
+        for k, tok in enumerate(toks[:w]):
+            if tok == "case" and self._case_controls(k, w):
+                out.append(self._case_controls(k, w))
+                continue
+            if tok not in ("if", "guard", "while", "switch", "for") or (k and toks[k - 1] == "."):
+                continue
+            c = k + 1
+            while c < len(toks) and toks[c] != "{" and not (tok == "guard" and toks[c] == "else"):
+                c = _skip_balanced(self.raw, c) if toks[c] in ("(", "[") else c + 1
+            if c >= len(toks):
+                continue
+            if tok == "guard":
+                body_end = _skip_balanced(self.raw, c + 1) if c + 1 < len(toks) and toks[c + 1] == "{" else c
+                if body_end <= w and self._same_block(k, w):
+                    out.append((k + 1, c))
+            else:
+                end = _skip_balanced(self.raw, c)
+                while end + 1 < len(toks) and toks[end] == "else":
+                    nxt = end + 1
+                    while nxt < len(toks) and toks[nxt] != "{":
+                        nxt += 1
+                    end = _skip_balanced(self.raw, nxt) if nxt < len(toks) else nxt
+                if c < w < end:
+                    out.append((k + 1, c))
+        return out
+
+    def _case_controls(self, k, w):
+        """The pattern of the `switch` case at toks[k] when toks[w] runs in
+        its body, else None."""
+        toks = self.toks
+        if k and toks[k - 1] in ("if", "guard", ",", "for", "while"):
+            return None
+        depth, colon = 0, None
+        for c in range(k + 1, w):
+            t = toks[c]
+            if t in ("(", "[", "{"):
+                depth += 1
+            elif t in (")", "]", "}"):
+                depth -= 1
+                if depth < 0:
+                    return None
+            elif depth == 0 and t == ":" and colon is None:
+                colon = c
+            elif depth == 0 and colon is not None and t in ("case", "default"):
+                return None
+        return (k + 1, colon) if colon is not None else None
+
+    def _same_block(self, k, w):
+        """True when toks[w] sits in the block that encloses toks[k]."""
+        depth = 0
+        for t in self.toks[k:w]:
+            depth += {"{": 1, "}": -1}.get(t, 0)
+            if depth < 0:
+                return False
+        return True
+
+    def argument(self, j, end, label, position):
+        """The span of the argument passed for a parameter, by its label, or
+        by its position when it has none, in the call whose `(` is toks[j]."""
+        toks = self.toks
+        depth, start, index = 0, j + 1, 0
+        for k in range(j, end):
+            depth += {"(": 1, ")": -1, "[": 1, "]": -1, "{": 1, "}": -1}.get(toks[k], 0)
+            if (toks[k] == "," and depth == 1) or k == end - 1:
+                labelled = start + 1 < k and IDENT_RE.match(toks[start]) and toks[start + 1] == ":"
+                if label != "_" and labelled and toks[start] == label:
+                    return (start + 2, k)
+                if label == "_" and index == position:
+                    return (start + 2, k) if labelled else (start, k)
+                start, index = k + 1, index + 1
+        return None
+
     def _in_binding(self, i):
         j = i - 1
         while j >= 0 and self.toks[j] not in ("let", "var", "\n", "{", "}", "(", "="):
             j -= 1
-        return j >= 0 and self.toks[j] in ("let", "var")
+        if j >= 0 and self.toks[j] in ("let", "var"):
+            return True
+        # `var a = 0, b = 0`: a later name on the same line as its `var`.
+        if not self.lines or j < 0 or self.toks[j] != "=":
+            return False
+        depth = 0
+        for k in range(i - 1, -1, -1):
+            if self.lines[k] != self.lines[i]:
+                return False
+            depth += {")": 1, "]": 1, "(": -1, "[": -1}.get(self.toks[k], 0)
+            if depth < 0 or self.toks[k] in ("{", "}"):
+                return False
+            if self.toks[k] in ("let", "var") and depth == 0:
+                return True
+        return False
 
     def _type(self, j):
         tset, k = self.p.parse_type(self.toks, j, self.ctx)
@@ -1531,7 +1725,7 @@ class _DeclScan:
                 resolved.add(name)
         app = {n.strip("[]") for n in resolved if n.strip("[]") in self.p.types}
         for tpath in app:
-            self.out |= self.p.operators(tpath)
+            self._ref(j, self.p.operators(tpath))
         return frozenset(resolved), k
 
     def _signature(self):
@@ -1574,14 +1768,23 @@ class _DeclScan:
                     self.labels.add(label)
                 self.env[toks[k - 1]] = self._type(k + 1)[0]
                 self.params[toks[k - 1]] = self.env[toks[k - 1]]
+                self.param_list.append((toks[start], toks[k - 1]))
+                if "->" in toks[k + 1:stop]:
+                    self.closure_params.add(toks[k - 1])
                 return
 
     def _bind(self, i):
         toks = self.toks
         nxt = toks[i + 1] if i + 1 < len(toks) else ""
         if nxt == ":":
-            self.env[toks[i]] = self._type(i + 2)[0]
+            self.env[toks[i]], k = self._type(i + 2)
+            k = i + 2
+            while k < len(toks) and toks[k] not in ("=", "{", "}", "let", "var", "func"):
+                k = _skip_balanced(self.raw, k) if toks[k] in ("(", "[") else k + 1
+            if k < len(toks) and toks[k] == "=":
+                self.defs.setdefault(toks[i], []).append((k + 1, self._statement_end(k + 1)))
         elif nxt == "=":
+            self.defs.setdefault(toks[i], []).append((i + 2, self._statement_end(i + 2)))
             j = i + 2
             while j < len(toks) and toks[j] in ("try", "await", "?", "!"):
                 j += 1
@@ -1607,6 +1810,10 @@ class _DeclScan:
             j += 1
         if j + 1 < len(toks) and IDENT_RE.match(toks[j + 1]):
             self.env[toks[i]] = self.p.element(self._chain(j + 1))
+        end = j + 1
+        while end < len(toks) and toks[end] != "{":
+            end = _skip_balanced(self.raw, end) if toks[end] in ("(", "[") else end + 1
+        self.defs.setdefault(toks[i], []).append((j + 1, end))
 
     def _closure_type(self, i):
         for start, end, tset in reversed(self.closures):
@@ -1653,13 +1860,15 @@ class _DeclScan:
             after = self.toks[i + 2] if i + 2 < len(self.toks) else ""
             for tpath in tpaths:
                 built = nxt in ("(", "{") or (nxt == "." and after in ("init", "self"))
-                self.out |= p.type_members(tpath) if built else p.operators(tpath)
+                self._ref(i, p.type_members(tpath) if built else p.operators(tpath))
             if nxt in ("(", "{") or (nxt == "." and after == "init"):
                 self.found = p.typed_lookup(frozenset(tpaths), "init") & {t + ".init" for t in p.lineage(tpaths)}
-                self.out |= self.found
+                self._ref(i, self.found, precise=True)
                 self.constructs |= tpaths
                 if nxt == "(":
-                    self.feeds.append((frozenset(), frozenset(tpaths), self._idents(i + 1, _skip_balanced(self.raw, i + 1))))
+                    end = _skip_balanced(self.raw, i + 1)
+                    self.feeds.append((frozenset(), frozenset(tpaths), self._idents(i + 1, end)))
+                    self.spans.append((frozenset(), frozenset(tpaths), (i + 2, end - 1)))
             return frozenset(tpaths)
         found = set()
         scope = self.ctx.split(".") if self.ctx else []
@@ -1668,11 +1877,13 @@ class _DeclScan:
             found |= p.lookup({prefix}, tok, fallback=False)
         if tok in p.decls and tok not in p.types:
             found.add(tok)
-        self.out |= found
+        self._ref(i, found, precise=True)
         self.found = found
         self._written_at(i + 1, found)
         if i and self.toks[i - 1] == "&":
             self.writes |= found
+            if found:
+                self.spans.append((frozenset(found), frozenset(), self._enclosing_call(i)))
         return self._types_of(found)
 
     def _written_at(self, j, found):
@@ -1685,6 +1896,11 @@ class _DeclScan:
             span = (j + 1, self._statement_end(j + 1))
         if tok == "." and j + 2 < n and toks[j + 1] in REACH_MUTATORS and toks[j + 2] == "(":
             span = (j + 2, _skip_balanced(self.raw, j + 2))
+        trailing = None
+        if tok == "." and j + 2 < n and toks[j + 1] in REACH_MUTATORS and toks[j + 2] == "{":
+            trailing = (j + 2, _skip_balanced(self.raw, j + 2))
+        if trailing and found:
+            self.spans.append((frozenset(found), frozenset(), trailing))
         if tok == "[":
             end = _skip_balanced(self.raw, j)
             if end < n and toks[end] in REACH_ASSIGN:
@@ -1692,6 +1908,7 @@ class _DeclScan:
         if span:
             self.writes |= found
             self.feeds.append((frozenset(found), frozenset(), self._idents(*span)))
+            self.spans.append((frozenset(found), frozenset(), span))
 
     def _idents(self, start, end):
         """The names an expression between toks[start:end] reads."""
@@ -1743,9 +1960,11 @@ class _DeclScan:
                 end = _skip_balanced(self.raw, j)
                 if last and (not guessed or len(last) == 1):
                     self.calls.append((frozenset(last), self._idents(j + 1, end)))
+                    self.call_args.append((frozenset(last), j, end))
                     if any(d.endswith(".init") for d in last):
                         owners = frozenset(d.rpartition(".")[0] for d in last)
                         self.feeds.append((frozenset(), owners, self._idents(j + 1, end)))
+                        self.spans.append((frozenset(), owners, (j + 1, end - 1)))
                 last = set()
                 j = end
             elif tok == "[":
@@ -1760,7 +1979,7 @@ class _DeclScan:
                 found = self.p.typed_lookup(tset, toks[j + 1], called)
                 guessed = self.p.guessed
                 last = found
-                self.out |= found
+                self._ref(j + 1, found, precise=not guessed or len(found) == 1)
                 if toks[j + 1] == "init":
                     self.constructs |= {t for t in recv if t in self.p.types}
                 tset = self._types_of(found)
@@ -1769,6 +1988,8 @@ class _DeclScan:
                 self._written_at(j, certain)
                 if i and toks[i - 1] == "&" and not (j < n and toks[j] in (".", "?", "!", "(", "[")):
                     self.writes |= certain
+                    if certain:
+                        self.spans.append((frozenset(certain), frozenset(), self._enclosing_call(i)))
                 if j < n and toks[j] == "(" and j + 1 < n and toks[j + 1] == "{":
                     self._open_closure(j + 1, recv)
                 elif j < n and toks[j] == "{":
@@ -1856,6 +2077,341 @@ def stored_reach_items():
 
 def stored_reach_hash():
     return _tokens_digest(stored_reach_items())
+
+
+# --- stored-defuse --------------------------------------------------------
+# `stored-reach` hashed every declaration a writer's whole body reached, and
+# a writer's body does much more than compute what it stores: it saves,
+# syncs, logs, speaks and redraws. That made most of the app scoring code,
+# so almost any edit asked for a version bump. This scheme roots the graph
+# at the EXPRESSIONS a stored field is given (the right side of an
+# assignment, the argument of an in-place mutation, the arguments of a
+# stored type's initializer) and at the conditions that decide whether that
+# write runs (enclosing `if`, `while`, `for`, `switch`, and the `guard`s
+# before it). From each root expression it follows:
+#   * every declaration the expression refers to, and from those callees the
+#     whole call graph `stored-reach` follows;
+#   * each local the expression reads, back to the expressions that define
+#     it in the same function (`let x = ...`, `x = ...`, `x.append(...)`,
+#     `for x in ...`);
+#   * each parameter it reads, back to the argument callers pass at that
+#     parameter's label or position;
+#   * each stored property of another type it reads, to every expression
+#     that writes that property, so a value carried through a struct is
+#     traced to where it was computed.
+# The writer itself is hashed whole, so an edit anywhere in a function that
+# stores a score asks for a bump, but only its root expressions are
+# followed. SwiftUI views and copy-only types are never hashed: what they
+# compute is shown, and the analysis a view hands to a stored field is
+# reached through the expression it passes.
+def _excluded_owner(program, decl):
+    owner = decl.split(".")[0]
+    if owner in TOKEN_TEXT_TYPES:
+        return True
+    program.any_named("")
+    return any(decl == v or decl.startswith(v + ".") for v in _view_roots(program))
+
+
+def _view_roots(program):
+    if not hasattr(program, "_view_roots"):
+        program.any_named("")
+        program._view_roots = sorted(program._views)
+        program._view_set = set(program._views)
+    return program._view_roots
+
+
+def _is_excluded(program, decl):
+    if not hasattr(program, "_excluded"):
+        program._excluded = {}
+    if decl not in program._excluded:
+        _view_roots(program)
+        parts = decl.split(".")
+        program._excluded[decl] = parts[0] in TOKEN_TEXT_TYPES or any(
+            ".".join(parts[:k]) in program._view_set for k in range(1, len(parts) + 1))
+    return program._excluded[decl]
+
+
+def _defuse_index(program, fields, types):
+    """(roots, writers of each stored member, callers of each declaration)."""
+    roots, writers, callers = [], {}, {}
+    sinks = program.sink_fields()
+    for decl in program.decls:
+        for scan in program.scans(decl):
+            scan.value_owner = program.kinds.get(scan.ctx) in ("struct", "enum")
+            for written, built, span in scan.spans:
+                # A write to a stored field is traced up through the callers
+                # that feed it; a value of a stored type is built in many
+                # places that never store it, so its arguments are traced
+                # but not its callers.
+                if written & sinks:
+                    roots.append((decl, scan, span, True))
+                elif written & fields or built & types:
+                    roots.append((decl, scan, span, False))
+                # A traced property's writers: an assignment to it, or the
+                # argument a construction of its type passes for it. The
+                # values are followed from there, and up through callers only
+                # from a value type's initializer, to the argument for that
+                # parameter: a service's initializer wires the app, and its
+                # callers are the composition root.
+                for member in written:
+                    value_init = decl.endswith(".init") and program.kinds.get(decl[:-5]) in ("struct", "enum")
+                    writers.setdefault(member, []).append((decl, scan, span, "once" if value_init else False))
+                for tpath in built:
+                    whole = program.kinds.get(tpath) in ("struct", "enum")
+                    for member in program.stored_members(tpath):
+                        arg = scan.argument(span[0] - 1, span[1] + 1, member.rpartition(".")[2], -1)
+                        if arg or whole:
+                            writers.setdefault(member, []).append((decl, scan, arg or span, False))
+            for callees, j, end in scan.call_args:
+                for callee in callees:
+                    callers.setdefault(callee, []).append((decl, scan, j, end))
+    return roots, writers, callers
+
+
+def _result_spans(scan):
+    """What a declaration hands back to an expression that names it: its
+    `return` expressions and the conditions before them, the whole body of an
+    initializer, a single-expression body, the writes to its `inout`
+    parameters, or a stored property's whole declaration (its default).
+    Overloads share one key, so each is read on its own."""
+    toks = scan.toks
+    starts = [k for k, depth in _top_level(toks) if toks[k] in ("func", "init", "subscript", "var")]
+    if not starts or starts[0] != 0:
+        starts = [0] + starts
+    spans = []
+    for n, start in enumerate(starts):
+        spans.extend(_segment_results(scan, start, starts[n + 1] if n + 1 < len(starts) else len(toks)))
+    return spans
+
+
+def _top_level(toks):
+    depth = 0
+    for k, tok in enumerate(toks):
+        if depth == 0:
+            yield k, depth
+        depth += {"{": 1, "}": -1, "(": 1, ")": -1}.get(tok, 0)
+
+
+def _segment_results(scan, start, stop):
+    toks = scan.toks
+    head = toks[start] if start < stop else ""
+    body = next((k for k in range(start, stop) if toks[k] == "{"), -1)
+    if head not in ("func", "init", "subscript", "var") or body < 0:
+        return [(start, stop)]
+    if head == "var" and body + 1 < stop and toks[body + 1] in ("didSet", "willSet"):
+        return [(start, stop)]
+    if head == "init":
+        return [(body, stop)]
+    returns = [k for k in range(body, stop) if toks[k] == "return"]
+    # The signature too: default arguments and parameter types.
+    spans = [(start, body)] + [(k + 1, scan._statement_end(k + 1)) for k in returns]
+    spans += [c for k in returns for c in scan.controls(k)]
+    # A single-expression body returns its expression; a function that
+    # returns nothing hands back only what it writes through `inout`.
+    if not returns and (head != "func" or "->" in toks[start:body] or scan.value_owner):
+        spans.append((body, stop))
+    if "inout" in toks[start:body]:
+        for _, name in scan.param_list:
+            spans.extend(scan.defs.get(name, ()))
+            spans.extend(scan.param_writes.get(name, ()))
+    return spans
+
+
+def _trace(program, item, writers, callers, traced_fields):
+    """The items one expression leads to, and the declarations it names."""
+    decl, scan, (start, end), upward = item
+    spans = [(start, end)] + scan.controls(start)
+    more, refs = [], set()
+    for a, b in spans:
+        for k in range(a, min(b, len(scan.toks))):
+            found = scan.refs_at.get(k, ())
+            if k in scan.precise_at or len(found) <= _GUESS_LIMIT:
+                refs.update(found)
+            elif found:
+                refs.update(d for d in found if _in_analysis(program, d) or program.is_case(d))
+            if k in scan.precise_at:
+                for member in found:
+                    if member not in traced_fields and _traceable_field(program, member):
+                        traced_fields.add(member)
+                        more.extend(writers.get(member, ()))
+        for name in scan._idents(a, b):
+            more.extend((decl, scan, d, upward) for d in scan.defs.get(name, ()))
+            # A root's context climbs through every caller; an initializer
+            # reached from a traced property goes one step, to the argument
+            # its construction passes, since that construction may be
+            # anywhere the type is built.
+            onward = upward is True
+            if upward and name in scan.params and name in scan.value_params() and _passes_value(scan, name, a, b):
+                more.extend(_argument_items(scan, decl, name, callers, onward))
+            if upward and name not in scan.params:
+                for label, callee, position in scan.closure_sources().get(name, ()):
+                    more.extend(_invocation_items(program, scan, label, callee, position, onward))
+    return more, refs
+
+
+# A guessed reference (receiver type unknown) with more candidates than this
+# names a common word (`id`, `start`, `entries`); only its Analysis/**
+# candidates are taken. A typed receiver is always followed.
+_GUESS_LIMIT = 3
+_SLICE_CALLEES = True
+
+
+def _namespace_members(program, decl):
+    """The constants of the caseless enum `decl` belongs to, when it does: a
+    namespace of constants (`RecoveryScoreConstants.Vitals`) is one table,
+    so a sibling constant is taken with the one an expression named."""
+    owner = decl.rpartition(".")[0]
+    if program.kinds.get(owner) != "enum" or _is_excluded(program, owner):
+        return set()
+    if not hasattr(program, "_namespaces"):
+        program._namespaces = {}
+    if owner not in program._namespaces:
+        members = program.members.get(owner, set())
+        caseless = not any(program.index[n][k].get("raw", [("", 0)])[0][0] == "case"
+                           for m in members for n, k in program.decls[m])
+        program._namespaces[owner] = {m for m in members if m not in program.types and program.is_stored(m)} if caseless else set()
+    return program._namespaces[owner]
+
+
+def _is_handle(program, decl):
+    """A type named in an expression, or something that yields a service
+    rather than a value: a class, actor or protocol instance held in a
+    property (`static let shared = Store(...)`) or built by an initializer.
+    What the service then computes is reached through the members an
+    expression calls on it; building it, which wires up the app, is not."""
+    owner, _, member = decl.rpartition(".")
+    kind = lambda names: names and all(program.kinds.get(n) in ("class", "actor", "protocol") for n in names)
+    if member == "init":
+        return program.kinds.get(owner) in ("class", "actor")
+    if not program.is_stored(decl):
+        return False
+    return bool(kind({n.strip("[]") for n in program.declared_type(decl)}))
+
+
+def _in_analysis(program, decl):
+    return any(name.startswith("Emuqu/Sources/Analysis/") for name, _ in program.decls[decl])
+
+
+def _traceable_field(program, member):
+    """A property (stored, or computed with a setter) of a type other than
+    the reading itself, whose writers are traced when a traced expression
+    reads it: a value carried through a struct or an analyzer's state is
+    traced to where it was computed. The reading's other fields are its
+    inputs (its beats, its times), which collection and sync decide."""
+    owner = member.rpartition(".")[0]
+    if program.kinds.get(owner) not in ("struct", "enum", "class", "actor") or owner == "HRVSession":
+        return False
+    if program.is_function(member) or _is_excluded(program, member):
+        return False
+    held = {name.strip("[]") for name in program.declared_type(member)}
+    return bool(held) and all(name in _TRACED_LIBRARY or program.kinds.get(name) in ("struct", "enum") for name in held)
+
+
+# Library types a traced property may hold: numbers and times. A flag, a
+# string or a reference to a service is state, not a computed value.
+_TRACED_LIBRARY = {"Double", "Float", "CGFloat", "Int", "Int64", "Int32", "TimeInterval", "Date", "DateInterval"}
+
+
+def _invocation_items(program, scan, label, callee, position, onward=True):
+    """The arguments a type passes when it invokes the closure property
+    `label` it was given: the values a closure parameter receives."""
+    owners = program.resolve_type(callee, scan.ctx) or {d.rpartition(".")[0] for d in program.by_name.get(callee, ())}
+    out = []
+    for owner in owners:
+        for member in program.members.get(owner, ()):
+            for other in program.scans(member):
+                toks = other.toks
+                for k in range(len(toks) - 1):
+                    if toks[k] == label and toks[k + 1] in ("(", "?") and (k == 0 or toks[k - 1] != "." or toks[k - 2] == "self"):
+                        open_at = k + 1 if toks[k + 1] == "(" else k + 2
+                        if open_at < len(toks) and toks[open_at] == "(":
+                            span = other.argument(open_at, _skip_balanced(other.raw, open_at), "_", position)
+                            if span:
+                                out.append((member, other, span, onward))
+    return out
+
+
+def _passes_value(scan, name, a, b):
+    """A closure parameter feeds the expression only where the expression
+    calls it; naming it (to pass it on, or to store it) carries no value."""
+    if name not in scan.closure_params:
+        return True
+    toks = scan.toks
+    return any(toks[k] == name and k + 1 < len(toks) and toks[k + 1] == "(" for k in range(a, min(b, len(toks))))
+
+
+def _argument_items(scan, decl, name, callers, onward=True):
+    names = [param for _, param in scan.param_list]
+    if name not in names:
+        return []
+    position = names.index(name)
+    label = scan.param_list[position][0]
+    out = []
+    for cdecl, cscan, j, end in callers.get(decl, ()):
+        span = cscan.argument(j, end, label, position)
+        if span:
+            out.append((cdecl, cscan, span, onward))
+    return out
+
+
+def stored_defuse(program):
+    """(hashed declarations, names the traced expressions read)."""
+    fields, types = program.stored_values()
+    roots, writers, callers = _defuse_index(program, fields, types)
+    analysis = {}
+    for decl in program.decls:
+        if _in_analysis(program, decl) and program.is_function(decl):
+            analysis.setdefault(decl.rpartition(".")[2], set()).add(decl)
+    traced_fields = set(fields)
+    hashed, names, entered, seen = set(), set(), set(), set()
+    work = list(roots)
+    while work:
+        item = work.pop()
+        key = (id(item[1]), item[2], item[3])
+        if key in seen:
+            continue
+        seen.add(key)
+        if not _is_excluded(program, item[0]):
+            hashed.add(item[0])
+        a, b = item[2]
+        read = {t for t in item[1].toks[a:b] if IDENT_RE.match(t)}
+        names |= read
+        more, refs = _trace(program, item, writers, callers, traced_fields)
+        work.extend(more)
+        for name in read:
+            refs |= analysis.get(name, set())
+        refs |= {m for ref in refs if ref in program.decls for m in _namespace_members(program, ref)}
+        for ref in refs:
+            if ref in entered or ref not in program.decls or _is_excluded(program, ref):
+                continue
+            entered.add(ref)
+            hashed.add(ref)
+            if ref in program.types or _is_handle(program, ref):
+                continue  # hashed, not followed: see _is_handle
+            for scan in program.scans(ref):
+                spans = _result_spans(scan) if _SLICE_CALLEES else [(0, len(scan.toks))]
+                work.extend((ref, scan, span, False) for span in spans)
+    return hashed, names
+
+
+_STORED_DEFUSE = {}
+
+
+def _stored_defuse_program():
+    root = str(pathlib.Path(TOKEN_SOURCE_ROOT).resolve())
+    if root not in _STORED_DEFUSE:
+        program = _STORED_REACH[root][0] if root in _STORED_REACH else Program(_reach_index())
+        _STORED_DEFUSE[root] = (program,) + stored_defuse(program)
+    return _STORED_DEFUSE[root]
+
+
+def stored_defuse_items():
+    program, hashed, _ = _stored_defuse_program()
+    return _reach_items(program, hashed)
+
+
+def stored_defuse_hash():
+    return _tokens_digest(stored_defuse_items())
 
 
 # --- stored-reach self-check ----------------------------------------------
@@ -1952,16 +2508,20 @@ def _planted_problems(program, reached):
     return problems
 
 
-def _named_analysis_problems(program, reached):
-    """Every function of Analysis/** that hashed code names must be hashed."""
-    hashed_names = set()
-    for decl in reached:
-        for name, key in program.decls[decl]:
-            hashed_names.update(t for t in program.index[name][key]["tokens"] if IDENT_RE.match(t))
+def _named_analysis_problems(program, reached, hashed_names=None):
+    """Every function of Analysis/** that the traced code names must be
+    hashed: the whole hashed code under `stored-reach`, the traced
+    expressions under `stored-defuse`."""
+    if hashed_names is None:
+        hashed_names = set()
+        for decl in reached:
+            for name, key in program.decls[decl]:
+                hashed_names.update(t for t in program.index[name][key]["tokens"] if IDENT_RE.match(t))
     problems = []
     for decl, refs in sorted(program.decls.items()):
         in_analysis = any(name.startswith("Emuqu/Sources/Analysis/") for name, _ in refs)
-        if in_analysis and decl not in reached and program.is_function(decl) and decl.rpartition(".")[2] in hashed_names:
+        if in_analysis and decl not in reached and program.is_function(decl) and decl.rpartition(".")[2] in hashed_names \
+                and not _is_excluded(program, decl):
             problems.append(f"{decl} is named by hashed code but is not hashed")
     return problems
 
@@ -1973,10 +2533,23 @@ def stored_reach_self_check():
             + _named_analysis_problems(program, reached))
 
 
+def stored_defuse_self_check():
+    """Problems with the stored-defuse hash's coverage; empty when sound."""
+    program, hashed, names = _stored_defuse_program()
+    return (_attribution_problems(program, hashed) + _planted_problems(program, hashed)
+            + _named_analysis_problems(program, hashed, names))
+
+
+def self_check():
+    """The current scheme's coverage problems."""
+    return stored_defuse_self_check()
+
+
 SCHEMES = {
     "static-lets": static_lets_hash, "decl-literals": decl_literals_hash,
     "decl-tokens": decl_tokens_hash, "decl-flow": decl_flow_hash,
-    "stored-flow": stored_flow_hash, CURRENT_SCHEME: stored_reach_hash,
+    "stored-flow": stored_flow_hash, "stored-reach": stored_reach_hash,
+    CURRENT_SCHEME: stored_defuse_hash,
 }
 
 
@@ -1988,11 +2561,11 @@ def scheme_of(fields):
 if __name__ == "__main__":
     scheme = sys.argv[1] if len(sys.argv) > 1 else CURRENT_SCHEME
     if scheme == "--dump":
-        for key, values in sorted(stored_reach_items().items()):
+        for key, values in sorted(stored_defuse_items().items()):
             print(f"{key}={' '.join(values)}")
         raise SystemExit(0)
     if scheme == "--self-check":
-        found = stored_reach_self_check()
+        found = self_check()
         for problem in found:
             print(problem)
         raise SystemExit(1 if found else 0)

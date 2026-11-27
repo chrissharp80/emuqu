@@ -18,30 +18,36 @@
 #    leave Analysis/CauseDetection.
 #
 # 2. The code that decides a stored score is hashed token by token
-#    (scripts/lib/scoring_hash.py, scheme `stored-reach`). Nothing in it is
-#    listed by hand: it starts from every declaration that writes a stored
-#    score's data (the score, its breakdown, the analysis result, the frozen
+#    (scripts/lib/scoring_hash.py, scheme `stored-defuse`). Nothing in it is
+#    listed by hand. It starts from the expressions a stored score field is
+#    given (the score, its breakdown, the analysis result, the frozen
 #    readiness, the training, vitals and sleep snapshots, the HRV quality,
-#    the baseline's stored nights, and every value those fields hold) and
-#    follows the call graph over Emuqu/Sources: static and instance calls on
-#    a receiver whose type it infers, property reads, initializers, protocol
-#    requirements to every conformer, closures, and the callers that feed a
-#    writer its values. Where a receiver's type cannot be inferred, every
-#    declaration of that name is taken. Numbers, operators and names all
-#    count; comments, whitespace, string contents and access modifiers do
-#    not, and each token is keyed by the declaration it sits in, so moving or
-#    reordering declarations leaves the hash alone. Change a weight, a band,
-#    a threshold, a comparison, the baseline's admission rule or the night key
-#    it counts by, and the hash moves; the gate then requires
-#    ScoringVersion.current to have moved too. This is what stops an archive
-#    quietly becoming a mixture of two algorithms under one version string,
-#    the failure the version stamp exists to prevent.
+#    the baseline's stored nights), the arguments of every stored type's
+#    initializer, and the conditions that decide whether each write runs.
+#    From there it follows what those expressions use: the functions they
+#    call (into their return expressions), the locals they read back to
+#    where they are defined, the parameters they read back to the argument
+#    each caller passes, the closures a caller hands over back to where they
+#    are invoked, and the properties they read back to every write of them.
+#    Receivers are typed by inference; where a receiver's type is unknown, a
+#    name with few declarations is taken whole, a common one only for its
+#    Analysis functions and cases. SwiftUI views and copy-only types are not
+#    hashed. Numbers, operators and names all count; comments, whitespace,
+#    string contents and access modifiers do not, and each token is keyed by
+#    the declaration it sits in, so moving or reordering declarations leaves
+#    the hash alone. Change a weight, a band, a threshold, a comparison, the
+#    baseline's admission rule or the night key it counts by, and the hash
+#    moves; the gate then requires ScoringVersion.current to have moved too.
+#    This is what stops an archive quietly becoming a mixture of two
+#    algorithms under one version string, the failure the version stamp
+#    exists to prevent. Saving, syncing, speaking and drawing a score are
+#    not hashed, so editing them needs no bump.
 #
 #    The gate also checks its own coverage on every run: every body token of
 #    a hashed function, found by bracket matching alone, must be filed under
 #    that function; a number planted in each hashed declaration must land in
-#    its hashed tokens; and every Analysis function the hashed code names must
-#    be hashed. A failure there is a hole in the hash, and the gate goes red.
+#    its hashed tokens; and every Analysis function the traced expressions
+#    name must be hashed. A failure there is a hole in the hash, and the gate goes red.
 #
 #    The base's own sources must hash under the current scheme. A scheme whose
 #    roots the base lacks cannot hash it, and that fails (exit 2) rather than
@@ -170,7 +176,7 @@ def hash_under(scheme):
 
 scheme = scoring_hash.CURRENT_SCHEME
 current_hash, seen = hash_under(scheme)
-for hole in scoring_hash.stored_reach_self_check():
+for hole in scoring_hash.self_check():
     problems.append(f"coverage: {hole}")
 
 version_src = pathlib.Path("Emuqu/Sources/Analysis/ScoringVersion.swift").read_text(encoding="utf-8")
