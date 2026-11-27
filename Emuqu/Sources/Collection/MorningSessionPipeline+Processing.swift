@@ -156,12 +156,14 @@ extension MorningSessionPipeline {
     /// A failed save is reported to the user, and the night is then not in
     /// the archive: the morning keeps its recording marker for it
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
+    /// A night processed again under an id the archive holds keeps what the
+    /// user set on the stored copy (`SessionArchive.archiveRebuilt`).
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
         let isNewEntry = !archive.store.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
-            let entry = try archive.archive(finalSession)
+            let entry = try archive.archiveRebuilt(finalSession)
             retireRawBackupIfSafe(finalSession)
             retireNightRescue(of: finalSession)
             if entry.sessionId != finalSession.id {

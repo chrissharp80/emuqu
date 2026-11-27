@@ -107,7 +107,10 @@ final class ReanalysisService {
     /// Notifies that the archive has changed (the app bumps its `ArchiveSignal`).
     let onArchiveChanged: () -> Void
 
-    /// Uploads a session via CloudKit sync.
+    /// Uploads a session via CloudKit sync, with the edit stamp the archive
+    /// gave it. A pass here that writes a user's own edit stamps it through
+    /// the archive (`requestingReupload`); a rescore does not, so it never
+    /// counts as newer than an edit made on another device.
     let onSessionUploaded: (HRVSession) -> Void
 
     /// Drops a rewritten session's cached chart zones (`OrganizedZonesCache`).

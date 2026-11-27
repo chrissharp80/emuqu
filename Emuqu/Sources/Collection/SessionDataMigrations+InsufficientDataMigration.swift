@@ -54,7 +54,9 @@ extension SessionDataMigrations {
     /// and reanalysis paths. The gate reads the night as loaded; the rescore
     /// is applied to the archived copy as it is at the write, so a change
     /// saved since the load (sleep or vitals refresh, a feeling, a pull) is
-    /// kept rather than overwritten by the loaded copy.
+    /// kept rather than overwritten by the loaded copy. A copy whose inputs
+    /// changed since the load (a window picked by hand, a sleep edit) is left
+    /// as it is: the gate decided on what it no longer holds.
     private func rescoreIfInsufficient(_ session: HRVSession) -> Bool {
         guard let result = session.analysisResult,
               let baseline = reanalysisService.scoringBaseline(for: session),
@@ -65,16 +67,28 @@ extension SessionDataMigrations {
         // which the update holds locked while its closure runs.
         let context = reanalysisService.rescoreContext(for: session)
         do {
-            try archive.update(session.id, requestingReupload: false) { stored in
-                stored.hrvDataQuality = .insufficient
-                Self.applyBaselineRescore(&stored, context: context)
+            let written = try archive.updateIfChanged(session.id, requestingReupload: false) {
+                Self.flagInsufficient(&$0, decidedOn: session, context: context)
             }
+            guard written else { return false }
             debugLog("[InsufficientDataMigration] Rescored session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery vs baseline")
             return true
         } catch {
             debugLog("[InsufficientDataMigration] Failed to archive rescored session \(session.id.uuidString.prefix(8)): \(error)")
             return false
         }
+    }
+
+    /// Marks `stored` `.insufficient` and rescores it against the baseline,
+    /// when its inputs are still those of `decided`, the copy the gate read
+    /// (`RescoreWrite.inputsMatch`). False, with `stored` unchanged, when they
+    /// are not: a window picked or a sleep edited since is the user's, and
+    /// the gate's verdict was about the copy before it.
+    static func flagInsufficient(_ stored: inout HRVSession, decidedOn decided: HRVSession, context: RescoreContext) -> Bool {
+        guard RescoreWrite.inputsMatch(stored, decided, kind: .scoreOnly(healedTraining: false)) else { return false }
+        stored.hrvDataQuality = .insufficient
+        applyBaselineRescore(&stored, context: context)
+        return true
     }
 
     /// Rescore against the baseline instead of the session's own HRV, through

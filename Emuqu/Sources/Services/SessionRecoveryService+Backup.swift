@@ -163,9 +163,12 @@ extension SessionRecoveryService {
     /// while nothing was persisted.
     /// Returning false keeps the raw backup un-archived and eligible for the
     /// next recovery attempt.
+    ///
+    /// A night the archive already holds under this id (a backup recovered
+    /// again) keeps what the user set on it (`SessionArchive.archiveRebuilt`).
     private func archiveRecovered(_ session: HRVSession, sessionId: UUID) -> Bool {
         do {
-            try archive.archive(session)
+            try archive.archiveRebuilt(session)
             rawBackup.markAsArchived(sessionId)
             exportToHealth(session)
             Task { await cloudSyncManager.uploadSession(session) }

@@ -103,7 +103,17 @@ enum SleepBoundaryWrite {
 
     /// Set the clamped boundaries, segments and snapshot on `session`, then
     /// classify and score it again.
+    ///
+    /// An automatic update of a night whose sleep the user adjusted (reached
+    /// only while it has no snapshot, `shouldApplyAutomaticUpdate`) fills the
+    /// snapshot and keeps the boundaries and segments the user set, as the
+    /// automatic refresh does (`SleepRefreshPolicy.applyAutoRefresh`); its
+    /// scoring window did not move, so it is not scored again.
     static func apply(_ edit: Edit, to session: inout HRVSession, inputs: Inputs) {
+        guard edit.isUserAdjustment || session.sleepUserAdjusted != true else {
+            SleepRefreshPolicy.applyPulledSleep(edit.sleepData, to: &session)
+            return
+        }
         applyBoundaries(edit, offsets: clampedOffsets(of: edit, on: session), to: &session)
         rescore(&session, sessionEnd: session.endDate ?? session.startDate, inputs: inputs)
     }

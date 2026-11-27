@@ -879,7 +879,9 @@ extension EmuquApp {
     /// Rescore one session, or skip it. Returns true when the session is
     /// settled — rescored, gone from the archive, or deliberately skipped (a
     /// manual window is preserved, the same gate `reanalyzeAllSessions` uses
-    /// internally, and a session with no rrSeries has nothing to reanalyse) —
+    /// internally, and checked again on the copy the pass reads, so a window
+    /// picked after this read is kept too; a session with no rrSeries has
+    /// nothing to reanalyse) —
     /// and false when it could not be read or reanalysed, so the caller
     /// retries it on a later launch (up to `tempAsymmetryMaxAttempts`, then
     /// leaves it for Archive Diagnostics).
@@ -901,7 +903,7 @@ extension EmuquApp {
         guard let session = stored, session.windowUserAdjusted != true,
               let rr = session.rrSeries, !rr.points.isEmpty
         else { return true }
-        return await reanalysis.reanalyzeSession(session) != nil
+        return await reanalysis.reanalyzeKeepingPickedWindow(session) != nil
     }
 
     /// Count one more failed launch for `sessionId` and return the total.
