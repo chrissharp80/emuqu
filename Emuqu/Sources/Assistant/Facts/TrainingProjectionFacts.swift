@@ -324,11 +324,12 @@ extension TrainingLoadNamespace {
     }
 
     private static let daysUntilAtlConvergesDescription = """
-    Days at the given daily TRIMP load until ATL converges within `gap_trimp` units of CTL (the 'adaptive zone' where fitness ≈ fatigue). Param format: 'daily_trimp,gap_trimp' — e.g. '60,5' means 'how many days at 60 TRIMP/day \
+    Days at the given daily training load (TSS scale, the load ATL/CTL are built from; the parameter is named \
+    daily_trimp but is not heart-rate TRIMP) until ATL converges within `gap_trimp` units of CTL (the 'adaptive zone' where fitness ≈ fatigue). Param format: 'daily_trimp,gap_trimp' — e.g. '60,5' means 'how many days at a load of 60 a day \
     until |ATL−CTL| ≤ 5'. **For 'if I maintain the current walk daily' questions, get the daily_trimp from `training.load.trimp.by_date` for that walk's date — the power-aware load ATL/CTL are built from (it sums every workout that day) — \
     not the heart-rate `trimp` of workout.most_recent.snapshot, which is a different unit; don't ask the user.** \
     For 'if I double the walk', multiply that value by 2 before passing in. To project the actual ATL/CTL trajectory (e.g. 'how high would ATL get'), use `training.project_from` with the load value — ATL exponentially approaches \
-    the daily TRIMP (7-day τ; ~95% of asymptote at 21 days). Returns 0 when the user is already inside the gap. Returns notRecorded when the chosen daily_trimp would never close the gap within 60 days at current fitness (signal: \
+    the daily load (7-day τ; ~95% of asymptote at 21 days). Returns 0 when the user is already inside the gap. Returns notRecorded when the chosen daily_trimp would never close the gap within 60 days at current fitness (signal: \
     load unsustainable — ATL outruns CTL forever).
     """
 
@@ -478,7 +479,7 @@ extension TrainingLoadNamespace {
     }
 
     private static let daysUntilConvergedFromDescription = """
-    GENERAL-PURPOSE convergence helper. Days at the given daily TRIMP from arbitrary starting ATL/CTL until |ATL - CTL| ≤ gap. Param format: 'starting_atl,starting_ctl,daily_trimp,gap_trimp'. Sibling of `training.days_until_atl_converges($daily,$gap)` \
+    GENERAL-PURPOSE convergence helper. Days at the given daily training load (TSS scale) from arbitrary starting ATL/CTL until |ATL - CTL| ≤ gap. Param format: 'starting_atl,starting_ctl,daily_trimp,gap_trimp'. Sibling of `training.days_until_atl_converges($daily,$gap)` \
     which uses LIVE current state — this one accepts arbitrary starting state so the AI can chain projections ('how long until convergence from PHASE 1's endpoint at the doubled load'). Returns 0 if already inside the gap. Returns \
     notRecorded if convergence never happens within 60 days from the given state.
     """
@@ -488,7 +489,7 @@ extension TrainingLoadNamespace {
             pattern: "training.projected_tsb($daily_trimp)",
             paramExample: "60",
             description: """
-            Tomorrow's projected TSB if the user adds the given daily TRIMP load every day (steady-state forecast). Use to answer 'if I keep doing 60 TRIMP days, where does my form land?'. daily_trimp must be a number from 0 to 10000. \
+            Tomorrow's projected TSB if the user adds the given daily training load (TSS scale) every day (steady-state forecast). Use to answer 'if I keep doing days with a load of 60, where does my form land?'. daily_trimp must be a number from 0 to 10000. \
             Returns the projected TSB after one day of EWMA decay; for a longer horizon, the AI can reason from the rate of change.
             """,
             resolve: { rawTrimp, _ in self.resolveTrainingProjectedTsbDailyTrimp(rawTrimp) }

@@ -113,6 +113,19 @@ final class DerivedValueConsistencyTests: XCTestCase {
         }
     }
 
+    /// The Deep Dive's resting-HR text says what the score does: only the
+    /// strap's sleeping HR is compared with the baseline; Apple Health's
+    /// resting HR is shown, not scored.
+    func testTheRestingHRExplanationSaysOnlyTheStrapSleepHRIsScored() throws {
+        let vitals = PDFReportGenerator.VitalsData(
+            respiratoryRate: nil, respiratoryRateBaseline: nil, oxygenSaturation: nil, oxygenSaturationMin: nil,
+            wristTemperature: nil, restingHeartRate: 58
+        )
+        let row = try XCTUnwrap(restingHeartRateRow(vitals: vitals, bundle: LanguageManager.appBundle))
+        XCTAssertTrue(row.explanation.contains("only the sleeping heart rate from your strap"), row.explanation)
+        XCTAssertTrue(row.explanation.contains("not scored"), row.explanation)
+    }
+
     // MARK: - C: a training snapshot is read on the scale it was recorded on
 
     private let anchors = TrainingLoadSeries.HeartRateAnchors(restingHR: 60, maxHR: 180)
@@ -153,11 +166,33 @@ final class DerivedValueConsistencyTests: XCTestCase {
         XCTAssertNil(stripped.vo2Max)
     }
 
-    /// A figure labelled TRIMP is shown on the TRIMP scale: the inverse of
-    /// the hrTSS rule gives back the TRIMP a TSS came from.
-    func testATRIMPLabelReadsTheTRIMPScale() {
-        let tss = anchors.tss(fromTRIMP: 152)
-        XCTAssertEqual(TrainingContext.trimp(fromTSS: tss, anchors: anchors), 152, accuracy: 1e-9)
+    /// The Deep Dive's prior-day row shows the snapshot's load on the TSS
+    /// scale, labelled load and graded by the TSS daily-load bands
+    /// (50 / 150 / 300), never a TSS figure under a TRIMP name. An old
+    /// TRIMP-scale snapshot is shown converted.
+    func testThePriorDayRowShowsLoadOnTheTSSScale() {
+        let bundle = LanguageManager.appBundle
+        let cases: [(context: TrainingContext, band: String)] = [
+            (TrainingContext(atl: 40, ctl: 50, tsb: 10, yesterdayTrimp: 120, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil),
+             "Moderate load — normal recovery expected within 24h"),
+            (TrainingContext(atl: 40, ctl: 50, tsb: 10, yesterdayTrimp: 40, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil),
+             "Light day — minimal recovery demand")
+        ]
+        for c in cases {
+            let row = yesterdayLoadRow(training: c.context, bundle: bundle)
+            XCTAssertFalse(row.name.contains("TRIMP"), row.name)
+            XCTAssertFalse(row.explanation.contains("TRIMP"), row.explanation)
+            XCTAssertEqual(row.value, String(format: "%.0f", locale: LanguageManager.appLocale, c.context.yesterdayLoad))
+            XCTAssertEqual(row.interpretation, String(localized: String.LocalizationValue(c.band), bundle: bundle))
+        }
+        let old = TrainingContext(
+            atl: 76, ctl: 152, tsb: 76, yesterdayTrimp: 152, vo2Max: nil, daysSinceHardWorkout: nil,
+            recentWorkouts: nil, loadScale: nil
+        )
+        XCTAssertEqual(
+            yesterdayLoadRow(training: old, bundle: bundle).value,
+            String(format: "%.0f", locale: LanguageManager.appLocale, WorkoutLoadRestingHR.anchors.tss(fromTRIMP: 152))
+        )
     }
 
     // MARK: - D: one tolerance for capturing and reading HRR
