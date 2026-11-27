@@ -252,21 +252,40 @@ extension ImportDataView {
         log("Clean beats: \(result.cleanBeatCount)")
     }
 
-    /// Tags & Notes edited on the imported reading's report: onto the reading
-    /// Done saves, and into the archived copy, because the report hands its
-    /// edits over as it closes, after Done has saved the reading. A reading
-    /// discarded instead has no archived copy; that write failure is logged.
+    /// Tags & Notes edited on the imported reading's report, handed over as
+    /// the report closes. Done closes it before saving
+    /// (`saveAfterResultsClose`), so they land on the reading Done saves. A
+    /// copy already archived is updated too; a reading not saved (or
+    /// discarded) has no archived copy, and that failure is only logged
+    /// (`ReadingEditFailure`). Any other failure is shown.
     func applyReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
         guard importedSession?.id == sessionId else { return }
         importedSession?.tags = tags
         importedSession?.notes = notes
+        Task { await writeReportTags(tags, notes: notes, sessionId: sessionId) }
+    }
+
+    /// The archived copy's update for `applyReportTags`, off the main actor.
+    private func writeReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) async {
         let archive = collector.archive
-        Task.detached {
-            do {
-                try archive.updateTags(sessionId, tags: tags, notes: notes)
-            } catch {
-                debugLog("[ImportDataView] Report tags not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
-            }
+        do {
+            try await Task.detached { try archive.updateTags(sessionId, tags: tags, notes: notes) }.value
+        } catch {
+            debugLog("[ImportDataView] Report tags not written to the archive for \(sessionId.uuidString.prefix(8)): \(error)")
+            guard ReadingEditFailure.mustReport(error, acceptanceSavesEdit: false) else { return }
+            errorMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// The results screen closed. After Done, the reading is saved now: the
+    /// report hands its Tags & Notes edits over as it disappears, and the
+    /// save waits a turn of the main actor so they are on `importedSession`.
+    func saveAfterResultsClose() {
+        guard saveOnResultsClose else { return }
+        saveOnResultsClose = false
+        Task {
+            await Task.yield()
+            await saveImportedSession()
         }
     }
 

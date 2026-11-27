@@ -266,8 +266,15 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             action: "routes.library.save_workout", target: "\(workout.id.uuidString) \(route.name)", question: question
         ) { return unconfirmed }
         store.add(route)
+        guard store.routes.contains(where: { $0.id == route.id }) else { return routeNotSaved }
         return .record(savedRouteRecord(route, workoutDate: workoutDate))
     }
+
+    /// A confirmed save the library refused (`SavedRouteStore.add`).
+    private static let routeNotSaved = FactValue.missing(
+        reason: .notRecorded,
+        detail: "the route could not be saved: the saved-route library can't be read right now; nothing was changed"
+    )
 
     private func requestedDate(_ args: [String: String]) -> String? {
         let dateArg = args["date"]?.trimmingCharacters(in: .whitespaces)
