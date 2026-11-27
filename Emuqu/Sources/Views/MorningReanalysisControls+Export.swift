@@ -251,6 +251,7 @@ extension MorningReanalysisControls {
         csv += "# Series Start: \(series.startDate)\n"
         csv += "# Total Points: \(series.points.count)\n"
         csv += "# Duration (ms): \(series.durationMs)\n"
+        csv += RRDataImporter.recordingCSVColumnNote
         if let result = vm.displaySession.analysisResult {
             csv += "# Window Start Index: \(result.windowStart)\n"
             csv += "# Window End Index: \(result.windowEnd)\n"
@@ -277,24 +278,11 @@ extension MorningReanalysisControls {
 /// throws. Off the main actor.
 private func writeRRCSV(header: String, points: [RRPoint], to url: URL) -> Bool {
     do {
-        try (header + rrCSVRows(points: points)).write(to: url, atomically: true, encoding: .utf8)
+        try (header + RRDataImporter.recordingCSV(points: points)).write(to: url, atomically: true, encoding: .utf8)
         debugLog("[MorningResultsView] RR data exported to: \(url.path)")
         return true
     } catch {
         debugLog("[MorningResultsView] Failed to write RR data: \(error)")
         return false
     }
-}
-
-/// The `timestamp_ms,rr_ms,hr_bpm` header and one row per beat. The hr cell
-/// is empty for a non-positive interval rather than a made-up bpm.
-/// Internal so every RR CSV export can share one row format.
-func rrCSVRows(points: [RRPoint]) -> String {
-    var csv = "timestamp_ms,rr_ms,hr_bpm\n"
-    for point in points {
-        // POSIX locale: a decimal comma would split the value into two CSV fields.
-        let hr = point.rr_ms > 0 ? String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), 60000.0 / Double(point.rr_ms)) : ""
-        csv += "\(point.t_ms),\(point.rr_ms),\(hr)\n"
-    }
-    return csv
 }

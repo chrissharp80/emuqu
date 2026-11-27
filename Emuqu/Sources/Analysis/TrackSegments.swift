@@ -146,4 +146,18 @@ enum SeriesRuns {
     static func runs(of times: [Date], maxGap: TimeInterval) -> [Int] {
         runs(of: times.map(\.timeIntervalSinceReferenceDate), maxGap: maxGap)
     }
+
+    /// `items` cut into one array per run (`runs`, parallel to `items`): a
+    /// new array wherever the run changes. Items past the end of `runs` are
+    /// left out.
+    static func split<T>(_ items: [T], runs: [Int]) -> [[T]] {
+        var out: [[T]] = []
+        var previous: Int?
+        for (item, run) in zip(items, runs) {
+            if run != previous { out.append([]) }
+            out[out.count - 1].append(item)
+            previous = run
+        }
+        return out
+    }
 }

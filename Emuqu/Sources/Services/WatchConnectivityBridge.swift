@@ -232,13 +232,14 @@ final class WatchConnectivityBridge: NSObject {
     /// iOS's own PolarManager isn't holding a strap connection.
     var latestWatchStrapHR: Int?
     var latestWatchStrapAt: Date?
-    /// Accumulating queue of un-consumed RR samples. The
+    /// Accumulating queue of un-consumed RR samples, each beat with the time
+    /// it ended by the Watch's clock (`WatchStrapBeat`). The
     /// recorder ticks at 1 Hz; the Watch may forward 2-3 samples per
     /// tick during dense beat periods. Reading only `latestWatchStrap…`
     /// drops samples in that window. The recorder calls
     /// `drainPendingWatchStrapRR()` on each tick to claim everything
     /// queued since the last drain.
-    var pendingWatchStrapRR: [Double] = []
+    var pendingWatchStrapRR: [WatchStrapBeat] = []
     let pendingWatchStrapRRLock = NSLock()
 
     /// Pop all queued Watch-routed RR intervals. Returned in arrival
@@ -247,7 +248,7 @@ final class WatchConnectivityBridge: NSObject {
     /// under 10 s old (the beats are used only while the phone's own strap
     /// is silent, but drained either way), and at workout start
     /// (`StartBaselines`), which discards what queued before the workout.
-    func drainPendingWatchStrapRR() -> [Double] {
+    func drainPendingWatchStrapRR() -> [WatchStrapBeat] {
         pendingWatchStrapRRLock.lock()
         defer { pendingWatchStrapRRLock.unlock() }
         let drained = pendingWatchStrapRR

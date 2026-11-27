@@ -266,13 +266,13 @@ extension ReportSectionRenderer {
         UIColor(white: 0.98, alpha: 1.0).setFill()
         UIBezierPath(rect: graphRect).fill()
 
-        let rrValues = tachogramValues(series: series, flags: flags, result: result)
+        let rrValues = reportTachogramBeats(series: series, flags: flags, window: result.windowStart ..< max(result.windowStart, result.windowEnd))
         // Need >=2 points for the x-scale below; `count - 1`
         // would divide by zero with a single point -> inf/NaN path coords.
         guard rrValues.count >= 2 else { return y + graphHeight + 15 }
 
-        let minRR = rrValues.map(\.1).min() ?? 600
-        let maxRR = rrValues.map(\.1).max() ?? 1_200
+        let minRR = rrValues.map(\.rr).min() ?? 600
+        let maxRR = rrValues.map(\.rr).max() ?? 1_200
         drawTachogramTrace(rrValues, minRR: minRR, range: max(maxRR - minRR, 50), in: graphRect)
         UIColor.lightGray.setStroke()
         UIBezierPath(rect: graphRect).stroke()
@@ -280,7 +280,7 @@ extension ReportSectionRenderer {
         return y + graphHeight + 15
     }
 
-    private func drawTachogramTrace(_ rrValues: [(Int, Double, Bool)], minRR: Double, range: Double, in graphRect: CGRect) {
+    private func drawTachogramTrace(_ rrValues: [TachogramBeat], minRR: Double, range: Double, in graphRect: CGRect) {
         // A light tint across the whole plot area, under the trace.
         config.primaryColor.withAlphaComponent(0.05).setFill()
         UIBezierPath(rect: graphRect).fill()
@@ -292,21 +292,20 @@ extension ReportSectionRenderer {
     }
 
     /// Builds the trace and dots each artifact as it passes it, so the two
-    /// cannot disagree about where a beat sat.
-    private func tachogramPath(_ rrValues: [(Int, Double, Bool)], minRR: Double, range: Double, in graphRect: CGRect) -> UIBezierPath {
+    /// cannot disagree about where a beat sat. The pen lifts at each
+    /// recording break (`TachogramBeat.run`), so no line joins beats that
+    /// were never adjacent.
+    private func tachogramPath(_ rrValues: [TachogramBeat], minRR: Double, range: Double, in graphRect: CGRect) -> UIBezierPath {
         let path = UIBezierPath()
         let xScale = graphRect.width / CGFloat(rrValues.count - 1)
-        for (offset, element) in rrValues.enumerated() {
-            let (i, rr, isArtifact) = element
-            let x = graphRect.minX + CGFloat(i) * xScale
-            let normalized = (rr - minRR) / range
-            let yPos = graphRect.maxY - CGFloat(normalized) * graphRect.height * 0.85 - 5
-            if offset == 0 {
-                path.move(to: CGPoint(x: x, y: yPos))
-            } else {
-                path.addLine(to: CGPoint(x: x, y: yPos))
-            }
-            if isArtifact { markTachogramArtifact(x: x, y: yPos) }
+        var previousRun: Int?
+        for beat in rrValues {
+            let x = graphRect.minX + CGFloat(beat.offset) * xScale
+            let normalized = (beat.rr - minRR) / range
+            let point = CGPoint(x: x, y: graphRect.maxY - CGFloat(normalized) * graphRect.height * 0.85 - 5)
+            if beat.run == previousRun { path.addLine(to: point) } else { path.move(to: point) }
+            previousRun = beat.run
+            if beat.isArtifact { markTachogramArtifact(x: point.x, y: point.y) }
         }
         return path
     }
@@ -406,20 +405,28 @@ private func drawPSDBandLabels(freqToX: (Double) -> CGFloat, in graphRect: CGRec
     "HF".pdfDraw(at: CGPoint(x: freqToX(0.275) - 4, y: graphRect.minY + 2), withAttributes: bandLabels)
 }
 
-/// (offset within the window, RR in ms, was it flagged as an artifact)
-private func tachogramValues(series: RRSeries, flags: [ArtifactFlags], result: HRVAnalysisResult) -> [(Int, Double, Bool)] {
-    let windowStart = result.windowStart
-    let windowEnd = min(result.windowEnd, series.points.count)
-    guard windowEnd > windowStart else { return [] }
+/// One beat of the tachogram: its offset within the window, its RR in ms,
+/// whether it was flagged as an artifact, and its run
+/// (`TimeDomainAnalyzer.recordingRuns`): a new run starts after each
+/// recording break.
+struct TachogramBeat {
+    let offset: Int
+    let rr: Double
+    let isArtifact: Bool
+    let run: Int
+}
 
-    // Get RR values
-    var rrValues: [(Int, Double, Bool)] = []
-    for i in windowStart ..< windowEnd {
+/// The beats of `window`, clamped to the series; offsets count from the
+/// window's own start.
+func reportTachogramBeats(series: RRSeries, flags: [ArtifactFlags], window: Range<Int>) -> [TachogramBeat] {
+    let windowStart = window.lowerBound
+    let indices = Array(window.clamped(to: max(windowStart, 0) ..< max(windowStart, series.points.count)))
+    guard !indices.isEmpty else { return [] }
+    let runs = TimeDomainAnalyzer.recordingRuns(of: indices, in: series.points)
+    return zip(indices, runs).map { i, run in
         let isArtifact = i < flags.count ? flags[i].isArtifact : false
-        rrValues.append((i - windowStart, Double(series.points[i].rr_ms), isArtifact))
+        return TachogramBeat(offset: i - windowStart, rr: Double(series.points[i].rr_ms), isArtifact: isArtifact, run: run)
     }
-
-    return rrValues
 }
 
 // MARK: - PSD chart spectrum

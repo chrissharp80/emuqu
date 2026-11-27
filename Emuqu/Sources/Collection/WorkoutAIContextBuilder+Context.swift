@@ -180,7 +180,7 @@ extension WorkoutAIContextBuilder {
             altitudeAboveRouteMinMeters: max(0, loc.altitude - (altitudes.min() ?? 0)),
             steepestGradeAheadPercent: (climbsAhead.map(\.gradePercent) + [onClimb?.gradePercent].compactMap { $0 }).max(),
             metersToPeak: Self.metersToPeak(route: route, altitudes: altitudes, routeMax: routeMax, progress: progress),
-            turnsAhead: computeUpcomingTurns(route: route, fromDistanceAlongMeters: progress.distanceAlongMeters)
+            turnsAhead: Self.computeUpcomingTurns(route: route, fromDistanceAlongMeters: progress.distanceAlongMeters)
         )
     }
 
@@ -234,14 +234,17 @@ extension WorkoutAIContextBuilder {
     /// GPS noise doesn't register as a turn. Below 30° it's drift.
     ///
     /// After a turn is recorded we skip past it before looking for the next,
-    /// so a long sweeping curve isn't double-counted.
+    /// so a long sweeping curve isn't double-counted. No bearing is taken
+    /// across a join between recorded segments (`Route.segmentStart(in:)`):
+    /// the line between them was never walked, so the search resumes at the
+    /// next segment's first point.
     ///
     /// Defensive bound. `cumulativeDistanceMeters` is
     /// documented as parallel to `trackpoints` but the contract isn't
     /// enforced. The SHORTER count drives all index operations so
     /// a corrupt route (older saved data, partial decode) can't
     /// out-of-bounds-crash here on the workout-start tick path.
-    func computeUpcomingTurns(
+    static func computeUpcomingTurns(
         route: Route,
         fromDistanceAlongMeters startDistance: Double
     ) -> [WorkoutAIContext.UpcomingTurn] {
@@ -257,6 +260,7 @@ extension WorkoutAIContextBuilder {
         var i = rawStartIdx
         while i < safeCount - 2, turns.count < 5 {
             guard let step = turnStep(from: i, pts: pts, dists: dists, safeCount: safeCount) else { break }
+            if let join = route.segmentStart(in: (i + 1) ... step.endIdx) { i = join; continue }
             let isTurn = abs(step.delta) >= 30
             if isTurn { turns.append(Self.upcomingTurn(step, dists: dists, startDistance: startDistance, label: WorkoutGeometry.turnLabel(deltaDegrees: step.delta))) }
             i = isTurn ? step.endIdx : step.midIdx
@@ -279,7 +283,7 @@ extension WorkoutAIContextBuilder {
 
     /// One ~15 m in / ~15 m out bearing comparison starting at `i`. Nil when
     /// the route runs out before both windows can be measured.
-    private func turnStep(
+    private static func turnStep(
         from i: Int,
         pts: [Route.Point],
         dists: [Double],

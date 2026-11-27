@@ -111,12 +111,18 @@ struct Route: Codable, Identifiable, Equatable {
             name: name,
             trackpoints: points,
             cumulativeDistanceMeters: profile.cumulative,
-            climbs: detectClimbs(track: track, cumulative: profile.cumulative),
+            climbs: detectClimbs(track: track, starts: starts, cumulative: profile.cumulative),
             totalDistanceMeters: profile.cumulative.last ?? 0,
             totalAscentMeters: profile.ascent,
             totalDescentMeters: profile.descent,
             segmentStarts: starts.isEmpty ? nil : starts
         )
+    }
+
+    /// The first trackpoint in `range` that begins a new recorded segment
+    /// (`segmentStarts`), or nil when `range` lies inside one segment.
+    func segmentStart(in range: ClosedRange<Int>) -> Int? {
+        segmentStarts?.sorted().first { range.contains($0) }
     }
 
     /// A route with no track — what a GPX carrying fewer than two points
@@ -145,7 +151,7 @@ struct Route: Codable, Identifiable, Equatable {
         let cumulative = TrackSegments.cumulativeMeters(track, starts: starts)
         // `1 ..< 0` traps on an empty track.
         guard track.count > 1 else { return ([0], ascent, descent) }
-        let altitude = smooth(track.map(\.altitude), window: 5)
+        let altitude = segmentSmoothedAltitude(track, starts: starts)
         for i in 1 ..< track.count where !TrackSegments.crossesBreak(i, starts: starts) {
             let dh = altitude[i] - altitude[i - 1]
             if dh > 0 { ascent += dh } else { descent += abs(dh) }
@@ -157,16 +163,25 @@ struct Route: Codable, Identifiable, Equatable {
     /// stretch where elevation is rising (smoothed by a 5-point window
     /// to ignore GPS altitude noise) and the segment totals ≥ 30 m of
     /// gain at ≥ 3 % average grade. Anything shorter / shallower is
-    /// "rolling terrain" and not worth a coaching cue.
-    private static func detectClimbs(track: [CLLocation], cumulative: [Double]) -> [Climb] {
-        guard track.count >= 5 else { return [] }
-        let smoothed = smooth(track.map(\.altitude), window: 5)
-        return risingRuns(in: smoothed).compactMap { run in
-            qualifyingClimb(
-                fromIdx: run.startIdx, toIdx: run.endIdx,
-                startAlt: smoothed[run.startIdx], smoothed: smoothed, cumulative: cumulative
-            )
+    /// "rolling terrain" and not worth a coaching cue. Each recorded segment
+    /// is searched on its own (`TrackSegments`): the altitude step across a
+    /// join was never climbed, and the join adds no distance, so a climb
+    /// spanning it would gain height over ground never covered.
+    static func detectClimbs(track: [CLLocation], starts: [Int] = [], cumulative: [Double]) -> [Climb] {
+        let smoothed = segmentSmoothedAltitude(track, starts: starts)
+        return TrackSegments.ranges(count: track.count, starts: starts).flatMap { range -> [Climb] in
+            guard range.count >= 5 else { return [] }
+            return risingRuns(in: Array(smoothed[range])).compactMap { run in
+                let (from, to) = (range.lowerBound + run.startIdx, range.lowerBound + run.endIdx)
+                return qualifyingClimb(fromIdx: from, toIdx: to, startAlt: smoothed[from], smoothed: smoothed, cumulative: cumulative)
+            }
         }
+    }
+
+    /// The altitude smoothed (5-point window) one recorded segment at a
+    /// time, so no window averages heights either side of a join.
+    static func segmentSmoothedAltitude(_ track: [CLLocation], starts: [Int]) -> [Double] {
+        TrackSegments.split(track.map(\.altitude), starts: starts).flatMap { smooth($0, window: 5) }
     }
 
     /// Index ranges over which the smoothed elevation is rising. The last run

@@ -453,19 +453,17 @@ extension WorkoutTicker {
     /// queue is still drained, so beats from a stretch the phone covered are
     /// not replayed when it next drops.
     ///
-    /// The queue is drained every tick, so what it holds arrived with the
-    /// newest batch and is placed back from that batch's arrival
-    /// (`latestWatchStrapAt`). Beats left from a batch more than 10 s old
-    /// (the ticks stopped while the app was suspended) are kept at that
-    /// batch's time and go into the series, but not into the live α1 or the
-    /// live heart rate, which they no longer describe. Left in the queue
-    /// they would be placed back from the next batch's arrival instead,
-    /// minutes later than they happened.
+    /// Each queued beat carries when it ended by the Watch's clock
+    /// (`WatchStrapBeat`), so beats from several samples keep the time
+    /// between them. Beats left from a batch more than 10 s old (the ticks
+    /// stopped while the app was suspended) are kept at their own times and
+    /// go into the series, but not into the live α1 or the live heart rate,
+    /// which they no longer describe.
     private func consumeWatchRoutedStrapFallback() {
         guard let watchStrapAt = watchBridge.latestWatchStrapAt else { return }
-        let drainedWatchRR = WatchPayloadBounds.plausibleRRMillis(watchBridge.drainPendingWatchStrapRR())
+        let drainedWatchRR = watchBridge.drainPendingWatchStrapRR()
         guard !drainedWatchRR.isEmpty, !phoneStrapIsLive else { return }
-        let newPoints = synthesizeWatchRoutedPoints(drainedWatchRR, arrivedAt: watchStrapAt)
+        let newPoints = synthesizeWatchRoutedPoints(drainedWatchRR)
         guard !newPoints.isEmpty else { return }
         capture.watchRouted.points.append(contentsOf: newPoints)
         guard Date().timeIntervalSince(watchStrapAt) < 10 else { return }
@@ -492,35 +490,29 @@ extension WorkoutTicker {
         signals.lastStrapHRAt.map { Date().timeIntervalSince($0) < 5 } ?? false
     }
 
-    /// Synthesize RRPoints for the beats the Watch carried. Wall-clock comes
-    /// from the bridge timestamp adjusted backward by the cumulative duration
-    /// of this sample batch — best-effort, since we don't know the exact
-    /// arrival times of individual beats inside the payload. `t_ms` here is
-    /// only for the live readout; `WorkoutRRMerge` orders the finished series
-    /// by wall clock and rebuilds it.
+    /// Synthesize RRPoints for the beats the Watch carried, each starting
+    /// where the Watch's clock puts it (`WatchStrapBeat.endEpochMs` less its
+    /// interval), never before the beat ahead of it ended. A gap between two
+    /// samples stays in both clocks, so the break check
+    /// (`TimeDomainAnalyzer.isRecordingBreak`) sees it. `t_ms` here is only
+    /// for the live readout; `WorkoutRRMerge` orders the finished series by
+    /// wall clock and rebuilds it.
     ///
     /// `wallClockMs` is milliseconds since the strap stream started, the
     /// clock the phone's own beats carry, so the two can be interleaved.
     ///
-    /// `drainedWatchRR` has been through `WatchPayloadBounds.plausibleRRMillis`,
+    /// Every beat has been through `WatchPayloadBounds.plausibleRRMillis`,
     /// so every value is finite and inside the RR band before `Int(...)`.
-    private func synthesizeWatchRoutedPoints(_ drainedWatchRR: [Double], arrivedAt: Date) -> [RRPoint] {
-        let payloadDurMs = drainedWatchRR.reduce(0.0, +)
-        let batchStartEpochMs = Int64((arrivedAt.timeIntervalSince1970 * 1000) - payloadDurMs)
-        alignWatchClock(toWallMs: batchStartEpochMs)
-        var batchStartWallMs = batchStartEpochMs - streamClockBaseEpochMs
-        var newPoints: [RRPoint] = []
-        newPoints.reserveCapacity(drainedWatchRR.count)
-        for rr in drainedWatchRR {
-            let rrMs = Int(rr.rounded())
-            newPoints.append(RRPoint(
-                t_ms: capture.watchRouted.cumulativeMs, rr_ms: rrMs,
-                wallClockMs: batchStartWallMs, hr: WatchPayloadBounds.plausibleHeartRate(watchBridge.latestWatchStrapHR)
-            ))
-            capture.watchRouted.cumulativeMs += Int64(rrMs)
-            batchStartWallMs += Int64(rrMs)
+    private func synthesizeWatchRoutedPoints(_ beats: [WatchStrapBeat]) -> [RRPoint] {
+        let base = streamClockBaseEpochMs
+        let hr = WatchPayloadBounds.plausibleHeartRate(watchBridge.latestWatchStrapHR)
+        return WatchStrapBeat.placed(beats, after: capture.watchRouted.lastEndEpochMs).map { beat in
+            alignWatchClock(toWallMs: beat.startEpochMs)
+            let point = RRPoint(t_ms: capture.watchRouted.cumulativeMs, rr_ms: beat.rrMs, wallClockMs: beat.startEpochMs - base, hr: hr)
+            capture.watchRouted.cumulativeMs += Int64(beat.rrMs)
+            capture.watchRouted.lastEndEpochMs = beat.startEpochMs + Int64(beat.rrMs)
+            return point
         }
-        return newPoints
     }
 
     /// Fold the Watch-routed strap HR into the live display +

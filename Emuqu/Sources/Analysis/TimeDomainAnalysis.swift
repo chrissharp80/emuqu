@@ -212,6 +212,26 @@ enum TimeDomainAnalyzer {
         return breaks
     }
 
+    /// The run of each of `indices` (ascending beat indices into `points`),
+    /// counting from 0: a new run starts at an index when a recording break
+    /// (`isRecordingBreak`) falls after the index before it and at or before
+    /// it. A line drawn through the beats lifts its pen between runs, so it
+    /// never joins beats either side of a hole, however the chart spaces
+    /// them (by beat, or on a clock that does not show the hole).
+    static func recordingRuns(of indices: [Int], in points: [RRPoint]) -> [Int] {
+        guard let first = indices.first, let last = indices.last, first >= 0, first < last else {
+            return indices.map { _ in 0 }
+        }
+        let breaks = beatsAfterRecordingBreak(in: points, range: (first + 1) ..< (last + 1)).sorted()
+        var (run, next) = (0, 0)
+        return indices.map { index in
+            while next < breaks.count, breaks[next] <= index {
+                (run, next) = (run + 1, next + 1)
+            }
+            return run
+        }
+    }
+
     /// The longest stretch of `range` with no recording break inside it
     /// (`isRecordingBreak`), for a reading that interpolates between beats
     /// (a resampled spectrum) and so must not span a break. `range` clamped
