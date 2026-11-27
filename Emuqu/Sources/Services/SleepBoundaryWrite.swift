@@ -179,7 +179,8 @@ enum SleepBoundaryWrite {
     /// changed (a sleep edit, an automatic update or a retro-apply), so the
     /// score reflects excluded/adjusted segments. The session is classified
     /// again first: whether the recording overlaps sleep is decided from the
-    /// sleep, so an edit can set or clear `.preSleep`. The score is
+    /// sleep, so an edit can set or clear `.preSleep`, and the snapshot's
+    /// sleep HR follows the new quality. The score is
     /// `ReanalysisService.rescoredBreakdown` against the frozen training
     /// context (the session's, else its analysis's, else
     /// `inputs.fallbackTraining`), anchored to `sessionEnd`. A session with
@@ -187,7 +188,9 @@ enum SleepBoundaryWrite {
     /// can be built for (`ReanalysisService.keepsStoredScore`).
     static func rescore(_ session: inout HRVSession, sessionEnd: Date, inputs: Inputs) {
         guard let result = session.analysisResult else { return }
+        let beforeClassifying = session
         ReanalysisService.reclassifyHRVQuality(of: &session, result: result, baselineStats: inputs.context.baselineStats)
+        session.refreshSleepHeartRate(replacing: beforeClassifying)
         guard !ReanalysisService.keepsStoredScore(session, baseline: inputs.context.baselineStats) else { return }
         let trainingContext = session.trainingSnapshot ?? result.trainingContext ?? inputs.fallbackTraining
         let breakdown = ReanalysisService.rescoredBreakdown(

@@ -44,4 +44,17 @@ extension HRVSession {
         guard let vitals = vitalsSnapshot else { return }
         vitalsSnapshot = withSleepHeartRate(vitals)
     }
+
+    /// Puts this night's sleep HR into the stored vitals snapshot after its
+    /// analysis or quality changed from `previous`'s. A resting HR equal to
+    /// `previous`'s strap sleep HR is that analysis's swap, not a HealthKit
+    /// reading, so it is dropped before this analysis's sleep HR goes in: a
+    /// pass that moves the window, or marks the recording unusable, never
+    /// keeps the old window's heart rate as the night's sleep HR. With the
+    /// same analysis and quality it changes nothing.
+    mutating func refreshSleepHeartRate(replacing previous: HRVSession) {
+        guard let vitals = vitalsSnapshot else { return }
+        let withoutPrevious = previous.strapSleepHeartRate.map { vitals.droppingRestingHeartRate(copiedFrom: $0) } ?? vitals
+        vitalsSnapshot = withSleepHeartRate(withoutPrevious)
+    }
 }

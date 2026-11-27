@@ -65,16 +65,23 @@ extension SessionDataMigrations {
         // which the update holds locked while its closure runs.
         let context = reanalysisService.rescoreContext(for: session)
         do {
-            try archive.update(session.id, requestingReupload: false) { stored in
-                stored.hrvDataQuality = .insufficient
-                Self.applyBaselineRescore(&stored, context: context)
-            }
+            try archive.update(session.id, requestingReupload: false) { Self.markInsufficient(&$0, context: context) }
             debugLog("[InsufficientDataMigration] Rescored session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery vs baseline")
             return true
         } catch {
             debugLog("[InsufficientDataMigration] Failed to archive rescored session \(session.id.uuidString.prefix(8)): \(error)")
             return false
         }
+    }
+
+    /// Marks the stored night `.insufficient`, moves its snapshot's sleep HR
+    /// off the strap (`HRVSession.refreshSleepHeartRate`: an unusable
+    /// recording's heart rate is not a sleep HR), and rescores it.
+    private static func markInsufficient(_ stored: inout HRVSession, context: RescoreContext) {
+        let classifiedBefore = stored
+        stored.hrvDataQuality = .insufficient
+        stored.refreshSleepHeartRate(replacing: classifiedBefore)
+        applyBaselineRescore(&stored, context: context)
     }
 
     /// Rescore against the baseline instead of the session's own HRV, through

@@ -207,7 +207,7 @@ extension DeviceRecordingSession {
         let analyzingSession = await beginAnalyzingSession(placement: placement, series: series)
         let flags = artifactDetector.detectArtifacts(in: series)
         let verifyResult = verification.verify(series, flags: flags)
-        let sleepContext = await fetchSleepContext(sessionStart: series.startDate, recordingEnd: analyzingSession.endDate ?? Date())
+        let sleepContext = await sleepContext(for: placement, series: series, recordingEnd: analyzingSession.endDate ?? Date())
         await morning.fetchTrainingLoadIfEnabled()
         let windowResult = windowSelector.findBestWindowWithCapacity(
             in: series, flags: flags,
@@ -405,6 +405,33 @@ extension DeviceRecordingSession {
     }
 
     // MARK: - Sleep, training load and analysis
+
+    /// The sleep window the recording is analysed in. An archived night whose
+    /// sleep the user set by hand keeps that sleep through the swap
+    /// (`carryForwardExistingMetadata`), so its window is chosen inside the
+    /// user's sleep window, re-counted from this recording's start: Health's
+    /// window would leave the stored boundaries and the analysis describing
+    /// another sleep than the one kept and shown.
+    func sleepContext(for placement: DownloadPlacement, series: RRSeries, recordingEnd: Date) async -> SleepBoundaryContext {
+        if let existing = placement.existing, existing.sleepUserAdjusted == true,
+           let kept = Self.userSleepContext(of: existing, onto: series.startDate) {
+            return kept
+        }
+        return await fetchSleepContext(sessionStart: series.startDate, recordingEnd: recordingEnd)
+    }
+
+    /// `existing`'s own sleep window counted from `start`; nil when it has none.
+    static func userSleepContext(of existing: HRVSession, onto start: Date) -> SleepBoundaryContext? {
+        guard existing.sleepStartMs != nil || existing.sleepEndMs != nil else { return nil }
+        let offset = MillisecondOffset.between(existing.startDate, and: start, fallback: 0)
+        var context = SleepBoundaryContext()
+        context.sleepStartMs = existing.sleepStartMs.map { $0 + offset }
+        context.wakeTimeMs = existing.sleepEndMs.map { $0 + offset }
+        context.sleepSegments = existing.sleepSegments?.map {
+            HRVSession.SleepSegmentMs(startMs: $0.startMs + offset, endMs: $0.endMs + offset)
+        }
+        return context
+    }
 
     /// Sleep boundaries from HealthKit for window selection, over the
     /// recording's own span.

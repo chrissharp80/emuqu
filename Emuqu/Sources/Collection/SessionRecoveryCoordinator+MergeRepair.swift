@@ -227,6 +227,12 @@ extension SessionRecoveryCoordinator {
         }
     }
 
+    /// Whether carrying the user's edits onto the rebuilt night changed what
+    /// its score is computed from (`RescoreWrite.inputsMatch`).
+    nonisolated static func carriedEditsChangeScoringInputs(rebuilt: HRVSession, carried: HRVSession) -> Bool {
+        !RescoreWrite.inputsMatch(carried, rebuilt, kind: .scoreOnly(healedTraining: false))
+    }
+
     /// Upload immediately instead of accumulating — keeps peak memory low.
     nonisolated private func archiveRepaired(_ repairedSession: HRVSession, originalId: UUID, beatCount: Int) async -> Bool {
         do {
@@ -253,11 +259,24 @@ extension SessionRecoveryCoordinator {
     /// is in the archive, not in the copy read before it. A night no longer
     /// in the archive (deleted, or Delete All My Data) is not written back;
     /// nil then.
+    ///
+    /// The rebuild scored the night against its own sleep, with no readiness
+    /// rating and its own vitals. When the carried edits changed any of those
+    /// inputs (a sleep set by hand, a rating, the stored vitals), the score,
+    /// quality and window describe other inputs than the night now holds, so
+    /// the night is analysed again from what it holds
+    /// (`.flowRecoveryRescoreNeeded`).
     private func writeRepaired(_ rebuilt: HRVSession) throws -> HRVSession? {
         guard let current = archive.retrieveOrLog(rebuilt.id) else { return nil }
         var toArchive = rebuilt
         Self.carryUserEdits(from: current, to: &toArchive)
         try archive.archive(toArchive)
+        if Self.carriedEditsChangeScoringInputs(rebuilt: rebuilt, carried: toArchive) {
+            NotificationCenter.default.post(
+                name: .flowRecoveryRescoreNeeded, object: toArchive.id,
+                userInfo: ["reason": "sleep", "detail": "a repaired night kept the user's sleep, rating or vitals"]
+            )
+        }
         return toArchive
     }
 }

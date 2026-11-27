@@ -43,7 +43,52 @@ extension ReanalysisService {
         // Read before the write: the baseline can read the archive's index,
         // which the update holds locked while its closure runs.
         let inputs = sleepRescoreInputs(for: session, sessionEnd: sessionEnd)
-        return persistRetroApply(newSleep, sessionId: session.id, sessionEnd: sessionEnd, inputs: inputs)
+        guard let written = persistRetroApply(newSleep, sessionId: session.id, sessionEnd: sessionEnd, inputs: inputs) else { return false }
+        await finishSleepWrite(from: session, to: written)
+        return true
+    }
+
+    /// Whether a write moved the sleep window: its start, end or segments.
+    /// The analysis window is chosen inside it (`analysisBounds`), so a moved
+    /// sleep window leaves the stored analysis describing the old one.
+    nonisolated static func sleepWindowMoved(from before: HRVSession, to after: HRVSession) -> Bool {
+        before.sleepStartMs != after.sleepStartMs || before.sleepEndMs != after.sleepEndMs
+            || before.sleepSegments != after.sleepSegments
+    }
+
+    /// After a sleep write from `before` to `after`: the analysis window is
+    /// chosen again inside the sleep window `after` holds when the write moved
+    /// it, as the automatic sleep refresh does for a moved onset (a window
+    /// the user picked stays: the write already scored it against the new
+    /// sleep), then the session as it now stands is written to Apple Health
+    /// when its readings changed. One after the other, so an export of the
+    /// copy before the analysis never lands after the newer one.
+    func finishSleepWrite(from before: HRVSession, to after: HRVSession) async {
+        var final = after
+        if Self.sleepWindowMoved(from: before, to: after), after.windowUserAdjusted != true,
+           let reanalysed = await reanalyzeSession(after, preserveManualWindows: true) {
+            final = reanalysed
+        }
+        reexportIfReadingsChanged(from: before, to: final)
+    }
+
+    /// Writes the session to Apple Health again when a rewrite changed what
+    /// its export is written from (`HealthExportReadings`): Health otherwise
+    /// keeps the heart rate, HRV, resting heart rate and sleep of the session
+    /// as it was. The export replaces the earlier samples by the session's
+    /// identity and reads the export switches itself; a night still on the
+    /// review card is left to acceptance.
+    func reexportIfReadingsChanged(from before: HRVSession, to after: HRVSession) {
+        guard HealthExportReadings(of: before) != HealthExportReadings(of: after), !isAwaitingReview(after.id) else { return }
+        let (healthKit, previous) = (healthKit, pendingHealthExport)
+        pendingHealthExport = Task {
+            await previous?.value
+            do {
+                try await healthKit.exportSessionMetrics(from: after)
+            } catch {
+                debugLog("[ReanalysisService] Apple Health export of a rewritten session failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     /// A session with no end date is treated as a twelve-hour window — long
@@ -87,8 +132,11 @@ extension ReanalysisService {
         return true
     }
 
-    /// Write the new boundaries and segments onto the session.
-    private static func applySleepBoundaries(
+    /// Write the new sleep onto the session: the snapshot, and the
+    /// boundaries and segments the analysis window is chosen in, clamped to
+    /// the recording, so the scoring window never describes another sleep
+    /// than the one shown.
+    nonisolated static func applySleepBoundaries(
         _ newSleep: SleepData,
         to updated: inout HRVSession,
         sessionStart: Date
@@ -106,7 +154,7 @@ extension ReanalysisService {
 
     /// Split nights get a fresh segment array. A single-segment night clears
     /// any stale multi-segment array so it cannot disagree with the snapshot.
-    private static func applySegments(
+    nonisolated private static func applySegments(
         _ newSleep: SleepData,
         to updated: inout HRVSession,
         sessionStart: Date
@@ -150,7 +198,7 @@ extension ReanalysisService {
     /// `exportSleepData` is on and Emuqu is the night's only sleep source.
     private func persistRetroApply(
         _ newSleep: SleepData, sessionId: UUID, sessionEnd: Date, inputs: SleepBoundaryWrite.Inputs
-    ) -> Bool {
+    ) -> HRVSession? {
         var written: HRVSession?
         do {
             try archive.update(sessionId, requestingReupload: false) { stored in
@@ -158,11 +206,11 @@ extension ReanalysisService {
             }
         } catch {
             debugLog("[ReanalysisService] Sleep retro-apply: save failed for \(sessionId.uuidString.prefix(8)): \(error)")
-            return false
+            return nil
         }
-        guard let written else { return false }
+        guard let written else { return nil }
         Task { self.onSessionUploaded(written) }
-        return true
+        return written
     }
 
     /// The skip rules on the archived copy, then the new sleep, the
@@ -197,20 +245,28 @@ extension ReanalysisService {
         // input session would be re-encoded with `rrSeries: nil`,
         // erasing the raw beats from disk.
         let session = hydrated(latestArchivedCopy(of: inputSession))
-        var appliedResult = result
-        appliedResult.isReanalysis = true
         // Preserve the frozen training context from the original session.
         let frozenTraining = session.trainingSnapshot ?? session.analysisResult?.trainingContext
-        if let frozen = frozenTraining {
-            appliedResult.trainingContext = frozen
-        }
+        let appliedResult = Self.manualResult(result, frozenTraining: frozenTraining)
         var updatedSession = session
         preserveAutoWindow(of: session, on: &updatedSession)
         updatedSession.analysisResult = appliedResult
         updatedSession.windowUserAdjusted = true
         reclassifyHRVQuality(of: &updatedSession, result: appliedResult)
+        updatedSession.refreshSleepHeartRate(replacing: session)
         applyDeterministicScore(to: &updatedSession, result: appliedResult, training: frozenTraining)
-        return await persistManualAnalysis(updatedSession, originalId: session.id)
+        let persisted = await persistManualAnalysis(updatedSession, originalId: session.id)
+        if let persisted { reexportIfReadingsChanged(from: session, to: persisted) }
+        return persisted
+    }
+
+    /// The picked window's result, marked as a reanalysis, carrying the
+    /// session's frozen training context when it has one.
+    private static func manualResult(_ result: HRVAnalysisResult, frozenTraining: TrainingContext?) -> HRVAnalysisResult {
+        var applied = result
+        applied.isReanalysis = true
+        if let frozenTraining { applied.trainingContext = frozenTraining }
+        return applied
     }
 
     /// The archived copy of `session` when there is one, so a manual pick
@@ -298,7 +354,8 @@ extension ReanalysisService {
                 return false
             }
             guard let landed = try await writeUntilCurrent(edit, from: read) else { return false }
-            reportSleepUpdate(landed.session, sleepData: sleepData, oldMinutes: landed.oldMinutes, isUserAdjustment: isUserAdjustment)
+            reportSleepUpdate(landed.session, sleepData: sleepData, oldMinutes: landed.previous.sleepSnapshot?.nightSleepMinutes ?? 0, isUserAdjustment: isUserAdjustment)
+            Task { await self.finishSleepWrite(from: landed.previous, to: landed.session) }
             return true
         } catch {
             debugLog("[ReanalysisService] Failed to update sleep boundaries for \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
@@ -308,13 +365,13 @@ extension ReanalysisService {
 
     /// Writes `edit` from `read` (`writeSleepEdit`); when an input changed
     /// since the read (`.inputsChanged`), runs again from the stored copy, up
-    /// to `RescoreWrite.runs` times. The session as written and the night
-    /// minutes of the copy it was written from; nil when the edit was
+    /// to `RescoreWrite.runs` times. The session as written and the copy it
+    /// was written from; nil when the edit was
     /// declined, the session is no longer archived, or the inputs kept
     /// changing (logged).
     private func writeUntilCurrent(
         _ edit: SleepBoundaryWrite.Edit, from read: HRVSession
-    ) async throws -> (session: HRVSession, oldMinutes: Int)? {
+    ) async throws -> (session: HRVSession, previous: HRVSession)? {
         var current = read
         for _ in 1 ... RescoreWrite.runs {
             let outcome = try await writeSleepEdit(edit, readFrom: current)
@@ -323,7 +380,7 @@ extension ReanalysisService {
                 continue
             }
             guard let written = outcome.written else { return nil }
-            return (written, current.sleepSnapshot?.nightSleepMinutes ?? 0)
+            return (written, current)
         }
         debugLog("[UpdateSleepBounds] Inputs kept changing while the sleep edit ran — giving up")
         return nil
@@ -526,6 +583,7 @@ extension ReanalysisService {
     func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool {
         do {
             guard var session = try archive.retrieve(sessionId) else { return false }
+            let linked = session
             guard var links = session.linkedSessionIds, links.contains(segmentId) else { return false }
             // Step 1: Strip the unlinked segment's RR data from the merged series.
             guard stripSegmentPoints(segmentId: segmentId, from: &session) else { return false }
@@ -534,9 +592,8 @@ extension ReanalysisService {
             session.linkedSessionIds = links.isEmpty ? nil : links
             try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             debugLog("[ReanalysisService] Unlinked segment \(segmentId.uuidString.prefix(8)) from session \(sessionId.uuidString.prefix(8)) — \(links.count) segments remaining")
-            // Step 3: Reanalyze the session with clean data, without the
-            // contaminating segment.
-            reanalyzeAfterUnlink(session)
+            // Step 3: Reanalyze without the contaminating segment's beats.
+            reanalyzeAfterUnlink(session, linked: linked)
             let sessionToUpload = session
             Task { self.onSessionUploaded(sessionToUpload) }
             return true
@@ -584,13 +641,17 @@ extension ReanalysisService {
         return unlinked.rrSeries?.points.last?.t_ms ?? 0
     }
 
-    private func reanalyzeAfterUnlink(_ session: HRVSession) {
+    /// Then Apple Health gets the night without the segment's beats,
+    /// compared with the night as it was while `linked`.
+    private func reanalyzeAfterUnlink(_ session: HRVSession, linked: HRVSession) {
         Task {
-            if let reanalyzed = await self.reanalyzeSession(session) {
+            let reanalyzed = await self.reanalyzeSession(session)
+            if let reanalyzed {
                 debugLog("[ReanalysisService] Reanalyzed after unlink: score \(String(format: "%.1f", reanalyzed.recoveryScore ?? -1))")
             } else {
                 debugLog("[ReanalysisService] Reanalysis after unlink returned nil — session archived with stripped data only")
             }
+            self.reexportIfReadingsChanged(from: linked, to: reanalyzed ?? session)
             await MainActor.run { self.onArchiveChanged() }
         }
     }
