@@ -101,7 +101,7 @@ extension AssistantViewModel {
 
     /// The compression instruction, with the existing summary and the dropped
     /// turns folded in.
-    private func summarizationPrompt(_ droppedTurns: [ChatTurn]) -> String {
+    func summarizationPrompt(_ droppedTurns: [ChatTurn]) -> String {
         let merged = priorSummary.map { "Previous summary:\n\($0)\n\nNew turns to fold in:\n" }
             ?? "Turns to summarize:\n"
         // Filtered again here, not only in `truncateForSend`.
@@ -111,8 +111,13 @@ extension AssistantViewModel {
         // exactly until someone adds a third caller. `truncateForSend` already
         // withholds these from `dropped`; this makes the guarantee local to the
         // function that builds the outbound text.
+        //
+        // The summary rides in every later system prompt, to whichever
+        // provider answers, so it takes only turns every provider may see: a
+        // reply only Apple may see (`ChatTurn.sensitivity`) is in Apple's
+        // `dropped` and stays out of what Apple writes for the others.
         let droppedText = droppedTurns
-            .filter { !$0.localOnly }
+            .filter(\.maySendToEveryProvider)
             .map { ($0.role == .user ? "User: " : "Assistant: ") + $0.text }
             .joined(separator: "\n\n")
         return merged + droppedText + "\n\n" + Self.summarizationInstruction
@@ -159,7 +164,11 @@ extension AssistantViewModel {
     ///
     /// Local-only turns are withheld first, so they cannot consume budget and
     /// are never reported as `dropped` — `dropped` feeds summarisation, which
-    /// is a second outbound path. See `ChatTurn.localOnly`. Empty assistant
+    /// is a second outbound path. See `ChatTurn.localOnly`. So are turns
+    /// produced with context `provider` may not see (`ChatTurn.maySend(to:)`):
+    /// an Apple reply that quoted the street outside a workout never reaches
+    /// a cloud provider, after a provider switch, a routed tier or a fallback
+    /// alike. Empty assistant
     /// turns (a stopped or blocked reply) are withheld too: Anthropic and
     /// Gemini reject an empty assistant message. So are incomplete replies
     /// (`ChatTurn.incomplete`, a stream that failed partway): sending one
@@ -173,7 +182,7 @@ extension AssistantViewModel {
     ) -> (kept: [ChatTurn], dropped: [ChatTurn]) {
         let budget = conversationTokenBudget(for: provider)
 
-        let turns = turns.filter { !$0.localOnly && !isEmptyAssistantTurn($0) && !$0.incomplete }
+        let turns = turns.filter { $0.maySend(to: provider) && !isEmptyAssistantTurn($0) && !$0.incomplete }
         guard !turns.isEmpty else { return ([], []) }
 
         // Walk from newest to oldest, accumulating tokens. Stop when we'd exceed.
@@ -705,10 +714,13 @@ final class StreamTextBuffer {
     }
 
     /// `text` with each number that contradicts the app's values replaced,
-    /// the correction staged for the next prompt.
+    /// the correction staged for the next prompt. The reply already shown is
+    /// read with it: a heading published in an earlier piece decides what a
+    /// bullet in this one is about.
     private func numbersVerified(_ text: String) -> String {
         guard let state = verifiedState?() else { return text }
-        let result = MetricsVerifier.verifyReply(text, against: state)
+        let shown = currentIndex.map { owner.turns[$0].text } ?? ""
+        let result = MetricsVerifier.verifyReply(text, after: shown, against: state)
         guard !result.discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
         stagedCorrections += result.discrepancies

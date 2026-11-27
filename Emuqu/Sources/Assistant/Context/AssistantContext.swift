@@ -402,6 +402,16 @@ extension AssistantContext {
     /// ProviderConsentSheet names ambient location as reaching a cloud provider
     /// during an active workout, not at any time. "Always-on" therefore means
     /// always on DEVICE (see the doc comment on `compactRender`).
+    /// What a render that includes the ambient location carries that not
+    /// every provider may see: the location line outside a workout
+    /// (`TurnSensitivity.ambientLocation`). Nil when the render has no such
+    /// line or a workout is recording, when every consented provider may see
+    /// it. A reply produced from that render is marked with it.
+    func sensitivity(ofRenderIncludingAmbientLocation included: Bool) -> TurnSensitivity? {
+        guard included, liveWorkout == nil, !ambientLocationLines(includeAmbientLocation: true).isEmpty else { return nil }
+        return .ambientLocation
+    }
+
     private func ambientLocationLines(includeAmbientLocation: Bool) -> [String] {
         guard includeAmbientLocation, let loc = ambientLocation else { return [] }
         let locBits = Self.ambientLocationBits(loc)

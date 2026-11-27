@@ -26,6 +26,18 @@ extension AssistantTranscript {
     func liveTurnIndex(for turnID: UUID) -> Int? {
         turns.firstIndex(where: { $0.id == turnID })
     }
+
+    /// Records that the reply in `turnID` is produced with context not every
+    /// provider may see (`ChatTurn.sensitivity`), before any of it streams.
+    /// The mark stays when a later provider writes the reply instead: the
+    /// text that leaves the bubble can come back (a fallback that answers
+    /// nothing restores it), and withholding a reply that did not need it
+    /// costs context, never privacy.
+    func mark(_ sensitivity: TurnSensitivity?, onTurn turnID: UUID) {
+        guard let sensitivity, let index = liveTurnIndex(for: turnID) else { return }
+        turns[index].sensitivity = sensitivity
+        store.save(turns)
+    }
 }
 
 /// What both parts read to run a turn: the services, the provider registry,

@@ -198,7 +198,8 @@ final class RedactionPatternTests: XCTestCase {
     /// makes about that metric instead of checking it.
     private static let failOpenSources = [
         "Emuqu/Sources/Utilities/DebugLog.swift",
-        "Emuqu/Sources/Assistant/MetricsVerifier.swift"
+        "Emuqu/Sources/Assistant/MetricsVerifier.swift",
+        "Emuqu/Sources/Assistant/MetricsVerifier+Scope.swift"
     ]
 
     /// `MedicalTermLexicon` fails open the same way — both guards reach its

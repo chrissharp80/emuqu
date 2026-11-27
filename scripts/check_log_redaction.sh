@@ -63,10 +63,11 @@ USER_TEXT_PATTERN='\\\((String\(describing: *)?([^)]*\.)?('"$USER_TEXT_NAMES"')'
 # any pattern's reach, so the copy site is where to keep it out of a log.
 LOCATION_NAME_PATTERN='\\\((String\(describing: *)?([^)]*\.)?([a-z][A-Za-z]*(Road|Street|Thoroughfare|Locality|CellKey|GridKey|TileKey)|cellKey|gridKey|tileKey)'"$TEXT_TRANSFORMS"'( \?\? "[^"]*")?\)'
 # A location value whole: a `CLLocation` or coordinate prints its latitude
-# and longitude (`\(location)`, `\(location.coordinate)`, `\(lastLocation)`).
+# and longitude (`\(location)`, `\(loc)`, `\(location.coordinate)`,
+# `\(lastLocation)`), and a placemark prints its street and city.
 # A member of one that is not a position (`\(location.horizontalAccuracy)`)
 # is not matched.
-LOCATION_VALUE_NAMES='location|coordinate|coordinates|[a-z][A-Za-z]*Location|[a-z][A-Za-z]*Coordinate'
+LOCATION_VALUE_NAMES='location|loc|coordinate|coordinates|placemark|[a-z][A-Za-z]*Location|[a-z][A-Za-z]*Coordinate|[a-z][A-Za-z]*Placemark'
 LOCATION_VALUE_PATTERN='\\\((String\(describing: *)?([^)]*\.)?('"$LOCATION_VALUE_NAMES"')(\.coordinate)?(\.description)?\)'
 # The name of a saved route (free text the user typed) or of a place. A bare
 # `name` is not matched: in this codebase it mostly names a device or sport.
@@ -120,6 +121,13 @@ trap 'rm -f "$tmp"' EXIT
 # line is seen. `// log-redaction-ok: <reason>` waives a call when it sits on
 # any line of the call or on the line immediately above it (the `disable:next`
 # shape, so the escape hatch does not push a long call over line_length).
+#
+# A message built before the call (`let msg = "at \(loc)"`, then
+# `debugLog(msg)`) carries its value into the call under a name no pattern
+# knows. So each identifier the call uses is followed to the nearest local
+# `let`/`var` assignment of it above the call (and `+=` onto it), and what was
+# assigned is appended to the call's line, two levels deep, where the same
+# patterns read it. A waiver on the assignment's line waives that assignment.
 python3 - "$LOG_CALL" "${SOURCE_ROOTS[@]}" > "$tmp" <<'PY' || { echo "check_log_redaction: the scan failed; nothing was measured." >&2; exit 2; }
 import pathlib
 import re
@@ -170,6 +178,114 @@ def call_end(text, i):
     return n
 
 
+def code_only(text):
+    """`text` with string-literal characters blanked, interpolations kept."""
+    out, j, n, in_string, interpolations, depth = [], 0, len(text), False, [], 0
+    while j < n:
+        c = text[j]
+        if in_string:
+            if c == "\\" and text.startswith("(", j + 1):
+                interpolations.append(depth)
+                depth += 1
+                in_string = False
+                out.append("  ")
+                j += 2
+                continue
+            if c == '"':
+                in_string = False
+            out.append(" " if c != "\\" else " ")
+            j += 1
+            continue
+        if c == '"':
+            in_string = True
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if interpolations and depth == interpolations[-1]:
+                interpolations.pop()
+                in_string = True
+        out.append(c)
+        j += 1
+    return "".join(out)
+
+
+IDENTIFIER = re.compile(r"(?<![\w.])([a-z_][A-Za-z0-9_]*)\b(?!\s*[(:])")
+
+
+def continued(text, j):
+    """Whether the line ending at `j` ends in `+` or `=`, so the statement goes on."""
+    k = j - 1
+    while k >= 0 and text[k] in " \t\r":
+        k -= 1
+    return k >= 0 and text[k] in "+="
+
+
+def statement_end(text, i):
+    """Index of the newline ending the statement that starts at `i`."""
+    depth, j, n = 0, i, len(text)
+    while j < n:
+        if text.startswith('"""', j):
+            close = text.find('"""', j + 3)
+            j = n if close < 0 else close + 3
+            continue
+        c = text[j]
+        if c == '"':
+            close = j + 1
+            while close < n and text[close] not in '"\n':
+                close += 2 if text[close] == "\\" else 1
+            j = close + 1
+            continue
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "\n" and depth <= 0 and not continued(text, j):
+            return j
+        j += 1
+    return n
+
+
+def assignments(text, name, before, lines):
+    """What was assigned to local `name` above offset `before`: the nearest
+    `let`/`var` of it and every `+=` onto it after that, within 80 lines."""
+    window_start = max(0, text.rfind("\n", 0, max(0, before - 1)) - 1)
+    for _ in range(80):
+        window_start = text.rfind("\n", 0, window_start)
+        if window_start < 0:
+            window_start = 0
+            break
+    region = text[window_start:before]
+    decl = None
+    for d in re.finditer(r"\b(?:let|var)\s+" + re.escape(name) + r"\b\s*(?::[^=\n]*)?=", region):
+        decl = d
+    if decl is None:
+        return []
+    found = []
+    for a in [decl] + list(re.finditer(r"\b" + re.escape(name) + r"\s*\+=", region[decl.end():])):
+        start = window_start + (a.end() if a is decl else decl.end() + a.end())
+        line_no = text.count("\n", 0, start)
+        if "log-redaction-ok" in lines[line_no]:
+            continue
+        found.append(text[start:statement_end(text, start)])
+    return found
+
+
+def followed(text, call, before, lines, depth=2, seen=None):
+    """The values assigned to the locals `call` uses, appended for the scan."""
+    seen = set() if seen is None else seen
+    extra = []
+    for name in sorted(set(IDENTIFIER.findall(code_only(call)))):
+        if name in seen:
+            continue
+        seen.add(name)
+        for value in assignments(text, name, before, lines):
+            extra.append(f"via({name}: {' '.join(value.split())})")
+            if depth > 1:
+                extra += followed(text, value, before, lines, depth - 1, seen)
+    return extra
+
+
 for root in sys.argv[2:]:
     for path in sorted(pathlib.Path(root).rglob("*.swift")):
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -184,7 +300,8 @@ for root in sys.argv[2:]:
             if "log-redaction-ok" in above or any(
                     "log-redaction-ok" in lines[k] for k in range(first, last + 1)):
                 continue
-            print(f"{path}:{first + 1}:" + " ".join(l.strip() for l in call.split("\n")))
+            flat = " ".join(l.strip() for l in call.split("\n"))
+            print(f"{path}:{first + 1}:" + " ".join([flat] + followed(text, call, m.start(), lines)))
 PY
 
 violations=0

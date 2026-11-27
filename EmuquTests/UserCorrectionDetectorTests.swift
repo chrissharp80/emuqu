@@ -395,6 +395,21 @@ final class UserCorrectionDetectorTests: XCTestCase {
         }
     }
 
+    /// A value placed at another time by the lines around it, not its own
+    /// sentence, is not today's either: a heading or lead-in over a list, or
+    /// a sentence wrapped onto the next line.
+    func testValuesUnderAnotherTimesHeadingAreNotAsserted() {
+        let rows: [(text: String, key: String, value: Double?)] = [
+            ("Yesterday:\n- rhr is 52", "rhr", nil),
+            ("Last week\n- ctl is 62", "ctl", nil),
+            ("Two days ago my\nrhr was 52", "rhr", nil),
+            ("Today:\n- rhr is 52", "rhr", 52)
+        ]
+        for row in rows {
+            XCTAssertEqual(UserCorrectionDetector.detect(userMessages: [row.text]).assertedValues[row.key], row.value, row.text.debugDescription)
+        }
+    }
+
     /// A pace or distance keeps the unit it was given in: 8:30 per mile is
     /// not 8:30 per kilometer.
     func testPaceAndDistanceKeepTheirUnit() {

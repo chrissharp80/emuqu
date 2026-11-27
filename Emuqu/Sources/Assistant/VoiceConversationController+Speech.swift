@@ -216,13 +216,17 @@ extension VoiceConversationController {
     /// training load, the overnight and last night's sleep), so the user
     /// hears the verified value. Replaces each contradicting span and
     /// records the correction, so the next turn's system prompt tells the
-    /// model it was corrected.
+    /// model it was corrected. The utterances already spoken in this reply
+    /// are read with it (`SpokenTextChunker.verifiedReply`), so a number is
+    /// placed by what was said before it, as in the chat.
     func applyHallucinationGuard(to text: String) -> String {
-        let result = MetricsVerifier.verifyReply(text, against: services.verifiedAppState)
+        let result = MetricsVerifier.verifyReply(text, after: textChunker.verifiedReply, against: services.verifiedAppState)
+        let guarded = result.correctedText ?? text
+        textChunker.verifiedReply += guarded + "\n"
         guard !result.discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
         MetricsVerifier.recordCorrections(result.discrepancies)
-        return result.correctedText ?? text
+        return guarded
     }
 
     /// Push-to-talk / "send now" — forces the current listening turn to

@@ -207,15 +207,41 @@ enum MetricsVerifier {
     /// `correctedText` is nil when nothing changed. Each discrepancy's range
     /// indexes the text its own pass read, so callers use the ranges only
     /// through `correctedText`.
+    ///
+    /// `preceding` is the part of the same reply already shown or spoken.
+    /// A streamed reply is checked piece by piece, and a piece's meaning can
+    /// be set by an earlier one: the heading "Night before (Nov 25)" in one
+    /// piece makes "- Recovery score: 55" in the next a past night's value.
+    /// So the whole reply so far is read, and only claims in `text` are
+    /// checked; `correctedText` is `text` alone.
     @MainActor
-    static func verifyReply(_ text: String, against state: AppState) -> AppStateVerifyResult {
-        let live = verify(text, againstLive: state.liveWorkout)
-        let liveCorrected = correctedText(from: text, applying: live) ?? text
-        let appState = verifyAppStateClaims(liveCorrected, against: state)
+    static func verifyReply(_ text: String, after preceding: String = "", against state: AppState) -> AppStateVerifyResult {
+        guard mayHoldAClaim(text) else {
+            acknowledgeDeliveredCorrections()
+            return AppStateVerifyResult(discrepancies: [], correctedText: nil)
+        }
+        let whole = preceding + text
+        let start = (preceding as NSString).length
+        let live = claims(verify(whole, againstLive: state.liveWorkout), from: start, in: whole)
+        let liveCorrected = correctedText(from: whole, applying: live) ?? whole
+        let appState = claims(appStateDiscrepancies(liveCorrected, against: state), from: start, in: liveCorrected)
+        let corrected = correctedText(from: liveCorrected, applying: appState) ?? (live.isEmpty ? nil : liveCorrected)
         return AppStateVerifyResult(
-            discrepancies: live + appState.discrepancies,
-            correctedText: appState.correctedText ?? (live.isEmpty ? nil : liveCorrected)
+            discrepancies: live + appState,
+            correctedText: corrected.map { ($0 as NSString).substring(from: start) }
         )
+    }
+
+    /// Whether `text` has a number in it, written or spelled; one without
+    /// has no claim to check, however much reply precedes it.
+    private static func mayHoldAClaim(_ text: String) -> Bool {
+        SpelledNumberNormalizer.normalizeWithRewrites(text).text.contains { $0.isNumber }
+    }
+
+    /// The discrepancies whose claim starts at or after UTF-16 offset `start`
+    /// of `text`: the ones in the piece being checked.
+    private static func claims(_ found: [Discrepancy], from start: Int, in text: String) -> [Discrepancy] {
+        found.filter { NSRange($0.range, in: text).location >= start }
     }
 
     /// Verify training-load, overnight HRV and last night's sleep claims
@@ -241,18 +267,24 @@ enum MetricsVerifier {
     /// the normaliser every wrong value would escape the verifier.
     @MainActor
     static func verifyAppStateClaims(_ text: String, against state: AppState) -> AppStateVerifyResult {
+        let mapped = appStateDiscrepancies(text, against: state)
+        return AppStateVerifyResult(
+            discrepancies: mapped,
+            correctedText: correctedText(from: text, applying: mapped)
+        )
+    }
+
+    /// `verifyAppStateClaims`'s discrepancies, ranges in `text`.
+    @MainActor
+    private static func appStateDiscrepancies(_ text: String, against state: AppState) -> [Discrepancy] {
         acknowledgeDeliveredCorrections()
         let normalized = SpelledNumberNormalizer.normalizeWithRewrites(text)
         let found = trainingLoadDiscrepancies(in: normalized.text, state: state)
             + overnightDiscrepancies(in: normalized.text, archive: state.archive)
             + lastNightSleepDiscrepancies(in: normalized.text, archive: state.archive)
-        let mapped = found.compactMap {
+        return found.compactMap {
             remap($0, from: normalized.text, to: text, rewrites: normalized.rewrites)
         }
-        return AppStateVerifyResult(
-            discrepancies: mapped,
-            correctedText: correctedText(from: text, applying: mapped)
-        )
     }
 
     /// Training load — ATL / CTL / TSB / ACWR.
@@ -349,9 +381,11 @@ enum MetricsVerifier {
     }
 
     /// "Recovery 9.1 of 10" / "Recovery 91" / "your recovery score is 72" /
-    /// "recovery score of 72" — both the 0–10 and the 0–100 scale are
+    /// "recovery score of 72" / "recovery 85/100", the form the prompt's own
+    /// live state uses — both the 0–10 and the 0–100 scale are
     /// reasonable, so a claim that matches the 0–10 form within tolerance is a
-    /// different scale, not a lie. "Recovery 48 hours" is a duration, not a
+    /// different scale, not a lie, unless the claim names its scale ("/100",
+    /// "out of 100"). "Recovery 48 hours" is a duration, not a
     /// score. A 0–100 correction is the integer the dashboard shows
     /// (`RecoveryScoreCalculator.displayScore`), not the raw score × 10.
     ///
@@ -370,7 +404,17 @@ enum MetricsVerifier {
             ) { // assume 0-100 form first
                 $0.rounded() == $0 ? String(format: "%.0f", $0) : String(format: "%.1f", $0)
             }
-        ).compactMap { onTheClaimsScale($0, score10: score10) }
+        ).compactMap { onTheClaimsScale($0, score10: score10, stated: statedScale(after: $0.range, in: text)) }
+    }
+
+    /// The scale written right after a claimed score: 10 for "/10", "of 10"
+    /// or "out of 10", 100 for the same with 100, nil when none is written.
+    private static func statedScale(after range: Range<String.Index>, in text: String) -> Int? {
+        let tail = String(text[range.upperBound...].prefix(16))
+        let whole = NSRange(location: 0, length: (tail as NSString).length)
+        guard let match = DebugLogger.compiledPattern(#"^\s*(?:/|(?:out\s+)?of)\s*(10|100)\b"#, options: [.caseInsensitive])?
+            .firstMatch(in: tail, range: whole) else { return nil }
+        return Int((tail as NSString).substring(with: match.range(at: 1)))
     }
 
     /// "Heart rate recovery", "HR recovery", "HRR" and "cardiac recovery" are
@@ -381,10 +425,13 @@ enum MetricsVerifier {
     /// dropped. A wrong claim of 10 or under is a 0–10 claim and is corrected
     /// on that scale: "Recovery 5 out of 10" must become "9.1 out of 10", not
     /// "91 out of 10". A number above 100 is on neither scale ("recovery at
-    /// 140" is a heart rate), so it is not a score claim.
-    private static func onTheClaimsScale(_ d: Discrepancy, score10: Double) -> Discrepancy? {
+    /// 140" is a heart rate), so it is not a score claim. A claim that writes
+    /// its scale is read on that scale only: "8/100" is not 8 out of 10.
+    private static func onTheClaimsScale(_ d: Discrepancy, score10: Double, stated: Int?) -> Discrepancy? {
         guard let claimed = Double(d.claimed) else { return d }
         guard claimed <= 100 else { return nil }
+        guard stated != 10 || claimed <= 10 else { return nil }
+        if stated == 100 { return d }
         let delta10 = abs(claimed - score10)
         guard delta10 > 1.0 else { return nil }
         guard claimed <= 10 else { return d }
@@ -449,9 +496,10 @@ enum MetricsVerifier {
 
     private static func sleepDurationDiscrepancies(in text: String, nightMinutes: Int) -> [Discrepancy] {
         let whole = NSRange(location: 0, length: (text as NSString).length)
+        let masked = maskedForMatching(text)
         return sleepDurationPatterns
             .compactMap { DebugLogger.compiledPattern($0, options: [.caseInsensitive]) }
-            .flatMap { $0.matches(in: text, range: whole) }
+            .flatMap { $0.matches(in: masked, range: whole) }
             .compactMap { durationDiscrepancy(from: $0, in: text, nightMinutes: nightMinutes) }
     }
 
@@ -542,11 +590,14 @@ enum MetricsVerifier {
     private static let otherNightMarkers =
         #"\b(?:january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|night\s+of|that\s+night|nights|weeks?|month)\b|\d{1,2}/\d{1,2}|\d{4}-\d{2}-\d{2}"#
 
+    /// Whether `pattern` matches in the sentence holding `range` or in the
+    /// structure around it (`enclosingStructure`): a "## Sleep on Nov 25"
+    /// heading places the bullets under it as that night's sleep.
     private static func sentence(containing range: Range<String.Index>, in text: String, matches pattern: String) -> Bool {
-        let ns = text as NSString
-        let span = sentenceRange(containing: NSRange(range, in: text), in: ns)
-        return DebugLogger.compiledPattern(pattern, options: [.caseInsensitive])?
-            .firstMatch(in: text, range: span) != nil
+        let claim = NSRange(range, in: text)
+        let structure = enclosingStructure(of: claim, in: text as NSString)
+        let span = sentenceRange(containing: claim, in: structure.text)
+        return anyMatches([pattern], in: structure.text, scopes: [span] + structure.scopes)
     }
 
     /// Splice the actual values into `text` using ranges that index into it.
@@ -585,13 +636,16 @@ enum MetricsVerifier {
     /// Generic claim matcher. Pulls the `value` group, parses it, applies
     /// the negate-on-spelled rule when the claim reads "negative N", skips
     /// claims whose sentence is about another time or a target, then
-    /// compares against the actual value with the check's tolerance.
+    /// compares against the actual value with the check's tolerance. The
+    /// pattern runs on the text with markdown markup masked
+    /// (`maskedForMatching`), so a bold label or a table cell is matched as
+    /// plain text; everything else reads the text as written.
     private static func claimsMatching(in text: String, pattern: String, check: ClaimCheck) -> [Discrepancy] {
         guard let regex = DebugLogger.compiledPattern(pattern, options: [.caseInsensitive]) else {
             return []
         }
         let ns = text as NSString
-        let all = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        let all = regex.matches(in: maskedForMatching(text), range: NSRange(location: 0, length: ns.length))
         return all.compactMap { discrepancy(from: $0, in: text, ns: ns, check: check) }
     }
 
@@ -634,7 +688,9 @@ enum MetricsVerifier {
     /// reading: "TSB -10 to -30", "ACWR 0.8-1.3", "recovery of 2:00",
     /// "recovery 2' jog", "your HR is 12 bpm higher", "your power is 20 W
     /// down on the first rep", "you slept 1 hour longer". Correcting such a
-    /// number to the live value would make the sentence false.
+    /// number to the live value would make the sentence false. A slash before
+    /// 10 or 100 names the score's scale ("recovery 85/100"), not the other
+    /// end of a range, so that claim is still checked.
     private static func isRangeOrDelta(after claim: NSRange, in ns: NSString) -> Bool {
         let tail = NSRange(location: NSMaxRange(claim), length: ns.length - NSMaxRange(claim))
         return DebugLogger.compiledPattern(notAReadingAfter, options: [.caseInsensitive])?
@@ -642,7 +698,7 @@ enum MetricsVerifier {
     }
 
     private static let notAReadingAfter = "(?:" + [
-        #"\s*(?:[-–—/]|to|or)\s*[-−+]?\d"#,
+        #"\s*(?:[-–—]|/(?!\s*10{1,2}\b)|to|or)\s*[-−+]?\d"#,
         #"\s*:\d"#,
         #"\s*['’′″"]"#,
         #"(?:\s*(?:points?|pts?|bpm|beats?|ms|w|watts?|%|percent|h|hrs?|hours?|m|mins?|minutes?))?"#
@@ -673,14 +729,28 @@ enum MetricsVerifier {
     /// sleep or rest is not the live workout; and a value the user reported
     /// or another device showed is theirs to state. When the clause names
     /// another referent the claim is left as written.
+    ///
+    /// The sentence is not the whole of what places a claim. The structure
+    /// around it does too (`enclosingStructure`): the heading or bold label
+    /// over it, the lead-in its list or table hangs from, the items it is
+    /// nested under, its table column's header and row label, and the line
+    /// before when a sentence wraps. A marker in any of them leaves the claim
+    /// as written: "Night before (Nov 25)" over "- Recovery score: 55" says
+    /// the 55 is not today's.
     private static func isAboutTheCurrentValue(_ range: NSRange, in ns: NSString, overnight: Bool = false) -> Bool {
-        let sentence = sentenceRange(containing: range, in: ns)
-        let scope = NSRange(location: sentence.location, length: clauseEnd(after: range, in: sentence, ns: ns) - sentence.location)
+        let structure = enclosingStructure(of: range, in: ns)
+        let sentence = sentenceRange(containing: range, in: structure.text)
+        let clause = NSRange(location: sentence.location, length: clauseEnd(after: range, in: sentence, ns: structure.text) - sentence.location)
         let markers = overnight ? [earlierTimeMarkers, targetMarkers] : [earlierTimeMarkers, lastNightMarker, targetMarkers]
         let referents = [overnight ? notTheOvernightMarkers : notTheWorkoutMarkers, reportedElsewhereMarkers]
-        return !(markers + referents).contains { pattern in
-            DebugLogger.compiledPattern(pattern, options: [.caseInsensitive])?
-                .firstMatch(in: ns as String, range: scope) != nil
+        return !anyMatches(markers + referents, in: structure.text, scopes: [clause] + structure.scopes)
+    }
+
+    /// Whether any of `patterns` matches inside any of `scopes` of `ns`.
+    private static func anyMatches(_ patterns: [String], in ns: NSString, scopes: [NSRange]) -> Bool {
+        patterns.contains { pattern in
+            guard let regex = DebugLogger.compiledPattern(pattern, options: [.caseInsensitive]) else { return false }
+            return scopes.contains { regex.firstMatch(in: ns as String, range: $0) != nil }
         }
     }
 
@@ -773,114 +843,6 @@ enum MetricsVerifier {
             "\(d.metric)=claimed:\(d.claimed) actual:\(d.actual) Δ\(String(format: "%.1f", d.absoluteDelta))"
         }
         return "[Hallucination guard] \(parts.joined(separator: " | "))"
-    }
-
-    // MARK: - Pending corrections (cross-turn feedback)
-    //
-    // The hallucination guard substitutes the correct number into the
-    // spoken output, but nothing in that tells the MODEL it fabricated, so
-    // it repeats the fabrication on the next turn. This buffer carries
-    // corrections forward so the next turn's system prompt can
-    // include "you fabricated HR=72 last turn — actual was 91; call
-    // get_workout_live for HR, don't guess."
-    //
-    // A correction is retired only once a reply to a prompt that carried
-    // it has come back, not when the prompt is composed: a send that
-    // fails and is re-composed for a fallback provider must carry the
-    // reminder again. `pendingCorrectionsBlock` moves pending entries to
-    // `delivered` without dropping them; `verifyAppStateClaims`, which
-    // every caller runs on each reply the model produces, retires the
-    // delivered ones. A single fabrication still produces one reminder
-    // per reply, not a perpetual one.
-    //
-    // Process-local; cleared on app launch and when the conversation is
-    // cleared (`clearCorrections`). Lock-guarded since
-    // both the speaker thread (writes) and the AssistantViewModel
-    // dispatch path (reads) hit it.
-
-    private struct CorrectionBuffer {
-        /// Recorded, not yet put in a prompt.
-        var pending: [Discrepancy] = []
-        /// Put in a prompt whose reply has not come back yet.
-        var delivered: [Discrepancy] = []
-    }
-
-    private static let corrections = OSAllocatedUnfairLock<CorrectionBuffer>(initialState: CorrectionBuffer())
-
-    /// Record discrepancies caught by the hallucination guard so the
-    /// next AI turn's system prompt can warn the model. Caps at 4
-    /// entries to keep the reminder short — a model fabricating > 4
-    /// numbers in one turn has bigger problems than this hint can
-    /// fix. In voice mode the same claim is caught twice — in the spoken
-    /// chunk and in the saved chat turn — so a correction already pending
-    /// for the same metric, claim and value is not added again.
-    static func recordCorrections(_ discrepancies: [Discrepancy]) {
-        guard !discrepancies.isEmpty else { return }
-        corrections.withLock { buffer in
-            for d in discrepancies where !buffer.pending.contains(where: {
-                $0.metric == d.metric && $0.claimed == d.claimed && $0.actual == d.actual
-            }) {
-                buffer.pending.append(d)
-            }
-            if buffer.pending.count > 4 { buffer.pending = Array(buffer.pending.suffix(4)) }
-        }
-    }
-
-    /// The reminder for the prompt being composed: every correction not yet
-    /// answered by a reply, or nil when there is none. Called by
-    /// `AssistantSystemPrompt.compose` for every send. Does not retire
-    /// anything, so a re-composed prompt (fallback provider, a test
-    /// composing a prompt) carries the same reminder.
-    static func pendingCorrectionsBlock() -> String? {
-        let shown = corrections.withLock { buffer in
-            buffer.delivered = Array((buffer.delivered + buffer.pending).suffix(4))
-            buffer.pending = []
-            return buffer.delivered
-        }
-        return correctionsBlock(shown)
-    }
-
-    /// Render every correction and empty the buffer, delivered or not.
-    /// Returns nil when there's nothing to surface. The one-shot form,
-    /// for a caller that owns the whole cycle (tests resetting state).
-    static func consumePendingCorrectionsBlock() -> String? {
-        let drained = corrections.withLock { buffer in
-            defer { buffer = CorrectionBuffer() }
-            return Array((buffer.delivered + buffer.pending).suffix(4))
-        }
-        return correctionsBlock(drained)
-    }
-
-    /// Drop every correction, delivered or not. Called when the conversation
-    /// is cleared: the replies they correct are gone, and the first prompt of
-    /// the next conversation must not tell the model it said something it
-    /// never said there.
-    static func clearCorrections() {
-        corrections.withLock { $0 = CorrectionBuffer() }
-    }
-
-    /// A reply has come back, so the model has seen every delivered
-    /// reminder: retire them. Pending ones (recorded after the prompt was
-    /// composed) wait for the next prompt.
-    private static func acknowledgeDeliveredCorrections() {
-        corrections.withLock { $0.delivered = [] }
-    }
-
-    /// One short system-prompt section: the rule, then one line per
-    /// correction. Nil for none.
-    private static func correctionsBlock(_ list: [Discrepancy]) -> String? {
-        guard !list.isEmpty else { return nil }
-        var lines: [String] = [
-            "# Last turn correction — DO NOT FABRICATE",
-            """
-                Your previous response contained numbers that contradicted live data. The saved reply was corrected, but the user may already have read or heard the wrong number — if it matters, correct it briefly. For any of these metrics next \
-                turn, CALL the appropriate tool (get_workout_live for HR / pace / location, get_training_load for TSB / ATL / CTL / ACWR, get_sleep for sleep duration / efficiency, lookup_fact for resting HR / HRV) and quote what comes back — never estimate or interpolate.
-                """
-        ]
-        for d in list {
-            lines.append("• You said \(d.metric)=\(d.claimed) — actual was \(d.actual).")
-        }
-        return lines.joined(separator: "\n")
     }
 
     // MARK: - Spelled-number normalisation (voice-mode discrepancy capture)

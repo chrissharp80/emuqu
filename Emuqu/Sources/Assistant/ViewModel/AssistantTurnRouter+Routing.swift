@@ -565,7 +565,7 @@ extension AssistantTurnRouter {
         turnID: UUID
     ) async -> AssembledContext {
         let supportsToolUse = provider.id != .apple
-        let rendered = supportsToolUse ? "" : await owner.contextSource.currentContext().compactRender()
+        let rendered = supportsToolUse ? "" : await onDeviceRender(markingTurn: turnID)
         let history = owner.liveTurnIndex(for: turnID).map { Array(owner.turns[..<$0]) } ?? Array(owner.turns.dropLast())
         let (outbound, dropped) = AssistantViewModel.truncateForSend(history, provider: provider.id)
         let newlyDropped = owner.unsummarizedTurns(in: dropped)
@@ -584,6 +584,16 @@ extension AssistantTurnRouter {
         publishAppleDispatcher(provider: provider, factRegistry: factRegistry)
         await owner.checkCatalogHashStability(newHash: factRegistry.catalogHash())
         return AssembledContext(rendered: rendered, outbound: outbound, tools: tools, factRegistry: factRegistry)
+    }
+
+    /// Apple's compact render, with the ambient location it always carries
+    /// on the device. The reply it produces is marked with what in it a cloud
+    /// provider may not see (`AssistantContext.sensitivity`), so that reply
+    /// never reaches one in later history, a summary or a memory fact.
+    private func onDeviceRender(markingTurn turnID: UUID) async -> String {
+        let context = await owner.contextSource.currentContext()
+        owner.mark(context.sensitivity(ofRenderIncludingAmbientLocation: true), onTurn: turnID)
+        return context.compactRender(includeAmbientLocation: true)
     }
 
     /// Starts the turn's per-turn tool state: the registry's rate limiter and
@@ -673,7 +683,7 @@ extension AssistantTurnRouter {
         toolMode: Bool
     ) async -> String {
         AssistantSystemPrompt.pendingRecentUserMessages = owner.turns.suffix(6)
-            .filter { $0.role == .user && !$0.localOnly }
+            .filter { $0.role == .user && $0.maySendToEveryProvider }
             .map(\.text)
         let systemPrompt = await AssistantSystemPrompt.compose(
             services: owner.services.prompt,
@@ -906,7 +916,10 @@ extension AssistantTurnRouter {
     /// The exchange fact extraction reads: the user message and the reply at
     /// `assistantIndex`. Nil unless the reply completed normally and is not
     /// marked incomplete, and the turn before it is the user's message, so a
-    /// failed or partial reply is never mined for facts.
+    /// failed or partial reply is never mined for facts. Nil too when either
+    /// turn is one not every provider may see (`ChatTurn.maySendToEveryProvider`):
+    /// a fact taken from it rides in every later system prompt, to whichever
+    /// provider answers.
     static func factExtractionExchange(
         in turns: [ChatTurn],
         at assistantIndex: Int,
@@ -915,7 +928,7 @@ extension AssistantTurnRouter {
         guard completed, assistantIndex >= 1, assistantIndex < turns.count,
               !turns[assistantIndex].incomplete else { return nil }
         let userTurn = turns[assistantIndex - 1]
-        guard userTurn.role == .user else { return nil }
+        guard userTurn.role == .user, userTurn.maySendToEveryProvider, turns[assistantIndex].maySendToEveryProvider else { return nil }
         return (userTurn.text, turns[assistantIndex].text)
     }
 

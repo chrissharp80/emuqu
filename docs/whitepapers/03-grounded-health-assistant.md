@@ -64,7 +64,7 @@ Table 2.1 shows one user turn on the text path. The voice path is the same up to
 | 1 | Trim input; reject empty, or reject while Flo is switched off or its notice is unaccepted | — |
 | 2 | **Input guard**: classify the current message against the lexicon's refusal group in safety order | Answer emergencies, injuries, self-harm and rhythm questions locally; nothing is sent |
 | 3 | Provider check: the selected provider can answer and is switched on in Settings; then consent for the active hosted provider (Appendix A) | No turn goes to a switched-off provider; no health data goes to an unconsented one |
-| 4 | History assembly: drop `localOnly`, empty and incomplete assistant turns, truncate to the provider budget, summarize dropped turns (the summary is sealed on disk beside the history) | Guarded turns never leave the device later |
+| 4 | History assembly: drop `localOnly`, empty and incomplete assistant turns and turns whose `sensitivity` the provider may not see, truncate to the provider budget, summarize the dropped turns every provider may see (the summary is sealed on disk beside the history) | Guarded turns never leave the device later; an Apple reply quoting the street outside a workout never reaches a cloud provider |
 | 5 | Build or reuse the fact registry (the runtime form of the catalog); reset per-turn rate-limit counters | One address space for all facts |
 | 6 | Compose tool list: 22 read tools + allow-listed actions, deduplicated and sorted | Byte-stable schema |
 | 7 | Compose system prompt: stable prefix (rules, tool overlay, capability index) + variable sections (time, user-stated values, dashboard cache unless suppressed, live-workout marker, pending corrections, summary) | Grounding, conflict resolution, correction loop |
