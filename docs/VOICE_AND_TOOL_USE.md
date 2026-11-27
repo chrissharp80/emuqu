@@ -618,15 +618,22 @@ but the contract is stricter:
    check alone is not authorization: an instruction in a web result or a
    pasted email can make the model quote any span of the user's message.
    `assistant.memory.restore` undoes the last confirmed wipe until the app
-   quits.
+   quits, and asks the same way first: a restore the model was steered into
+   would put the facts the user wiped back into every later prompt.
 7. **What the model would save is confirmed first.** `assistant.memory.add`,
    `assistant.contacts.add`, `assistant.artifacts.add`,
    `assistant.artifacts.update_status`, `location.set_address`,
-   `routes.library.rename` and `routes.library.save_workout` change nothing
-   on the first call, and answer `confirmation_required` the same way, every
-   time (`DestructiveActionContext.gate`). The question names every field
-   that will be stored (a contact's notes included), and the request is
-   bound to all of them, so a call with other content needs a new yes. Finding the value in the user's
+   `routes.library.rename`, `routes.library.save_workout` and
+   `directions.routeTo` to a typed address change nothing on the first
+   call, and answer `confirmation_required` the same way, every time
+   (`DestructiveActionContext.gate`). The question names every field that
+   will be stored (a contact's notes, an artifact's kind, the text a replace
+   overwrites), and the request is bound to all of them and to the question
+   itself, so a call with other content, or one whose question would read
+   differently (a memory wipe whose count changed), needs a new yes.
+   Free text the model fills in is bounded: memory facts 160 characters,
+   contact fields 80, 254 and 120, route names 80, artifacts 2000 and
+   addresses 200. Finding the value in the user's
    message is not consent: "don't remember that I had knee surgery"
    contains the fact it refuses. A value the model took from a web page,
    an email or a tool result is shown to the user before it is saved. `assistant.email.compose` stages a draft only when

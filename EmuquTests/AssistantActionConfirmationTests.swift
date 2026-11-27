@@ -271,8 +271,11 @@ final class AssistantActionConfirmationTests: XCTestCase {
         userSays("yes")
         _ = clear(store)
         store.add("New fact after the wipe", origin: .user)
+        userSays("Undo that")
+        asksForConfirmation(AssistantMemoryNamespace.restoreClearedMemory(store: store, context: context()))
+        userSays("yes")
 
-        let result = AssistantMemoryNamespace.restoreClearedMemory(store: store)
+        let result = AssistantMemoryNamespace.restoreClearedMemory(store: store, context: context())
 
         guard case .integer(3)? = field(result, "restored") else { return XCTFail("all three facts must come back") }
         XCTAssertEqual(Set(store.facts.map(\.text)), Set(threeFacts + ["New fact after the wipe"]))
@@ -281,7 +284,7 @@ final class AssistantActionConfirmationTests: XCTestCase {
 
     func testNothingToRestoreWithoutAWipe() {
         let store = factsStore(threeFacts)
-        guard case .missing(reason: .notRecorded, detail: _) = AssistantMemoryNamespace.restoreClearedMemory(store: store) else {
+        guard case .missing(reason: .notRecorded, detail: _) = AssistantMemoryNamespace.restoreClearedMemory(store: store, context: context()) else {
             return XCTFail("restore with no wipe must say there is nothing to restore")
         }
         XCTAssertEqual(store.facts.count, 3)
