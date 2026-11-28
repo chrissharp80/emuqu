@@ -6,7 +6,7 @@ Technical White Paper • v1.6 • 27 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) as of 2026-11-27, scoring version v3.6.nov2026. The counts in Section 6 and Appendix A, and the observed history in Section 3.6.4, were measured at source revision 44a11ce (2026-11-21) and are labelled with it. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) as of 2026-11-27, scoring version v3.7.nov2026. The counts in Section 6 and Appendix A, and the observed history in Section 3.6.4, were measured at source revision 44a11ce (2026-11-21) and are labelled with it. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.6, 27 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
 
@@ -154,7 +154,7 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | Construction | A new `ScoreBreakdown` defaults its `scoringVersion` field to the current version |
 | Decoding | A stored breakdown with no `scoringVersion` key decodes to the literal string `unversioned`, never to the current version. Scores from before the stamp may come from the v1 algorithm (which preceded v2.may2026) or from v2.may2026, because the app offered a v1-to-v2 history recompute the user may or may not have run. |
 | Derived copies | Code that rebuilds a breakdown copies the version field forward. This covers the vitals refresh after scoring and the stripped copy prepared for iCloud sync. |
-| Display | The recovery-score detail screen shows "Scored by v3.6.nov2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. A legacy session with a stored score but no stored breakdown also shows "Scored before score versions were recorded": the breakdown on screen is recomputed on display, and its version is not the one that produced the score. When that recompute differs from the stored score, the breakdown is pinned to the stored score and marked `unversioned`. Beneath the version line is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
+| Display | The recovery-score detail screen shows "Scored by v3.7.nov2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. A legacy session with a stored score but no stored breakdown also shows "Scored before score versions were recorded": the breakdown on screen is recomputed on display, and its version is not the one that produced the score. When that recompute differs from the stored score, the breakdown is pinned to the stored score and marked `unversioned`. Beneath the version line is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
 | Assistant | The in-app assistant's fact catalog (key `score.algorithm.version`) and its context block report the current version string and describe the v1 weighting older history may carry. |
 
 **Why it works.** Freezing and versioning each stored score keeps history attributable: a user comparing this month with last month can see whether the same algorithm produced both. The `unversioned` sentinel is the honest default for old records. Their true version is unknowable, because a recompute may or may not have run, and labeling them with the current version would assert something false. Carrying the stamp through every derived copy matters because a stamp dropped on sync or refresh would quietly relabel old scores as new. Placing the stamp next to the fixed "calibrated, not outcome-validated" line puts the version and the evidence status in front of the user together.
@@ -171,6 +171,7 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | v3.4.nov2026 | 2026-11-23 |
 | v3.5.nov2026 | 2026-11-27 |
 | v3.6.nov2026 | 2026-11-27 |
+| v3.7.nov2026 | 2026-11-28 |
 
 ### 3.2 The science register
 
