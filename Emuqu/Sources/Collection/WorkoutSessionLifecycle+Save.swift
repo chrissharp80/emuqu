@@ -77,7 +77,7 @@ extension WorkoutSessionLifecycle {
     /// them.
     func discardNotArchived() {
         guard lifecycle.saveOutcome == .notArchived, let session = lifecycle.finishedSession else { return }
-        retireRedundantBackups(for: session)
+        retireRedundantBackups(for: session, archived: false)
         debugLog("[WorkoutRecorder] accidental start id=\(session.id.uuidString.prefix(8)) left unsaved by the user: backups retired")
     }
 
@@ -149,7 +149,7 @@ extension WorkoutSessionLifecycle {
     /// The steps a saved workout runs, once, and never before its write.
     private func runPostSaveSteps(for session: HRVSession) {
         core.notifyArchiveChanged()
-        retireRedundantBackups(for: session)
+        retireRedundantBackups(for: session, archived: true)
         let cloudSync = core.cloudSyncManager
         Task(priority: .utility) {
             await cloudSync.uploadSession(session)
@@ -208,17 +208,25 @@ extension WorkoutSessionLifecycle {
     /// lives in history, and clearing persisted state stops the next app
     /// launch prompting the user to recover.
     ///
-    /// The workout-side track + samples + baro backups are redundant too (the
-    /// same data lives inside the session's `WorkoutMetadata`), so they're
+    /// The workout-side track + samples + baro backups are redundant too once
+    /// the session's `WorkoutMetadata` holds what they hold, so they're
     /// dropped rather than left to accumulate as stale per-session files in
-    /// the App Group.
+    /// the App Group. For a saved workout that is checked first, off the main
+    /// actor (`WorkoutTrackBackup.discard(_:ifCoveredBy:trackReplaced:)`): a
+    /// backup with a row the archive lacks is the only copy of that row and
+    /// stays. One the user left unsaved goes as it is.
     ///
     /// The persisted state is one key shared with RRCollector's overnight and
     /// quick recordings, so it is cleared only when it is this workout's; the
     /// check and clear run on `recordingStateQueue` after the start's save.
-    private func retireRedundantBackups(for session: HRVSession) {
+    private func retireRedundantBackups(for session: HRVSession, archived: Bool) {
         core.rawBackup.markAsArchived(session.id)
-        services.workoutTrackBackup.discard(session.id)
+        let trackBackup = services.workoutTrackBackup
+        if archived {
+            Task.detached(priority: .utility) { trackBackup.discard(session.id, ifCoveredBy: session) }
+        } else {
+            trackBackup.discard(session.id)
+        }
         let sessionId = session.id
         Self.recordingStateQueue.async {
             guard PersistedRecordingState.load()?.sessionId == sessionId else { return }

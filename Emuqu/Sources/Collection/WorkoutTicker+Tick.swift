@@ -711,11 +711,14 @@ extension WorkoutTicker {
     /// oldest so memory stays bounded. Each sample carries an absolute
     /// `offsetSec`, so dropping the head doesn't corrupt the rest, and the
     /// crash-recovery backup finds the rows it has not written by that key,
-    /// so it keeps every row, the dropped ones included.
+    /// so it keeps every row, the dropped ones included. The drop is marked
+    /// (`WorkoutCapture.sampleHeadTrimmed`), so finalize reads the dropped
+    /// rows back from that backup before the archive write.
     private func capWorkoutSampleMemory() {
         let maxWorkoutSamples = 60 * 60 * 12 // 12h at 1 sample/sec
         guard capture.workoutSamples.count > maxWorkoutSamples else { return }
         capture.workoutSamples.removeFirst(capture.workoutSamples.count - maxWorkoutSamples)
+        capture.sampleHeadTrimmed = true
         capture.wristHROffsets = Self.offsets(capture.wristHROffsets, keptFrom: capture.workoutSamples.first?.offsetSec)
     }
 

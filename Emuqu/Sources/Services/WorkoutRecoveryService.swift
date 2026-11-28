@@ -496,6 +496,12 @@ enum WorkoutRecoveryService {
     /// session (review Save). Discarding it here on an unreviewed recovery
     /// leaves a wrong/over-long recovery with nothing to re-recover from.
     ///
+    /// Even on an accepted recovery the track backup goes only once the
+    /// archived copy holds its rows up to the chosen end
+    /// (`WorkoutTrackBackup.discard(_:ifCoveredBy:trackReplaced:)`); an Apple
+    /// Watch route put in place of the recorded track is not counted against
+    /// it.
+    ///
     /// On archive failure the backups are NOT cleared — the data is the last
     /// thing we have — and the half-built session is surfaced so the user at
     /// least sees what was captured.
@@ -510,7 +516,7 @@ enum WorkoutRecoveryService {
             try deps.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             deps.rawBackup.markAsArchived(session.id)
             if overrides.discardBackupsOnAccept {
-                deps.workoutTrackBackup.discard(session.id)
+                deps.workoutTrackBackup.discard(session.id, ifCoveredBy: session, trackReplaced: overrides.track != nil)
             }
             debugLog("[WorkoutRecovery] archived session \(session.id.uuidString.prefix(8)) sport=\(recovered.sport.rawValue) duration=\(Int(recovered.durationSec))s distance=\(Int(metadata.distanceMeters ?? 0))m TRIMP=\(Int(metadata.luciaTRIMP ?? 0))" + (metadata.extrapolatedTRIMP.map { " extrap=\(Int($0))" } ?? ""))
             let cloudSyncManager = deps.cloudSyncManager

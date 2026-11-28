@@ -28,6 +28,11 @@ final class WorkoutCapture {
     /// crash backup with the samples, so the iCloud upload leaves those rows'
     /// heart rate out. Cleared when the ticker starts and once finalize reads it.
     @ObservationIgnored var wristHROffsets: [Int] = []
+    /// The oldest rows of `workoutSamples` and `wristHROffsets` were dropped
+    /// from memory (`WorkoutTicker.capWorkoutSampleMemory`). The crash backup
+    /// still holds them, and finalize reads them back from it
+    /// (`WorkoutRecorder.fullSampleHistory`). Cleared at each start.
+    @ObservationIgnored var sampleHeadTrimmed = false
     /// Cursors for the per-tick track-backup snapshot. Compared each tick
     /// to skip the snapshot entirely when nothing new has arrived; while
     /// recording a sample row lands every unpaused second, so that skip

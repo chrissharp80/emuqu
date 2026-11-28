@@ -332,6 +332,7 @@ extension WorkoutSessionLifecycle {
         workoutHR.reset()
         capture.lastIngestedPointCount = 0
         capture.workoutSamples = []
+        capture.sampleHeadTrimmed = false
         signals.livePace.reset()
         sensors.footPodOdometer = FootPodOdometer()
         capture.power = WorkoutPowerTally()
