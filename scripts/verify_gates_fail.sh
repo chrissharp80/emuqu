@@ -387,8 +387,8 @@ check "snapshot_refs/identical_references" \
 # ships as a latent crash.
 check "empty_range/unguarded_loop" \
     "./scripts/check_empty_range_loops.sh" \
-    "Emuqu/Sources/Analysis/Verification.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/Verification.swift');s=p.read_text();o='        guard points.count > 1 else { return 0 }\n\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Services/TopoElevationService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/TopoElevationService.swift');s=p.read_text();o='        guard elevations.count > 1 else { return (0, 0) }\n\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # The second shape of the same trap: `0 ..< (count - N)` is invalid, not empty,
 # on a collection shorter than N.
