@@ -26,7 +26,7 @@ struct SessionNamespace: FactNamespaceResolver {
     /// start dates. Reads the in-memory archive index — no disk I/O, no
     /// HealthKit call — which satisfies the synchronous, metadata-only
     /// `availability` contract.
-    private func overnightAvailability() -> Availability {
+    func overnightAvailability() -> Availability {
         let dates = archive.store.entries.filter { $0.sessionType == .overnight }.map(\.date)
         guard let earliest = dates.min(), let latest = dates.max() else { return .unavailable }
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
@@ -34,7 +34,7 @@ struct SessionNamespace: FactNamespaceResolver {
 
     /// Every overnight: newest local day first, and within a day reliable
     /// before partial, then longest first.
-    private func overnightEntries() -> [SessionArchiveEntry] {
+    func overnightEntries() -> [SessionArchiveEntry] {
         let calendar = Calendar.current
         return archive.store.entries
             .filter { $0.sessionType == .overnight }
@@ -49,7 +49,7 @@ struct SessionNamespace: FactNamespaceResolver {
         return OvernightArchive.duration(of: lhs) > OvernightArchive.duration(of: rhs)
     }
 
-    private static func day(of entry: SessionArchiveEntry, calendar: Calendar) -> Date {
+    static func day(of entry: SessionArchiveEntry, calendar: Calendar) -> Date {
         calendar.startOfDay(for: OvernightArchive.midpoint(of: entry))
     }
 
@@ -81,7 +81,8 @@ struct SessionNamespace: FactNamespaceResolver {
             sessionLatestDateEntry,
             sessionByOrdinalNEntry,
             sessionByIdIdEntry,
-            sessionByDateDateEntry
+            sessionByDateDateEntry,
+            sessionRecentPeriodEntry
         ]
     }
 
@@ -91,9 +92,8 @@ struct SessionNamespace: FactNamespaceResolver {
             key: "session.latest",
             description: """
             The latest overnight session as one record — the newest reliable night (a partial recording only when no night is reliable; check reliable_for_trends). Overnights only: when a nap or quick reading is newer, hrv.latest and \
-            sleep.latest report that reading instead. Fields: id, date, end_date, duration_sec, mean_hr_bpm, data_quality, reliable_for_trends, overnights_that_day, plus nested hrv (rmssd_ms, sdnn_ms, …), recovery (score 0–100, \
-            training_readiness, morning_feeling), sleep and vitals records. The nested sleep and vitals are the snapshots saved when the night was accepted; when they say there is no snapshot (night not yet accepted, or synced late), \
-            sleep.latest / vitals.latest read HealthKit live for the latest night.
+            sleep.latest report that reading instead. \(Self.overnightFieldsSentence) The nested sleep and vitals are the snapshots saved when the night was accepted; when they say there is no snapshot (night not yet \
+            accepted, or synced late), sleep.latest / vitals.latest read HealthKit live for the latest night.
             """,
             valueType: "Record",
             availability: { self.overnightAvailability() },
@@ -128,7 +128,7 @@ struct SessionNamespace: FactNamespaceResolver {
             paramExample: "0",
             description: """
             An overnight session by recency (0 = newest night, 1 = the one before, …), including partial recordings, which come after the night's main recording. Same record as session.latest; tail tokens reach any field, e.g. \
-            session.by_ordinal(2).hrv.rmssd_ms.
+            session.by_ordinal(2).hrv.rmssd_ms. session.recent lists each night's ordinal. \(Self.overnightFieldsSentence)
             """,
             availability: { self.overnightAvailability() },
             resolve: { param, tail in
@@ -146,7 +146,10 @@ struct SessionNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "session.by_id($id)",
             paramExample: "A43B2C4F-0000-4000-8000-000000000000",
-            description: "An overnight session by UUID. A workout, nap or quick-reading UUID is rejected with the tool to use instead. Tail tokens reach any field.",
+            description: """
+            An overnight session by UUID (the id session.recent and session.latest give). A workout UUID is answered with the workout.by_id key that reads it; a nap or quick-reading UUID with the tool to use instead. \
+            Tail tokens reach any field. \(Self.overnightFieldsSentence)
+            """,
             availability: { self.overnightAvailability() },
             resolve: { param, tail in self.resolveByID(param, tail: tail) }
         )
@@ -159,7 +162,7 @@ struct SessionNamespace: FactNamespaceResolver {
             description: """
             The overnight session filed under a local date (yyyy-MM-dd): the night whose midpoint falls on that day, so '2026-04-21' is the night ending that morning. When that day has a reliable overnight it is the night hrv.by_date \
             and sleep.by_date return; when it has only a partial recording this returns the partial (reliable_for_trends false) while those return a nap, a quick reading or nothing. When overnights_that_day is above 1, the others are \
-            reachable through session.by_ordinal.
+            reachable through session.by_ordinal. Any date back to the first recording; to compare two nights ('how does tonight compare with February 20'), call it once per date. \(Self.overnightFieldsSentence)
             """,
             availability: { self.overnightAvailability() },
             resolve: { param, tail in self.resolveByDate(param, tail: tail) }
@@ -193,9 +196,9 @@ struct SessionNamespace: FactNamespaceResolver {
     private static func wrongTypeDetail(_ idString: String, entry: SessionArchiveEntry) -> String {
         let day = FactLocalDay.formatter().string(from: entry.date)
         let instead = entry.sessionType == .workout
-            ? "get_workout with which='by_date', date='\(day)' (workout.by_date(\(day)))"
+            ? "lookup_fact with key 'workout.by_id(\(idString))', the get_workout record of exactly this workout (workout.by_date(\(day)) can return another workout that day)"
             : "get_hrv with which='recent' (hrv.recent), whose items carry session_type"
-        return "\(idString) is a \(entry.sessionType.rawValue) session; get_session (session.*) reads overnights only — use \(instead)"
+        return "\(idString) is a \(entry.sessionType.rawValue) session; get_session (session.*) reads overnights only. Use \(instead)"
     }
 
     // MARK: Overnight record
@@ -220,7 +223,7 @@ struct SessionNamespace: FactNamespaceResolver {
     }
 
     private static func overnightIdentityFields(_ session: HRVSession) -> [String: FactValue] {
-        [
+        let identity: [String: FactValue] = [
             "id": .string(session.id.uuidString),
             "session_type": .string(session.sessionType.rawValue),
             "date": .date(session.startDate),
@@ -230,6 +233,7 @@ struct SessionNamespace: FactNamespaceResolver {
             "data_quality": .from(session.hrvDataQuality?.rawValue),
             "reliable_for_trends": .boolean(session.isReliableForHRVAggregates)
         ]
+        return identity.merging(overnightProvenanceFields(session)) { current, _ in current }
     }
 
     private func overnightsSharingDay(with entry: SessionArchiveEntry) -> Int {
@@ -277,6 +281,7 @@ extension SessionNamespace {
         record.merge(loadFields(meta, ftp: ftp)) { current, _ in current }
         record.merge(analysisSnapshotFields(meta?.analysisSnapshot)) { current, _ in current }
         record.merge(hrrFields(meta?.hrrSamples)) { current, _ in current }
+        record.merge(workoutDetailFields(s, meta: meta)) { current, _ in current }
         return .record(record)
     }
 
@@ -479,7 +484,7 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.hardest($period)",
             paramExample: "last_30d",
-            description: "Walk or hike with the highest heart-rate TRIMP in the period, as a full session record.",
+            description: "Walk or hike with the highest heart-rate TRIMP in the period, as the full workout record (splits, pace, weather and the rest). \(SessionNamespace.workoutRecordFieldsSentence)",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
                 self.withWalks(in: param) { Self.hardest(of: $0, ftp: self.loadAnchors) }
@@ -498,7 +503,7 @@ struct WalksNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "walks.list($period)",
             paramExample: "last_7d",
-            description: "List of walks and hikes in the period (every sport: workout.list). Each item is a session summary record.",
+            description: "List of walks and hikes in the period (every sport: workout.list). Each item is the full workout record. \(SessionNamespace.workoutRecordFieldsSentence)",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
                 self.withWalks(in: param) { Self.walkList(of: $0, ftp: self.loadAnchors) }
@@ -612,7 +617,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: """
             Where the user's fitness is HEADED — the Load & Trajectory verdict the app's dedicated screen shows. trajectory: building / maintaining / detraining / highStrain / rapidIncrease / peaking / comeback / overreach / buildingBaseline \
             (trajectory_label is the human phrasing). Plus ramp_band + ramp_rate_ctl_per_week (weekly CTL slope), form_descriptor / form_word (Fresh / Held / Working / Tired / VeryTired, from TSB), monotony + strain (Foster — high monotony \
-            = little day-to-day variation in load; describe it as that, not as a risk), current ctl/atl/tsb (live), and verdict_as_of — the day the verdict is anchored on, which is the last stored day (not today) until the \
+            = little day-to-day variation in load; describe it as that, not as a risk), current_ctl / current_atl / current_tsb (live), and verdict_as_of — the day the verdict is anchored on, which is the last stored day (not today) until the \
             daily series refreshes. Use for 'am I building or detraining?', 'what's my form?', 'is my training too monotonous?'.
             """,
             valueType: "Record",

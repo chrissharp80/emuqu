@@ -446,7 +446,7 @@ struct AppNowNamespace: FactNamespaceResolver {
         ) {
             let f = ISO8601DateFormatter()
             f.formatOptions = [.withInternetDateTime]
-            return .string(f.string(from: Date()))
+            return .string(f.string(from: AppClock.now))
         }
     }
 
@@ -456,7 +456,7 @@ struct AppNowNamespace: FactNamespaceResolver {
             description: "Today's date in the user's local timezone, yyyy-MM-dd. Use this when the user asks about 'today' / 'yesterday' / a relative day so date math respects their TZ.",
             valueType: "String"
         ) {
-            .string(FactLocalDay.formatter().string(from: Date()))
+            .string(FactLocalDay.formatter().string(from: AppClock.now))
         }
     }
 
@@ -479,7 +479,7 @@ struct AppNowNamespace: FactNamespaceResolver {
             let f = DateFormatter()
             f.dateFormat = "EEEE"
             f.locale = Locale.current
-            return .string(f.string(from: Date()))
+            return .string(f.string(from: AppClock.now))
         }
     }
 }

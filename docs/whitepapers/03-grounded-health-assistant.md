@@ -66,7 +66,7 @@ Table 2.1 shows one user turn on the text path. The voice path is the same up to
 | 3 | Provider check: the selected provider can answer and is switched on in Settings; then consent for the active hosted provider (Appendix A) | No turn goes to a switched-off provider; no health data goes to an unconsented one |
 | 4 | History assembly: drop `localOnly`, empty and incomplete assistant turns and turns whose `sensitivity` the provider may not see, truncate to the provider budget, summarize the dropped turns every provider may see (the summary is sealed on disk beside the history) | Guarded turns never leave the device later; an Apple reply quoting the street outside a workout never reaches a cloud provider |
 | 5 | Build or reuse the fact registry (the runtime form of the catalog); reset per-turn rate-limit counters | One address space for all facts |
-| 6 | Compose tool list: 22 read tools + allow-listed actions, deduplicated and sorted | Byte-stable schema |
+| 6 | Compose tool list: 24 read tools + allow-listed actions, deduplicated and sorted | Byte-stable schema |
 | 7 | Compose system prompt: stable prefix (rules, tool overlay, capability index) + variable sections (time, user-stated values, dashboard cache unless suppressed, live-workout marker, pending corrections, summary) | Grounding, conflict resolution, correction loop |
 | 8 | Stream the provider round; tool calls go router → registry → envelope, at most 8 per turn; only advertised tools run | Retrieval with uniform absence semantics |
 | 9 | **Output guard, streaming**: publish only complete sentences, each scrubbed; the app's canned safety reply passes unchanged when it is given as the reply | Sentences matching the lexicon are not displayed |
@@ -213,9 +213,9 @@ Five rails apply to every call. Each answers in the same envelope.
 
 ### 3.2 Compact tool layer
 
-The model sees 42 tools, not 239:
+The model sees 44 tools, not 239:
 
-- **22 read tools** with fixed names and string parameters, most taking a selector (`which`, `field`, `metric` or `aspect`) that routes to catalog keys: `get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_vitals`, `get_workout`, `list_workouts`, `get_walks`, `get_baseline`, `get_user`, `get_app_state`, `get_training_load`, `get_score_meta`, `get_breadcrumbs`, `get_routes`, `get_tags`, `get_workout_live`, `get_assistant_state`, `get_healthkit`, `find_data` (a plain-words search of the whole catalog that returns the key or action that answers) and `lookup_fact` for any raw catalog key.
+- **24 read tools** with fixed names and string parameters, most taking a selector (`which`, `field`, `metric` or `aspect`) that routes to catalog keys: `get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_vitals`, `get_workout`, `list_workouts`, `get_walks`, `get_baseline`, `get_user`, `get_app_state`, `get_training_load`, `get_score_meta`, `get_breadcrumbs`, `get_routes`, `get_tags`, `get_workout_live`, `get_assistant_state`, `get_healthkit`, `find_data` (a plain-words search of the whole catalog that returns the key or action that answers), `lookup_fact` for any raw catalog key, `get_stored_record` (any session as the app stored it) and `analyze_data` (averages, lowest and highest with their dates, trends and comparisons of two days or two periods, computed by the app rather than by the model).
 - **20 action tools** under their catalog names (e.g. `assistant_email_compose`, `routes_library_rename`, `web_search`, `directions_routeTo`), taken from the availability-filtered per-entry schema through an explicit allow-list. Every declared action is allow-listed; `FloDiscoverabilityTests` fails if one is not. The same list gates dispatch: a call to an action outside it, or to a per-entry tool name, is answered `missing(invalidParameter, "unknown tool …")` even if a provider emits it.
 
 Read tools are appended first, then actions. Duplicates by name are dropped (first wins, with a warning, because one provider rejects duplicates), and the list is sorted by name. Action schemas list `required` sorted; every property is a string and the resolver converts types.

@@ -51,7 +51,7 @@ extension TrainingLoadNamespace {
             availability: { self.historicalAvailability() },
             resolve: {
                 let cal = Calendar.current
-                guard let cutoff = cal.date(byAdding: .day, value: -7, to: Date()) else {
+                guard let cutoff = cal.date(byAdding: .day, value: -7, to: AppClock.now) else {
                     return .missing(reason: .internalError)
                 }
                 let samples = MainActor.assumeIsolated { services.trainingMetricsCache.samplesSince(cutoff) }
@@ -77,7 +77,7 @@ extension TrainingLoadNamespace {
     /// A cold cache (no daily samples in the 28 days) is no data, not four
     /// weeks of zero load.
     private func resolveTrainingLoadWeeklyLast4Weeks() -> FactValue {
-        let now = Date()
+        let now = AppClock.now
         guard let start = Calendar.current.date(byAdding: .day, value: -28, to: now) else {
             return .missing(reason: .internalError)
         }
@@ -181,7 +181,7 @@ extension TrainingLoadNamespace {
     /// too, and decoding a years-deep archive there stalls the recorder.
     private func racePredictions(for sport: Sport) -> [Double: RaceTimePrediction.Prediction] {
         let workouts = archive.store.entries.filter { $0.sessionType == .workout }
-        let cutoff = Date().addingTimeInterval(-RaceTimePrediction.recentWindowDays * 86_400)
+        let cutoff = AppClock.now.addingTimeInterval(-RaceTimePrediction.recentWindowDays * 86_400)
         let recent = loadSessions(workouts.filter { $0.date >= cutoff })
         let fromRecent = RaceTimePrediction.predictWithBasis(from: recent, sport: sport)
         guard fromRecent.isEmpty else { return fromRecent }
@@ -284,7 +284,7 @@ extension TrainingLoadNamespace {
 
     private static let trainingSportBaselineSportDescription = """
     SPORT-WIDE cross-workout averages (NOT route-specific). Returns averages from the user's recent (≤30) workouts of the given sport. Returns a record { data_source: 'sport_wide', sport, sample_count, avg_pace_sec_per_km, avg_hr, \
-    avg_alpha1 }. These averages are sport-wide, so phrase a comparison from them as 'compared to your typical run'. Route and same-spot comparisons have their own tools: workout.live.route_history_baseline \
+    avg_alpha1, comparison_safe (true once at least two workouts back the averages) }. These averages are sport-wide, so phrase a comparison from them as 'compared to your typical run'. Route and same-spot comparisons have their own tools: workout.live.route_history_baseline \
     and workout.segment_compare. \
     Use for 'what's my typical run pace?' / 'is my usual heart rate high?'. Returns notRecorded when no matching workouts exist.
     """

@@ -357,7 +357,7 @@ enum MetricsVerifier {
     /// RMSSD.
     @MainActor
     private static func overnightDiscrepancies(in text: String, archive: SessionArchive) -> [Discrepancy] {
-        guard let entry = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive) else { return [] }
+        guard let entry = DeterministicIntent.todaysOvernightEntry(now: AppClock.now, archive: archive) else { return [] }
         var found: [Discrepancy] = []
         if text.range(of: "rmssd", options: .caseInsensitive) != nil,
            let rmssd = archive.retrieveLightweightOrLog(entry.sessionId)?.analysisResult?.timeDomain.rmssd {

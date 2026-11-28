@@ -301,7 +301,7 @@ enum FactValue: Sendable {
     /// Build the dictionary that `toolResultJSON` encodes.
     private func envelope() -> [String: Any] {
         var env: [String: Any] = [
-            "asOf": Self.localISO8601(Date()),
+            "asOf": Self.localISO8601(AppClock.now),
             "confidence": "high"
         ]
         switch self {

@@ -308,7 +308,7 @@ Apple's tool-use lives behind a thin adapter:
 - **[`AppleToolCatalog.wrap(_:handler:)`](../Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift)** —
   wraps each `ToolSpec` in a `Tool<Arguments, Output>` where
   `Arguments = AppleToolArgs(@Guide argumentsJSON: String)` and
-  `Output = String`. One adapter shape for the whole catalog (22 read tools plus up to 20 action tools);
+  `Output = String`. One adapter shape for the whole catalog (24 read tools plus up to 20 action tools);
   the adapter forwards `argumentsJSON` to the dispatcher.
 - **[`AppleToolDispatcher.shared`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)** —
   `@MainActor` singleton. Before each Apple-routed send,

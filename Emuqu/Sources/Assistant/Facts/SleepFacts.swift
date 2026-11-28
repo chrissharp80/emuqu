@@ -90,6 +90,27 @@ enum OvernightArchive {
         return representative(of: sameDay).flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
     }
 
+    /// Every HRV-bearing reading filed under that local day (midpoint rule),
+    /// in the order they were recorded: the overnight, naps and quick
+    /// readings, the unreliable ones (`.insufficient` / `.preSleep`)
+    /// included, so a reading the day's headline leaves out is still
+    /// reachable. [] for a date that does not parse.
+    static func readings(on iso: String, archive: SessionArchive) -> [SessionArchiveEntry] {
+        guard let target = FactLocalDay.formatter().date(from: iso) else { return [] }
+        let cal = Calendar.current
+        return archive.store.entries
+            .filter { hrvBearingTypes.contains($0.sessionType) && cal.isDate(midpoint(of: $0), inSameDayAs: target) }
+            .sorted { $0.date < $1.date }
+    }
+
+    /// The day's reading `byDate` would pick, else, on a day with no reliable
+    /// one, its representative unreliable reading: the user's morning
+    /// feeling and notes are kept on a partial night too.
+    static func anyByDate(_ iso: String, archive: SessionArchive, scoredOnly: Bool = false) -> HRVSession? {
+        byDate(iso, archive: archive, scoredOnly: scoredOnly)
+            ?? representative(of: readings(on: iso, archive: archive)).flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
+    }
+
     /// Every reliable reading in the period, newest first. Lists keep naps
     /// and quick readings; each record's `session_type` labels them. Same
     /// midpoint rule as `byDate`: on the start date, last night began
@@ -165,9 +186,9 @@ struct SleepNamespace: FactNamespaceResolver {
     /// the model when the numbers came from a LIVE read because the night
     /// hadn't been accepted (or synced late), so it can say "based on your
     /// synced sleep, not yet locked into today's score."
-    private static func sleepRecordFromData(_ sleep: SleepData, date: Date, userAge: Int?, typicalSleepHours: Double, live: Bool) -> FactValue {
+    private static func sleepRecordFromData(_ sleep: SleepData, session: HRVSession, userAge: Int?, typicalSleepHours: Double, live: Bool) -> FactValue {
         var record: [String: FactValue] = [
-            "date": .date(date),
+            "date": .date(session.startDate),
             "total_sleep_minutes": .integer(sleep.nightSleepMinutes),
             "in_bed_minutes": .integer(sleep.inBedMinutes),
             "awake_minutes": .integer(sleep.awakeMinutes)
@@ -179,6 +200,8 @@ struct SleepNamespace: FactNamespaceResolver {
         record.merge(
             sleepScienceFields(sleep, userAge: userAge, typicalSleepHours: typicalSleepHours)
         ) { current, _ in current }
+        record.merge(sleepTimingFields(sleep)) { current, _ in current }
+        record.merge(heartRateQualityFields(sleep)) { current, _ in current }
         if live { record["data_source"] = .string("live_healthkit_pending_acceptance") }
         return .record(record)
     }
@@ -216,7 +239,7 @@ struct SleepNamespace: FactNamespaceResolver {
     static func sleepRecord(for session: HRVSession?, userAge: Int?, typicalSleepHours: Double) -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "no overnight session matched") }
         guard let sleep = session.sleepSnapshot else { return .missing(reason: .notRecorded, detail: "session has no sleep snapshot") }
-        let record = sleepRecordFromData(sleep, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: false)
+        let record = sleepRecordFromData(sleep, session: session, userAge: userAge, typicalSleepHours: typicalSleepHours, live: false)
         return OvernightArchive.labeled(record, session)
     }
 
@@ -245,7 +268,7 @@ struct SleepNamespace: FactNamespaceResolver {
                 for: session.startDate, recordingEnd: session.endDate ?? Date()
             )
             guard data.nightSleepMinutes > 0 else { return nil }
-            return Self.sleepRecordFromData(data, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: true)
+            return Self.sleepRecordFromData(data, session: session, userAge: userAge, typicalSleepHours: typicalSleepHours, live: true)
         } catch {
             return nil
         }
@@ -263,7 +286,13 @@ struct SleepNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "sleep.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Sleep record for a specific local date (yyyy-MM-dd). Uses the midpoint-in-day rule — a session spanning midnight is assigned to the local day its midpoint falls in, so 'Tuesday's sleep' is the night that ends Tuesday morning, not the one that started Tuesday.",
+            description: """
+            Sleep record for a specific local date (yyyy-MM-dd). Uses the midpoint-in-day rule — a session spanning midnight is assigned to the local day its midpoint falls in, \
+            so 'Tuesday's sleep' is the night that ends Tuesday morning, not the one that started Tuesday. Answers 'what time did I go to bed on February 20', 'when did I fall asleep', 'what was my wake time', \
+            'how much core sleep', 'did I nap': sleep_start_iso is when the user fell asleep, sleep_end_iso the wake time, in_bed_start_iso the bedtime (got into bed), segment_count how many pieces the night split into, \
+            nap_minutes the daytime nap counted toward that day, and the heart-rate sleep read (avg_sleep_rmssd_ms, min_sleep_hr_bpm, avg_sleep_hr_bpm, restorative_minutes, restorative_ratio 0-1) where RR data was recorded. \
+            \(RecordFields.sentence(RecordFields.sleep, except: ["data_source"]))
+            """,
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
                 let cfg = self.settings()
@@ -276,7 +305,11 @@ struct SleepNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "sleep.recent($period)",
             paramExample: "last_7d",
-            description: "List of sleep records over a recent period (last_7d / last_14d / last_30d / last_90d / all_time), overnights and naps. Each item is the same record shape as sleep.latest; session_type says which. Most recent first.",
+            description: """
+            Night-by-night sleep over a period (last_7d / last_14d / last_30d / last_90d / all_time): one record per night or nap, most recent first; session_type says which. Use for sleep across several nights \
+            ('how much deep sleep did I get each night this week', 'my average sleep this month', 'what time did I go to bed each night', 'my bedtime and wake time this week', 'when did I fall asleep'). Same record as sleep.latest: \
+            in_bed_start_iso is the bedtime, sleep_start_iso when the user fell asleep, sleep_end_iso the wake time. \(RecordFields.sentence(RecordFields.sleep, except: ["data_source"]))
+            """,
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
                 if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
@@ -298,7 +331,10 @@ struct SleepNamespace: FactNamespaceResolver {
             awake_minutes, deep_minutes, rem_minutes, latency_minutes, PLUS the sleep-science layer the app's Sleep detail screen shows \
             — fragmentation_index, awakening_count, sleep_cycles, architecture_score, deep_front_loaded, rem_back_loaded, enhanced_sleep_score (0–100), and deep/rem_in_expected_range (age-adjusted). If last night hasn't been accepted \
             yet (or HealthKit synced sleep after acceptance), this falls back to a LIVE HealthKit read and marks data_source=live_healthkit_pending_acceptance — so 'how did I sleep last night?' answers even before the morning results \
-            are opened. Use for 'how did I sleep?', 'was my sleep fragmented?', 'how many cycles?', 'was my sleep architecture healthy?'.
+            are opened. Use for 'how did I sleep?', 'was my sleep fragmented?', 'how many cycles?', 'was my sleep architecture healthy?', 'what time did I go to bed', 'when did I fall asleep', 'what was my wake time'. \
+            Bedtime is in_bed_start_iso, fell asleep is sleep_start_iso, wake time is sleep_end_iso; also core_minutes, nap_minutes, segment_count and the heart-rate sleep read (avg_sleep_rmssd_ms, min_sleep_hr_bpm, \
+            avg_sleep_hr_bpm, restorative_minutes, restorative_ratio). For several nights use sleep.recent. \
+            \(RecordFields.sentence(RecordFields.sleep))
             """,
             valueType: "Record",
             availability: { OvernightArchive.availability(self.archive) },
@@ -321,8 +357,9 @@ struct HRVNamespace: FactNamespaceResolver {
     let archive: SessionArchive
 
     /// `archive` lets a single-night lookup load the session's RR series,
-    /// which the lightweight decode skips, to put the nadir on the wall
-    /// clock; list callers pass nil and the record has no nadir time.
+    /// which the lightweight decode skips, to put the nadir and the analysis
+    /// window on the wall clock; list callers pass nil and the record has no
+    /// nadir or window clock times.
     static func hrvRecord(for session: HRVSession?, archive: SessionArchive? = nil) -> FactValue {
         guard let session else {
             return .missing(reason: .notRecorded, detail: "no overnight session matched")
@@ -334,11 +371,54 @@ struct HRVNamespace: FactNamespaceResolver {
         record.merge(nonlinearFields(analysis)) { current, _ in current }
         record.merge(frequencyFields(analysis)) { current, _ in current }
         record.merge(ansFields(analysis)) { current, _ in current }
+        record.merge(windowFields(analysis)) { current, _ in current }
+        record.merge(peakFields(analysis)) { current, _ in current }
         for key in estimatedFactKeys(analysis) { record[key] = nil }
-        if let nadirAt = nadirWallClock(session: session, analysis: analysis, archive: archive) {
-            record["overnight_nadir_at_iso"] = .date(nadirAt)
-        }
+        record.merge(clockFields(analysis: analysis, session: session, archive: archive)) { current, _ in current }
         return OvernightArchive.labeled(.record(record), session)
+    }
+
+    /// How the analysis window was chosen, as stored on the analysis: the
+    /// same values `hrv.window.*` reads for the latest reading.
+    private static func windowFields(_ analysis: HRVAnalysisResult) -> [String: FactValue] {
+        var out = optionalDoubles([
+            ("window_relative_position", analysis.windowRelativePosition),
+            ("window_hr_stability", analysis.windowHRStability)
+        ])
+        out["window_selection_reason"] = analysis.windowSelectionReason.map { .string($0) }
+        out["window_classification"] = analysis.windowClassification.map { .string($0) }
+        out["is_consolidated"] = analysis.isConsolidated.map { .boolean($0) }
+        out["is_organized_recovery"] = analysis.isOrganizedRecovery.map { .boolean($0) }
+        return out
+    }
+
+    /// The night's peak capacity: the highest sustained HRV window, stored
+    /// apart from the analysis window the score reads.
+    private static func peakFields(_ analysis: HRVAnalysisResult) -> [String: FactValue] {
+        guard let peak = analysis.peakCapacity else { return [:] }
+        return optionalDoubles([
+            ("peak_rmssd_ms", peak.peakRMSSD),
+            ("peak_sdnn_ms", peak.peakSDNN),
+            ("peak_total_power_ms2", peak.peakTotalPower)
+        ])
+    }
+
+    /// The nadir and the analysis window on the wall clock. Both are stored
+    /// as cumulative RR time, which runs behind the clock by every strap gap
+    /// before them, so they are placed through the RR series: the nadir at
+    /// its nearest beat's stamp, the window as the app's screens show it
+    /// (`RRSeries.clockTime(forTMs:)`). Nothing without the series rather
+    /// than a drifted time.
+    private static func clockFields(analysis: HRVAnalysisResult, session: HRVSession, archive: SessionArchive?) -> [String: FactValue] {
+        let offsets = [analysis.overnightNadirTimeMs, analysis.windowStartMs, analysis.windowEndMs]
+        guard offsets.contains(where: { $0 != nil }),
+              let series = session.rrSeries ?? archive?.retrieveOrLog(session.id)?.rrSeries
+        else { return [:] }
+        var out: [String: FactValue] = [:]
+        out["overnight_nadir_at_iso"] = analysis.overnightNadirTimeMs.map { .date(series.wallClockTime(forTMs: $0)) }
+        out["window_start_iso"] = analysis.windowStartMs.map { .date(series.clockTime(forTMs: $0)) }
+        out["window_end_iso"] = analysis.windowEndMs.map { .date(series.clockTime(forTMs: $0)) }
+        return out
     }
 
     /// The fact keys whose values `analysis` holds as estimates. They are
@@ -422,17 +502,6 @@ struct HRVNamespace: FactNamespaceResolver {
         return out
     }
 
-    /// The wall-clock time of the overnight nadir. The analysis stores it as
-    /// cumulative RR time, which runs behind the clock by every strap gap
-    /// before the nadir, so it is placed through the RR series' wall-clock
-    /// stamps. Nil without the series rather than a drifted time.
-    private static func nadirWallClock(session: HRVSession, analysis: HRVAnalysisResult, archive: SessionArchive?) -> Date? {
-        guard let offsetMs = analysis.overnightNadirTimeMs,
-              let series = session.rrSeries ?? archive?.retrieveOrLog(session.id)?.rrSeries
-        else { return nil }
-        return series.wallClockTime(forTMs: offsetMs)
-    }
-
     private static func frequencyFields(_ analysis: HRVAnalysisResult) -> [String: FactValue] {
         guard let fd = analysis.frequencyDomain else { return [:] }
         var out: [String: FactValue] = [
@@ -471,14 +540,19 @@ struct HRVNamespace: FactNamespaceResolver {
             hrvLatestEntry,
             hrvByDateDateEntry,
             hrvRecentPeriodEntry
-        ]
+        ] + timelineEntries
     }
 
     private var hrvByDateDateEntry: FactEntry {
         .parameterized(
             pattern: "hrv.by_date($date)",
             paramExample: "2026-04-21",
-            description: "HRV analysis for a specific local date (yyyy-MM-dd). Midpoint-in-day session matching.",
+            description: """
+            HRV analysis and overnight heart rate for a specific local date (yyyy-MM-dd), any date back to the first recording. Midpoint-in-day session matching. To compare two nights \
+            ('how does tonight compare with February 20'), call it once per date. Also says which analysis window was used and when (window_start_iso, window_end_iso on the clock, window_selection_reason, \
+            window_classification, is_consolidated, is_organized_recovery) and the night's peak capacity (peak_rmssd_ms, peak_sdnn_ms, peak_total_power_ms2). For the heart rate at a time of night use hrv.timeline.by_date; \
+            for naps and quick readings that day use hrv.readings.by_date. \(RecordFields.sentence(RecordFields.hrv))
+            """,
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
                 Self.hrvRecord(for: OvernightArchive.byDate(param, archive: self.archive), archive: self.archive)
@@ -490,7 +564,11 @@ struct HRVNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "hrv.recent($period)",
             paramExample: "last_7d",
-            description: "List of HRV analyses over a recent period. Each item is the same record shape as hrv.latest, without overnight_nadir_at_iso (hrv.by_date gives one night's nadir time). Most recent first.",
+            description: """
+            Night-by-night HRV and overnight heart rate over a period: one record per night (naps and quick readings marked by session_type), most recent first. Use for the lowest heart rate, nadir, mean heart rate or \
+            HRV across several nights ('my lowest heart rate this week', 'my nadir every night', 'how has my RMSSD trended', 'my peak HRV each night', 'which nights were organized recovery'). Same record as hrv.latest \
+            without the clock times of the nadir and analysis window (hrv.by_date gives one night's). \(RecordFields.sentence(RecordFields.hrv, except: RecordFields.hrvSingleNightOnly))
+            """,
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
                 if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
@@ -510,7 +588,9 @@ struct HRVNamespace: FactNamespaceResolver {
             Latest HRV analysis as a record: the dashboard's reading (the night's overnight; a nap or quick reading only on a day with no reliable overnight — session_type says which). Window-scoped fields (window_mean_hr_bpm, window_min_hr_bpm, window_max_hr_bpm) \
             come from the 5-min recovery analysis window. Whole-night fields (overnight_nadir_hr_bpm, overnight_nadir_at_iso, \
             overnight_min_hr_bpm, overnight_max_hr_bpm, overnight_mean_hr_bpm) span the entire recording — use these when the user asks about 'nadir' / 'lowest HR last night' / 'when did my HR bottom out'. Also: rmssd_ms, sdnn_ms, pnn50_percent, \
-            lf/hf power, lf_hf_ratio, stress_index, readiness_score.
+            lf/hf power, lf_hf_ratio, stress_index, readiness_score, the analysis window (window_start_iso, window_end_iso, window_selection_reason, window_classification) and peak capacity (peak_rmssd_ms). \
+            For several nights use hrv.recent; for the heart rate at a time of night ('what was my heart rate at 3am') use hrv.timeline.by_date. \
+            \(RecordFields.sentence(RecordFields.hrv))
             """,
             valueType: "Record",
             availability: { OvernightArchive.availability(self.archive) },
@@ -581,6 +661,7 @@ struct VitalsNamespace: FactNamespaceResolver {
         return [
             vitalsLatestEntry,
             vitalsByDateDateEntry,
+            vitalsRecentPeriodEntry,
             // "What's my heart rate right now" outside a workout: the newest
             // HealthKit HR sample from the last 10 minutes.
             vitalsHrNowEntry
@@ -591,10 +672,33 @@ struct VitalsNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "vitals.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Vitals record for a specific local date (yyyy-MM-dd).",
+            description: "Vitals record for a specific local date (yyyy-MM-dd). " + RecordFields.sentence(RecordFields.vitals, except: ["data_source"]),
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
                 Self.vitalsRecord(for: OvernightArchive.byDate(param, archive: self.archive))
+            }
+        )
+    }
+
+    private var vitalsRecentPeriodEntry: FactEntry {
+        .parameterized(
+            pattern: "vitals.recent($period)",
+            paramExample: "last_7d",
+            description: """
+            Night-by-night vitals over a period: one record per overnight, most recent first. Use for resting heart rate, respiratory rate, SpO2 or wrist temperature across several nights \
+            ('my resting heart rate this week', 'has my breathing rate been up lately'). Nights without a saved vitals snapshot are left out. \
+            \(RecordFields.sentence(RecordFields.vitals, except: ["data_source"]))
+            """,
+            availability: { OvernightArchive.availability(self.archive) },
+            resolve: { param, _ in
+                if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
+                let records = OvernightArchive.inPeriod(param, archive: self.archive, types: [.overnight])
+                    .filter { $0.vitalsSnapshot?.isEmpty == false }
+                    .map(Self.vitalsRecord(for:))
+                guard !records.isEmpty else {
+                    return .missing(reason: .notRecorded, detail: "no overnight vitals in period")
+                }
+                return .list(records)
             }
         )
     }
@@ -605,7 +709,8 @@ struct VitalsNamespace: FactNamespaceResolver {
             description: """
             Latest overnight vitals: respiratory rate, SpO2, wrist temperature (deviation from baseline), resting HR. Includes baselines and a status flag (normal/elevated/warning) \
             for readings above the personal baseline. The flag is not evidence of illness; the usual causes are training, alcohol, heat and stress. Falls back \
-            to a LIVE HealthKit read (data_source=live_healthkit_pending_acceptance) when the night isn't accepted yet or vitals synced late.
+            to a LIVE HealthKit read (data_source=live_healthkit_pending_acceptance) when the night isn't accepted yet or vitals synced late. For several nights use vitals.recent. \
+            \(RecordFields.sentence(RecordFields.vitals))
             """,
             valueType: "Record",
             availability: { OvernightArchive.availability(self.archive) },
@@ -680,24 +785,40 @@ struct RecoveryNamespace: FactNamespaceResolver {
     /// instead of presenting a baseline-fallback number as if it were a clean
     /// overnight: good = normal scoring path · preSleep = strap ended before
     /// sleep · insufficient = too short / awake partial.
+    ///
+    /// A night without a score (a partial, or one never scored) still gives
+    /// its morning feeling and notes, with `score` absent, so "what did I
+    /// say I felt like that morning" answers for every night that has them.
     static func scoreRecord(for session: HRVSession?) -> FactValue {
         guard let session else {
             return .missing(reason: .notRecorded, detail: "no overnight session matched")
         }
-        guard let score = session.recoveryScore else {
+        let subjective = subjectiveMorningFields(session)
+        guard session.recoveryScore != nil || !subjective.isEmpty else {
             return .missing(reason: .notYetComputed, detail: "session has no recovery score yet")
         }
         var record: [String: FactValue] = [
             "date": .date(session.startDate),
-            // On the dashboard's 0-100 scale. Stored as 0-10; sent raw, the model
-            // would read 7.2 while the ring shows 72.
-            "score": .integer(RecoveryScoreCalculator.displayScore(score * 10)),
-            "scale": .string("0-100 (higher = more recovered)")
+            "reliable_for_trends": .boolean(session.isReliableForHRVAggregates)
         ]
-        if let readiness = session.frozenReadiness { record["training_readiness"] = .double(readiness) }
+        record.merge(scoreFields(session)) { current, _ in current }
         if let q = session.hrvDataQuality { record["data_quality"] = .string(q.rawValue) }
-        record.merge(subjectiveMorningFields(session)) { current, _ in current }
+        record.merge(subjective) { current, _ in current }
+        record.merge(breakdownSummary(session)) { current, _ in current }
         return OvernightArchive.labeled(.record(record), session)
+    }
+
+    /// The score on the dashboard's 0-100 scale, and the frozen training
+    /// readiness. Stored as 0-10; sent raw, the model would read 7.2 while
+    /// the ring shows 72. Empty for an unscored night.
+    static func scoreFields(_ session: HRVSession) -> [String: FactValue] {
+        var out: [String: FactValue] = [:]
+        if let score = session.recoveryScore {
+            out["score"] = .integer(RecoveryScoreCalculator.displayScore(score * 10))
+            out["scale"] = .string("0-100 (higher = more recovered)")
+        }
+        if let readiness = session.frozenReadiness { out["training_readiness"] = .double(readiness) }
+        return out
     }
 
     /// Subjective morning signals — captured BEFORE the score is revealed and
@@ -722,7 +843,8 @@ struct RecoveryNamespace: FactNamespaceResolver {
             recoveryScoreLatestEntry,
             recoveryScoreByDateDateEntry,
             recoveryScoreRecentPeriodEntry,
-            recoveryTrendPeriodEntry
+            recoveryTrendPeriodEntry,
+            recoveryBreakdownByDateEntry
         ]
     }
 
@@ -730,10 +852,15 @@ struct RecoveryNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "recovery.score.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Recovery score for a specific local date (yyyy-MM-dd).",
+            description: """
+            Recovery score (0-100) for a specific local date (yyyy-MM-dd), any date back to the first recording, with what the user said that morning: morning_feeling (1-5), morning_feeling_tags, \
+            perceived_readiness and notes. A night without a score (a partial or unreliable recording, reliable_for_trends false) still returns its feeling and notes, with score absent. \
+            score_tier and factor_scores (each factor's label, score, weight and contribution) say in brief why the score was high or low; recovery.breakdown.by_date has the full breakdown with penalties. \
+            Use for 'what was my recovery on February 20', 'how did I say I felt that morning', 'what notes did I write'. \(RecordFields.sentence(RecordFields.recovery))
+            """,
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
-                Self.scoreRecord(for: OvernightArchive.byDate(param, archive: self.archive, scoredOnly: true))
+                Self.scoreRecord(for: OvernightArchive.anyByDate(param, archive: self.archive, scoredOnly: true))
             }
         )
     }
@@ -742,15 +869,18 @@ struct RecoveryNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "recovery.score.recent($period)",
             paramExample: "last_7d",
-            description: "List of recovery scores over a recent period. Each item is a record with date + score. Most recent first. Use for 'have I been recovering?' / 'am I trending up?'.",
+            description: """
+            Night-by-night recovery scores over a period, most recent first: one record per reading with a score or a morning feeling (a night the user rated but that has no score gives its feeling and notes with score absent). \
+            Use for 'have I been recovering?', 'am I trending up?', 'how have I felt each morning this week'. Same record as recovery.score.by_date. \(RecordFields.sentence(RecordFields.recovery))
+            """,
             availability: { OvernightArchive.availability(self.archive) },
             resolve: { param, _ in
                 if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
-                let sessions = OvernightArchive.inPeriod(param, archive: self.archive).filter { $0.recoveryScore != nil }
-                guard !sessions.isEmpty else {
+                let records = OvernightArchive.inPeriod(param, archive: self.archive).map { Self.scoreRecord(for: $0) }.filter(Self.isRecord)
+                guard !records.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no scored overnight sessions in period")
                 }
-                return .list(sessions.map { Self.scoreRecord(for: $0) })
+                return .list(records)
             }
         )
     }
@@ -843,11 +973,12 @@ struct RecoveryNamespace: FactNamespaceResolver {
             (no strap overnight leaves it days old), so present an older one as that day's, never as today's. Plus its context: training_readiness (0–10, separate from the score), \
             data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
             SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (\(ScoringVersion.current)); comeback mode shifts a Tier 3 score to 80/20/0. Training \
-            load lives on the Load & Trajectory page, not in the score. Source of truth for 'how recovered am I?', 'am I ready to train?', and 'did I say I felt bad this morning?'.
+            load lives on the Load & Trajectory page, not in the score. Source of truth for 'how recovered am I?', 'am I ready to train?', and 'did I say I felt bad this morning?'. \
+            score_tier and factor_scores say in brief why the score is what it is; recovery.breakdown.by_date has the full breakdown. Also days_ago and is_today. \(RecordFields.sentence(RecordFields.recovery))
             """,
             valueType: "Record",
             availability: { OvernightArchive.availability(self.archive) },
-            resolve: { Self.latestScoreRecord(for: OvernightArchive.latest(self.archive, scoredOnly: true), now: Date()) }
+            resolve: { Self.latestScoreRecord(for: OvernightArchive.latest(self.archive, scoredOnly: true), now: AppClock.now) }
         )
     }
 }

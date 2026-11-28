@@ -38,7 +38,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     /// rule: a night begun 23:00 two evenings ago is 33 hours old at 08:00,
     /// so after a skipped night yesterday morning's deviation would be
     /// presented as today's.
-    static func lastNight(in all: [Sample], now: Date = Date(), calendar: Calendar = .current) -> Sample? {
+    static func lastNight(in all: [Sample], now: Date = AppClock.now, calendar: Calendar = .current) -> Sample? {
         guard let latest = all.last, calendar.isDate(latest.day, inSameDayAs: now) else { return nil }
         return latest
     }
@@ -79,7 +79,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     /// The samples within the trailing `days` days (7 matches
     /// BaselineTracker's `baselineWindowDays`, its short display window).
     private static func window(_ all: [Sample], days: Int) -> [Sample] {
-        guard let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
+        guard let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else {
             return []
         }
         return all.filter { $0.date >= cutoff }

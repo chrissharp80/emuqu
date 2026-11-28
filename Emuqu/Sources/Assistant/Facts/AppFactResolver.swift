@@ -67,6 +67,9 @@ import os
 ///   • numeric: 7d, 14d, 30d, 60d, 90d, 180d, 365d
 ///   • named: today, yesterday, this_week, last_week, last_2_weeks,
 ///             last_month, last_quarter, last_year, all_time
+///   • dated (`PeriodParser+Explicit.swift`): YYYY-MM (a month), YYYY
+///             (a year), YYYY-MM-DD (a day), YYYY-MM-DD..YYYY-MM-DD (days
+///             inclusive), since_YYYY-MM-DD
 ///
 /// `cutoff(for:)` returns only the start of the period; entries on or
 /// after it are "in period". today / yesterday / this_week anchor on
@@ -74,8 +77,9 @@ import os
 /// locale's first weekday); every other token is a rolling window back
 /// from now. A start alone can't express a period that ends in the past,
 /// so `interval(for:)` adds the end: yesterday ends at today's start and
-/// last_week is the previous calendar week. Fact filters use
-/// `interval(for:)`.
+/// last_week is the previous calendar week, and a dated form ends after
+/// its last day. Fact filters use `interval(for:)`; `cutoff(for:)` is the
+/// same interval's start.
 enum PeriodParser {
     /// Fast-path first: a single- or double-digit number of days that
     /// the named cases below don't catch (e.g. "2d", "3_days",
@@ -84,9 +88,10 @@ enum PeriodParser {
     /// PeriodParser returns nil → resolver returns `.missing` → AI
     /// tells the user "I don't have the RMSSD numbers for the last
     /// two days right now".
-    static func cutoff(for raw: String, now: Date = Date()) -> Date? {
+    static func cutoff(for raw: String, now: Date = AppClock.now) -> Date? {
         let cal = Calendar.current
         let key = raw.lowercased().trimmingCharacters(in: .whitespaces)
+        if let explicit = explicitInterval(key, now: now) { return explicit.start }
         if let days = Self.numericDayWindow(key) {
             return cal.date(byAdding: .day, value: -days, to: now)
         }
@@ -114,11 +119,12 @@ enum PeriodParser {
 
     /// Start and end of the period. Same vocabulary as `cutoff(for:)`;
     /// the end is `now` except for `yesterday` (ends at the start of
-    /// today) and `last_week` (the previous calendar week, so it never
-    /// overlaps `this_week`).
-    static func interval(for raw: String, now: Date = Date()) -> DateInterval? {
+    /// today), `last_week` (the previous calendar week, so it never
+    /// overlaps `this_week`) and the dated forms (end after their last day).
+    static func interval(for raw: String, now: Date = AppClock.now) -> DateInterval? {
         let cal = Calendar.current
         let key = raw.lowercased().trimmingCharacters(in: .whitespaces)
+        if let explicit = explicitInterval(key, now: now) { return explicit }
         switch key {
         case "yesterday":
             let today = cal.startOfDay(for: now)
@@ -146,7 +152,8 @@ enum PeriodParser {
     static func unknownPeriod(_ raw: String) -> FactValue {
         .missing(
             reason: .invalidParameter,
-            detail: "unknown period '\(raw)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time"
+            detail: "unknown period '\(raw)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time, "
+                + "or dates: 2026-02 (a month), 2026 (a year), 2026-02-20 (a day), 2026-02-01..2026-02-28 (days inclusive), since_2026-02-01"
         )
     }
 
@@ -215,6 +222,7 @@ enum AppFactResolverFactory {
         registry.register(HRVLiveNamespace(services: services))
         registry.register(HRRNamespace(archive: archive))
         registry.register(TagsNamespace(archive: archive))
+        registry.register(StoredRecordNamespace(archive: archive))
     }
 
     /// App state, device state, and the action-capable surfaces.
