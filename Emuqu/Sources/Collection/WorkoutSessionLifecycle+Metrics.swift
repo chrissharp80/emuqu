@@ -134,17 +134,17 @@ extension WorkoutSessionLifecycle {
         ]
     }
 
-    /// These 23 optional fields as 23 `if let` lines would count as
-    /// cyclomatic complexity 23 for SwiftLint. There is no logic here,
+    /// These 25 optional fields as 25 `if let` lines would count as
+    /// cyclomatic complexity 25 for SwiftLint. There is no logic here,
     /// only a field table, and SPLITTING a serializer like this makes it
     /// worse (branch count is field count, so the halves just inherit it).
     ///
     /// Expressing it as a table removes every branch instead of moving
-    /// them, keeps all 23 fields readable in one column-aligned block, and
+    /// them, keeps all 25 fields readable in one column-aligned block, and
     /// makes adding a field a one-row edit that cannot forget the nil
     /// check. Output is byte-identical: same keys, same format specs, same
     /// omit-when-nil behaviour.
-    private static func optionalSnapshotFields(
+    static func optionalSnapshotFields(
         _ snap: AssistantContext.LiveWorkoutSnapshot
     ) -> [(String, String?)] {
         func num(_ value: Double?, _ spec: String) -> String? { value.map { String(format: spec, $0) } }
@@ -163,7 +163,9 @@ extension WorkoutSessionLifecycle {
             ("today_recovery_score", num(snap.todayRecoveryScore, "%.1f")),
             ("today_training_readiness", num(snap.todayTrainingReadiness, "%.1f")),
             ("today_atl", num(snap.todayATL, "%.2f")), ("today_ctl", num(snap.todayCTL, "%.2f")),
-            ("today_tsb", num(snap.todayTSB, "%.2f"))
+            ("today_tsb", num(snap.todayTSB, "%.2f")),
+            ("hr_source", snap.heartRateFromWatch.map(CloudSessionPayload.heartRateSource)),
+            ("peak_hr_source", snap.peakHRFromWatch.map(CloudSessionPayload.heartRateSource))
         ]
     }
 

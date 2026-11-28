@@ -646,6 +646,15 @@ extension AssistantContext {
         /// (false: the 0.88 × max estimate).
         var thresholdHeartRate: Int?
         var thresholdHeartRateIsUserSet: Bool?
+
+        // --- Where the heart rate came from ---
+
+        /// True when `heartRate` is the Apple Watch's wrist HR, false when a
+        /// strap measured it; nil without a heart rate or when not recorded.
+        var heartRateFromWatch: Bool?
+        /// True when `peakHR` is the Apple Watch's wrist HR, false when a
+        /// strap measured it; nil when not recorded.
+        var peakHRFromWatch: Bool?
     }
 
     /// Live HRV-recording snapshot. Populated whenever RRCollector is in

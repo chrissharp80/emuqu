@@ -462,3 +462,23 @@ final class HRRCaptureService {
         return samples.first
     }
 }
+
+// MARK: - Measured from the rate at Stop
+
+extension [HRRSample] {
+    /// The samples as measured from the heart rate at Stop. When that rate was
+    /// the Apple Watch's wrist HR (the strap silent at Stop), every drop is
+    /// measured from Apple Watch heart rate, so a strap sample is marked
+    /// `.watchSamples` like the Watch's own: it is not a strap-only reading,
+    /// and the iCloud copy leaves it out (`CloudSessionPayload`).
+    func measuredFromWatchStop(_ stopHRFromWatch: Bool) -> [HRRSample] {
+        guard stopHRFromWatch else { return self }
+        return map { sample in
+            guard sample.provenance == .strap else { return sample }
+            return HRRSample(
+                offsetSec: sample.offsetSec, hr: sample.hr, drop: sample.drop, peakHR: sample.peakHR,
+                provenance: .watchSamples
+            )
+        }
+    }
+}

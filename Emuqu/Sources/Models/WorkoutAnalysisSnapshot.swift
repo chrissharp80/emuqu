@@ -50,7 +50,7 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
     let secondsAboveAT2: Int?      // α1 < 0.50  (hard — above anaerobic)
     /// First downward α1 = 0.75 crossing — the α1-derived LT1 estimate.
     let firstAT1CrossingOffsetSec: Int?
-    let firstAT1CrossingHR: Int?
+    var firstAT1CrossingHR: Int?
     /// Dominant α1 band (easy / threshold / hard) — what the user spent
     /// the most time in, for the hero's colored pill.
     let dominantAlpha1BandRaw: String?
@@ -95,10 +95,10 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
     /// text. Nil rather than empty when there was nothing to say.
     let howYouDidNarrative: String?
     /// Hero plain-English α1 summary ("Solid aerobic-base effort…").
-    let heroNarrative: String?
+    var heroNarrative: String?
     /// Locale identifier of the language the narratives were written in.
     /// Nil on snapshots stored before it was recorded.
-    let narrativeLanguage: String?
+    var narrativeLanguage: String?
 
     /// The narratives are stored as text in one language. A snapshot from
     /// an older schema, or written in a language other than the app's
