@@ -80,7 +80,7 @@ enum HelpContent {
                     .tip("Morning readings — right after waking, before getting out of bed — are the most consistent time for a spot reading. They give the most consistent, comparable results day to day."),
                     .heading("What Your First Numbers Mean"),
                     .text("""
-                        Don't worry about absolute values yet. HRV is highly individual — what matters is YOUR baseline over time. A 40ms RMSSD might be excellent for one person and below average for another. From your third night the app scores you \
+                        Don't worry about absolute values yet. HRV is highly individual — what matters is YOUR baseline over time. A 40ms RMSSD might be excellent for one person and below average for another. From your fourth night the app scores you \
                         against your own baseline, cautiously at first. The Dashboard shows your score from the 14th night, once that baseline has settled.
                         """)
                 ]
@@ -94,8 +94,8 @@ enum HelpContent {
                     .text("Your personal baseline is the foundation of everything the app does. It's what makes your recovery score meaningful — not a generic number, but YOUR number relative to YOUR normal."),
                     .heading("The Timeline"),
                     .keyValue([
-                        (label: "Nights 1-2", value: "General HRV thresholds. The app is learning."),
-                        (label: "Night 3+", value: "Your ln(RMSSD) is compared against your own history (up to 60 days). Until 7 nights the comparison is deliberately cautious, so early scores stay near the middle."),
+                        (label: "Nights 1-3", value: "General HRV thresholds. The app is learning."),
+                        (label: "Night 4+", value: "Your ln(RMSSD) is compared against your own history (up to 60 days). Until 7 nights the comparison is deliberately cautious, so early scores stay near the middle."),
                         (label: "Night 14+", value: "Baseline stabilizes. The Dashboard shows your recovery score and verdict; before this it shows \"Building your baseline\"."),
                         (label: "Night 28+", value: "The score reads \"Full algorithm\". The baseline keeps growing to 60 nights, where it is at its most stable.")
                     ]),
@@ -329,12 +329,12 @@ enum HelpContent {
                         score with your current training load to answer the practical question: should I train hard today?
                         """),
                     .note("""
-                        Training load is shown apart from the score, for planning. Load & Trajectory (tap the Load chip on the Dashboard) shows TRIMP, CTL/ATL/TSB and the ramp rate; the Training Load screen (tap the training-load card in a \
+                        Training load is shown apart from the score, for planning. Load & Trajectory (tap the Load chip on the Dashboard) shows the training load, CTL/ATL/TSB and the ramp rate; the Training Load screen (tap the training-load card in a \
                         recording's full report) adds the acute:chronic workload ratio (ACWR); both warn when your training has been unusually similar day to day (monotony). Training metrics don't feed the recovery score itself — research \
                         (Impellizzeri 2020/2021) showed the acute:chronic workload ratio is too noisy to predict recovery state day-to-day. The score answers \"how recovered am I?\" using your physiology only.
                         """),
                     .tip("Day-to-day variation of ±10 points is normal. Look at your 3-day and 7-day trends rather than obsessing over a single day's number."),
-                    .warning("For your first two nights, the HRV part of the score uses a simplified 1-10 readiness calculation scaled to 0-100. It works, but it's less precise than the comparison with your own baseline that starts on the third night.")
+                    .warning("For your first three nights, the HRV part of the score comes from general RMSSD bands, so the score is provisional. It is less precise than the comparison with your own baseline that starts on the fourth night.")
                 ]
             ),
             HelpArticle(

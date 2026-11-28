@@ -252,7 +252,10 @@ struct PerformanceSettingsPage: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "iCloud sync", bundle: bundle))
                     .font(.body)
-                Text(String(localized: "Backs up sessions to your private iCloud container so they survive device changes. When OFF: nothing new goes up or comes down, no sync banner, sessions stay on this device. The app still deletes from iCloud what you delete.", bundle: bundle))
+                Text(String(
+                    localized: "Backs up sessions to your private iCloud container so they survive device changes. When OFF: nothing new goes up or comes down, no sync banner, sessions stay on this device. What you delete while it is off is deleted from iCloud when you turn it back on.",
+                    bundle: bundle
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }

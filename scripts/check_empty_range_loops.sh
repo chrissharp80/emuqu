@@ -48,22 +48,79 @@ def required_count(m):
     return 1 if m.lastindex == 1 else int(m.group(2))
 
 
-def guaranteed_counts(var, window):
-    """Every minimum count a guard in `window` establishes for `var`."""
+POSITIVE = (
+    (r'{v}\.count\s*>=\s*(\d+)', 0), (r'{v}\.count\s*>\s*(\d+)', 1),
+    (r'!\s*{v}\.isEmpty\b()', None), (r'{v}\.count\s*!=\s*0()', None),
+)
+NEGATIVE = ((r'{v}\.count\s*<\s*(\d+)', 0), (r'(?<!!)(?<![\w.]){v}\.isEmpty\b()', None))
+EXIT = re.compile(r'\b(?:return|throw|continue|break|fatalError)\b')
+
+
+def depths(lines):
+    """Brace depth at the start of each line, string literals ignored."""
+    out, depth = [], 0
+    for line in lines:
+        out.append(depth)
+        code = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line.split('//')[0])
+        depth += code.count('{') - code.count('}')
+    return out
+
+
+def minimum(patterns, var, cond):
+    """The count a condition establishes when true, or None."""
+    for pattern, extra in patterns:
+        m = re.search(pattern.format(v=var), cond)
+        if m:
+            return 1 if extra is None else int(m.group(1)) + extra
+    return None
+
+
+def open_through(level, depth_at, k, n):
+    """Whether the scope at brace `level` entered by line `k` is still open at
+    line `n`: no line between them starts below it."""
+    return all(depth_at[j] >= level for j in range(k + 1, n + 1))
+
+
+def guaranteed_counts(var, lines, n):
+    """Every minimum count that is guaranteed for `var` at line `n`.
+
+    A guard counts only where it governs the loop. `guard xs.count >= N else`
+    holds for the rest of its scope; `if xs.count >= N {` only inside that
+    block; `if xs.count < N { return }` (or `xs.isEmpty`) only when the block
+    exits; `for ... where xs.count >= N {` inside its body. A condition with
+    `||` guarantees neither side."""
+    depth_at = depths(lines[:n + 1])
     found = []
-    cond = rf'(?:guard|if|while)\b[^\n]*'
-    for m in re.finditer(cond + rf'{var}\.count\s*(>=|>)\s*(\d+)', window):
-        found.append(int(m.group(2)) + (1 if m.group(1) == '>' else 0))
-    # `if xs.count < N { return }` leaves at least N behind it.
-    for m in re.finditer(cond + rf'{var}\.count\s*<\s*(\d+)', window):
-        found.append(int(m.group(1)))
-    # `for seg in ... where seg.count >= N` guards the inner loop.
-    for m in re.finditer(rf'where\s+[^\n]*{var}\.count\s*(>=|>)\s*(\d+)', window):
-        found.append(int(m.group(2)) + (1 if m.group(1) == '>' else 0))
-    # Non-empty: `!xs.isEmpty`, `guard ... xs.isEmpty` / `if xs.isEmpty { return }`,
-    # `xs.count != 0`.
-    if re.search(cond + rf'(?:!\s*{var}\.isEmpty|{var}\.isEmpty|{var}\.count\s*!=\s*0)', window):
-        found.append(1)
+    for k in range(n):
+        code = lines[k].split('//')[0]
+        head = re.match(r'\s*(?:\}\s*else\s+)?(guard|if|while|for)\b(.*)', code)
+        if not head or '||' in head.group(2):
+            continue
+        keyword, cond = head.group(1), head.group(2)
+        cond_text = cond.split(' else ')[0] if keyword == 'guard' else cond.split('{')[0]
+        if keyword == 'for':
+            m = re.search(r'\bwhere\b(.*)', cond_text)
+            cond_text = m.group(1) if m else ''
+        positive = minimum(POSITIVE, var, cond_text)
+        if positive is not None:
+            if keyword == 'guard' and open_through(depth_at[k], depth_at, k, n):
+                found.append(positive)
+            elif keyword != 'guard' and '{' in cond and open_through(depth_at[k] + 1, depth_at, k, n):
+                found.append(positive)
+            continue
+        negative = minimum(NEGATIVE, var, cond_text)
+        if negative is None or keyword != 'if' or not open_through(depth_at[k], depth_at, k, n):
+            continue
+        block, depth, j = [], 0, k
+        while j < n:
+            line = lines[j].split('//')[0]
+            block.append(line.split('{', 1)[1] if j == k and '{' in line else line)
+            depth += line.count('{') - line.count('}')
+            if depth <= 0 and '{' in ''.join(lines[k:j + 1]):
+                break
+            j += 1
+        if EXIT.search('\n'.join(block)):
+            found.append(negative)
     return found
 
 
@@ -92,11 +149,10 @@ for f in sorted(p for root in ROOTS for p in pathlib.Path(root).rglob('*.swift')
         # whose own loop was unguarded while the previous function's
         # `guard pts.count >= 2` sat six lines up.
         start = next((k for k in range(n - 1, -1, -1) if UNIT_START.match(lines[k])), 0)
-        window = '\n'.join(lines[start:n])
         # A guard counts only when it is strong enough for THIS range:
         # `xs.count > 0` does not protect `0 ..< xs.count - 2`, which still
         # traps at a count of 1.
-        guarded = any(c >= need for c in guaranteed_counts(var, window))
+        guarded = any(c >= need for c in guaranteed_counts(var, lines[start:n + 1], n - start))
         # An explicit waiver, in the same style as `swallow-ok` elsewhere in
         # this repo. It must carry a reason, so a future reader can check the
         # claim rather than trust a bare marker.

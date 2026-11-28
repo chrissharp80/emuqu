@@ -208,6 +208,7 @@ struct HistoryView: View {
 
     private var historyEntryList: some View {
         List {
+            historyFromAnotherPhoneNotice
             entrySections
             loadMoreTrigger
         }
@@ -532,7 +533,7 @@ struct HistoryView: View {
             onApplyManualResult: { await dependencies.collection.reanalysisService.applyManualAnalysis(session, result: $0) },
             onUpdateSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: false) },
             onAdjustSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: true) },
-            onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
+            onUnlinkSegment: { await dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
             linkedSegments: selectedLinkedSegments
         )
     }
@@ -608,8 +609,24 @@ struct HistoryView: View {
         }
     }
 
+    /// Said for as long as sessions on this iPhone are sealed with a key it
+    /// does not hold (`SessionArchive.sealedWithAnotherKeyCount`), so a
+    /// history restored without the previous phone's Keychain is not simply
+    /// missing.
+    @ViewBuilder
+    private var historyFromAnotherPhoneNotice: some View {
+        if collector.archive.sealedWithAnotherKeyCount > 0 {
+            Text(CloudSyncMessages.historyFromAnotherPhone)
+                .font(.subheadline)
+                .foregroundColor(AppTheme.softGoldText)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     @ViewBuilder
     private var noReadingsYetSection: some View {
+        historyFromAnotherPhoneNotice
         if collector.archive.store.entries.isEmpty {
             Text(String(localized: "No Readings Yet", bundle: LanguageManager.appBundle))
                 .font(.headline)

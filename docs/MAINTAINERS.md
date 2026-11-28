@@ -135,7 +135,8 @@ only network destinations are: the cloud AI providers the user consented to
 (own key); Tavily (opt-in web search, own key); Anthropic's server-side web
 search when enabled with Claude; MET Norway (workout weather with location
 rounded to ~1 km); Overpass/OpenStreetMap (trails and nearby
-roads); Apple's geocoder and Apple Maps `MKLocalSearch`; OpenTopoData (route
+roads); Apple's geocoder and Apple Maps (`MKLocalSearch`, `MKDirections`, and
+the workout PDF's `MKMapSnapshotter`); OpenTopoData (route
 elevation, after the workout); Hugging Face (one-time WhisperKit model
 download); Apple CloudKit (iCloud sync, off until the user turns it on,
 encrypted on device before upload, Apple Health data left out); Apple's server speech recognizer when on-device recognition
@@ -399,7 +400,7 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
 
 Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
-- **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `CoachCueSpeech` — the coach lines the voice controller speaks, each claiming the workout-cue audio session before it is spoken, and the scripted line an AI-worded interjection falls back to; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
+- **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser), and `mustReachGuard`, which exempts a message that gets the crisis, symptom or injury reply, so it interrupts a spoken reply and is answered; `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `CoachCueSpeech` — the coach lines the voice controller speaks, each claiming the workout-cue audio session before it is spoken, and the scripted line an AI-worded interjection falls back to; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
 - **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderStream`, `ProviderRegistry`.
 - **`Facts/`:** `AppFactResolver.swift` (the factory) and one `*Facts.swift` file per group of namespaces (`SleepFacts`, `WorkoutFacts`, `LiveNavigationFacts`, …), which read services only through `FactServices`; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `SentenceEmbedder`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
@@ -575,7 +576,8 @@ The spine of the product.
    is the pause and recovery gather, not the morning stop.)
 4. **Pick the best source** — `DataSourceSelector.selectBestSource(...)`
    (`Emuqu/Sources/Collection/DataSourceSelector.swift`): internal → composite (if internal
-   has more than 5% fewer beats) → streaming → raw backup. The composite takes the
+   has more than 5% fewer beats, or the stream runs more than 60 s before or after the
+   span the strap recorded) → streaming → raw backup. The composite takes the
    streamed beats that fall in the internal series' gaps (2 s past the expected
    interval) or before and after the span the strap recorded.
 5. **Analyze** — `HRVAnalysisPipeline` (`Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`).

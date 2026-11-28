@@ -359,7 +359,11 @@ struct EmuquApp: App {
     }
 
     /// Reactions to state owned elsewhere: disclaimer, onboarding, purchase,
-    /// and the scene phase transitions that drive sync and prewarming.
+    /// the AI Assistant switch, and the scene phase transitions that drive
+    /// sync and prewarming. Switching the assistant off stops the ambient
+    /// location stream, and with it the road-name lookups it sends to Apple,
+    /// at once rather than at the next backgrounding; Get Me Back starts it
+    /// again for itself when it is shown.
     private func stateChangeHandlers(_ content: some View) -> some View {
         content
             .onChange(of: settingsManager.hasAcceptedDisclaimer) { _, accepted in
@@ -370,6 +374,9 @@ struct EmuquApp: App {
             }
             .onChange(of: storeKitManager.isPurchased) { _, purchased in
                 handlePurchaseChange(purchased)
+            }
+            .onChange(of: settingsManager.settings.enableAIAssistant) { _, on in
+                if !on { AppDependencies.current.location.ambientLocationService.stop() }
             }
             .onChange(of: activeModal) { oldModal, newModal in
                 handleLaunchModalChange(from: oldModal, to: newModal)
@@ -566,7 +573,7 @@ struct EmuquApp: App {
             // Readings whose Health export failed are exported again.
             let writes = collector.healthKit.writes
             await PendingNightExports.retry(
-                archive: collector.archive, exportEnabled: settingsManager.settings.enableHealthKitExport
+                archive: collector.archive, exportEnabled: settingsManager.settings.exportsToAppleHealth
             ) { try await writes.exportSessionMetrics(from: $0) }
         }
     }
@@ -810,8 +817,12 @@ struct EmuquApp: App {
         watchBridge.onPauseWorkoutFromWatch = { tappedAt in
             postWatchTransport(.watchRequestedWorkoutPause, userInfo: tappedAt.map { [WatchConnectivityBridge.stopTappedAtKey: $0] })
         }
-        watchBridge.onResumeWorkoutFromWatch = { postWatchTransport(.watchRequestedWorkoutResume) }
-        watchBridge.onAcknowledgeFinishedFromWatch = { postWatchTransport(.watchAcknowledgedFinished) }
+        watchBridge.onResumeWorkoutFromWatch = { tappedAt in
+            postWatchTransport(.watchRequestedWorkoutResume, userInfo: tappedAt.map { [WatchConnectivityBridge.stopTappedAtKey: $0] })
+        }
+        watchBridge.onAcknowledgeFinishedFromWatch = { tappedAt in
+            postWatchTransport(.watchAcknowledgedFinished, userInfo: tappedAt.map { [WatchConnectivityBridge.stopTappedAtKey: $0] })
+        }
     }
 
     /// Forward one Watch transport gesture to the app-level listeners.

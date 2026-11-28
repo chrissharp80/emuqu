@@ -22,7 +22,8 @@ extension Notification.Name {
     /// `WatchConnectivityBridge.stopTappedAtKey` when the Watch stamped one.
     static let watchRequestedWorkoutPause = Notification.Name("FlowRecoveryWatchRequestedWorkoutPause")
 
-    /// Posted when the Watch requests resume.
+    /// Posted when the Watch requests resume, with the tap's time under
+    /// `WatchConnectivityBridge.stopTappedAtKey` when the Watch stamped one.
     static let watchRequestedWorkoutResume = Notification.Name("FlowRecoveryWatchRequestedWorkoutResume")
 
     /// Posted when the user taps Save & Done on the Watch summary.
@@ -119,6 +120,7 @@ final class WatchConnectivityBridge: NSObject {
         case requestStrapState     // Watch → iOS "send me the current strap status now" (Watch fires on activation so it never has to wait for the next iOS-pushed change)
         case requestCurrentState   // Watch → iOS "send me the current live workout snapshot now" (Watch fires on activation / foreground so a relaunch mid-workout restores the live session instead of offering a new one). Reply IS the liveState payload.
         case coachAlert            // iOS → Watch "play a wrist haptic for a coach alert" (`urgent`, `firedAt`); a late one is dropped on the Watch
+        case workoutSaveState      // iOS → Watch "the workout that just ended was not saved" (`notSaved`): an accidental start the summary offers to save
         // There is no voice-trigger (iOS → Watch) or stop-voice-chat
         // (Watch → iOS) message: the Watch has no UI for either. Add them
         // with both a sender and a handler if it grows one.
@@ -168,8 +170,10 @@ final class WatchConnectivityBridge: NSObject {
     /// the phone, not sent back.
     var onStartWorkoutFromWatch: ((_ sportRaw: String, _ targetZone: Int?) -> WatchControlRefusal?)?
 
-    /// The `watchRequestedWorkoutStop` and `watchRequestedWorkoutPause`
-    /// userInfo key for the `Date` the End or Pause was tapped on the wrist.
+    /// The `watchRequestedWorkoutStop`, `watchRequestedWorkoutPause`,
+    /// `watchRequestedWorkoutResume` and `watchAcknowledgedFinished` userInfo
+    /// key for the `Date` the End, Pause, Resume or Done was tapped on the
+    /// wrist.
     nonisolated static let stopTappedAtKey = "tappedAt"
 
     /// Called on the main actor when the Watch asks us to stop the active
@@ -187,15 +191,18 @@ final class WatchConnectivityBridge: NSObject {
     var onPauseWorkoutFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the Watch asks us to resume the
-    /// active workout. Reply-contract matches the others.
-    var onResumeWorkoutFromWatch: (() -> WatchControlRefusal?)?
+    /// active workout, with when the Resume was tapped (the message's `ts`;
+    /// nil when it carries none): a queued Resume arrives after the tap, and
+    /// the workout resumes at the tap. Reply-contract matches the others.
+    var onResumeWorkoutFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     /// Called on the main actor when the user taps Save & Done on the
     /// Watch summary. The workout has already been archived at stop
     /// time; this is just the "dismiss the post-workout sheet on the
     /// phone so it's not sitting there next time you pick it up" hook.
-    /// Reply-contract matches the other control messages.
-    var onAcknowledgeFinishedFromWatch: (() -> WatchControlRefusal?)?
+    /// Reply-contract matches the other control messages. Handed the time
+    /// Done was tapped, like a stop, pause or resume.
+    var onAcknowledgeFinishedFromWatch: ((_ tappedAt: Date?) -> WatchControlRefusal?)?
 
     // MARK: Published
 
@@ -228,13 +235,14 @@ final class WatchConnectivityBridge: NSObject {
     /// iOS's own PolarManager isn't holding a strap connection.
     var latestWatchStrapHR: Int?
     var latestWatchStrapAt: Date?
-    /// Accumulating queue of un-consumed RR samples. The
+    /// Accumulating queue of un-consumed RR samples, each beat with the time
+    /// it ended by the Watch's clock (`WatchStrapBeat`). The
     /// recorder ticks at 1 Hz; the Watch may forward 2-3 samples per
     /// tick during dense beat periods. Reading only `latestWatchStrap…`
     /// drops samples in that window. The recorder calls
     /// `drainPendingWatchStrapRR()` on each tick to claim everything
     /// queued since the last drain.
-    var pendingWatchStrapRR: [Double] = []
+    var pendingWatchStrapRR: [WatchStrapBeat] = []
     let pendingWatchStrapRRLock = NSLock()
 
     /// Pop all queued Watch-routed RR intervals. Returned in arrival
@@ -243,7 +251,7 @@ final class WatchConnectivityBridge: NSObject {
     /// under 10 s old (the beats are used only while the phone's own strap
     /// is silent, but drained either way), and at workout start
     /// (`StartBaselines`), which discards what queued before the workout.
-    func drainPendingWatchStrapRR() -> [Double] {
+    func drainPendingWatchStrapRR() -> [WatchStrapBeat] {
         pendingWatchStrapRRLock.lock()
         defer { pendingWatchStrapRRLock.unlock() }
         let drained = pendingWatchStrapRR
@@ -524,7 +532,7 @@ final class WatchConnectivityBridge: NSObject {
         guard let heartRate else { return }
         payload[MessageKey.heartRate.rawValue] = heartRate
         guard userMaxHR > 0 else { return }
-        payload[MessageKey.hrPercentOfMax.rawValue] = Int((Double(heartRate) / Double(userMaxHR)) * 100)
+        payload[MessageKey.hrPercentOfMax.rawValue] = Int((Double(heartRate) / Double(userMaxHR) * 100).rounded())
     }
 
     // MARK: - Strap state (independent of workout pipeline)
@@ -899,6 +907,21 @@ final class WatchConnectivityBridge: NSObject {
         // The context still held the last live tick, which said recording.
         wcQueue.async { self.updateLiveStateContextLocked(payload) }
     }
+
+    /// Whether the workout that just ended was left unsaved as an accidental
+    /// start (`WorkoutSaveOutcome.notArchived`), so the Watch's summary says
+    /// so rather than offering Save & Done; false once it is saved from the
+    /// iPhone. Dual-channel, like the stop it follows.
+    func sendWorkoutSaveState(notSaved: Bool) {
+        sendDualChannel([
+            MessageKey.type.rawValue: MessageType.workoutSaveState.rawValue,
+            Self.notSavedKey: notSaved,
+            "ts": Date().timeIntervalSince1970
+        ], label: "sendWorkoutSaveState")
+    }
+
+    /// The `workoutSaveState` field the Watch reads.
+    nonisolated static let notSavedKey = "notSaved"
 
     /// Fast `sendMessage` when reachable plus a queued `transferUserInfo` that
     /// lands whenever the Watch app next wakes. Issued before the session has

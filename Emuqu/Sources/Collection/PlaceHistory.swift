@@ -88,11 +88,22 @@ extension PlaceHistory {
         var tracks: [Track] = []
         var read = 0
         for entry in entries.prefix(scanLimit) where read < trackLimit {
-            guard let session = archive.retrieveLightweightOrLog(entry.sessionId), let track = track(from: session) else { continue }
+            guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { continue }
+            let segments = Self.tracks(from: session)
+            guard !segments.isEmpty else { continue }
             read += 1
-            if passesNear(track, start) { tracks.append(track) }
+            tracks += segments.filter { passesNear($0, start) }
         }
         return tracks
+    }
+
+    /// `track(from:)` cut at each join between recorded segments
+    /// (`TrackSegments`), one track per segment of two fixes or more, so no
+    /// climb, heading or distance is read across a join.
+    static func tracks(from session: HRVSession) -> [Track] {
+        guard let whole = track(from: session) else { return [] }
+        let starts = session.workoutMetadata?.gpsSegmentStarts(count: whole.points.count)
+        return TrackSegments.split(whole.points, starts: starts).filter { $0.count >= 2 }.map { Track(date: whole.date, points: $0) }
     }
 
     static func passesNear(_ track: Track, _ location: CLLocation) -> Bool {
@@ -108,7 +119,7 @@ extension PlaceHistory {
         let fixes = GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration)
         guard fixes.count >= 2 else { return nil }
         let samples = (metadata.samples ?? []).sorted { $0.offsetSec < $1.offsetSec }
-        let along = TrackSampleAlignment.cumulativeDistances(fixes)
+        let along = TrackSampleAlignment.cumulativeDistances(fixes, starts: metadata.gpsSegmentStarts(count: fixes.count))
         let offsets = TrackSampleAlignment.activeOffsets(of: fixes, session: session)
         let points = fixes.indices.map { index in
             point(fixes[index], along: along[index], sample: offsets[index].flatMap { sample(in: samples, near: $0) })

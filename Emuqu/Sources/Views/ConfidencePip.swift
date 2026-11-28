@@ -45,7 +45,7 @@ struct ConfidencePip: View {
     private var explanationText: String {
         switch stage {
         case .building:
-            return String(localized: "For your first two nights the score uses general HRV thresholds. From the third night it compares you with your own baseline, cautiously at first, and that baseline keeps settling until about two weeks.", bundle: LanguageManager.appBundle)
+            return String(localized: "For your first three nights the score uses general HRV thresholds. From the fourth night it compares you with your own baseline, cautiously at first, and that baseline keeps settling until about two weeks.", bundle: LanguageManager.appBundle)
         case .provisional:
             return String(localized: "Z-scoring is active but your baseline is still maturing. Tomorrow's reading may shift it noticeably.", bundle: LanguageManager.appBundle)
         case .full:

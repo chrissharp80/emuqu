@@ -39,6 +39,7 @@ extension SessionRecoveryService {
         debugLog("[SessionRecoveryService] Attempting to recover session \(sessionId) from backup")
 
         guard let data = await retrieveBackupWithParentMerge(sessionId) else { return nil }
+        if let stored = keptArchivedCopy(over: data, sessionId: sessionId) { return stored }
 
         var session = HRVSession(
             id: sessionId, startDate: data.sessionStart, endDate: data.endDate,
@@ -185,6 +186,120 @@ extension SessionRecoveryService {
         }
     }
 
+    /// The archived copy that holds more than the backup
+    /// (`archivedCopyHoldingMore`), with the backup marked archived: the
+    /// night holds all of it.
+    private func keptArchivedCopy(over data: BackupData, sessionId: UUID) -> HRVSession? {
+        guard let stored = archivedCopyHoldingMore(than: data.series.points.count, sessionId: sessionId) else { return nil }
+        rawBackup.markAsArchived(sessionId)
+        return stored
+    }
+
+    /// The copy the archive holds under `sessionId` when it has more beats
+    /// than the `backupBeatCount` rebuilt from the backup. Written over by the rebuild,
+    /// the night would lose what only it holds (a strap fetch merged in, a
+    /// fuller copy from another device), so recovery keeps it
+    /// (`FullerCopy`). Nil when the archive holds no readable copy, or one
+    /// the rebuild covers.
+    func archivedCopyHoldingMore(than backupBeatCount: Int, sessionId: UUID) -> HRVSession? {
+        guard archive.store.exists(sessionId),
+              let stored = archive.retrieveOrLog(sessionId, caller: "SessionRecoveryService.archivedCopyHoldingMore"),
+              !FullerCopy.covers(backupBeatCount, stored.rrSeries?.points.count ?? 0) else { return nil }
+        debugLog("[SessionRecoveryService] The archive holds more of \(sessionId.uuidString.prefix(8)) than its backup (\(backupBeatCount) beats), so the archived copy is kept")
+        return stored
+    }
+
+    // MARK: - Fuller backups beside an archived fragment
+
+    /// Unarchived backups, other than the `live` recordings', whose recording
+    /// the archive holds in a night that lacks a stretch of their beats
+    /// (`strandsBeats`). A night recovered from a backup pulled early in
+    /// another device's night is such a fragment: the fuller backup pulled
+    /// later is saved beside it (`cloudBackupDisposition`), and with the
+    /// night archived the scan neither lists it nor rebuilds the night from
+    /// it. A download the morning saved below half its backup
+    /// (`retireRawBackupIfSafe`) is another.
+    func strandedFullerBackupIds(excluding live: Set<UUID>) -> [UUID] {
+        let deleted = archive.store.deletedIds.union(ForgottenSessions.ids)
+        return rawBackup.unarchivedSessionIds.filter { id in
+            !live.contains(id) && !deleted.contains(id) && archive.holdsNight(id) && holdsStrandedBeats(id)
+        }
+    }
+
+    /// Whether the backup, on its parent's clock for a resumed segment
+    /// (`pointsOnParentClock`), strands beats beside its archived night.
+    private func holdsStrandedBeats(_ id: UUID) -> Bool {
+        guard let backup = storedBackup(id),
+              let night = archive.retrieveOrLog(archive.archivedId(of: id), caller: "SessionRecoveryService.holdsStrandedBeats") else { return false }
+        let (points, start) = pointsOnParentClock(backup, sessionId: id)
+        return Self.strandsBeats(points, from: start, beside: night)
+    }
+
+    /// Whether a backup holds beats the night keeping its recording lacks:
+    /// more beats than the night (`FullerCopy`), and at least
+    /// `minRecoverableBeatCount` of them after the night's last beat. A
+    /// night and its own backup end together, however their counts differ
+    /// (a strap download filled in from the stream holds fewer beats than the
+    /// stream); a fragment ends early, where the backup it came from went on.
+    /// A night with no beats lacks any backup a recovery could analyse.
+    static func strandsBeats(_ points: [RRPoint], from start: Date, beside night: HRVSession) -> Bool {
+        let nightPoints = night.rrSeries?.points ?? []
+        guard !FullerCopy.covers(nightPoints.count, points.count) else { return false }
+        guard let nightEnd = nightPoints.lastBeatEnd(after: night.startDate) else { return points.count >= minRecoverableBeatCount }
+        let nightEndMs = nightEnd.timeIntervalSince(start) * 1000
+        return points.lazy.filter { Double($0.exportTimeMs) >= nightEndMs }.count >= minRecoverableBeatCount
+    }
+
+    /// Brings a stranded backup's beats into the night holding its
+    /// recording, through the merge every second copy of one night goes
+    /// through (`SessionMerger.mergeSessionData`): the backup is analysed and
+    /// scored as a recovery is, both copies' beats are kept, and the night
+    /// takes the backup's analysis when it was computed on more beats, as an
+    /// iCloud copy with more beats gives it. The night's own edits stay.
+    /// False, with the backup left as it is, when it does not analyse or the
+    /// night no longer lacks its beats.
+    func mergeStrandedBackup(
+        _ id: UUID,
+        analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
+        analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
+        computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome?
+    ) async -> Bool {
+        let nightId = archive.archivedId(of: id)
+        guard let data = await retrieveBackupWithParentMerge(id),
+              let night = archive.retrieveOrLog(nightId, caller: "SessionRecoveryService.mergeStrandedBackup") else { return false }
+        var imported = HRVSession(
+            id: nightId, startDate: data.sessionStart, endDate: data.endDate, state: .collecting, sessionType: night.sessionType,
+            rrSeries: RRSeries(points: data.series.points, sessionId: nightId, startDate: data.sessionStart),
+            analysisResult: nil, artifactFlags: data.flags
+        )
+        await analyzeSession(&imported, series: data.series, flags: data.flags, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity)
+        guard imported.analysisResult != nil else { return false }
+        imported.state = .complete
+        await stampFrozenScore(on: &imported, computeRecoveryScore: computeRecoveryScore)
+        return writeStrandedMerge(imported, backupId: id)
+    }
+
+    /// Merges into the night as stored at the write, so an edit made during
+    /// the analysis is kept, and only while it still lacks the beats; the
+    /// backup is then marked archived and the night queued to go up again.
+    private func writeStrandedMerge(_ imported: HRVSession, backupId: UUID) -> Bool {
+        let wrote = attempt("recovery.mergeStrandedBackup") {
+            try archive.updateIfChanged(imported.id, requestingReupload: true) { Self.merge(imported, intoNightLackingIt: &$0) }
+        }
+        guard wrote == true else { return false }
+        rawBackup.markAsArchived(backupId)
+        NightBeatsEdit.requestReanalysis(of: imported, detail: "a stranded backup's beats were merged in")
+        debugLog("[SessionRecoveryService] Merged the fuller backup \(backupId.uuidString.prefix(8)) (\(imported.rrSeries?.points.count ?? 0) beats) into night \(imported.id.uuidString.prefix(8))")
+        return true
+    }
+
+    /// Merges the session rebuilt from a backup into the night while the
+    /// night still lacks its beats (`strandsBeats`); whether it changed it.
+    private static func merge(_ imported: HRVSession, intoNightLackingIt night: inout HRVSession) -> Bool {
+        guard strandsBeats(imported.rrSeries?.points ?? [], from: imported.startDate, beside: night) else { return false }
+        return SessionMerger.mergeSessionData(from: imported, into: &night)
+    }
+
     /// When an interrupted recording paused: where its beats ran out, never
     /// later than `now`; `now` when nothing dates it. The app is relaunched
     /// after the recording stopped, often hours after; dated by the relaunch,
@@ -211,15 +326,13 @@ extension SessionRecoveryService {
     ) async -> HRVSession? {
         debugLog("[SessionRecoveryService] Recovering interrupted session \(sessionId.uuidString.prefix(8)) to paused state")
         guard let data = await retrieveBackupWithParentMerge(sessionId) else { return nil }
+        if let stored = archivedCopyHoldingMore(than: data.series.points.count, sessionId: sessionId) { return stored }
         var session = HRVSession(
             id: sessionId, startDate: data.sessionStart, endDate: data.endDate,
             state: .collecting, sessionType: sessionType,
             rrSeries: data.series, analysisResult: nil, artifactFlags: data.flags
         )
-        await analyzeSession(
-            &session, series: data.series, flags: data.flags,
-            analyze: analyze, analyzeWithCapacity: analyzeWithCapacity
-        )
+        await analyzeSession(&session, series: data.series, flags: data.flags, analyze: analyze, analyzeWithCapacity: analyzeWithCapacity)
         session.state = .paused
         session.pausedDate = Self.interruptedPauseDate(lastBeatEnd: data.endDate, now: Date())
         // Never folded into another same-night entry: the merge would keep

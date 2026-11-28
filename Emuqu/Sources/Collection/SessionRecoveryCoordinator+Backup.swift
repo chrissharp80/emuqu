@@ -19,8 +19,31 @@ extension SessionRecoveryCoordinator {
     /// save failed and is being retried in memory: recovering it from its
     /// backup as well would save it twice. A recording that died with the
     /// app is not live, and still shows.
+    ///
+    /// The scan also brings into their nights the fuller backups that stand
+    /// beside an archived fragment of them (`mergeStrandedFullerBackups`):
+    /// the scan's iCloud pull is what saves such a backup here.
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)] {
-        await recoveryService.checkForLostSessions(excludingLive: { liveRecordingIds() })
+        let lost = await recoveryService.checkForLostSessions(excludingLive: { liveRecordingIds() })
+        await mergeStrandedFullerBackups()
+        return lost
+    }
+
+    /// Each backup holding beats its archived night lacks
+    /// (`SessionRecoveryService.strandedFullerBackupIds`) is merged into that
+    /// night, analysed and scored as a recovery is.
+    func mergeStrandedFullerBackups() async {
+        var merged = 0
+        for id in recoveryService.strandedFullerBackupIds(excluding: liveRecordingIds()) {
+            let wrote = await recoveryService.mergeStrandedBackup(
+                id,
+                analyze: { [self] session, window, flags, capacity in await morning.analyze(session, window: window, flags: flags, peakCapacity: capacity) },
+                analyzeWithCapacity: { [self] session, capacity in await morning.analyze(session, peakCapacity: capacity) },
+                computeRecoveryScore: { [self] session, analysisResult in await enrichedRecoveryScore(session: session, analysisResult: analysisResult) }
+            )
+            if wrote { merged += 1 }
+        }
+        if merged > 0 { await MainActor.run { archiveSignal.notifyChanged() } }
     }
 
     /// The sessions recording right now, being ended, or finished and waiting
@@ -44,7 +67,12 @@ extension SessionRecoveryCoordinator {
     /// A session the archive still holds as deleted cannot be put back (the
     /// archive refuses to write it), so the restore stops there and says so
     /// rather than rebuilding it only to have the write refused.
+    ///
+    /// The restore is marked under way until it ends, so the Trash expiry
+    /// does not delete for good a session being brought back.
     func restoreFromTrash(_ sessionId: UUID) async -> HRVSession? {
+        recoveryService.beginRestore(sessionId)
+        defer { recoveryService.endRestore(sessionId) }
         recoveryService.restoreFromTrash(sessionId)
         guard !archive.store.deletedIds.contains(sessionId) else {
             debugLog("[Recovery] Could not restore \(sessionId.uuidString.prefix(8)): it is still marked deleted", level: .error)
@@ -89,6 +117,17 @@ extension SessionRecoveryCoordinator {
         }
     }
 
+    /// The 90-day Trash expiry: `permanentlyDelete(_:)` for each id still
+    /// due when its turn comes (`SessionRecoveryService.isExpiryStillDue`).
+    @discardableResult
+    func permanentlyDeleteExpired(_ ids: [UUID]) async -> TrashDeletionOutcome {
+        let service = recoveryService
+        return await service.permanentlyDelete(
+            ids, stillDue: { service.isExpiryStillDue($0) },
+            removeHealthSamples: { id, span in await self.removeHealthExports(of: id, over: span) }
+        )
+    }
+
     /// False (logged) when HealthKit could not delete all of them.
     private func removeHealthExports(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
         do {
@@ -120,7 +159,18 @@ extension SessionRecoveryCoordinator {
         if session?.state == .complete {
             await MainActor.run { archiveSignal.notifyChanged() }
         }
+        if let session, session.state == .paused { await holdKeptPausedNight(session) }
         return session
+    }
+
+    /// The archive kept a paused copy of the night holding more than its
+    /// backup (`SessionRecoveryService.archivedCopyHoldingMore`): it is still
+    /// paused, not saved. It goes on the Record tab, as a Resume puts it, so
+    /// the night can be resumed or finished there, which is what the caller
+    /// then says. Not while another recording holds the Record tab.
+    private func holdKeptPausedNight(_ session: HRVSession) async {
+        guard !sessionState.isCollecting, streamingLifecycle.pausedSession == nil else { return }
+        await holdPaused(session)
     }
 
     private func recoverHRVFromBackup(_ sessionId: UUID, recordedType: SessionType?) async -> HRVSession? {
@@ -199,7 +249,7 @@ extension SessionRecoveryCoordinator {
     /// streamed disk backup it reads on its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> PulledStrapRecording? {
         guard let backup = services.workoutTrackBackup.retrieve(sessionId),
-              !strapGuards.belongsToLiveSession else { return nil }
+              strapGuards.strapRecordingOwner(otherThan: sessionId) == nil else { return nil }
         let workoutStart = backup.header.startDate
         strapRecorder.beginTransfer()
         guard await strapRecorder.reconnectForTransfer(), strapRecorder.device.isRecordingOnDevice || strapRecorder.device.hasStoredExercise,
@@ -229,7 +279,7 @@ extension SessionRecoveryCoordinator {
     /// (`StrapRecordingPolicy.recordingIsSaved`). A session that was saved
     /// with them puts the recording on the saved record itself
     /// (`StrapRecordingState.noteSaved`).
-    private func keepUnsavedDownload(_ recording: StrapRecording?) {
+    func keepUnsavedDownload(_ recording: StrapRecording?) {
         guard let recording else { return }
         let keptAside = strapRecorder.device.rescueToBackup(recording)
         debugLog("[Recovery] The session could not be saved with the strap's \(recording.points.count) beats — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed")", level: .warning)
@@ -255,25 +305,25 @@ extension SessionRecoveryCoordinator {
 
     static let armingSlackSeconds: TimeInterval = 15 * 60
 
-    /// Re-finalize a recovered workout at a user-chosen end (seconds from
-    /// start) by clipping its archived RR series — the review/trim card's
-    /// Save. Reuses WorkoutRecoveryService so TRIMP/metrics stay consistent;
-    /// no strap re-pull needed (the merged data is in the archived session).
+    /// Re-finalize a workout at a user-chosen end (seconds from start on the
+    /// wall clock) — the review/trim card's Save. Its archived beats are
+    /// clipped there, and WorkoutRecoveryService cuts its track, samples and
+    /// pauses there too and recomputes every figure from what is kept, so a
+    /// workout with no heart rate is trimmed like any other; no strap re-pull
+    /// is needed (the merged data is in the archived session).
     ///
-    /// Refuses to trim into nothing — fewer than 30 beats isn't a workout. In
-    /// that case (a session no longer in the archive counts as none) the
-    /// recovered workout is kept as it was, untrimmed, and marked reviewed
-    /// like a save, so the card doesn't come back for the same session.
-    /// An archived session that cannot be read, or a rebuild that fails or
+    /// A session no longer in the archive has nothing to trim: the card
+    /// closes and it is marked reviewed, so it does not come back. An archived
+    /// session that cannot be read, or a rebuild that fails, keeps nothing or
     /// is not archived, leaves the card up and the session unreviewed, so the
     /// trim can be saved again instead of being dropped.
     ///
-    /// True when the card closed (trimmed, or kept untrimmed); false when it
-    /// stays up because nothing was saved, so the card can say so.
+    /// True when the card closed; false when it stays up because nothing was
+    /// saved, so the card can say so.
     @discardableResult
     func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async -> Bool {
         guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return false }
-        guard clipped.count >= 30 else {
+        guard archive.store.exists(sessionId) else {
             closeRecoveredWorkoutReview(sessionId)
             return true
         }
@@ -356,7 +406,7 @@ extension SessionRecoveryCoordinator {
         guard let session = archive.retrieveOrLog(sessionId), let series = session.rrSeries else { return .failed }
         let start = session.startDate
         let end = session.endDate ?? start
-        if let route = await training.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
+        if let route = await training.fetchWorkoutRoute(from: start, to: end), route.fixes.count >= 2 {
             guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) else { return .failed }
             await MainActor.run { archiveSignal.notifyChanged() }
             return .recovered(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? 0)
@@ -377,7 +427,7 @@ extension SessionRecoveryCoordinator {
     private func recoverWorkout(
         sessionId: UUID,
         points: [RRPoint],
-        track: [CLLocation]? = nil,
+        track: SegmentedTrack? = nil,
         distanceMeters: Double? = nil
     ) async -> HRVSession? {
         let outcome = await WorkoutRecoveryService.recover(
@@ -446,90 +496,23 @@ extension SessionRecoveryCoordinator {
         case failed
     }
 
-    /// "Pull from strap & re-merge" for an OVERNIGHT session that scored
-    /// streaming-only — e.g. Bluetooth dropped overnight so the morning device
-    /// fetch was skipped and only the (possibly truncated) live stream was
-    /// scored. The H10 keeps its full-night internal file until the next
-    /// recording clears it, so this reconnects, downloads it, merges with the archived stream
-    /// (device-preferred, stream fills gaps), and re-scores through the
-    /// saved-session reanalysis the caller hands in
-    /// (`SessionReanalysisCoordinator.reanalyzeSession`) so the HRV window +
-    /// recovery score are recomputed from the fuller data. Overnight sibling
-    /// of `augmentWorkoutFromStrap`.
-    func augmentOvernightFromStrap(
-        sessionId: UUID, rescoringWith reanalysis: SessionReanalysisCoordinator
-    ) async -> OvernightAugmentResult {
-        guard let session = archive.retrieveOrLog(sessionId) else { return .failed }
-        // Nothing to add if the device recording is already in the mix.
-        if let src = session.dataSourceSummary?.selectedSource, src == "internal" || src == "composite" {
-            return .alreadyMerged
-        }
-        guard await reconnectStrapForAugment() else { return .notReachable }
-        guard let strap = await pullStrapRecording(for: session) else { return .noStrapData }
-        let (strapRR, existing) = (strap.points, session.rrSeries?.points ?? [])
-        let selection = DataSourceSelector.selectBestSource(
-            streamingPoints: existing, internalPoints: strapRR,
-            sessionId: sessionId, sessionStart: session.startDate
-        )
-        guard let mergedPoints = overnightMergePoints(selection: selection, existing: existing, strapRR: strapRR),
-              let updated = persistMergedOvernight(
-                session: session, mergedPoints: mergedPoints, selection: selection, existingCount: existing.count, strap: strap
-              ) else { return .failed }
-        return await rescoreAugmentedOvernight(updated, merging: session, strapCount: strapRR.count, streamedCount: existing.count, with: reanalysis)
-    }
-
-    /// The selector's points, or the strap's when it chose nothing and the
-    /// strap holds more. Nil when the archived stream would stay as it is:
-    /// relabelling it as strap data would report a merge that never happened.
-    private func overnightMergePoints(
-        selection: DataSourceSelector.SelectionResult?, existing: [RRPoint], strapRR: [RRPoint]
-    ) -> [RRPoint]? {
-        if let selected = selection?.points { return selected.isEmpty ? nil : selected }
-        return strapRR.count > existing.count ? strapRR : nil
-    }
-
-    ///
-    /// Apple Health gets the night with the strap's beats, compared with the
-    /// night as it was before the merge (`before`): the reanalysis compares
-    /// with the merged copy it read, which already holds them.
-    private func rescoreAugmentedOvernight(
-        _ updated: HRVSession, merging before: HRVSession, strapCount: Int, streamedCount: Int, with reanalysis: SessionReanalysisCoordinator
-    ) async -> OvernightAugmentResult {
-        let rescored = await reanalysis.reanalyzeSession(updated)
-        await MainActor.run { archiveSignal.notifyChanged() }
-        let finalSession = rescored ?? updated
-        reanalysis.service.reexportIfReadingsChanged(from: before, to: finalSession)
-        let mergedBeatCount = finalSession.rrSeries?.points.count ?? 0
-        debugLog("[RRCollector] augmentOvernight: merged \(strapCount) strap + \(streamedCount) streamed → \(mergedBeatCount) beats, source=\(finalSession.dataSourceSummary?.selectedSource ?? "?"), rescored=\(rescored != nil)")
-        // A failed rescore reports no score: the archived one predates the merge.
-        return .merged(
-            source: finalSession.dataSourceSummary?.selectedSource ?? "internal",
-            beats: mergedBeatCount,
-            score: rescored?.recoveryScore
-        )
-    }
-
-    /// Reconnect so the strap's stored recording is reachable (BLE likely
-    /// dropped overnight).
-    private func reconnectStrapForAugment() async -> Bool {
-        strapRecorder.beginTransfer()
-        return await strapRecorder.reconnectForTransfer()
-    }
-
     /// The strap's recording of `session`, on the session's clock: one that
-    /// began during it. Nothing is taken while a live session owns the
-    /// strap's recording. A recording that turns out to be another
+    /// began during it. Nothing is taken while another session owns the
+    /// strap's recording (`StrapRecordingGuards.strapRecordingOwner`): a live
+    /// one, a workout the app died during, a paused night or a night awaiting
+    /// acceptance. A recording that turns out to be another
     /// session's is not dropped: it goes to the rescue backup, and if that
     /// fails the strap's copy is not saved (`isStrapRecordingSaved`), so the
     /// next start rescues it again instead of clearing it.
-    private func pullStrapRecording(for session: HRVSession) async -> PulledStrapRecording? {
+    func pullStrapRecording(for session: HRVSession) async -> PulledStrapRecording? {
         let end = session.endDate ?? session.startDate
         let storedIsThisSession = strapRecorder.device.storedExerciseDate.map {
             StrapRecordingPolicy.recording(startedAt: $0, belongsToSessionStartedAt: session.startDate) && $0 <= end
         } ?? false
         // A recording still running is only dated once it is downloaded; the
         // check after the download catches one that is not this session's.
-        guard !strapGuards.belongsToLiveSession, strapRecorder.device.isRecordingOnDevice || storedIsThisSession else {
+        guard strapGuards.strapRecordingOwner(otherThan: session.id) == nil,
+              strapRecorder.device.isRecordingOnDevice || storedIsThisSession else {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
             return nil
         }
@@ -541,68 +524,6 @@ extension SessionRecoveryCoordinator {
             return nil
         }
         return PulledStrapRecording(recording: recording, points: recording.points(onClockOf: session.startDate))
-    }
-
-    /// Persist merged points + updated provenance. This must be written BEFORE
-    /// re-analysis, because `SessionReanalysisCoordinator.reanalyzeSession` re-loads the archived session
-    /// from disk (and re-archives the rescored result itself).
-    ///
-    /// Only the beats and their provenance are written, onto the stored copy
-    /// under the archive's lock (`SessionArchive.updateIfChanged`): the strap
-    /// download takes seconds to minutes, and a feeling, a sleep update or a
-    /// note saved meanwhile is in the stored copy, not in `session`, which was
-    /// read before it. Nothing is written when the stored beats are no longer
-    /// the ones merged (another merge landed first) or the night was deleted.
-    ///
-    /// A night that cannot be written keeps the strap's download as a rescue
-    /// backup (`keepUnsavedDownload`).
-    private func persistMergedOvernight(
-        session: HRVSession, mergedPoints: [RRPoint],
-        selection: DataSourceSelector.SelectionResult?, existingCount: Int, strap: PulledStrapRecording
-    ) -> HRVSession? {
-        let summary = mergedSummary(session: session, mergedCount: mergedPoints.count, selection: selection,
-                                    existingCount: existingCount, strapCount: strap.points.count)
-        let written: HRVSession?
-        do {
-            written = try Self.writeMergedBeats(mergedPoints, summary: summary, into: session.id, replacing: existingCount, in: archive)
-        } catch {
-            debugLog("[RRCollector] augmentOvernight: archive failed: \(error)")
-            written = nil
-        }
-        if written == nil { keepUnsavedDownload(strap.recording) } else { strapRecorder.device.noteSaved(strap.recording) }
-        return written
-    }
-
-    /// Puts `points` and `summary` on the archived copy of `sessionId` and
-    /// changes nothing else; nil, with nothing written, when that copy no
-    /// longer holds `replacing` beats. Returns the copy as written.
-    nonisolated static func writeMergedBeats(
-        _ points: [RRPoint], summary: HRVSession.DataSourceSummary, into sessionId: UUID, replacing beatCount: Int, in archive: SessionArchive
-    ) throws -> HRVSession? {
-        var written: HRVSession?
-        try archive.updateIfChanged(sessionId) { stored in
-            guard (stored.rrSeries?.points.count ?? 0) == beatCount else { return false }
-            stored.rrSeries = RRSeries(points: points, sessionId: stored.id, startDate: stored.startDate)
-            stored.dataSourceSummary = summary
-            written = stored
-            return true
-        }
-        return written
-    }
-
-    /// The provenance of a night after the strap's recording was merged in.
-    private func mergedSummary(
-        session: HRVSession, mergedCount: Int, selection: DataSourceSelector.SelectionResult?, existingCount: Int, strapCount: Int
-    ) -> HRVSession.DataSourceSummary {
-        HRVSession.DataSourceSummary(
-            selectedSource: selection?.normalizedSource ?? "internal",
-            streamingBeats: existingCount,
-            deviceBeats: strapCount,
-            totalBeats: mergedCount,
-            beatDifferencePercent: nil,
-            reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,
-            deviceModel: session.dataSourceSummary?.deviceModel
-        )
     }
 
     private static let reviewedRecoveredKey = "reviewedRecoveredWorkoutIds"
@@ -766,8 +687,49 @@ extension SessionRecoveryCoordinator {
         return strapRecorder.device.isRecordingOnDevice
     }
 
-    func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> Bool {
-        guard let session = await recoveryService.recoverToPausedState(
+    /// What Resume made of an interrupted recording.
+    enum PausedRecovery: Equatable {
+        /// The night is paused, on the Record tab.
+        case paused
+        /// The archive held a finished copy of it with more beats than its
+        /// backup (`SessionRecoveryService.archivedCopyHoldingMore`): that
+        /// copy was kept as it is, and there is nothing to resume.
+        case saved(SessionType)
+        /// Nothing could be restored.
+        case failed
+    }
+
+    /// Resume after a crash. Only a paused night is put on the Record tab: a
+    /// kept finished copy put there offered Resume and Done for a night
+    /// already saved, and Done saved it again.
+    ///
+    /// The rebuild and its analysis hold the recorder, so no recording
+    /// starts under them (`SessionState.RecorderClaim`). The night is put on
+    /// the Record tab unless another session took the recorder during the
+    /// rebuild (`SessionState.recorderTaken`); that one keeps it, and the
+    /// night, which the rebuild archived as paused, is reported saved there.
+    func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> PausedRecovery {
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
+        let before = sessionState.currentSession?.id
+        guard let session = await pausedRecovery(sessionId, sessionType: sessionType) else { return .failed }
+        guard session.state == .paused else {
+            recordingStore.clear(ifItIs: sessionId)
+            return .saved(session.sessionType)
+        }
+        guard !sessionState.recorderTaken(since: before) else {
+            debugLog("[RRCollector] Resume: another session took the recorder during the rebuild; \(sessionId.uuidString.prefix(8)) stays paused in the archive", level: .warning)
+            recordingStore.clear(ifItIs: sessionId)
+            return .saved(session.sessionType)
+        }
+        await holdPaused(session)
+        recordingStore.clear(ifItIs: sessionId)
+        return .paused
+    }
+
+    /// The paused night the service rebuilds, or the fuller copy it keeps.
+    private func pausedRecovery(_ sessionId: UUID, sessionType: SessionType) async -> HRVSession? {
+        await recoveryService.recoverToPausedState(
             sessionId,
             sessionType: sessionType,
             analyze: { [self] session, window, flags, capacity in
@@ -776,15 +738,16 @@ extension SessionRecoveryCoordinator {
             analyzeWithCapacity: { [self] session, capacity in
                 await morning.analyze(session, peakCapacity: capacity)
             }
-        ) else {
-            return false
-        }
+        )
+    }
+
+    /// Puts a paused night on the Record tab, with Resume and Done, as it
+    /// stands after a relaunch.
+    private func holdPaused(_ session: HRVSession) async {
         await MainActor.run { enterPausedState(session) }
         // Resume arms the strap by the night's own capture choice, not the default.
         if let usesDeviceBackup = recordingStore.captureMode() { overnightRun.usesDeviceBackup = usesDeviceBackup }
         recordingStore.persistPaused(sessionId: session.id)
-        recordingStore.clear(ifItIs: sessionId)
-        return true
     }
 
     @MainActor

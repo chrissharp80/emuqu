@@ -5,8 +5,18 @@ import Foundation
 extension RRDataImporter {
     // MARK: - Emuqu Multi-Session Parsing
 
+    /// One exported beat: its `timestamp_ms`, its `rr_ms`, its
+    /// `wall_clock_ms` when the row states one, and its
+    /// `follows_removed_beat` mark.
+    struct ExportedBeat {
+        let timestamp: Int64
+        let rr: Int
+        let wallClockMs: Int64?
+        let followsRemovedBeat: Bool
+    }
+
     /// Parse Emuqu multi-session RR export
-    /// Format: session_date,timestamp_ms,rr_ms[,session_type[,session_id]]
+    /// Format: session_date,timestamp_ms,rr_ms[,session_type[,wall_clock_ms]][,session_id]
     /// Each session_date value (an exact instant with its UTC offset) is one
     /// recording, split further where its timestamps restart
     /// (`legacyRecordingSegments`): a legacy minute-only date can name more
@@ -51,7 +61,7 @@ extension RRDataImporter {
     /// minute): each one is kept apart, never merged.
     private func flowHRVRecordings(
         key: FlowHRVRecordingKey,
-        points: [(timestamp: Int64, rr: Int)],
+        points: [ExportedBeat],
         sessionType: SessionType?,
         formatter: DateFormatter
     ) -> [FlowHRVMultiSessionResult.SessionRRData] {
@@ -67,7 +77,7 @@ extension RRDataImporter {
         }
     }
 
-    private func logSessionGroups(_ sessionGroups: [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]]) {
+    private func logSessionGroups(_ sessionGroups: [FlowHRVRecordingKey: [ExportedBeat]]) {
         debugLog("[RRDataImporter] Found \(sessionGroups.count) unique sessions:")
         for (key, points) in sessionGroups {
             debugLog("[RRDataImporter]   '\(key.sessionDate)' -> \(points.count) RR intervals")
@@ -83,14 +93,16 @@ extension RRDataImporter {
     private static let minimumBeatsPerSession = 60
 
     /// Column layout of an Emuqu multi-session export. `timestamp`,
-    /// `sessionType` and `sessionID` are optional because older exports omit
-    /// them.
+    /// `sessionType`, `wallClock` and `sessionID` are optional because older
+    /// exports omit them.
     struct FlowHRVColumns {
         let session: Int
         let timestamp: Int?
         let rr: Int
         var sessionType: Int?
         var sessionID: Int?
+        var wallClock: Int?
+        var removedBeat: Int?
     }
 
     /// Which recording a row belongs to: its `session_date`, or its
@@ -119,7 +131,8 @@ extension RRDataImporter {
         }
         return FlowHRVColumns(
             session: session, timestamp: column("timestamp_ms"), rr: rr,
-            sessionType: column("session_type"), sessionID: column("session_id")
+            sessionType: column("session_type"), sessionID: column("session_id"), wallClock: column("wall_clock_ms"),
+            removedBeat: column("follows_removed_beat")
         )
     }
 
@@ -166,13 +179,12 @@ extension RRDataImporter {
         dataLines: some Sequence<String>,
         columns: FlowHRVColumns,
         maxBeatsPerSession: Int = maxBeatsPerRecording
-    ) throws -> [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]] {
-        var groups: [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]] = [:]
+    ) throws -> [FlowHRVRecordingKey: [ExportedBeat]] {
+        var groups: [FlowHRVRecordingKey: [ExportedBeat]] = [:]
         var total = 0
         for line in dataLines {
             let fields = Self.fields(of: line, separator: ",")
             guard fields.count > max(columns.session, columns.rr) else { continue }
-
             let sessionKey = FlowHRVRecordingKey(fields: fields, columns: columns)
             guard let rrValue = Int(fields[columns.rr]).flatMap(storableRR) else { continue }
             total += 1
@@ -182,7 +194,8 @@ extension RRDataImporter {
             let timestamp = try beatTimestamp(
                 sessionKey: sessionKey, fields: fields, columns: columns, groups: groups
             )
-            groups[sessionKey, default: []].append((timestamp: timestamp, rr: rrValue))
+            let beat = try exportedBeat(fields, columns: columns, session: sessionKey.sessionDate, timestamp: timestamp, rr: rrValue)
+            groups[sessionKey, default: []].append(beat)
         }
         return groups
     }
@@ -200,7 +213,7 @@ extension RRDataImporter {
         sessionKey: FlowHRVRecordingKey,
         fields: [String],
         columns: FlowHRVColumns,
-        groups: [FlowHRVRecordingKey: [(timestamp: Int64, rr: Int)]]
+        groups: [FlowHRVRecordingKey: [ExportedBeat]]
     ) throws -> Int64 {
         let timestamp = try statedTimestamp(sessionKey: sessionKey.sessionDate, fields: fields, columns: columns)
             ?? synthesisedTimestamp(after: groups[sessionKey]?.last)
@@ -221,10 +234,32 @@ extension RRDataImporter {
         return timestamp
     }
 
+    /// One row's beat: its timestamp and RR, its `wall_clock_ms`
+    /// (`statedWallClock`) and its `follows_removed_beat` mark.
+    private static func exportedBeat(
+        _ fields: [String], columns: FlowHRVColumns, session: String, timestamp: Int64, rr: Int
+    ) throws -> ExportedBeat {
+        let wallClock = try statedWallClock(sessionKey: session, fields: fields, columns: columns)
+        let removed = statesRemovedBeat(fields, column: columns.removedBeat)
+        return ExportedBeat(timestamp: timestamp, rr: rr, wallClockMs: wallClock, followsRemovedBeat: removed)
+    }
+
+    /// The row's `wall_clock_ms`, or nil when the export has no such column
+    /// or the cell is blank (a beat the sensor recorded itself). Like the
+    /// timestamp, a value that is not whole milliseconds in
+    /// `recordingTimestampRange` is an error.
+    private static func statedWallClock(sessionKey: String, fields: [String], columns: FlowHRVColumns) throws -> Int64? {
+        guard let index = columns.wallClock, index < fields.count, !fields[index].isEmpty else { return nil }
+        guard let wallClock = Int64(fields[index]), recordingTimestampRange.contains(wallClock) else {
+            throw ImportError.invalidTimestamps(session: String(sessionKey.prefix(40)))
+        }
+        return wallClock
+    }
+
     /// The beat after `lastPoint` starts when `lastPoint` ends; the first
     /// beat at zero. `lastPoint.timestamp` has passed the range check, so the
     /// sum cannot overflow.
-    private static func synthesisedTimestamp(after lastPoint: (timestamp: Int64, rr: Int)?) -> Int64 {
+    private static func synthesisedTimestamp(after lastPoint: ExportedBeat?) -> Int64 {
         guard let lastPoint else { return 0 }
         return lastPoint.timestamp + Int64(lastPoint.rr)
     }
@@ -233,7 +268,12 @@ extension RRDataImporter {
     /// recording's start as an ISO 8601 instant with the exporting phone's UTC
     /// offset, which names the recording: two recordings at the same clock
     /// time on a night the clocks go back carry different offsets.
-    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type"
+    /// `timestamp_ms` is the beat's start on the recording's beat timeline and
+    /// `wall_clock_ms` when a streamed beat reached the phone, blank for one
+    /// the sensor recorded itself, and `follows_removed_beat` 1 for a beat
+    /// the sensor removed an interval before: the columns of the
+    /// one-recording export (`recordingCSVHeader`), and read back the same way.
+    static let emuquRRExportHeader = "session_date,timestamp_ms,rr_ms,session_type,wall_clock_ms,follows_removed_beat"
 
     /// A recording's start as the exporter writes it in `session_date`:
     /// ISO 8601 to the second with the UTC offset of `timeZone`, e.g.
@@ -265,14 +305,19 @@ extension RRDataImporter {
 
     /// A legacy group's rows split into recordings, in file order. Each
     /// recording's `timestamp_ms` counts up from its own start, so a row
-    /// whose timestamp does not move past the row before it begins another
+    /// that is not in order after the row before it begins another
     /// recording: sorting the two together would interleave their beats.
+    /// In order is the rule a recording's timeline is read by
+    /// (`continuesTimeline`): a later timestamp, or the same one on two
+    /// streamed beats of one batch, which a composite an earlier build saved
+    /// stamped with the batch's arrival.
     static func legacyRecordingSegments(
-        _ points: [(timestamp: Int64, rr: Int)]
-    ) -> [[(timestamp: Int64, rr: Int)]] {
-        var segments: [[(timestamp: Int64, rr: Int)]] = []
+        _ points: [ExportedBeat]
+    ) -> [[ExportedBeat]] {
+        var segments: [[ExportedBeat]] = []
         for point in points {
-            if let last = segments.last?.last, point.timestamp > last.timestamp {
+            if let last = segments.last?.last,
+               continuesTimeline(from: (last.timestamp, last.wallClockMs), to: (point.timestamp, point.wallClockMs)) {
                 segments[segments.count - 1].append(point)
             } else {
                 segments.append([point])
@@ -288,7 +333,7 @@ extension RRDataImporter {
     /// none is left. Empty when the session date does not parse.
     static func legacySegmentStarts(
         _ text: String,
-        segments: [[(timestamp: Int64, rr: Int)]],
+        segments: [[ExportedBeat]],
         formatter: DateFormatter
     ) -> [Date] {
         guard let parsed = flowHRVSessionStart(text, formatter: formatter) else { return [] }
@@ -319,7 +364,7 @@ extension RRDataImporter {
     /// baseline.
     private func flowHRVSession(
         sessionDateStr: String,
-        points: [(timestamp: Int64, rr: Int)],
+        points: [ExportedBeat],
         sessionType: SessionType?,
         formatter: DateFormatter
     ) -> FlowHRVMultiSessionResult.SessionRRData? {
@@ -335,7 +380,7 @@ extension RRDataImporter {
     /// when it is too short to be worth importing.
     private func flowHRVSession(
         sessionDateStr: String,
-        points: [(timestamp: Int64, rr: Int)],
+        points: [ExportedBeat],
         sessionType: SessionType?,
         start: Date
     ) -> FlowHRVMultiSessionResult.SessionRRData? {
@@ -343,13 +388,19 @@ extension RRDataImporter {
             debugLog("[RRDataImporter] Skipping '\(sessionDateStr)' - only \(points.count) beats (need \(Self.minimumBeatsPerSession))")
             return nil
         }
-        let sortedPoints = points.sorted { $0.timestamp < $1.timestamp }
+        // Ties keep the file's order: a composite an earlier build exported
+        // stamped a streamed batch's beats with one time.
+        let sortedPoints = points.enumerated()
+            .sorted { ($0.element.timestamp, $0.offset) < ($1.element.timestamp, $1.offset) }
+            .map(\.element)
         return FlowHRVMultiSessionResult.SessionRRData(
             sessionDate: sessionDateStr,
             date: start,
             rrIntervals: sortedPoints.map(\.rr),
             timestamps: sortedPoints.map(\.timestamp),
-            sessionType: sessionType
+            sessionType: sessionType,
+            wallClocks: sortedPoints.map(\.wallClockMs),
+            removedBeats: sortedPoints.map(\.followsRemovedBeat)
         )
     }
 
@@ -357,9 +408,14 @@ extension RRDataImporter {
     /// Its type is the one it was exported with; exports from before the
     /// `session_type` column carried none and come back as overnights.
     func createSessionFromFlowHRVData(_ sessionData: FlowHRVMultiSessionResult.SessionRRData, originalFileName: String) -> HRVSession {
-        // `rrIntervals` and `timestamps` are built from the same sorted beats,
-        // so they pair up one to one.
-        let points = zip(sessionData.timestamps, sessionData.rrIntervals).map { RRPoint(t_ms: $0.0, rr_ms: $0.1) }
+        // `rrIntervals`, `timestamps` and `wallClocks` are built from the same
+        // sorted beats, so they pair up one to one.
+        let points = Self.spreadingSharedTimes(sessionData.timestamps.indices.map { i in
+            RRPoint(
+                t_ms: sessionData.timestamps[i], rr_ms: sessionData.rrIntervals[i],
+                wallClockMs: sessionData.wallClock(at: i), followsRemovedBeat: sessionData.followsRemovedBeat(at: i)
+            )
+        })
         var session = HRVSession(startDate: sessionData.date, sessionType: sessionData.sessionType ?? .overnight)
         session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: sessionData.date)
         // Where the last beat ends on the exported timeline, which runs past

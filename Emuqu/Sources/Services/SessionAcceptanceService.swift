@@ -122,7 +122,12 @@ final class SessionAcceptanceService {
     }
 
     /// The analysis window's length, or the session's when there is none.
-    nonisolated private static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
+    /// The one reading of the span both this rule and the baseline's
+    /// structural gate (`BaselineTracker.isStructurallySound`) compare with
+    /// `forReliableWindowMs`. A window's bounds are half-open in time (the
+    /// selector ends it where its last beat ends), so this is the time the
+    /// window covers, the quantity the 5-minute threshold is written in.
+    nonisolated static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
         guard let wsMs = result.windowStartMs, let weMs = result.windowEndMs else { return Int64(sessionDuration * 1000) }
         return weMs - wsMs
     }
@@ -187,8 +192,8 @@ final class SessionAcceptanceService {
         rrPoints: [RRPoint]?, rrStart: Date
     ) async -> SleepData? {
         do {
-            return try await hk.fetchSleepData(
-                for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints, rrStart: rrStart
+            return try await hk.fetchNightSleep(
+                for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints, rrStart: rrStart, nightAnchor: rrStart
             )
         } catch {
             debugLog("[SessionAcceptanceService] Sleep fetch failed: \(error)")
@@ -208,11 +213,7 @@ final class SessionAcceptanceService {
             let fetched = await Self.sleepOrNil(
                 hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints, rrStart: sessionStart
             )
-            // Credit the day-before's qualifying nap toward 24 h sleep, as the
-            // morning pass did for the score shown before acceptance.
-            let napMinutes = await hk.fetchDaytimeNapMinutes(nightAnchoredAt: sessionStart)
-            let sleep = fetched.map { napMinutes > 0 ? $0.withNapSleepMinutes(napMinutes) : $0 }
-            return SleepAndVitals(sleep: sleep, vitals: await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
+            return SleepAndVitals(sleep: fetched, vitals: await hk.fetchRecoveryVitals(relativeTo: sessionEnd))
         }
         guard let raced else {
             debugLog("[SessionAcceptanceService] ⚠️ HealthKit fetch timed out after 10s — scoring without sleep/vitals")

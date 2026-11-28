@@ -145,6 +145,23 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         XCTAssertTrue(ids.isSubset(of: inFile), "the file copy a locked relaunch reads is missing an id")
     }
 
+    /// A record is in the file copy when `record` returns, before the
+    /// plaintext bytes it covers are written: queued only, a kill in between
+    /// left a plaintext file that nothing listed. Many records in a row, so a
+    /// write that only queued would still be behind when the last returns.
+    func testARecordIsInTheFileCopyBeforeItReturns() throws {
+        let ids = (0 ..< 50).map { _ in newId() }
+        ids.forEach(PendingEncryptionLedger.record)
+
+        let key = PendingEncryptionLedger.Store.session.rawValue
+        let file = try XCTUnwrap(FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first)
+            .appendingPathComponent("PendingEncryption", isDirectory: true)
+            .appendingPathComponent("\(key).json")
+        let inFile = try Set(JSONDecoder().decode([String].self, from: Data(contentsOf: file)).compactMap(UUID.init(uuidString:)))
+        XCTAssertTrue(Set(ids).isSubset(of: inFile), "a recorded id was not on disk when record returned")
+        PendingEncryptionLedger.waitForPendingWrites()
+    }
+
     /// A clear reaches disk too, so a relaunch does not re-encrypt a file
     /// that is already encrypted.
     func testClearIsPersisted() {

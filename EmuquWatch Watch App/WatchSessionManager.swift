@@ -51,6 +51,12 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// Save & Done or the next workout starts.
     @Published var justCompleted: Bool = false
 
+    /// True when the iPhone left the workout that just ended unsaved as an
+    /// accidental start, so the completion screen says nothing was saved.
+    /// Cleared when it is saved on the iPhone, the user taps Done, or the
+    /// next workout starts.
+    @Published var workoutNotSaved: Bool = false
+
     /// True from the moment the user taps Start on the Watch until iOS
     /// confirms the workout actually began (`isRecording` flips true)
     /// OR the safety timeout expires. Drives a "Starting…" overlay on
@@ -595,6 +601,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         cadenceSpm = nil
         elevationGainMeters = 0
         targetZone = nil
+        workoutNotSaved = false
     }
 
     /// How the screen should be configured, rather than what it shows.
@@ -695,6 +702,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
         case let .strapState(connected, deviceName): applyStrapState(connected, name: deviceName)
         case .liveState, .voiceChatState: break
         case let .coachAlert(urgent, firedAt): playCoachAlert(urgent: urgent, firedAt: firedAt)
+        case let .workoutSaveState(notSaved): workoutNotSaved = notSaved
         case let .unknown(raw): noteUnrecognisedCommand(raw)
         }
     }

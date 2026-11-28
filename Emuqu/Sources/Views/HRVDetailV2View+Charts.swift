@@ -55,7 +55,8 @@ extension HRVDetailV2View {
             ForEach(points) { p in
                 LineMark(
                     x: .value("Time", p.elapsedSec),
-                    y: .value("RR", p.rrMs)
+                    y: .value("RR", p.rrMs),
+                    series: .value("Run", p.run)
                 )
                 .foregroundStyle(AppTheme.wongOptimal)
             }
@@ -77,14 +78,24 @@ extension HRVDetailV2View {
         let id: Int
         let elapsedSec: Double
         let rrMs: Int
+        /// The unbroken stretch the beat is in: a new one starts after every
+        /// beat not adjacent to its predecessor (`TimeDomainAnalyzer.isAdjacentBeat`), and the
+        /// chart draws no line from one to the next.
+        var run = 0
     }
 
-    /// Every 4th beat, for chart performance.
+    /// Every 4th beat, for chart performance, each at its real time
+    /// (`BeatTimeline`): the beat clock leaves out a dropout and a Verity
+    /// Sense's rejected intervals, and the time axis would run short by them.
     static func sampledRRPoints(_ series: RRSeries?) -> [RRPlotPoint] {
         guard let series, !series.points.isEmpty else { return [] }
+        let beatTimes = BeatTimeline.ms(series.points)
         var out: [RRPlotPoint] = []
-        for (i, p) in series.points.enumerated() where i % 4 == 0 {
-            out.append(RRPlotPoint(id: i, elapsedSec: Double(p.t_ms) / 1000, rrMs: p.rr_ms))
+        var run = 0
+        for (i, p) in series.points.enumerated() {
+            if i > 0, !TimeDomainAnalyzer.isAdjacentBeat(series.points[i - 1], p) { run += 1 }
+            guard i % 4 == 0 else { continue }
+            out.append(RRPlotPoint(id: i, elapsedSec: Double(beatTimes[i]) / 1000, rrMs: p.rr_ms, run: run))
         }
         return out
     }
@@ -237,7 +248,11 @@ extension HRVDetailV2View {
         var out: [PoincarePair] = []
         // Cap to 600 pairs for chart perf.
         let stride = max(1, pts.count / 600)
-        for i in Swift.stride(from: 0, to: pts.count - 1, by: stride) {
+        // A pair across a recording break or a removed beat is two beats that
+        // were never adjacent (`TimeDomainAnalyzer.isAdjacentBeat`), so it is
+        // not plotted.
+        for i in Swift.stride(from: 0, to: pts.count - 1, by: stride)
+            where TimeDomainAnalyzer.isAdjacentBeat(pts[i], pts[i + 1]) {
             out.append(PoincarePair(id: i, x: pts[i].rr_ms, y: pts[i + 1].rr_ms))
         }
         return out

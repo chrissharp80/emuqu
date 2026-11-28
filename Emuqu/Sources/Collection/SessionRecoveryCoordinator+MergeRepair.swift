@@ -148,11 +148,21 @@ extension SessionRecoveryCoordinator {
         let childBeatCount = childSeries.points.count
         let parentBeatCount = parentSeries.points.count
         return MergeDamage(
-            needsMerge: childBeatCount <= parentBeatCount,
+            needsMerge: Self.lacksParentBeats(childSeries: childSeries, parentSeries: parentSeries),
             isV5Corrupted: SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries: childSeries, parentBeatCount: parentBeatCount),
             summaryStale: session.dataSourceSummary.map { $0.totalBeats != childBeatCount } ?? false,
             startDateWrong: session.startDate.timeIntervalSince(parent.startDate) > 1800
         )
+    }
+
+    /// Whether a child night lost its parent's beats: it holds no more beats
+    /// than the parent, and does not begin with them
+    /// (`SessionRecoveryService.beginsWithParent`). A night resumed and paused
+    /// again before any beat arrived holds exactly the parent's; merging
+    /// the parent into it again would hold every one of them twice.
+    nonisolated static func lacksParentBeats(childSeries: RRSeries, parentSeries: RRSeries) -> Bool {
+        childSeries.points.count <= parentSeries.points.count
+            && !SessionRecoveryService.beginsWithParent(childSeries.points, parentPoints: parentSeries.points)
     }
 
     /// The beat series the repaired session should carry, or nil when the
@@ -250,6 +260,8 @@ extension SessionRecoveryCoordinator {
         if toArchive.vitalsSnapshot == nil {
             toArchive.vitalsSnapshot = archive.retrieveOrLog(rebuilt.id)?.vitalsSnapshot
         }
+        // Uploaded again once written (`archiveRepaired`): asked for first, on disk.
+        archive.noteReuploadIntent([rebuilt.id])
         guard let written = try archive.rewriteKeepingUserEdits(toArchive) else { return nil }
         if Self.carriedEditsChangeScoringInputs(rebuilt: rebuilt, carried: written) {
             NotificationCenter.default.post(

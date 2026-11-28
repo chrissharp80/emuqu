@@ -100,6 +100,7 @@ struct PrivacyPolicyView: View {
                 String(localized: "It reads walking, running, cycling and rowing distance, walking and running speed, physical effort, body weight, date of birth and biological sex.", bundle: LanguageManager.appBundle),
                 String(localized: "It saves the workouts you record, with their energy, distance and route.", bundle: LanguageManager.appBundle),
                 String(localized: "If you turn on Apple Health export, it also writes HRV (SDNN), heart rate, resting heart rate, and sleep detected from heart rate on nights Health has none.", bundle: LanguageManager.appBundle),
+                String(localized: "Workouts you record in Emuqu are written too, with their route, distance and active energy.", bundle: LanguageManager.appBundle),
                 String(localized: "Apple Health data is used only to run the app's features. It is never used for advertising or sold.", bundle: LanguageManager.appBundle),
                 String(localized: "It reaches a third party only through a feature described below: a cloud AI provider you have agreed to, or a lookup that sends a route.", bundle: LanguageManager.appBundle),
                 String(localized: "Routes of workouts imported from Apple Health go to OpenTopoData when you look up their elevation, and to Overpass when the assistant loads one you saved.", bundle: LanguageManager.appBundle)
@@ -219,6 +220,7 @@ struct PrivacyPolicyView: View {
                 String(localized: "Overpass, an OpenStreetMap service, receives approximate coordinates: for trail discovery, the centre of the search, rounded to about 100 m.", bundle: LanguageManager.appBundle),
                 String(localized: "For nearby roads it receives the centre of the 250 m square you are in during an outdoor workout, or of each turn of a saved route the assistant loads for you.", bundle: LanguageManager.appBundle),
                 String(localized: "Overpass is asked at overpass.private.coffee, or at overpass-api.de when that one does not answer. Addresses are looked up with Apple's geocoder.", bundle: LanguageManager.appBundle),
+                String(localized: "Place searches, walking directions and the route map in a workout's PDF report use Apple Maps, which receives the area they cover.", bundle: LanguageManager.appBundle),
                 String(localized: "When you look up real elevation for a workout, including one imported from Apple Health, up to 100 of its route's points, rounded to about 11 m, are sent to OpenTopoData.", bundle: LanguageManager.appBundle),
                 String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
                 String(localized: "Tavily and Anthropic searches run under your own key or account. The weather, map, elevation and model-download services get no account or name, though like any web request they see your device's IP address.", bundle: LanguageManager.appBundle)
@@ -252,7 +254,10 @@ struct PrivacyPolicyView: View {
         PolicyBlock(
             title: String(localized: "How These Services Treat Your Data", bundle: LanguageManager.appBundle),
             sentences: [
-                String(localized: "These services are Anthropic, OpenAI, Google, xAI and DeepSeek for the AI assistant, Tavily for web search, and Apple for speech recognition and address lookup.", bundle: LanguageManager.appBundle),
+                String(
+                    localized: "These services are Anthropic, OpenAI, Google, xAI and DeepSeek for the AI assistant, Tavily for web search, and Apple for speech recognition, address lookup, Apple Maps place search and directions, and the route map in a workout's PDF report.",
+                    bundle: LanguageManager.appBundle
+                ),
                 String(localized: "They also include MET Norway for weather, Overpass for trails and nearby roads, OpenTopoData for elevation, and Hugging Face for the speech model download.", bundle: LanguageManager.appBundle),
                 String(localized: "Data reaches these services only when you use a feature that needs them.", bundle: LanguageManager.appBundle),
                 String(localized: "A cloud AI provider receives nothing until you add your own key and agree to what it will receive, and Tavily nothing until you add your own Tavily key.", bundle: LanguageManager.appBundle),

@@ -317,9 +317,8 @@ struct OvernightChartsView<InterChartContent: View>: View {
     ///   "HR chart still empty after crash", where the crash truncated BOTH
     ///   the recording AND the sleep.)
     private func needsGapFill(_ stats: OvernightStats) -> Bool {
-        let recordingStartMs = session.rrSeries?.points.first?.t_ms ?? 0
-        let recordingEndMs = session.rrSeries?.points.last?.endMs ?? 0
-        let recordingDurationMs = recordingEndMs - recordingStartMs
+        // Real-clock span: the sleep duration it is compared with is wall time.
+        let recordingDurationMs = BeatTimeline.spanMs(session.rrSeries?.points ?? [])
         let sleepDurationMs: Int64 = {
             guard let hk = healthKitSleep, let s = hk.sleepStart, let e = hk.sleepEnd else { return 0 }
             return MillisecondOffset.between(e, and: s, fallback: 0)
@@ -640,7 +639,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
-            Text(String(localized: "\(Int(overnightStats.minHR))-\(Int(overnightStats.maxHR)) bpm", bundle: LanguageManager.appBundle))
+            Text(String(localized: "\(Int(overnightStats.minHR.rounded()))-\(Int(overnightStats.maxHR.rounded())) bpm", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.terracottaText)
         }
@@ -681,7 +680,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
         )
         .frame(height: 180)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "HRV chart. Peak RMSSD \(Int(overnightStats.peakRMSSD)) milliseconds at \(overnightStats.peakHRVTimeFormatted). Analysis window \(overnightStats.windowStartTimeFormatted) to \(overnightStats.windowEndTimeFormatted).", bundle: LanguageManager.appBundle))
+        .accessibilityLabel(String(localized: "HRV chart. Peak RMSSD \(Int(overnightStats.peakRMSSD.rounded())) milliseconds at \(overnightStats.peakHRVTimeFormatted). Analysis window \(overnightStats.windowStartTimeFormatted) to \(overnightStats.windowEndTimeFormatted).", bundle: LanguageManager.appBundle))
         // The pin-and-Analyze-Here controls are drag-only and hidden by
         // `.ignore`; VoiceOver users get the same reanalysis as an action.
         .accessibilityActions { analyzeAtPeakAction }
@@ -712,7 +711,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
-            Text(String(localized: "Peak: \(Int(overnightStats.peakRMSSD)) ms", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Peak: \(Int(overnightStats.peakRMSSD.rounded())) ms", bundle: LanguageManager.appBundle))
                 .font(.caption.bold())
                 .foregroundColor(AppTheme.sageText)
         }

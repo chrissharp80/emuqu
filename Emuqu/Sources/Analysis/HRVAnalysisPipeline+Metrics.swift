@@ -40,15 +40,31 @@ extension HRVAnalysisPipeline {
         return cleanRR
     }
 
-    /// The start time, in seconds on the session clock (`t_ms`), of each
-    /// beat `extractCleanRRs` keeps, parallel to it.
+    /// The start time, in seconds on the real clock (`BeatTimeline`), of
+    /// each beat `extractCleanRRs` keeps, parallel to it. The beat clock
+    /// `t_ms` leaves out every interval a Verity Sense rejected, and a
+    /// breathing rate read on it comes out high by the share removed.
     static func cleanBeatTimes(
         series: RRSeries,
         flags: [ArtifactFlags],
         windowStart: Int,
         windowEnd: Int
     ) -> [Double] {
-        (windowStart ..< windowEnd).filter { !flags[$0].isArtifact }.map { Double(series.points[$0].t_ms) / 1_000.0 }
+        let beatTimes = BeatTimeline.ms(series.points, in: windowStart ..< windowEnd)
+        return (windowStart ..< windowEnd).filter { !flags[$0].isArtifact }.map { Double(beatTimes[$0 - windowStart]) / 1_000.0 }
+    }
+
+    /// Breathing rate over the window's longest unbroken stretch
+    /// (`TimeDomainAnalyzer.longestUnbrokenRange`), its clean beats at their
+    /// own times: a spectrum resampled across a recording break interpolates
+    /// beats that were never recorded.
+    static func respirationRate(series: RRSeries, flags: [ArtifactFlags], windowStart: Int, windowEnd: Int) -> Double? {
+        let unbroken = TimeDomainAnalyzer.longestUnbrokenRange(in: series.points, range: windowStart ..< windowEnd)
+        let (start, end) = (unbroken.lowerBound, unbroken.upperBound)
+        return RespirationAnalyzer.estimateRespirationRate(
+            extractCleanRRs(series: series, flags: flags, windowStart: start, windowEnd: end),
+            beatTimes: cleanBeatTimes(series: series, flags: flags, windowStart: start, windowEnd: end)
+        )
     }
 
     // MARK: - Private Helpers
@@ -94,7 +110,6 @@ extension HRVAnalysisPipeline {
         config: ANSConfiguration?
     ) -> ANSMetrics {
         let cleanRR = Self.extractCleanRRs(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
-        let beatTimes = Self.cleanBeatTimes(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
         let stressIndex = StressAnalyzer.computeStressIndex(cleanRR)
         let pnsIndex = StressAnalyzer.computePNSIndex(
             meanRR: timeDomain.meanRR, rmssd: timeDomain.rmssd, sd1: nonlinear.sd1
@@ -107,7 +122,7 @@ extension HRVAnalysisPipeline {
             pnsIndex: pnsIndex,
             snsIndex: snsIndex,
             readinessScore: readinessScore(timeDomain: timeDomain, nonlinear: nonlinear, pnsIndex: pnsIndex, snsIndex: snsIndex, config: config),
-            respirationRate: RespirationAnalyzer.estimateRespirationRate(cleanRR, beatTimes: beatTimes),
+            respirationRate: Self.respirationRate(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd),
             nocturnalHRDip: nocturnalDip(daytimeRestingHR: daytimeRestingHR, nocturnalMedian: nocturnalMedian),
             daytimeRestingHR: daytimeRestingHR,
             nocturnalMedianHR: nocturnalMedian

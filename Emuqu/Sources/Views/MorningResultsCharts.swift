@@ -145,23 +145,20 @@ struct TachogramView: View {
 
     private func chartCanvas(size: CGSize) -> some View {
         Canvas { context, size in
-            guard let rrValues = tachogramValues() else { return }
-            drawTachogram(context, size: size, rrValues: rrValues)
+            guard let values = tachogramValues() else { return }
+            drawTachogram(context, size: size, rrValues: values.rr, runs: values.runs)
         }
     }
 
-    /// Nil when there's nothing drawable. Two points are the minimum: a
-    /// single-beat window (windowEnd == windowStart + 1) would make
-    /// `count - 1 == 0` and the xScale divide by zero → ∞ into CoreGraphics.
-    private func tachogramValues() -> [Double]? {
+    /// Nil when there's nothing drawable (`tachogramTrace`).
+    private func tachogramValues() -> (rr: [Double], runs: [Int])? {
         guard let series = session.rrSeries,
               let window = clampedAnalysisWindow(series: series, result: result)
         else { return nil }
-        let rrValues = window.map { Double(series.points[$0].rr_ms) }
-        return rrValues.count > 1 ? rrValues : nil
+        return tachogramTrace(series: series, window: window)
     }
 
-    private func drawTachogram(_ context: GraphicsContext, size: CGSize, rrValues: [Double]) {
+    private func drawTachogram(_ context: GraphicsContext, size: CGSize, rrValues: [Double], runs: [Int]) {
         let minRR = rrValues.min() ?? 600
         let range = max((rrValues.max() ?? 1200) - minRR, 50)
         let xScale = size.width / CGFloat(rrValues.count - 1)
@@ -171,7 +168,7 @@ struct TachogramView: View {
             let y = size.height - CGFloat(normalized) * size.height * 0.85 - size.height * 0.075
             return CGPoint(x: CGFloat(i) * xScale, y: y)
         }
-        let paths = tracePaths(points: points, height: size.height, closingX: size.width)
+        let paths = tracePaths(points: points, runs: runs, height: size.height)
         let gradient = Gradient(colors: [AppTheme.primary.opacity(0.3), AppTheme.primary.opacity(0.05)])
         context.fill(paths.fill, with: .linearGradient(gradient, startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
         context.stroke(paths.line, with: .color(AppTheme.primary), lineWidth: 1.5)
@@ -297,25 +294,16 @@ struct HeartRateChartView: View {
     private func chartCanvas(size: CGSize) -> some View {
         Canvas { context, size in
             guard let hrValues = artifactFreeHRValues() else { return }
-            drawHRTrace(context, size: size, hrValues: hrValues.points, windowCount: hrValues.windowCount)
+            drawHRTrace(context, size: size, hrValues: hrValues.points, runs: hrValues.runs, windowCount: hrValues.windowCount)
         }
     }
 
-    /// Artifact beats are dropped outright — an interpolated RR turns
-    /// into a fabricated bpm, and this chart is read as measurement.
-    /// Nil when fewer than three clean beats survive.
-    private func artifactFreeHRValues() -> (points: [(Int, Double)], windowCount: Int)? {
+    /// Nil when fewer than three clean beats survive (`heartRateTrace`).
+    private func artifactFreeHRValues() -> HeartRateTrace? {
         guard let series = session.rrSeries,
               let window = clampedAnalysisWindow(series: series, result: result)
         else { return nil }
-        let flags = session.artifactFlags ?? []
-        let hrValues: [(Int, Double)] = window.compactMap { i in
-            let isArtifact = i < flags.count ? flags[i].isArtifact : false
-            // A zero interval stored by an older build is not a beat either.
-            guard !isArtifact, series.points[i].rr_ms > 0 else { return nil }
-            return (i - window.lowerBound, 60000.0 / Double(series.points[i].rr_ms))
-        }
-        return hrValues.count > 2 ? (hrValues, window.count) : nil
+        return heartRateTrace(series: series, flags: session.artifactFlags, window: window)
     }
 
     /// Range gets 10% padding top and bottom so the trace never touches an edge.
@@ -327,14 +315,13 @@ struct HeartRateChartView: View {
         return (paddedMin, (maxHR + range * 0.1) - paddedMin)
     }
 
-    private func drawHRTrace(_ context: GraphicsContext, size: CGSize, hrValues: [(Int, Double)], windowCount: Int) {
+    private func drawHRTrace(_ context: GraphicsContext, size: CGSize, hrValues: [(Int, Double)], runs: [Int], windowCount: Int) {
         let (paddedMin, paddedRange) = hrPaddedRange(hrValues)
         let yFor: (Double) -> CGFloat = { size.height - CGFloat(($0 - paddedMin) / paddedRange) * size.height }
         strokeHorizontalGrid(context, ys: (0 ... 4).map { yFor(paddedMin + paddedRange * Double($0) / 4) }, width: size.width)
         let xScale = size.width / CGFloat(windowCount - 1)
         let points = hrValues.map { CGPoint(x: CGFloat($0.0) * xScale, y: yFor($0.1)) }
-        let closingX = CGFloat(hrValues.last?.0 ?? 0) * xScale
-        let paths = tracePaths(points: points, height: size.height, closingX: closingX)
+        let paths = tracePaths(points: points, runs: runs, height: size.height)
         let gradient = Gradient(colors: [AppTheme.terracotta.opacity(0.3), AppTheme.terracotta.opacity(0.05)])
         context.fill(paths.fill, with: .linearGradient(gradient, startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
         context.stroke(paths.line, with: .color(AppTheme.terracotta), lineWidth: 2)
@@ -367,12 +354,50 @@ func clampedAnalysisWindow(series: RRSeries, result: HRVAnalysisResult) -> Range
     return end > start ? start ..< end : nil
 }
 
+/// The tachogram's RR values across `window` and the run of each
+/// (`TimeDomainAnalyzer.recordingRuns`): the trace is split at every
+/// recording break inside the window, so no line joins beats never adjacent.
+/// Nil for fewer than two beats: a single-beat window would make
+/// `count - 1 == 0` and the xScale divide by zero → ∞ into CoreGraphics.
+/// `window` must lie inside `series.points` (see `clampedAnalysisWindow`).
+func tachogramTrace(series: RRSeries, window: Range<Int>) -> (rr: [Double], runs: [Int])? {
+    let rrValues = window.map { Double(series.points[$0].rr_ms) }
+    guard rrValues.count > 1 else { return nil }
+    return (rrValues, TimeDomainAnalyzer.recordingRuns(of: Array(window), in: series.points))
+}
+
+/// The heart-rate chart's beats: offset within the window and bpm, the run
+/// of each, and the window's beat count.
+struct HeartRateTrace {
+    let points: [(Int, Double)]
+    let runs: [Int]
+    let windowCount: Int
+}
+
+/// Artifact beats are dropped outright: an interpolated RR turns into a
+/// fabricated bpm, and this chart is read as measurement. The trace is
+/// split at each recording break between two kept beats
+/// (`TimeDomainAnalyzer.recordingRuns`); a dropped artifact alone does not
+/// split it. Nil when fewer than three clean beats survive.
+func heartRateTrace(series: RRSeries, flags: [ArtifactFlags]?, window: Range<Int>) -> HeartRateTrace? {
+    let flags = flags ?? []
+    let kept = window.filter { i in
+        // A zero interval stored by an older build is not a beat either.
+        !(i < flags.count && flags[i].isArtifact) && series.points[i].rr_ms > 0
+    }
+    guard kept.count > 2 else { return nil }
+    let points = kept.map { ($0 - window.lowerBound, 60000.0 / Double(series.points[$0].rr_ms)) }
+    return HeartRateTrace(points: points, runs: TimeDomainAnalyzer.recordingRuns(of: kept, in: series.points), windowCount: window.count)
+}
+
 /// Padding around the Poincaré cloud, as a share of its RR span (at least
 /// 100 ms), so no dot touches the frame.
 let poincarePaddingFraction = 0.15
 
 /// Consecutive RR pairs `(RRn, RRn+1)` inside `window`, dropping a pair when
-/// either beat is flagged as an artifact. A beat with no flag (nil or short
+/// either beat is flagged as an artifact, a recording break separates them or
+/// the sensor removed an interval between them (`TimeDomainAnalyzer.isAdjacentBeat`:
+/// the beats were never adjacent). A beat with no flag (nil or short
 /// `flags`, as merged and streamed sessions leave them) counts as clean.
 /// `window` must lie inside `series.points` (see `clampedAnalysisWindow`).
 func poincareBeatPairs(series: RRSeries, flags: [ArtifactFlags]?, window: Range<Int>) -> [(Double, Double)] {
@@ -380,7 +405,9 @@ func poincareBeatPairs(series: RRSeries, flags: [ArtifactFlags]?, window: Range<
     let flags = flags ?? []
     let isArtifact: (Int) -> Bool = { $0 < flags.count ? flags[$0].isArtifact : false }
     return (window.lowerBound ..< (window.upperBound - 1)).compactMap { i in
-        guard !isArtifact(i), !isArtifact(i + 1) else { return nil }
+        guard !isArtifact(i), !isArtifact(i + 1),
+              !series.points[i + 1].isAfterRemovedBeat,
+              !TimeDomainAnalyzer.isRecordingBreak(between: series.points[i], and: series.points[i + 1]) else { return nil }
         return (Double(series.points[i].rr_ms), Double(series.points[i + 1].rr_ms))
     }
 }
@@ -429,17 +456,20 @@ func strokeHorizontalGrid(_ context: GraphicsContext, ys: [CGFloat], width: CGFl
     }
 }
 
-/// Polyline through the supplied points, plus the same path closed down to the
-/// baseline for the gradient fill underneath it.
-func tracePaths(points: [CGPoint], height: CGFloat, closingX: CGFloat) -> (line: Path, fill: Path) {
+/// One polyline per run of the supplied points (`runs`, parallel to
+/// `points`; `SeriesRuns.split`), plus each closed down to the baseline
+/// under its own stretch for the gradient fill. No line or fill crosses
+/// from one run to the next.
+func tracePaths(points: [CGPoint], runs: [Int], height: CGFloat) -> (line: Path, fill: Path) {
     var line = Path()
-    for (i, p) in points.enumerated() {
-        if i == 0 { line.move(to: p) } else { line.addLine(to: p) }
-    }
-    var fill = line
-    if !points.isEmpty {
-        fill.addLine(to: CGPoint(x: closingX, y: height))
-        fill.addLine(to: CGPoint(x: 0, y: height))
+    var fill = Path()
+    for run in SeriesRuns.split(points, runs: runs) {
+        guard let first = run.first, let last = run.last else { continue }
+        line.move(to: first)
+        run.dropFirst().forEach { line.addLine(to: $0) }
+        fill.move(to: CGPoint(x: first.x, y: height))
+        run.forEach { fill.addLine(to: $0) }
+        fill.addLine(to: CGPoint(x: last.x, y: height))
         fill.closeSubpath()
     }
     return (line, fill)

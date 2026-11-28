@@ -167,6 +167,12 @@ extension MorningSessionPipeline {
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
     /// A night processed again under an id the archive holds keeps what the
     /// user set on the stored copy (`SessionArchive.archiveRebuilt`).
+    ///
+    /// The review ids are this night's only while it is the one on the
+    /// recorder (`SessionState.recorderTaken`): a caller whose claim went
+    /// stale may get here after another session took the recorder, and that
+    /// session's review must not point Discard or the rescore at this night.
+    /// The night is saved either way.
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
         let isNewEntry = !archive.store.entries.contains { $0.sessionId == finalSession.id }
@@ -175,6 +181,7 @@ extension MorningSessionPipeline {
             let entry = try archive.archiveRebuilt(finalSession)
             retireRawBackupIfSafe(finalSession)
             retireNightRescue(of: finalSession)
+            guard !sessionState.recorderTaken(since: finalSession.id) else { return }
             if entry.sessionId != finalSession.id {
                 sessionState.reviewFoldedIntoSessionId = entry.sessionId
             } else if isNewEntry {
@@ -303,7 +310,7 @@ extension MorningSessionPipeline {
     @discardableResult
     func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async -> Bool {
         guard let devicePoints, !devicePoints.isEmpty else { return false }
-        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return true }
+        if usedDevice, await backUpMergedNight(chosen, of: baseSession) { return true }
         guard let rescueId = writeRescueBackup(devicePoints, baseSession: baseSession) else { return false }
         if usedDevice { nightRescue = NightRescue(sessionId: baseSession.id, backupId: rescueId, beats: devicePoints.count) }
         return true
@@ -331,13 +338,15 @@ extension MorningSessionPipeline {
         }
     }
 
-    /// Replaces the night's backup with `points`; false when it was not written.
-    private func backUpMergedNight(_ points: [RRPoint], sessionId: UUID) async -> Bool {
+    /// Replaces the night's backup with `points`, dated by the night's start,
+    /// the clock the merged points are on; false when it was not written.
+    private func backUpMergedNight(_ points: [RRPoint], of night: HRVSession) async -> Bool {
         let backup = rawBackup
         let did = strapLink.connectedDeviceId
+        let (sessionId, startDate) = (night.id, night.startDate)
         return await Task.detached(priority: .utility) {
             do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
+                try backup.backup(points: points, sessionId: sessionId, deviceId: did, captureDate: startDate)
                 return true
             } catch {
                 debugLog("[RRCollector] Failed to back up the merged night (\(points.count) beats): \(error)", level: .error)

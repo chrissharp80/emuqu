@@ -101,7 +101,7 @@ struct LLMPromptAuditView: View {
         if let usage = entry.usage {
             let cached = usage.cachedReadTokens
             let total = usage.inputTokens + cached + usage.cacheCreateTokens
-            let hitRatio = total > 0 ? Int(Double(cached) / Double(total) * 100) : 0
+            let hitRatio = total > 0 ? Int((Double(cached) / Double(total) * 100).rounded()) : 0
             Text(String(localized: "Tokens: in \(usage.inputTokens) · cached \(cached) (\(hitRatio)%) · out \(usage.outputTokens)", bundle: LanguageManager.appBundle))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(AppTheme.textSecondary)

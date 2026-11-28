@@ -152,26 +152,28 @@ struct DataSettingsPage: View {
         if case .error = syncManager.syncState {
             return forceSyncSummary(newlyUploaded: delta)
         }
-        guard syncManager.lastSyncDate != lastSyncBefore else {
+        guard syncManager.lastSyncDate != lastSyncBefore || !syncManager.isUpToDate else {
             return String(localized: "Nothing was synced this time: another sync may still be running. Try again in a moment.", bundle: LanguageManager.appBundle)
         }
         return forceSyncSummary(newlyUploaded: delta)
     }
 
+    /// "Up to date" only under the sync's own rule (`isUpToDate`); otherwise
+    /// what was uploaded, then what still waits.
     @MainActor
     private func forceSyncSummary(newlyUploaded delta: Int) -> String {
         if case let .error(msg) = syncManager.syncState {
             return String(localized: "Sync failed: \(msg). Try again in a moment.", bundle: LanguageManager.appBundle)
         }
+        var parts: [String] = []
         if delta > 0 {
             // Two sentences so each count gets its own plural form.
-            let synced = String(localized: "Synced \(delta) sessions to iCloud.", bundle: LanguageManager.appBundle)
-            let total = String(localized: "Total uploaded: \(syncManager.uploadedCount).", bundle: LanguageManager.appBundle)
-            return synced + " " + total
+            parts.append(String(localized: "Synced \(delta) sessions to iCloud.", bundle: LanguageManager.appBundle))
+            parts.append(String(localized: "Total uploaded: \(syncManager.uploadedCount).", bundle: LanguageManager.appBundle))
         }
-        if syncManager.pendingUploadCount > 0 {
-            return String(localized: "\(syncManager.pendingUploadCount) sessions still pending retry. iCloud may be unreachable.", bundle: LanguageManager.appBundle)
-        }
+        if let warning = syncWarning { parts.append(warning) }
+        if syncWait == .uploading { parts.append(Self.syncingText) }
+        guard parts.isEmpty else { return parts.joined(separator: " ") }
         return String(localized: "Up to date. \(syncManager.uploadedCount) sessions in iCloud.", bundle: LanguageManager.appBundle)
     }
 
@@ -202,7 +204,7 @@ struct DataSettingsPage: View {
 
             iCloudSyncDetail
         } footer: {
-            Text("Optional. Syncs your sessions between your own devices through your private iCloud account. Everything is encrypted on your iPhone before upload. Readings from Apple Health are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself.", bundle: LanguageManager.appBundle)
+            Text("Optional. Syncs your sessions between your own devices through your private iCloud account. Everything is encrypted on your iPhone before upload. Readings from Apple Health are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself. Another device can open your synced data only if both have iCloud Keychain turned on.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -226,21 +228,6 @@ struct DataSettingsPage: View {
             syncStateLabel
         }
         .accessibilityElement(children: .combine)
-    }
-
-    @ViewBuilder
-    private var syncStateLabel: some View {
-        switch syncManager.syncState {
-        case .idle:
-            Text("Up to date", bundle: LanguageManager.appBundle).foregroundColor(AppTheme.textSecondary)
-        case .syncing:
-            HStack(spacing: 6) {
-                ProgressView().scaleEffect(0.8)
-                Text("Syncing…", bundle: LanguageManager.appBundle).foregroundColor(AppTheme.textSecondary)
-            }
-        case let .error(message):
-            Text(message).foregroundColor(AppTheme.alert).font(.caption)
-        }
     }
 
     @ViewBuilder
@@ -363,15 +350,18 @@ struct DataSettingsPage: View {
         .accessibilityValue(Text("\(syncManager.uploadedCount) sessions uploaded", bundle: LanguageManager.appBundle))
     }
 
+    /// Only sessions whose upload failed (`failedUploadsWaitingCount`): the
+    /// pending queue also holds every save and edit queued to go up, which
+    /// is not a retry.
     @ViewBuilder
     private var pendingUploadRow: some View {
-        if syncManager.pendingUploadCount > 0 {
+        if syncManager.failedUploadsWaitingCount > 0 {
             HStack {
                 Label(String(localized: "Pending iCloud retry", bundle: LanguageManager.appBundle),
                       systemImage: "icloud.and.arrow.up")
                     .foregroundColor(AppTheme.softGold)
                 Spacer()
-                Text("\(syncManager.pendingUploadCount)")
+                Text("\(syncManager.failedUploadsWaitingCount)")
                     .foregroundColor(AppTheme.softGoldText)
                     .monospacedDigit()
             }

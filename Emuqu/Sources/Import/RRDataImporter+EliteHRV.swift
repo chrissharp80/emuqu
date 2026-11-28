@@ -395,7 +395,7 @@ extension RRDataImporter {
     ) -> HRVSession {
         let durationMs = Int64(Self.eliteStatedDurationMs(summary) ?? Double(summary.beatCount ?? 0) * meanRR)
         let id = UUID()
-        let series = RRSeries(points: [RRPoint(t_ms: 0, rr_ms: Int(meanRR))], sessionId: id, startDate: summary.date)
+        let series = RRSeries(points: [RRPoint(t_ms: 0, rr_ms: Int(meanRR.rounded()))], sessionId: id, startDate: summary.date)
         return HRVSession(
             id: id,
             startDate: summary.date,

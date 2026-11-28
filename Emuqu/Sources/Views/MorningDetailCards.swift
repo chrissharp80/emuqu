@@ -19,7 +19,7 @@ struct MorningDetailCards {
     let result: HRVAnalysisResult
     let recentSessions: [HRVSession]
     let linkedSegments: [LinkedSegmentInfo]?
-    let onUnlinkSegment: ((UUID) -> Bool)?
+    let onUnlinkSegment: ((UUID) async -> Bool)?
     let onToggleTag: (ReadingTag) -> Void
 
     // Dynamic Type sizes resolve in the view (`@ScaledMetric` cannot live in an

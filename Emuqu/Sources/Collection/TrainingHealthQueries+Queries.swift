@@ -39,8 +39,8 @@ extension TrainingHealthQueries {
     /// Deduplicate workouts that cover the same physical session.
     ///
     /// Workouts are taken in start order; each one not yet absorbed starts a
-    /// cluster, and a later workout starting within 30 minutes of it joins
-    /// the cluster when either rule holds (`collapseDuplicates`):
+    /// cluster, and a later workout starting before it ends joins the
+    /// cluster when either rule holds (`collapseDuplicates`):
     ///   1. Same type, starting within 5 minutes of it, and their spans
     ///      intersect (two separate same-type workouts — an aborted start,
     ///      then the real one — do not intersect and stay apart).
@@ -67,10 +67,12 @@ extension TrainingHealthQueries {
     /// Absorb every later workout that covers the same physical session into
     /// the one starting at `i`, returning whichever copy carries the richest data.
     ///
-    /// The scan window is 30 min so a session
-    /// and its own HealthKit back-fill still collapse even when their start
-    /// times drift apart (the archive start and the Apple-Health export start
-    /// rarely align to the minute). Same-type near-starts still merge on the
+    /// The scan runs over every workout that starts before the anchor ends,
+    /// the only ones whose spans can intersect it, however far their start
+    /// drifted: a session and its own HealthKit back-fill whose starts do not
+    /// align, or an imported GPX track of a long hike and the app's own
+    /// recording of it started an hour in, are one session by time overlap,
+    /// not by how close their starts are. Same-type near-starts still merge on the
     /// tight 5-min rule (when their spans intersect); drifted or
     /// differently-typed copies merge only on a STRONG span overlap (≥60% of
     /// the shorter), which won't fuse two genuinely distinct back-to-back
@@ -84,15 +86,27 @@ extension TrainingHealthQueries {
         var best = anchor
         for j in (i + 1) ..< sorted.count where !consumed.contains(j) {
             let other = sorted[j]
+            guard other.date < endDate(of: anchor) else { break }
             let gap = other.date.timeIntervalSince(anchor.date)
-            guard gap <= 1800 else { break }
             guard isSameSession(anchor, other, startGap: gap) else { continue }
             consumed.insert(j)
-            if workoutDataScore(other) > workoutDataScore(best) {
-                best = other
-            }
+            best = preferred(best, other)
         }
         return best
+    }
+
+    /// Which of two copies of one session counts. Copies that each cover
+    /// most of the other are the same recording, and the richer one wins;
+    /// a copy nested in a longer one covers only part of the training (a
+    /// recording started an hour into an imported hike), so the longer one
+    /// counts, as `yields` decides between the archive and Health.
+    nonisolated private static func preferred(
+        _ current: HealthKitManager.WorkoutSummary, _ other: HealthKitManager.WorkoutSummary
+    ) -> HealthKitManager.WorkoutSummary {
+        guard coversMostOfBoth(current, other) else {
+            return other.durationMinutes > current.durationMinutes ? other : current
+        }
+        return workoutDataScore(other) > workoutDataScore(current) ? other : current
     }
 
     /// Merge workouts with the H10 ARCHIVE authoritative for anything the app
@@ -229,12 +243,19 @@ extension TrainingHealthQueries {
     /// is nothing to ask, and a query HealthKit refused because workouts were
     /// never authorized (or were denied) is an answer: both are no workouts
     /// rather than a failure, so the load is still built from the archive.
+    ///
+    /// Only other sources' workouts: what Emuqu exported to Apple Health is a
+    /// copy of a session the archive holds (`mergeArchiveAuthoritative`), and
+    /// it stays in Health after the session is trashed, trimmed or edited
+    /// until it is deleted for good. Read back, a trashed workout still
+    /// counted in the load, and the longer export of a trimmed one replaced
+    /// the trimmed recording.
     private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
         guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let startOfReferenceDay = calendar.startOfDay(for: referenceDate)
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: startOfReferenceDay) else { return [] }
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: referenceDate, options: .strictStartDate)
+        let predicate = Self.otherSourcesWorkoutPredicate(from: startDate, to: referenceDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
@@ -246,6 +267,13 @@ extension TrainingHealthQueries {
                 resolve(Self.workoutSummaries(samples, unlessFailed: error))
             }
         }
+    }
+
+    /// Workouts starting in `[start, end]` written by any source but Emuqu.
+    nonisolated static func otherSourcesWorkoutPredicate(from start: Date, to end: Date) -> NSPredicate {
+        let window = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let notOwnSource = NSCompoundPredicate(notPredicateWithSubpredicate: HKQuery.predicateForObjects(from: HKSource.default()))
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [window, notOwnSource])
     }
 
     /// The query's workouts; no workouts when HealthKit answered that the
@@ -327,12 +355,51 @@ extension TrainingHealthQueries {
     /// source (the Apple Watch) over our own written copy, since ours only
     /// holds the truncated phone track. Returns nil when there's no matching
     /// workout, no route series, or no locations (so the caller can fall back).
-    func fetchWorkoutRoute(from start: Date, to end: Date) async -> [CLLocation]? {
+    func fetchWorkoutRoute(from start: Date, to end: Date) async -> SegmentedTrack? {
         guard access.isAvailable, end > start else { return nil }
         guard let workout = await bestOverlappingWorkout(from: start, to: end) else { return nil }
-        guard let route = await routeSeries(for: workout) else { return nil }
-        let locations = await routeLocations(route)
-        return locations.isEmpty ? nil : locations.sorted { $0.timestamp < $1.timestamp }
+        let route = await segmentedRoute(for: workout)
+        return route.fixes.isEmpty ? nil : route
+    }
+
+    /// Every GPS route of `workout` in time order, each its own segment, with
+    /// a new segment across each of the workout's pauses (`pauseWindows`):
+    /// a source that writes one route per recorded stretch, or stops
+    /// recording through a pause, recorded nothing between them
+    /// (`TrackSegments`). Empty for an indoor or route-less workout.
+    func segmentedRoute(for workout: HKWorkout) async -> SegmentedTrack {
+        var stretches: [[CLLocation]] = []
+        for route in await routeSeries(for: workout) {
+            stretches.append(await routeLocations(route).sorted { $0.timestamp < $1.timestamp })
+        }
+        let joined = TrackSegments.joined(stretches)
+        let ordered = TrackSegments.timeOrdered(joined.fixes, starts: joined.starts)
+        return TrackSegments.breakingAtPauses(ordered, pauses: Self.pauseWindows(of: workout))
+    }
+
+    nonisolated private static func oldestFirst(_ routes: [HKWorkoutRoute]?) -> [HKWorkoutRoute] {
+        (routes ?? []).sorted { $0.startDate < $1.startDate }
+    }
+
+    /// The spans `workout` was paused, by hand or automatically, from its
+    /// pause and resume events. A pause never resumed runs to the end.
+    nonisolated static func pauseWindows(of workout: HKWorkout) -> [ClosedRange<Date>] {
+        let events = (workout.workoutEvents ?? []).map { (type: $0.type, at: $0.dateInterval.start) }
+        return pauseWindows(events: events.sorted { $0.at < $1.at }, end: workout.endDate)
+    }
+
+    /// `pauseWindows(of:)` over time-ordered events.
+    nonisolated static func pauseWindows(events: [(type: HKWorkoutEventType, at: Date)], end: Date) -> [ClosedRange<Date>] {
+        var windows: [ClosedRange<Date>] = []
+        var pausedAt: Date?
+        for event in events {
+            let resumes = event.type == .resume || event.type == .motionResumed
+            if event.type == .pause || event.type == .motionPaused { pausedAt = pausedAt ?? event.at }
+            if resumes, let start = pausedAt, event.at > start { windows.append(start ... event.at) }
+            if resumes { pausedAt = nil }
+        }
+        if let start = pausedAt, end > start { windows.append(start ... end) }
+        return windows
     }
 
     /// Best overlapping workout — prefers an external (Watch) source, and the
@@ -373,12 +440,10 @@ extension TrainingHealthQueries {
         min(workout.endDate, end).timeIntervalSince(max(workout.startDate, start))
     }
 
-    /// The workout's GPS route series, if it has one.
-    ///
-    /// Internal rather than private: `HealthWorkoutImporter` rebuilds external
-    /// workouts and needs the same route, and a second copy of this query would
-    /// be a second thing to keep correct.
-    func routeSeries(for workout: HKWorkout) async -> HKWorkoutRoute? {
+    /// The workout's GPS route series, oldest first; empty when it has none.
+    /// A workout can hold several (one per recorded stretch), and each is
+    /// part of the route.
+    private func routeSeries(for workout: HKWorkout) async -> [HKWorkoutRoute] {
         await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKSeriesType.workoutRoute(),
@@ -386,9 +451,9 @@ extension TrainingHealthQueries {
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
             ) { _, samples, _ in
-                resolve((samples as? [HKWorkoutRoute])?.first)
+                resolve(Self.oldestFirst(samples as? [HKWorkoutRoute]))
             }
-        }
+        } ?? []
     }
 
     /// Stream the route's CLLocations (delivered in batches). Empty when the
@@ -611,15 +676,21 @@ extension TrainingHealthQueries {
         let apple = await fetchAppleRestingHR(relativeTo: referenceDate)
         let settings = access.settingsProvider()
         return .resolve(
-            appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR
+            appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR,
+            settingLTHR: settings.effectiveLTHR, settingSex: settings.biologicalSex
         )
     }
 
-    /// The caller's anchors, with any it left nil resolved by `trainingHeartRateAnchors`.
+    /// The caller's anchors, with any it left nil resolved by
+    /// `trainingHeartRateAnchors`. LTHR and sex are always the user's
+    /// (`effectiveLTHR`, the one the strap's hrTSS divides by).
     private func heartRateAnchors(restingHR: Double?, maxHR: Double?, relativeTo referenceDate: Date) async -> TrainingLoadSeries.HeartRateAnchors {
-        if let restingHR, let maxHR { return .init(restingHR: restingHR, maxHR: maxHR) }
+        let settings = access.settingsProvider()
+        let lthr = Double(settings.effectiveLTHR)
+        let sex = WorkoutAnalyzer.BanisterSex(settings.biologicalSex)
+        if let restingHR, let maxHR { return .init(restingHR: restingHR, maxHR: maxHR, lthr: lthr, sex: sex) }
         let resolved = await trainingHeartRateAnchors(relativeTo: referenceDate)
-        return .init(restingHR: restingHR ?? resolved.restingHR, maxHR: maxHR ?? resolved.maxHR)
+        return .init(restingHR: restingHR ?? resolved.restingHR, maxHR: maxHR ?? resolved.maxHR, lthr: lthr, sex: sex)
     }
 
     /// Morning readings stop at yesterday, so today's load is not applied;

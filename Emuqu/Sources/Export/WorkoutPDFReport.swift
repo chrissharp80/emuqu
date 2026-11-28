@@ -196,7 +196,7 @@ final class WorkoutPDFReport: Sendable {
     private func autonomicSentences(meta: WorkoutMetadata?, bundle: Bundle) -> [String] {
         var auto = peakHRSentences(meta: meta, bundle: bundle)
         if let meanHR = session.meanHR {
-            auto.append(String(localized: "Mean HR \(Int(meanHR)) bpm.", bundle: bundle))
+            auto.append(String(localized: "Mean HR \(Int(meanHR.rounded())) bpm.", bundle: bundle))
         }
         if let decoupling = meta?.decouplingPercent {
             let desc = decoupling <= Self.decouplingDriftPercent ? String(localized: "within normal aerobic-stability limits", bundle: bundle) : String(localized: "suggesting cardiac drift or hydration/fuel demand in the second half", bundle: bundle)
@@ -215,7 +215,7 @@ final class WorkoutPDFReport: Sendable {
             if userMaxHR > 0 {
                 // Guard userMaxHR > 0: Int(x / 0) is +inf → Int(inf) is a HARD
                 // CRASH, not just a cosmetic "inf %".
-                let pctMax = Int(Double(peak) / Double(userMaxHR) * 100)
+                let pctMax = Int((Double(peak) / Double(userMaxHR) * 100).rounded())
                 auto.append(String(localized: "Peak heart rate \(peak) bpm (≈ \(pctMax) % of configured HRmax \(userMaxHR)).", bundle: bundle))
             } else {
                 auto.append(String(localized: "Peak heart rate \(peak) bpm.", bundle: bundle))
@@ -227,10 +227,10 @@ final class WorkoutPDFReport: Sendable {
     private func trainingLoadSentences(meta: WorkoutMetadata?, bundle: Bundle) -> [String] {
         var load: [String] = []
         if let trimp = meta?.luciaTRIMP {
-            load.append(String(localized: "Banister TRIMP \(Int(trimp)) (continuous HRR-based integration, k=\(banisterSexK()) per Banister 1991).", bundle: bundle))
+            load.append(String(localized: "Banister TRIMP \(Int(trimp.rounded())) (continuous HRR-based integration, k=\(banisterSexK()) per Banister 1991).", bundle: bundle))
         }
         if let tss = meta?.hrTSS {
-            load.append(String(localized: "HRSS \(Int(tss)) (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100).", bundle: bundle))
+            load.append(String(localized: "HRSS \(Int(tss.rounded())) (session TRIMP ÷ 1-hour-at-LTHR TRIMP × 100).", bundle: bundle))
         }
         if let gain = meta?.elevationGainMeters {
             load.append(String(localized: "Elevation gain \(units.formatElevation(meters: gain)).", bundle: bundle))
@@ -442,7 +442,7 @@ final class WorkoutPDFReport: Sendable {
             (String(localized: "Duration", bundle: bundle), session.duration.map { drawing.formatDuration(Int($0)) } ?? "—", nil),
             (String(localized: "Avg Pace", bundle: bundle), drawing.avgPaceString(), nil),
             (String(localized: "Elev Gain", bundle: bundle), meta?.elevationGainMeters.map { units.formatElevation(meters: $0) } ?? "—", nil),
-            (String(localized: "Avg HR", bundle: bundle), session.meanHR.map { String(localized: "\(Int($0)) bpm", bundle: bundle) } ?? "—", nil),
+            (String(localized: "Avg HR", bundle: bundle), session.meanHR.map { String(localized: "\(Int($0.rounded())) bpm", bundle: bundle) } ?? "—", nil),
             (String(localized: "Peak HR", bundle: bundle), drawing.peakHRString(), nil),
             (String(localized: "Banister TRIMP", bundle: bundle), meta?.luciaTRIMP.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "HRR-based", bundle: bundle)),
             ("HRSS", meta?.hrTSS.map { String(format: "%.0f", locale: LanguageManager.appLocale, $0) } ?? "—", String(localized: "1hr@LTHR = 100", bundle: bundle)),

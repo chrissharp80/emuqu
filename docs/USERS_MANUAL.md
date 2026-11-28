@@ -63,8 +63,8 @@ The main dashboard displays your recovery status at a glance.
   - **HRV + Sleep + Vitals** (Tier 3): full-signal day — overnight resting heart rate, respiratory rate, and wrist temperature contribute the 15% Vitals factor
 - **Vitals factor (15% of the score):** averages whichever sub-inputs are available — RHR (z-score against personal baseline), respiratory rate (deviation from 7-day baseline), wrist temperature (deviation banded 0.3 / 0.5 / 1.0°C). Missing inputs are dropped, not penalised. An average SpO2 below 95% over the 24 hours before the reading ends applies a separate −10 penalty after the composite (often reflects altitude or sleep apnea rather than recovery state).
 - **When the score appears** (counted in nights in your baseline — overnight readings only, one per night):
-  - Nights 1-2: the morning report scores the night on general HRV thresholds
-  - From night 3: the score compares you with your own baseline, cautiously until night 7
+  - Nights 1-3: the morning report scores the night on general HRV thresholds
+  - From night 4: the score compares you with your own baseline, cautiously through the first week
   - From night 14: the Dashboard shows the score and verdict; before that it shows "Building your baseline"
 - **Confidence pips next to the score:**
   - ●○○ "Building baseline" — nights 0-13, score not yet shown on the Dashboard
@@ -201,7 +201,7 @@ Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them (it as
   - **Above your usual** (1.3-1.5)
   - **Sharp increase** (>1.5)
 - **Monotony & Strain**: The app also tracks Foster's Monotony (how repetitive your training pattern is) and Strain (total load amplified by monotony). High monotony with high strain surfaces a banner suggesting you mix intensities — it's observational context for planning, not a score component.
-- **Recent Workouts Card**: List of recent workouts with type, date, duration, TRIMP
+- **Recent Workouts Card**: List of recent workouts with type, date, duration, training load (LOAD, on the TSS scale)
 
 ### Vitals Detail View
 - **Status Banner**: Overall status (Normal/Elevated/Warning)
@@ -529,8 +529,8 @@ Why it matters:
   flat text dump and approximating.
 - **Bounded cost.** Your full archive is not uploaded on every send.
   Only the specific fields the model looks at cross the wire (and on
-  Apple Intelligence, nothing crosses the wire — everything stays on
-  the phone).
+  Apple Intelligence, none of them do; a place or directions lookup
+  still sends your position to Apple Maps or OpenStreetMap).
 
 Hard cap: 8 tool calls per question. If the model keeps retrying a bad
 argument it'll hit the cap, receive synthetic "missing" results, and
@@ -632,7 +632,7 @@ Rather than ship one custom tool per scenario question, Flo exposes a small set 
 - `training.days_until_converged_from($atl,$ctl,$daily_trimp,$gap)` — days until |ATL − CTL| ≤ gap, from arbitrary starting state. Returns notRecorded when convergence never happens within 60 days (signals the daily load is unsustainable).
 - `training.projected_tsb($daily_trimp)` — single-step projected TSB for the live state.
 
-The AI chains these for multi-stage scenarios: "if I keep 60 TRIMP days until convergence, then switch to 80 TRIMP, what's my TSB at day 28?" — three primitive calls, one composed answer. No per-scenario custom tool.
+The AI chains these for multi-stage scenarios: "if I keep days with a load of 60 until convergence, then switch to 80, what's my TSB at day 28?" — three primitive calls, one composed answer. No per-scenario custom tool.
 
 ### Pre-fab Questions
 
@@ -682,7 +682,12 @@ While the AI is speaking you can interrupt by saying **at least two
 words**. One word ("stop!") won't fire — the gate deliberately requires
 two to avoid cutting the AI off every time you cough, take a loud step,
 or pass a truck. Sustained loud noise alone (wind, traffic) never
-triggers an interrupt; only decoded speech does.
+triggers an interrupt; only decoded speech does. Words that look like
+an echo of what the AI is saying don't interrupt either, with one
+exception: a message about self-harm, an injury or an emergency symptom
+interrupts even when it shares the AI's words (unless the AI is already
+giving that reply), and it is answered at once with the crisis or
+emergency reply, so you don't have to say it again.
 
 The mic button (when the AI is speaking) also forces an immediate
 interrupt. The chat's **Stop** button does the same — it now kills
@@ -914,7 +919,7 @@ Comprehensive recovery report accessed from Dashboard or History.
 ### Training Load Section
 *Only appears if training data available*
 - ACR gauge with zone indicator
-- ATL/CTL/TRIMP metrics
+- ATL/CTL and yesterday's load (TSS scale)
 - Recent workouts list (if available)
 - Tap it to open the Training detail: on today's reading it shows your live training load and keeps it current; on a past night it shows the load as it stood that night
 
@@ -998,8 +1003,8 @@ the full post-workout report. The hero shows:
 - Sport badge (icon + activity label) + relative time (e.g. "2 hours ago")
 - **Big distance readout** + duration + pace
 - **Mini route polyline** traced from the GPS track (no map tiles — fast)
-- **Scrollable badge row**: peak HR, elevation gain, α1 average, TRIMP,
-  HRSS — only renders the badges with real data
+- **Scrollable badge row**: peak HR, elevation gain, α1 average, training
+  load (LOAD), HRSS — only renders the badges with real data
 
 Below the hero: workout-count tiles for the past 7/30 days, a passive
 activity card (phone-tracked steps/distance), the **Get Me Back card**
@@ -1227,7 +1232,7 @@ Cards shown (each appears only if its underlying data is present):
 
 - **Map** with your route.
 - **Headline stats** — distance, duration, avg pace, top speed, elevation
-  gain, HR avg/peak, cadence, power, METs, calories, TRIMP, HRSS.
+  gain, HR avg/peak, cadence, power, METs, calories, training load (LOAD), HRSS.
 - **Heart Rate Recovery** — 1-min and 2-min drops from your heart rate at Stop, with
   colour-coded thresholds. "No signal" appears when the capture window
   ran but the strap was off, and when no heart rate was coming in at Stop
@@ -1831,7 +1836,7 @@ Emuqu has no server and no account. Nothing is ever sent to the developer. The f
   - **OpenTopoData** — route elevation, when you tap to look it up for a workout, including one imported from Apple Health: up to 100 of the route's points, rounded to about 11 m. OpenTopoData publishes no privacy policy.
   - **Overpass (OpenStreetMap)** — trail discovery (the centre of the search, rounded to about 100 m), and nearby roads during outdoor workouts or for each turn of a saved route Flo loads (the centre of a 250 m square). overpass.private.coffee publishes a privacy policy; overpass-api.de, the fallback, publishes none.
   - **Diagnostic log** — only if you share it. Health values and GPS coordinates are removed from it, but it can contain parts of what you said to Flo by voice and nearby street names.
-  - **Apple** — the geocoder for addresses, Apple Maps search for places and cross streets, server speech recognition when your device can't recognise your language on-device, and the App Store for the purchase.
+  - **Apple** — the geocoder for addresses, Apple Maps search for places and cross streets, walking directions and the route map in a workout's PDF report, server speech recognition when your device can't recognise your language on-device, and the App Store for the purchase.
   - **Hugging Face** — the one-time WhisperKit model download, if you choose WhisperKit.
 - HealthKit data access requires explicit permission.
 - Export options are available for backup and data portability.

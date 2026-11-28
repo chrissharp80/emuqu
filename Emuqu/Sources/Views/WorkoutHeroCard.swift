@@ -33,6 +33,9 @@ struct WorkoutHeroCard: View {
     let narrative: String
     /// Optional compact polyline to trace as a visual hook.
     let routeCoordinates: [CLLocationCoordinate2D]
+    /// The coordinates that begin a new recorded segment
+    /// (`WorkoutMetadata.gpsSegmentStarts`); no line is traced across a join.
+    var routeSegmentStarts: [Int] = []
 
     var body: some View {
         VStack(spacing: 14) {
@@ -166,7 +169,7 @@ struct WorkoutHeroCard: View {
     /// frame on any device.
     private func polylineTrace(coordinates: [CLLocationCoordinate2D]) -> some View {
         GeometryReader { geo in
-            Path { Self.tracePath(&$0, coordinates: coordinates, in: geo.size) }
+            Path { Self.tracePath(&$0, coordinates: coordinates, starts: routeSegmentStarts, in: geo.size) }
                 .stroke(AppTheme.terracotta, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
         }
     }
@@ -177,7 +180,7 @@ struct WorkoutHeroCard: View {
     /// to put both axes in the same ground distance, and the trace is
     /// centred in the frame. A tiny epsilon floor on the span keeps a
     /// single-point route from dividing by zero.
-    private static func tracePath(_ path: inout Path, coordinates: [CLLocationCoordinate2D], in size: CGSize) {
+    private static func tracePath(_ path: inout Path, coordinates: [CLLocationCoordinate2D], starts: [Int], in size: CGSize) {
         guard let bounds = TraceBounds(coordinates) else { return }
         let span = max(0.0001, max(bounds.width, bounds.height))
         let scale = min(size.width, size.height) / CGFloat(span)
@@ -190,7 +193,7 @@ struct WorkoutHeroCard: View {
                 x: inset.x + CGFloat(bounds.x(c)) * scale,
                 y: size.height - inset.y - CGFloat(bounds.y(c)) * scale
             )
-            if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+            if i == 0 || starts.contains(i) { path.move(to: p) } else { path.addLine(to: p) }
         }
     }
 

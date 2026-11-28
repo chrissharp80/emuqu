@@ -440,9 +440,7 @@ final class StoreKitManager {
 
     /// Writes one entitlement sweep's answer into the published state.
     private func apply(_ sweep: EntitlementSweep) {
-        if let trialStart = sweep.trialStart {
-            adoptStoreTrialStart(trialStart)
-        }
+        adoptStoreTimes(of: sweep)
         hasTrialTransaction = sweep.hasTrialTransaction
         guard sweep.storeKitAnswered else {
             // Inconclusive: StoreKit had nothing to say (signed out of Media &
@@ -460,6 +458,13 @@ final class StoreKitManager {
         hasPurchasedProduct = sweep.hasEntitlement
         isPurchased = sweep.hasEntitlement || hasBypassGrant
         UserDefaults.standard.set(sweep.hasEntitlement, forKey: Self.lastKnownPurchasedKey)
+    }
+
+    /// What the sweep's App Store dates prove: the trial start, and the
+    /// latest time the App Store signed (`EntitlementAnchor.recordTrustedTime`).
+    private func adoptStoreTimes(of sweep: EntitlementSweep) {
+        if let trialStart = sweep.trialStart { adoptStoreTrialStart(trialStart) }
+        if let signedAt = sweep.latestSignedAt { EntitlementAnchor.recordTrustedTime(signedAt, wallClock: Date()) }
     }
 
     /// The last purchase StoreKit confirmed on this device.
@@ -482,6 +487,7 @@ final class StoreKitManager {
             sweep.storeKitAnswered = true
             sweep.hasEntitlement = sweep.hasEntitlement || grantsEntitlement(result)
             sweep.trialStart = sweep.trialStart ?? trialStartDate(result)
+            sweep.noteSigned(result)
         }
         // A refunded purchase leaves `currentEntitlements`, so a buyer who never
         // took the trial would look exactly like someone StoreKit cannot reach.
@@ -504,6 +510,15 @@ final class StoreKitManager {
         var storeKitAnswered = false
         var trialStart: Date?
         var hasTrialTransaction = false
+        /// The latest time the App Store signed a verified transaction of
+        /// the sweep: a moment real time has reached
+        /// (`EntitlementAnchor.recordTrustedTime`).
+        var latestSignedAt: Date?
+
+        mutating func noteSigned(_ result: VerificationResult<StoreKit.Transaction>) {
+            guard case let .verified(transaction) = result else { return }
+            latestSignedAt = max(latestSignedAt ?? transaction.signedDate, transaction.signedDate)
+        }
     }
 
     private func trialStartDate(_ result: VerificationResult<StoreKit.Transaction>) -> Date? {
@@ -769,6 +784,7 @@ final class StoreKitManager {
             switch try await AppTransaction.shared {
             case let .verified(appTransaction):
                 recordVerifiedEnvironment(appTransaction)
+                EntitlementAnchor.recordTrustedTime(appTransaction.signedDate, wallClock: Date())
                 return true
             case .unverified:
                 UserDefaults.standard.set(false, forKey: lastKnownTestFlightKey)

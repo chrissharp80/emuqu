@@ -49,11 +49,46 @@ extension VoiceConversationController {
     /// `.triggerSpeaking`) claims the cue audio session first (`coachCue`).
     /// Returns the utterance queued on the synthesizer, or nil when the line
     /// went to the coach cue or failed to queue.
+    ///
+    /// `numbersVerified` is true for text read from the chat turn, whose
+    /// numbers the chat pipeline checked before it showed them
+    /// (`StreamTextBuffer`): checking them again a moment later against a
+    /// live value that has moved would make the spoken number differ from
+    /// the saved one.
     @discardableResult
-    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) -> AVSpeechUtterance? {
+    func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false, numbersVerified: Bool = false) -> AVSpeechUtterance? {
+        let scrubbed = perimeterScrubbed(text, continuing: &textChunker.safetyCopy)
+        let guarded = numbersVerified ? scrubbed : applyHallucinationGuard(to: scrubbed)
+        return queueGuarded(guarded, voice: voice, scripted: scripted)
+    }
+
+    /// The app's own line that a "yes" is bound to (a confirmation question
+    /// quoting what the user would agree to), spoken word for word or not at
+    /// all. It runs the same output perimeter as every other line; when the
+    /// scrub, the hallucination guard or authored pronunciation markup would
+    /// make the user hear other words than the question says, nothing is
+    /// spoken and nil comes back, so the question stays undelivered and no
+    /// yes can confirm it.
+    func speakVerbatim(_ text: String, voice: AVSpeechSynthesisVoice?) -> AVSpeechUtterance? {
+        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
+        guard Self.isSpokenWordForWord(text, guarded: guarded) else {
+            debugLog("[VoiceConv] confirmation question of \(text.count) characters would not be spoken word for word; left unasked", level: .warning)
+            return nil
+        }
+        return queueGuarded(text, voice: voice, scripted: true)
+    }
+
+    /// Whether speaking `text` says exactly its words: the output perimeter
+    /// left it as it was (`guarded`), and it carries no `[[word|IPA]]`
+    /// markup, which shows one word and voices another.
+    static func isSpokenWordForWord(_ text: String, guarded: String) -> Bool {
+        guarded == text && PhoneticOverrides.stripForDisplay(text) == text
+    }
+
+    /// Normalise an already guarded line and queue it (`speak`).
+    private func queueGuarded(_ guarded: String, voice: AVSpeechSynthesisVoice?, scripted: Bool) -> AVSpeechUtterance? {
         let chosenVoice = voice ?? bestVoice
         let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
-        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
         // Scripted lines (coach triggers, the recovery line) are not Flo's
         // reply, so they don't get the "Flo here. <Model>." preamble.
         let isScripted = scripted || state == .triggerSpeaking
@@ -175,43 +210,23 @@ extension VoiceConversationController {
         return (providerID, name)
     }
 
-    /// Hallucination-guard pre-flight. Verifies each numeric
-    /// claim in `text` against the live workout snapshot, then against the
-    /// app's own values (`MetricsVerifier.verifyAppStateClaims`: training
-    /// load, overnight RMSSD and recovery score), so the user hears the
-    /// verified value rather than a fabricated one. Replaces each
-    /// contradicting span with the verified value and records the
-    /// correction, so the next turn's system prompt tells the model it was
-    /// corrected.
+    /// Hallucination-guard pre-flight: the one reply check the chat
+    /// pipeline also runs (`MetricsVerifier.verifyReply`), against the same
+    /// values (`VoiceServices.verifiedAppState`: the live workout broker,
+    /// training load, the overnight and last night's sleep), so the user
+    /// hears the verified value. Replaces each contradicting span and
+    /// records the correction, so the next turn's system prompt tells the
+    /// model it was corrected. The utterances already spoken in this reply
+    /// are read with it (`SpokenTextChunker.verifiedReply`), so a number is
+    /// placed by what was said before it, as in the chat.
     func applyHallucinationGuard(to text: String) -> String {
-        appStateCorrected(liveWorkoutCorrected(text))
-    }
-
-    /// Live-workout claims (HR, power, α1, drift). Substitutions happen
-    /// back-to-front so earlier ranges stay valid as the string mutates.
-    private func liveWorkoutCorrected(_ text: String) -> String {
-        guard let snapshot = liveWorkoutSnapshotProvider?() else { return text }
-        let discrepancies = MetricsVerifier.verify(text, against: snapshot)
-        guard !discrepancies.isEmpty else { return text }
-        debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
-        MetricsVerifier.recordCorrections(discrepancies)
-        var corrected = text
-        let sorted = discrepancies.sorted { $0.range.lowerBound > $1.range.lowerBound }
-        for d in sorted {
-            corrected.replaceSubrange(d.range, with: d.actual)
-        }
-        return corrected
-    }
-
-    /// App-state claims (TSB / ATL / CTL / ACWR, RMSSD, recovery score).
-    /// The verifier returns the original text with only the claimed spans
-    /// replaced.
-    private func appStateCorrected(_ text: String) -> String {
-        let result = MetricsVerifier.verifyAppStateClaims(text, against: services.verifiedAppState)
+        let result = MetricsVerifier.verifyReply(text, after: textChunker.verifiedReply, against: services.verifiedAppState)
+        let guarded = result.correctedText ?? text
+        textChunker.verifiedReply += guarded + "\n"
         guard !result.discrepancies.isEmpty else { return text }
         debugLog(MetricsVerifier.formatForLog(result.discrepancies), level: .warning)
         MetricsVerifier.recordCorrections(result.discrepancies)
-        return result.correctedText ?? text
+        return guarded
     }
 
     /// Push-to-talk / "send now" — forces the current listening turn to
@@ -464,9 +479,11 @@ extension VoiceConversationController {
         let newWords = Self.wordCount(partialTranscript) - bargeInBaselineWordCount
         guard newWords >= bargeInMinNewWords else { return }
         let candidate = String(partialTranscript.dropFirst(bargeInBaselineLength))
-        guard !isLikelyEchoOfCurrentResponse(candidate) else { return }
+        // A crisis or emergency report is never echo, and it is answered, not discarded.
+        let mustAnswer = VoiceEchoHeuristics.mustReachGuard(candidate, lastAssistantTurn: currentResponseText)
+        guard mustAnswer || !isLikelyEchoOfCurrentResponse(candidate) else { return }
         debugLog("[VoiceConv] 🛑 barge-in: \(newWords) new words decoded during sustained loud audio (\(String(format: "%.1f", Date().timeIntervalSince(lastSub)))s) — interrupting AI")
-        interrupt()
+        interrupt(answering: mustAnswer ? candidate : nil)
     }
 
     /// Thin wrappers over `VoiceEchoHeuristics`, which owns the tokeniser and

@@ -481,6 +481,15 @@ final class ReanalysisService {
         return outcome
     }
 
+    /// Hands a rewritten session to iCloud sync to upload again. Each writer
+    /// recorded the request on disk before its write
+    /// (`SessionArchive.noteReuploadIntent`); it is recorded again here for a
+    /// write made elsewhere, so a kill before the upload task runs leaves it.
+    func queueUpload(_ session: HRVSession) {
+        archive.noteReuploadIntent([session.id])
+        Task { [onSessionUploaded] in onSessionUploaded(session) }
+    }
+
     /// After a reanalysis was written: cached on-demand zones computed by the
     /// chart view are stale (the window has changed), so they are dropped and
     /// the next chart render recomputes against the new window; the baseline,
@@ -489,7 +498,7 @@ final class ReanalysisService {
         onZonesStale(written.id)
         baselineTracker.update(with: written, sleepSchedule: settingsProvider().sleepSchedule)
         onArchiveChanged()
-        Task { onSessionUploaded(written) }
+        queueUpload(written)
         reexportIfReadingsChanged(from: read, to: written)
         debugLog("[ReanalysisService] Re-analysis complete")
     }
@@ -742,7 +751,7 @@ final class ReanalysisService {
             let outcome = try RescoreWrite.write(updated, readFrom: read, kind: kind, to: archive)
             guard case .written(let written) = outcome else { return outcome }
             onArchiveChanged()
-            Task { [onSessionUploaded] in onSessionUploaded(written) }
+            queueUpload(written)
             let current = Self.scoreFingerprint(of: written)
             let scoreChanged = current.score != previous.score
             let loadChanged = current.trainingLoad != previous.trainingLoad

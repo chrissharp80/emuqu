@@ -71,7 +71,10 @@ struct GPXPreviewSheet: View {
         if payload.track.isEmpty {
             routeUnavailablePlaceholder
         } else {
-            GPXPreviewMap(track: payload.track)
+            GPXPreviewMap(
+                track: payload.track,
+                segmentStarts: payload.session.workoutMetadata?.gpsSegmentStarts(count: payload.track.count) ?? []
+            )
         }
     }
 
@@ -99,7 +102,7 @@ struct GPXPreviewSheet: View {
         }()
         // Active (un-paused) time, as the workout summary shows it.
         let durationText: String = {
-            let secs = max(0, WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: payload.session.duration) ?? 0)
+            let secs = max(0, WorkoutActiveTime.seconds(metadata: meta, wallClock: payload.session.duration) ?? 0)
             return LocalizedDuration.hoursMinutes(minutes: Int(secs / 60))
         }()
         HStack(spacing: 16) {
@@ -145,6 +148,9 @@ struct GPXPreviewSheet: View {
 /// rendering Apple/Strava users expect.
 struct GPXPreviewMap: UIViewRepresentable {
     let track: [CLLocation]
+    /// The fixes that begin a new recorded segment; each segment is its own
+    /// line, none drawn across a join (`TrackSegments`).
+    var segmentStarts: [Int] = []
 
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
@@ -160,9 +166,9 @@ struct GPXPreviewMap: UIViewRepresentable {
         map.removeOverlays(map.overlays)
         guard !track.isEmpty else { return }
         let coords = track.map(\.coordinate)
-        let polyline = MKPolyline(coordinates: coords, count: coords.count)
-        map.addOverlay(polyline)
-        map.setVisibleMapRect(Self.fittedRect(for: polyline), animated: false)
+        let polylines = TrackSegments.split(coords, starts: segmentStarts).map { MKPolyline(coordinates: $0, count: $0.count) }
+        map.addOverlays(polylines)
+        map.setVisibleMapRect(Self.fittedRect(for: MKPolyline(coordinates: coords, count: coords.count)), animated: false)
     }
 
     /// The route's bounds padded by 15 % of the longer side, and by at least

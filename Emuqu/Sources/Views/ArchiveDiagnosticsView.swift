@@ -199,11 +199,13 @@ struct ArchiveDiagnosticsView: View {
     }
 
     /// Files in the archive directory that are not sessions: the index, the
-    /// deleted list and every CloudKitSyncState sidecar (the same set
-    /// `SessionArchive.reservedFileNames` keeps out of orphan adoption).
+    /// deleted list, every CloudKitSyncState sidecar and the upload-again
+    /// requests (the same set `SessionArchive.reservedFileNames` keeps out of
+    /// orphan adoption).
     nonisolated private static let nonSessionFileNames: Set<String> = [
         "index.json", "deleted.json", "sync_state.json", "pending_uploads.json",
-        "quarantined_uploads.json", "local_only_sessions.json", "record_versions.json"
+        "quarantined_uploads.json", "local_only_sessions.json", "record_versions.json",
+        ReuploadRequestJournal.fileName
     ]
 
     nonisolated private static func fileCensus(_ files: [URL], indexedFileNames: Set<String>) -> String {

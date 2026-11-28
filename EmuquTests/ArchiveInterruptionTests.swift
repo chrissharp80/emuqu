@@ -76,6 +76,64 @@ final class ArchiveInterruptionTests: XCTestCase {
         XCTAssertFalse(archive.store.exists(session.id))
     }
 
+    /// The deletion mark was saved, the index was not: the session is still
+    /// listed while every write to it is refused. The next launch finishes
+    /// the delete, so the session is in the Trash as it was.
+    func testADeleteKilledBeforeTheIndexSaveIsFinishedAtLaunch() throws {
+        let archive = SessionArchive(directory: directory.appendingPathComponent("Archive"))
+        var session = night()
+        session.notes = "kept in the Trash"
+        try archive.archive(session)
+        try archive.store.markAsDeleted(session.id)
+        XCTAssertTrue(archive.store.exists(session.id), "the kill left the session listed")
+
+        archive.boot()
+
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertEqual(archive.store.trashedSession(session.id)?.notes, "kept in the Trash")
+    }
+
+    /// The deletion mark was dropped, the session was not written back: its
+    /// Trash file is listed nowhere. The next launch finishes the restore.
+    func testARestoreKilledBeforeTheWriteIsFinishedAtLaunch() throws {
+        let archive = SessionArchive(directory: directory.appendingPathComponent("Archive"))
+        var session = night()
+        session.notes = "back from the Trash"
+        try archive.archive(session)
+        XCTAssertTrue(try archive.delete(session.id))
+        try archive.store.unmarkAsDeleted(session.id)
+        XCTAssertFalse(archive.store.exists(session.id))
+
+        archive.boot()
+
+        XCTAssertEqual(try archive.retrieve(session.id)?.notes, "back from the Trash")
+        XCTAssertFalse(archive.store.trashedIds.contains(session.id))
+    }
+
+    /// Duplicate cleanup moved the copy's file into quarantine, the index
+    /// still names it: every read fails. The next launch puts the file with
+    /// the entry's exact bytes back, and leaves a different copy of the same
+    /// session where it is.
+    func testACleanupKilledBeforeTheIndexSaveGetsItsFileBack() throws {
+        let archive = SessionArchive(directory: directory.appendingPathComponent("Archive"))
+        var session = night()
+        session.notes = "the copy the index names"
+        try archive.archive(session)
+        let quarantine = archive.store.quarantineDirectory
+        try FileManager.default.createDirectory(at: quarantine, withIntermediateDirectories: true)
+        try Data("an older copy".utf8).write(to: quarantine.appendingPathComponent("\(session.id.uuidString).json"))
+        let file = archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json")
+        let moved = quarantine.appendingPathComponent("\(session.id.uuidString).1700000000000.json")
+        try FileManager.default.moveItem(at: file, to: moved)
+        XCTAssertThrowsError(try archive.retrieve(session.id), "the kill left the index naming a missing file")
+
+        archive.boot()
+
+        XCTAssertEqual(try archive.retrieve(session.id)?.notes, "the copy the index names")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: moved.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: quarantine.appendingPathComponent("\(session.id.uuidString).json").path))
+    }
+
     /// An archive whose merge setting allows same-night cleanup.
     private func mergingArchive() -> SessionArchive {
         SessionArchive(directory: directory.appendingPathComponent("Archive"), sessionMergeModeProvider: { .defaultGap })

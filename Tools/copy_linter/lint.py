@@ -476,7 +476,10 @@ def translated_claim_patterns(repo_root: Path) -> list[tuple[re.Pattern[str], st
             re.DOTALL,
         )
         if concept is None:
-            continue
+            # Fail closed: a concept the list names but the parser cannot find
+            # would otherwise drop out of the every-locale check while the run
+            # still reports clean.
+            raise MissingScanPath(f"{LEXICON_PATH}: neverInStaticCopy names {name}, whose Concept block was not found")
 
         def alternatives(tag: str) -> list[str]:
             # Both spellings occur: the array on one line, and the array spread
@@ -508,11 +511,11 @@ def translated_claim_patterns(repo_root: Path) -> list[tuple[re.Pattern[str], st
         if unbounded:
             branches.append("(?:" + "|".join(unbounded) + ")")
         if not branches:
-            continue
+            raise MissingScanPath(f"{LEXICON_PATH}: concept {concept.group(1)} has no latin or unbounded alternatives")
         try:
             compiled = re.compile("(?:" + "|".join(branches) + ")", re.IGNORECASE)
-        except re.error:
-            continue
+        except re.error as exc:
+            raise MissingScanPath(f"{LEXICON_PATH}: concept {concept.group(1)} does not compile: {exc}")
         patterns.append((compiled, f"Regulated claim ({concept.group(1)}) in a translated string."))
     if not patterns:
         raise MissingScanPath(f"{LEXICON_PATH}: no usable concepts in neverInStaticCopy")

@@ -43,11 +43,15 @@ enum WorkoutGeometry {
     /// Local pace (sec/km) at `closestIdx`: averaged over ±5 fixes around it
     /// so a single outlier doesn't skew the number. Nil when the span is too
     /// short (under 5 m or 1 s) to carry a pace, or `closestIdx` is not an
-    /// index of `track` (an empty track has none).
-    static func localPace(in track: [CLLocation], at closestIdx: Int) -> Double? {
-        guard track.indices.contains(closestIdx) else { return nil }
-        let lo = max(0, closestIdx - 5)
-        let hi = min(track.count - 1, closestIdx + 5)
+    /// index of `track` (an empty track has none). The window stays inside
+    /// the recorded segment holding `closestIdx` (`starts`), so no pace is
+    /// read across a join where nothing was recorded.
+    static func localPace(in track: [CLLocation], at closestIdx: Int, starts: [Int] = []) -> Double? {
+        guard track.indices.contains(closestIdx),
+              let segment = TrackSegments.ranges(count: track.count, starts: starts).first(where: { $0.contains(closestIdx) })
+        else { return nil }
+        let lo = max(segment.lowerBound, closestIdx - 5)
+        let hi = min(segment.upperBound - 1, closestIdx + 5)
         let localStart = track[lo]
         let localEnd = track[hi]
         let localDist = localEnd.distance(from: localStart)

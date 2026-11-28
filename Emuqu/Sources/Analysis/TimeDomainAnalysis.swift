@@ -15,11 +15,31 @@ struct CleanBeatWindow {
     let rr: [Double]
     let indices: [Int]
     let breaks: Set<Int>
+    /// The series indices whose beat the sensor removed an interval before
+    /// (`RRPoint.followsRemovedBeat`). Not a break: DFA still interpolates
+    /// across one, but no successive difference is taken across it.
+    var afterRemovedBeat: Set<Int> = []
+    /// For each of `afterRemovedBeat`, how many beats the sensor removed
+    /// before it (`TimeDomainAnalyzer.removedBeatCounts`), so DFA
+    /// interpolates as many as were lost.
+    var removedBeatCounts: [Int: Int] = [:]
+
+    /// The beats missing between beat `k - 1` and beat `k` (`k > 0`, the
+    /// first before the second in the series): the artifact beats between
+    /// them in the series, and those the sensor removed before any series
+    /// beat after the first, up to the second.
+    func missingBeats(before k: Int) -> Int {
+        let (previous, next) = (indices[k - 1], indices[k])
+        guard next > previous else { return 0 }
+        let removed = ((previous + 1) ... next).reduce(0) { $0 + (removedBeatCounts[$1] ?? 0) }
+        return next - previous - 1 + removed
+    }
 
     /// Whether beat `k` and beat `k - 1` were neighbours in the series with
-    /// no recording break between them. False for the first beat.
+    /// no recording break and no removed interval between them. False for
+    /// the first beat.
     func isAdjacentToPrevious(_ k: Int) -> Bool {
-        k > 0 && indices[k] == indices[k - 1] + 1 && !breaks.contains(indices[k])
+        k > 0 && indices[k] == indices[k - 1] + 1 && !breaks.contains(indices[k]) && !afterRemovedBeat.contains(indices[k])
     }
 }
 
@@ -100,7 +120,7 @@ enum TimeDomainAnalyzer {
     /// by a recording break. `isValid` takes an offset into the range.
     static func rmssd(points: [RRPoint], range: Range<Int>, isValid: (Int) -> Bool) -> Double? {
         guard range.lowerBound >= 0, range.upperBound <= points.count else { return nil }
-        let breaks = beatsAfterRecordingBreak(in: points, range: range)
+        let breaks = beatsNotAdjacentToPrevious(in: points, range: range)
         return rmssd(
             fromRRs: points[range].map { Double($0.rr_ms) },
             isValid: isValid,
@@ -212,6 +232,88 @@ enum TimeDomainAnalyzer {
         return breaks
     }
 
+    /// Whether `next` directly follows `previous` in what was measured: no
+    /// recording break separates them (`isRecordingBreak`) and the sensor
+    /// removed no interval between them (`RRPoint.followsRemovedBeat`). Only
+    /// an adjacent pair gives a successive difference (Task Force 1996: the
+    /// differences between ADJACENT NN intervals; Kubios likewise takes
+    /// none across a removed beat). A removed beat is not a hole in time, so
+    /// a resampled spectrum still interpolates across it
+    /// (`longestUnbrokenRange`, `FrequencyDomainAnalyzer` read
+    /// `beatsAfterRecordingBreak` alone).
+    static func isAdjacentBeat(_ previous: RRPoint, _ next: RRPoint) -> Bool {
+        !next.isAfterRemovedBeat && !isRecordingBreak(between: previous, and: next)
+    }
+
+    /// Indices in `range` whose beat is not adjacent to the beat before it
+    /// (`isAdjacentBeat`): those after a recording break, and those the
+    /// sensor removed an interval before.
+    static func beatsNotAdjacentToPrevious(in points: [RRPoint], range: Range<Int>) -> Set<Int> {
+        beatsAfterRecordingBreak(in: points, range: range).union(beatsAfterRemovedBeat(in: points, range: range))
+    }
+
+    /// Indices in `range`, after the first beat of the series, whose beat the
+    /// sensor removed an interval before (`RRPoint.followsRemovedBeat`).
+    static func beatsAfterRemovedBeat(in points: [RRPoint], range: Range<Int>) -> Set<Int> {
+        Set(range.clamped(to: 1 ..< max(1, points.count)).filter { points[$0].isAfterRemovedBeat })
+    }
+
+    /// For each index in `range` whose beat follows an interval the sensor
+    /// removed (`beatsAfterRemovedBeat`), how many beats it removed: the time
+    /// before the beat on the real clock that no beat accounts for
+    /// (`BeatTimeline.untimedMs`), in beats of its two neighbours' mean
+    /// length, and at least one. The beat clock leaves that time out, so it
+    /// alone cannot say.
+    static func removedBeatCounts(in points: [RRPoint], range: Range<Int>) -> [Int: Int] {
+        let marked = beatsAfterRemovedBeat(in: points, range: range)
+        guard let lowest = marked.min() else { return [:] }
+        let timed = (lowest - 1) ..< min(points.count, range.upperBound)
+        let times = BeatTimeline.ms(points, in: timed)
+        let beats = Array(points[timed])
+        return Dictionary(uniqueKeysWithValues: marked.map { ($0, removedBeats(before: $0 - timed.lowerBound, times: times, beats: beats)) })
+    }
+
+    /// `removedBeatCounts` for one beat, `k` its place in `beats`.
+    private static func removedBeats(before k: Int, times: [Int64], beats: [RRPoint]) -> Int {
+        let untimedMs = Double(BeatTimeline.untimedMs(before: k, times: times, points: beats))
+        let typicalMs = Double(beats[k - 1].rr_ms + beats[k].rr_ms) / 2
+        guard typicalMs > 0 else { return 1 }
+        return max(1, Int((untimedMs / typicalMs).rounded()))
+    }
+
+    /// The run of each of `indices` (ascending beat indices into `points`),
+    /// counting from 0: a new run starts at an index when a beat not
+    /// adjacent to its predecessor (`isAdjacentBeat`: a recording break, or
+    /// an interval the sensor removed) falls after the index before it and at
+    /// or before it. A line drawn through the beats lifts its pen between runs, so it
+    /// never joins beats either side of a hole, however the chart spaces
+    /// them (by beat, or on a clock that does not show the hole).
+    static func recordingRuns(of indices: [Int], in points: [RRPoint]) -> [Int] {
+        guard let first = indices.first, let last = indices.last, first >= 0, first < last else {
+            return indices.map { _ in 0 }
+        }
+        let breaks = beatsNotAdjacentToPrevious(in: points, range: (first + 1) ..< (last + 1)).sorted()
+        var (run, next) = (0, 0)
+        return indices.map { index in
+            while next < breaks.count, breaks[next] <= index {
+                (run, next) = (run + 1, next + 1)
+            }
+            return run
+        }
+    }
+
+    /// The longest stretch of `range` with no recording break inside it
+    /// (`isRecordingBreak`), for a reading that interpolates between beats
+    /// (a resampled spectrum) and so must not span a break. `range` clamped
+    /// to `points`; empty when it is.
+    static func longestUnbrokenRange(in points: [RRPoint], range: Range<Int>) -> Range<Int> {
+        let clamped = range.clamped(to: 0 ..< points.count)
+        guard !clamped.isEmpty else { return clamped }
+        let breaks = beatsAfterRecordingBreak(in: points, range: clamped).filter { $0 > clamped.lowerBound }
+        let bounds = [clamped.lowerBound] + breaks.sorted() + [clamped.upperBound]
+        return zip(bounds, bounds.dropFirst()).map { $0 ..< $1 }.max { $0.count < $1.count } ?? clamped
+    }
+
     // MARK: - Public API
 
     /// Compute time-domain metrics for clean RR intervals
@@ -256,8 +358,12 @@ enum TimeDomainAnalyzer {
             rr.append(Double(series.points[i].rr_ms))
             indices.append(i)
         }
-        let breaks = beatsAfterRecordingBreak(in: series.points, range: windowStart ..< windowEnd)
-        return CleanBeatWindow(rr: rr, indices: indices, breaks: breaks)
+        let range = windowStart ..< windowEnd
+        return CleanBeatWindow(
+            rr: rr, indices: indices, breaks: beatsAfterRecordingBreak(in: series.points, range: range),
+            afterRemovedBeat: beatsAfterRemovedBeat(in: series.points, range: range),
+            removedBeatCounts: removedBeatCounts(in: series.points, range: range)
+        )
     }
 
     private static func metrics(

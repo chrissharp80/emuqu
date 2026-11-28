@@ -206,7 +206,10 @@ extension HelpContent {
                         """),
                     .warning("It works best with AirPods in a quiet room. On the phone speaker in wind, traffic, or a crowd it can mishear you or cut itself off. When it misbehaves, tell the assistant directly — the system prompt is written to respect what you report hearing, not deny it."),
                     .heading("Interrupting the AI"),
-                    .text("Four gates fire an interrupt together: the AI has been speaking for 600 ms (grace window), your mic has sustained non-silence for 300 ms, you said at least TWO recognized words since the AI started, and those words don't look like an echo of what the AI just said."),
+                    .text("""
+                        Four gates fire an interrupt together: the AI has been speaking for 600 ms (grace window), your mic has sustained non-silence for 300 ms, you said at least TWO recognized words since the AI started, and those words don't look like an echo of what the AI just said. \
+                        One exception: a message about self-harm, an injury or an emergency symptom interrupts even when it shares the AI's words (unless the AI is already giving that reply), and it is answered at once with the crisis or emergency reply, so you don't have to say it again.
+                        """),
                     .bullets([
                         "Two-word minimum is deliberate — a single word like \"stop!\" would fire on coughs, footsteps, and car horns. Say \"hey stop\" or \"wait\" plus one other word.",
                         "Sustained loud noise alone (wind, traffic, HVAC) doesn't interrupt. Only decoded speech does.",
@@ -278,7 +281,8 @@ extension HelpContent {
                     .heading("Voice mode isn't interrupting on my voice"),
                     .text("""
                         Four gates have to pass at once: a 600ms grace after the AI starts, 300ms of sustained voice, ≥2 new recognized words, and those words can't look like an echo of what the AI just said. If you're on phone speaker, AEC is weaker \
-                        and gate 4 sometimes blocks real interrupts. Use AirPods, or tap the mic button to force-interrupt.
+                        and gate 4 sometimes blocks real interrupts. Use AirPods, or tap the mic button to force-interrupt. \
+                        Unless the AI is already giving the crisis or emergency reply, a message about self-harm, an injury or an emergency symptom is never blocked as an echo: it interrupts the AI and gets that reply.
                         """),
                     .heading("Voice mode finalized my turn too early / won't finalize"),
                     .text("While listening, tap the paper-plane Send now button in the voice pill to force-commit whatever transcript was captured. If it never fires and the recognizer seems stuck, end and restart voice."),
@@ -440,7 +444,10 @@ extension HelpContent {
                     .heading("Privacy"),
                     .bullets([
                         "Your data is stored on this device. Optional iCloud sync between your devices is encrypted on your iPhone first; readings from Apple Health are never uploaded to iCloud, but scores Emuqu computes from them are",
-                        "A cloud AI model you set up for Flo receives what its data-sharing notice lists, Apple Health readings included, once you accept that notice. When Apple Intelligence answers, it stays on your iPhone",
+                        """
+                        A cloud AI model you set up for Flo receives what its data-sharing notice lists, Apple Health readings included, once you accept that notice. \
+                        When Apple Intelligence answers, it stays on your iPhone. A place or directions lookup still sends your position to Apple Maps or OpenStreetMap
+                        """,
                         "iCloud sync goes to YOUR private CloudKit container — no third-party servers",
                         "No analytics SDKs, no advertising frameworks, no tracking of any kind",
                         "Deleting the app deletes the data stored in it, raw RR backups included — iCloud sync or an export keeps it",
@@ -494,7 +501,7 @@ extension HelpContent {
                         "Deletes propagate across devices — delete on one, gone on all",
                         "A full sync when you open the app or return to it, unless one ran in the last 10 minutes (30 minutes at launch)",
                         "Session data is ZLIB compressed before upload (~80-90% size reduction)",
-                        "Sync status in Settings → iCloud & Data: Up to date, Syncing…, or the error, with the last sync time"
+                        "Sync status in Settings → iCloud & Data: Up to date; Syncing… while a sync runs or a save waits to upload; how many sessions wait to retry after an upload failed; a note when your history on this iPhone can't be read yet; or the error, with the last sync time"
                     ]),
                     .heading("Off by Default"),
                     .text("iCloud sync is off until you turn it on, during onboarding or in Settings. Turning it off stops future syncs but doesn't delete already-synced data from iCloud."),
@@ -505,7 +512,8 @@ extension HelpContent {
                     .note("""
                         iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on your iPhone before upload. Readings from Apple Health (sleep, vitals, VO2max, workouts from Apple Health, \
                         Apple Watch heart rate, and birthday, sex and weight filled from Health) are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself. Your settings are backed up to iCloud too, \
-                        encrypted the same way; on another device, restore them from Settings → iCloud & Data → Restore Settings from iCloud. During a recording, its raw RR backup also uploads this way every 5 minutes.
+                        encrypted the same way; on another device, restore them from Settings → iCloud & Data → Restore Settings from iCloud. During a recording, its raw RR backup also uploads this way every 5 minutes. \
+                        Another device can open your synced data only if both have iCloud Keychain turned on.
                         """)
                 ]
             ),

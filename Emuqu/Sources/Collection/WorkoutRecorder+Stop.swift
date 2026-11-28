@@ -125,13 +125,15 @@ extension WorkoutRecorder {
 
     /// Post-finalize housekeeping: battery accounting, breadcrumb archive,
     /// state reset, and the flip to `.finished` that reveals the summary,
-    /// which shows `saveOutcome` (a workout not saved yet says so).
+    /// which shows `saveOutcome` (a workout not saved yet says so). An
+    /// accidental start left unsaved is said on the Watch too.
     private func settleAfterFinalize(finished: HRVSession, saveOutcome: WorkoutSaveOutcome, startedAt: Date) async {
         await chargeStrapBatteryUsage()
         archiveBreadcrumbTrailIfNeeded(finished: finished)
         resetRecorderStateAfterStop()
         lifecycle.finishedSession = finished
         lifecycle.saveOutcome = saveOutcome
+        if saveOutcome == .notArchived { watchBridge.sendWorkoutSaveState(notSaved: true) }
         lifecycle.phase = .finished
         debugLog("[Recorder.stop] phase=.finished save=\(saveOutcome) (total elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         disconnectFootPodPostWorkout()
@@ -537,8 +539,10 @@ extension WorkoutRecorder {
         // users not on the chat tab, the EmuquApp
         // root observer also catches it. The toggle gates the
         // auto-fire; on-demand generation from the post-summary
-        // button always works regardless.
-        guard settingsProvider().enableAutoCoachReport else { return }
+        // button always works regardless. With the AI Assistant off the
+        // Coach Report does not run, as that switch's description says.
+        let settings = settingsProvider()
+        guard settings.enableAutoCoachReport, settings.enableAIAssistant else { return }
         Self.scheduleCoachReportEmail(for: finalSession, settings: settingsProvider(), services: services)
     }
 

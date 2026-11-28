@@ -187,7 +187,7 @@ struct LoadTrajectoryView: View {
         EmptyState(
             glyph: "chart.bar.xaxis",
             headline: String(localized: "No training data yet", bundle: LanguageManager.appBundle),
-            message: String(localized: "Load & Trajectory needs at least one workout from Apple Health. Once your first workout is logged the curves and TRIMP/CTL/TSB stats appear here.", bundle: LanguageManager.appBundle)
+            message: String(localized: "Load & Trajectory needs at least one workout from Apple Health. Once your first workout is logged the curves and load/CTL/TSB stats appear here.", bundle: LanguageManager.appBundle)
         )
     }
 
@@ -429,10 +429,10 @@ struct LoadTrajectoryView: View {
     }
 
     /// The first card sums the per-day `effectiveLoad`
-    /// (power/HR TSS-preferred), the same metric the workout LOAD tile shows, so
-    /// it is labelled "LOAD" and not "TRIMP" (which is the Banister-only scale).
-    /// Reserving "TRIMP" for the Banister value keeps one workout from reading
-    /// as two different numbers under one label.
+    /// (power/HR TSS-preferred, every tier on the TSS scale), the same metric
+    /// the workout LOAD tile shows, so it is labelled "LOAD" and not "TRIMP"
+    /// (the raw Banister figure, shown under that name only where it is the
+    /// raw figure).
     private var statRow: some View {
         HStack(spacing: 8) {
             loadStatCard
@@ -650,13 +650,10 @@ struct LoadTrajectoryView: View {
         String(localized: "LOAD", bundle: LanguageManager.appBundle)
     }
 
-    /// "TRIMP" (an acronym, not translated) for the Banister scale, the
-    /// localized "LOAD" for every TSS-based source.
+    /// The localized "LOAD": every source's value is on the TSS scale by the
+    /// time it reaches a row (`preferredTrainingLoad`).
     private func loadUnitLabel(_ source: WorkoutMetadata.TrainingLoadSource?) -> String {
-        switch source {
-        case .banister, .routeHistory: "TRIMP"
-        case .power, .hr, .mets, nil: Self.loadLabel
-        }
+        source?.displayLabel ?? Self.loadLabel
     }
 
     private func relativeWorkoutDate(_ date: Date) -> String {

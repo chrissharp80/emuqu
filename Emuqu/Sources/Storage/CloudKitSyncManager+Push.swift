@@ -48,13 +48,12 @@ struct CloudUploadStopped: Error {}
 extension CloudKitSyncManager {
     // MARK: - Push (Upload Pending)
 
-    // Cap the per-cycle push batch. Without it, a permanent server error
-    // (schema not promoted) builds up a queue of 100+ pending sessions, and
-    // every sync cycle tries to push all of them serially on the main actor —
-    // 10–50 s of MainActor work per cycle, felt as the app lagging whenever
-    // iCloud sync is on. The cap keeps each cycle bounded; the rest drain
-    // across cycles.
-    private static let pushBatchLimit = 25
+    // Sessions pushed between two saves of the sync state. A sync keeps
+    // pushing batch after batch while each one moves at least one session
+    // into iCloud (`drain`), so a backlog goes up in one sync. A batch that
+    // moves nothing (iCloud unreachable, every save failing) ends the push for this sync:
+    // a failing backlog costs one batch per sync, not a pass over all of it.
+    static let pushBatchLimit = 25
 
     /// Exponential-backoff ceiling: a session is never skipped for more than
     /// this many cycles in a row.
@@ -79,8 +78,7 @@ extension CloudKitSyncManager {
     // circuit breaker) into a batch-level failure mode that's far harder to
     // recover from. The serial loop below intentionally keeps each save
     // independent so one bad record (e.g. malformed asset on disk) doesn't
-    // poison the whole batch. The 25-record cap keeps the serial cost
-    // bounded; the next cycle picks up where this one left off.
+    // poison the whole batch.
     //
     // The four decision blocks (batch selection, backoff, prep-failure
     // classification, zone recovery) are named functions rather than inline
@@ -92,25 +90,61 @@ extension CloudKitSyncManager {
     /// The backoff counter advances on every cycle that gets this far, one
     /// whose whole batch is deferred included; advanced only after a
     /// non-empty batch, it would freeze while every pending session was
-    /// deferred and none of them would be tried again. Each session's turn counts as
-    /// progress for the stall watchdog, failed or not.
+    /// deferred and none of them would be tried again. It advances once per
+    /// sync, not once per batch: the sessions a sync tries are chosen once,
+    /// before its first batch, so backoff still spaces retries across syncs.
+    /// Each session's turn counts as progress for the stall watchdog, failed
+    /// or not.
     func pushPendingSessions() async {
         lastPushErrorMessage = nil
         guard cloudUploadsAllowed, !schemaUnavailable else { return }
-        let pendingIds = pendingPushBatch()
+        let eligible = pendingPushIds()
         Self.pushCycleCounter &+= 1
-        guard !pendingIds.isEmpty else { return }
-        for sessionId in pendingIds {
+        await Self.drain(
+            eligible, batchSize: Self.pushBatchLimit,
+            push: { await self.pushBatch($0) },
+            outstanding: { self.outstandingUploadIds }
+        )
+    }
+
+    /// Push `ids` a batch of `batchSize` at a time. The next batch follows
+    /// only while the last one took at least one of its sessions out of the
+    /// outstanding set (`outstanding`) and did not ask the push to stop
+    /// (`push` returning true: the zone gone, sync off, another account, the
+    /// schema missing, the watchdog fired).
+    static func drain(
+        _ ids: [UUID], batchSize: Int,
+        push: ([UUID]) async -> Bool,
+        outstanding: () -> Set<UUID>
+    ) async {
+        guard batchSize > 0 else { return }
+        for start in stride(from: 0, to: ids.count, by: batchSize) {
+            let batch = Array(ids[start ..< min(start + batchSize, ids.count)])
+            let stopped = await push(batch)
+            if stopped || outstanding().isSuperset(of: batch) { return }
+        }
+    }
+
+    /// One batch of the push, its outcomes saved at the end. True when the
+    /// push must stop.
+    private func pushBatch(_ batch: [UUID]) async -> Bool {
+        var stopped = false
+        for sessionId in batch {
             // Sync switched off mid-batch: nothing more goes up.
-            if schemaUnavailable || Task.isCancelled || !CloudAccountIdentity.isConfirmed || !cloudUploadsAllowed { break }
+            if schemaUnavailable || Task.isCancelled || !CloudAccountIdentity.isConfirmed || !cloudUploadsAllowed {
+                stopped = true
+                break
+            }
             defer { noteSyncProgress() }
             guard let prepared = await prepareUpload(sessionId) else { continue }
             if await pushOne(prepared, sessionId: sessionId) {
+                stopped = true
                 break
             }
         }
         await state.saveSyncStateAsync()
         await state.savePendingQueueAsync()
+        return stopped
     }
 
     /// Heavyweight prep (retrieve + decrypt + encode + compress + temp
@@ -139,7 +173,9 @@ extension CloudKitSyncManager {
             await keepOnDevice(sessionId)
             return nil
         } catch {
-            await handlePrepFailure(error, sessionId: sessionId)
+            // A prep the stall watchdog abandoned reports nothing into the
+            // sync that already owns the state.
+            if !Task.isCancelled { await handlePrepFailure(error, sessionId: sessionId) }
             return nil
         }
     }
@@ -182,6 +218,9 @@ extension CloudKitSyncManager {
     /// have stops CloudKit for this launch; anything else queues the session
     /// for a retry. Returns true when the push cycle must stop.
     func handleSaveFailure(_ error: Error, sessionId: UUID) async -> Bool {
+        // A save the stall watchdog abandoned fails into a sync that already
+        // owns the state: nothing is marked, and the cycle ends.
+        guard !Task.isCancelled else { return true }
         if let ckError = error as? CKError, Self.isZoneGone(ckError) {
             return await handleZoneGone(ckError, sessionId: sessionId)
         }
@@ -202,29 +241,15 @@ extension CloudKitSyncManager {
 
     // MARK: - Push helpers
 
-    /// Everything archived or explicitly queued, minus what is already
-    /// uploaded or quarantined or sitting out its backoff, capped at
-    /// `pushBatchLimit` for this cycle. Backoff is applied before the cap so a
-    /// deferred session never takes a slot another could use.
-    ///
-    /// Quarantined ids are corrupt or newer-schema payloads that can never
-    /// succeed; excluding them is what kills the per-cycle error spam.
-    /// Local-only ids were read out of Apple Health and are never uploaded.
-    private func pendingPushBatch() -> [UUID] {
-        let allEntries = archive.store.entries
-        let pendingIdsAll = Set(allEntries.map { $0.sessionId })
-            .union(state.pendingUploadIds)
-            .subtracting(state.uploadedSessionIds)
-            .subtracting(state.quarantinedSessionIds)
-            .subtracting(state.localOnlySessionIds)
-
-        guard !pendingIdsAll.isEmpty else { return [] }
-
-        let batch: [UUID] = Array(pendingIdsAll.filter { !shouldDeferForBackoff($0) }.prefix(Self.pushBatchLimit))
-        if pendingIdsAll.count > Self.pushBatchLimit {
-            debugLog("[CloudKit] Push: \(pendingIdsAll.count) pending, processing first \(Self.pushBatchLimit) this cycle")
+    /// The outstanding sessions (`outstandingUploadIds`) this sync tries:
+    /// all of them but those sitting out their backoff.
+    private func pendingPushIds() -> [UUID] {
+        let outstanding = outstandingUploadIds
+        let eligible = outstanding.filter { !shouldDeferForBackoff($0) }
+        if !outstanding.isEmpty {
+            debugLog("[CloudKit] Push: \(outstanding.count) pending, \(eligible.count) tried this sync")
         }
-        return batch
+        return Array(eligible)
     }
 
     /// Whether this session should sit out the current push cycle, read from
@@ -424,6 +449,8 @@ extension CloudKitSyncManager {
                 try await markKeptOnDevice(CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID))
             } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
                 debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) has no iCloud copy to remove (\(error.code.rawValue))")
+            } catch is CloudUploadStopped {
+                return
             } catch {
                 state.markFailed(sessionId)
                 debugLog("[CloudKit] Push: could not remove the iCloud copy of \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
@@ -448,11 +475,17 @@ extension CloudKitSyncManager {
     /// (`reuploadSessionsMissingFromCloud`). Listed with this marker, it is
     /// left alone by the pull and counts as present. Fetched without its
     /// payload; throws `.unknownItem` when there is no record.
+    ///
+    /// The fetch suspends, so the write goes only while the account is still
+    /// the confirmed one and the sync was not abandoned; otherwise it throws
+    /// `CloudUploadStopped` with nothing written, and the session is not
+    /// marked kept on device for an account that was not asked.
     func markKeptOnDevice(_ recordID: CKRecord.ID) async throws {
         let fetched = try await privateDB.records(for: [recordID], desiredKeys: ["isDeleted"])
         guard let record = try fetched[recordID]?.get() else { throw CKError(.unknownItem) }
         record["isDeleted"] = Self.keptOnDeviceMarker as CKRecordValue
         record["sessionData"] = nil
+        guard CloudAccountIdentity.isConfirmed, !Task.isCancelled else { throw CloudUploadStopped() }
         _ = try await privateDB.save(record)
     }
 
@@ -569,11 +602,13 @@ extension CloudKitSyncManager {
 
     /// Create the session zone unless this device already has. Only for the
     /// confirmed account (`CloudAccountIdentity.isConfirmed`): a zone is never
-    /// created in another Apple ID's iCloud; otherwise it throws
+    /// created in another Apple ID's iCloud. Only while uploads are allowed
+    /// (`cloudUploadsAllowed`), read here: a sync turned off while its caller
+    /// waited on the network creates nothing. Otherwise it throws
     /// `CloudAccountGuard.Halt.stopped`.
     func ensureZoneExists() async throws {
         guard !zoneCreated else { return }
-        guard CloudAccountIdentity.isConfirmed else { throw CloudAccountGuard.Halt.stopped }
+        guard CloudAccountIdentity.isConfirmed, cloudUploadsAllowed else { throw CloudAccountGuard.Halt.stopped }
 
         let zone = CKRecordZone(zoneID: zoneID)
         do {
@@ -604,8 +639,8 @@ extension CloudKitSyncManager {
 
     // MARK: - Live Backup (Delegated)
 
-    func uploadLiveBackup(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
-        await liveBackup.upload(sessionId: sessionId, points: points, deviceId: deviceId, force: force)
+    func uploadLiveBackup(sessionId: UUID, points: [RRPoint], recordingStart: Date, deviceId: String?, force: Bool = false) async {
+        await liveBackup.upload(sessionId: sessionId, points: points, recordingStart: recordingStart, deviceId: deviceId, force: force)
     }
 
     func deleteLiveBackup(sessionId: UUID) async {

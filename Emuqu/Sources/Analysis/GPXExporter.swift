@@ -4,8 +4,10 @@ import Foundation
 // MARK: - GPX Exporter
 //
 // Minimal GPX 1.1 writer for workout sessions. Writes a single <trk> with
-// one <trkseg> containing each CLLocation as a <trkpt>. Elevation lives in
-// <ele>. Time is ISO-8601 UTC. Name + sport go in <metadata>.
+// one <trkseg> per recorded segment (`WorkoutMetadata.gpsSegmentStarts`),
+// each CLLocation a <trkpt>, so a reader takes no distance or line across a
+// join. Elevation lives in <ele>. Time is ISO-8601 UTC. Name + sport go in
+// <metadata>.
 //
 // Every caller passes a track rebuilt by `decode`, whose fix times are spread
 // evenly over the session because the polyline carries none. A workout that
@@ -29,7 +31,8 @@ enum GPXExporter {
         let timed = timedAsRecorded(track, metadata: metadata)
         let summary = summaryDesc(session: session, timesRecorded: recordedFixTimes(metadata, count: track.count) != nil)
         var xml = header(sport: sport, started: started, summary: summary, iso: iso)
-        xml += trackSegment(timed, iso: iso)
+        let segments = TrackSegments.split(timed, starts: metadata?.gpsSegmentStarts(count: timed.count))
+        xml += segments.map { trackSegment($0, iso: iso) }.joined(separator: "    </trkseg>\n    <trkseg>\n")
         xml += """
             </trkseg>
           </trk>

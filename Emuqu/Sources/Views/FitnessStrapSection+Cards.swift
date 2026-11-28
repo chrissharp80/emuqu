@@ -207,7 +207,7 @@ extension FitnessStrapSection {
             heroHeadline(facts: facts)
             // Mini polyline preview: the route `loadLatestWorkoutSession` decoded.
             if facts.polyline != nil {
-                heroPolylinePreview(route: latestWorkoutRoute)
+                heroPolylinePreview(route: latestWorkoutRoute, starts: session.workoutMetadata?.gpsSegmentStarts(count: latestWorkoutRoute.count) ?? [])
             }
             // Badges — a compact "why this workout mattered" row
             heroBadgesRow(
@@ -267,11 +267,11 @@ extension FitnessStrapSection {
         return HeroFacts(
             sport: meta?.sport,
             distance: meta?.distanceMeters.map { units.formatDistance(meters: $0) } ?? "—",
-            duration: Self.heroDurationString(WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: session.duration)),
+            duration: Self.heroDurationString(WorkoutActiveTime.seconds(metadata: meta, wallClock: session.duration)),
             pace: heroPaceString(session: session, meta: meta),
             peakHR: meta?.samples?.compactMap { $0.heartRate }.max().map { String(localized: "\($0) bpm", bundle: LanguageManager.appBundle) },
             alpha1Avg: Self.heroAlpha1Average(meta: meta),
-            preferredLoad: meta?.preferredTrainingLoad(ftp: .current(settings)),
+            preferredLoad: meta?.preferredTrainingLoad(ftp: .current(settings), heartRate: WorkoutLoadRestingHR.anchors),
             hrTSS: meta?.hrTSS,
             elevationGain: meta?.elevationGainMeters,
             polyline: meta?.gpsPolyline
@@ -289,7 +289,7 @@ extension FitnessStrapSection {
     /// Active (un-paused) time over distance, as the summary hero computes it.
     private func heroPaceString(session: HRVSession, meta: WorkoutMetadata?) -> String? {
         guard let d = meta?.distanceMeters, d > 100,
-              let dur = WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: session.duration), dur > 10 else { return nil }
+              let dur = WorkoutActiveTime.seconds(metadata: meta, wallClock: session.duration), dur > 10 else { return nil }
         return units.formatPace(elapsedSec: Int(dur), distanceMeters: d)
     }
 
@@ -333,15 +333,16 @@ extension FitnessStrapSection {
     /// every hero render); a quick line trace communicates "you ran a
     /// loop / out-and-back / point-to-point" at a glance.
     @ViewBuilder
-    func heroPolylinePreview(route: [CLLocation]) -> some View {
+    func heroPolylinePreview(route: [CLLocation], starts: [Int] = []) -> some View {
         if route.count >= 2 {
-            polylineTrace(coords: route.map(\.coordinate))
+            polylineTrace(coords: route.map(\.coordinate), starts: starts)
         }
     }
 
-    private func polylineTrace(coords: [CLLocationCoordinate2D]) -> some View {
+    /// No line is traced across a join between recorded segments (`starts`).
+    private func polylineTrace(coords: [CLLocationCoordinate2D], starts: [Int]) -> some View {
         GeometryReader { geo in
-            Path { Self.tracePolyline(&$0, coords: coords, in: geo.size) }
+            Path { Self.tracePolyline(&$0, coords: coords, starts: starts, in: geo.size) }
                 .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
         }
         .frame(height: 64)
@@ -351,11 +352,11 @@ extension FitnessStrapSection {
     /// `decoded.count >= 2` upstream guarantees non-empty, but
     /// force-unwrap is a spec finding. Use guard so any future change to the
     /// gate condition can't introduce a crash here.
-    private static func tracePolyline(_ path: inout Path, coords: [CLLocationCoordinate2D], in size: CGSize) {
+    private static func tracePolyline(_ path: inout Path, coords: [CLLocationCoordinate2D], starts: [Int], in size: CGSize) {
         guard let fit = RouteThumbnailFit(coords: coords, size: size) else { return }
         for (i, c) in coords.enumerated() {
             let p = fit.point(c)
-            if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+            if i == 0 || starts.contains(i) { path.move(to: p) } else { path.addLine(to: p) }
         }
     }
 
@@ -433,7 +434,7 @@ extension FitnessStrapSection {
                 loadBadge(trimp: trimp, loadSource: loadSource)
             }
             if let hrTSS {
-                heroBadge(icon: "speedometer", label: String(format: "HRSS %ld", locale: LanguageManager.appLocale, Int(hrTSS)), color: AppTheme.fitnessAccent)
+                heroBadge(icon: "speedometer", label: String(format: "HRSS %ld", locale: LanguageManager.appLocale, Int(hrTSS.rounded())), color: AppTheme.fitnessAccent)
             }
         }
     }
@@ -444,20 +445,18 @@ extension FitnessStrapSection {
     /// fitness-accent palette as the rest of the badge row.
     ///
     /// This value is preferredTrainingLoad (power/HR
-    /// TSS-preferred), not raw Lucia TRIMP, so label it by source (LOAD vs
-    /// TRIMP) to match the post-summary tile.
+    /// TSS-preferred, every tier on the TSS scale), labelled by its source's
+    /// `displayLabel` to match the post-summary tile.
     private func loadBadge(trimp: Double, loadSource: WorkoutMetadata.TrainingLoadSource?) -> some View {
         let trimpColor: Color = trimp >= Self.hardSessionLoad ? AppTheme.wongCaution : AppTheme.fitnessAccent
-        let label = String(localized: "\(loadSource?.displayLabel ?? "LOAD") \(Int(trimp))", bundle: LanguageManager.appBundle)
+        let label = String(localized: "\(loadSource?.displayLabel ?? "LOAD") \(Int(trimp.rounded()))", bundle: LanguageManager.appBundle)
         return heroBadge(icon: "flame.fill", label: label, color: trimpColor)
     }
 
-    /// Where a session counts as hard. The badge shows TSS (power, HR, METs;
-    /// 100 = one hour at threshold) or TRIMP (Lucia, the route estimate), and
-    /// 150 marks a hard session on both scales for different reasons: on TSS
-    /// it starts Coggan's "medium" band, where some fatigue is still there the
-    /// next day; in Lucia TRIMP it is about an hour sustained in zone 3 or
-    /// half an hour in zone 4.
+    /// Where a session counts as hard. The badge shows the load on the TSS
+    /// scale (100 = one hour at threshold) whatever its source, and 150
+    /// starts Coggan's "medium" band, where some fatigue is still there the
+    /// next day.
     static let hardSessionLoad: Double = 150
 
     func heroBadge(icon: String, label: String, color: Color) -> some View {
@@ -653,7 +652,7 @@ extension FitnessStrapSection {
             recentRowTitle(entry: entry)
             Spacer()
             if let hr = entry.meanHR {
-                Text(String(localized: "\(Int(hr)) bpm", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(Int(hr.rounded())) bpm", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }

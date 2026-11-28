@@ -202,17 +202,27 @@ struct ExportDataView: View {
     /// ceiling. Stream rows directly to a FileHandle and let each session's
     /// RRSeries go out of scope between iterations via `autoreleasepool`.
     private func exportRRData() {
-        beginExport()
+        guard beginExport() else { return }
         exportTask = Task { await runRRCSVExport() }
     }
 
     /// Clears the previous export's file and shortfall note so a warning
     /// never attaches to a different export's file. The previous file is
     /// deleted, not just forgotten: it is plaintext health data in tmp.
-    private func beginExport() {
-        isExporting = true
+    ///
+    /// False, with the reason shown, when the archive's index did not load:
+    /// each export walks the index, and over one that lists none or only
+    /// some of the sessions it wrote an empty or partial file that read as
+    /// the whole history (`HistoryExportGate`).
+    private func beginExport() -> Bool {
         removeExportFile()
         exportShortfall = nil
+        if let refusal = HistoryExportGate.refusal(indexComplete: collector.archive.hasCompleteIndex) {
+            exportError = refusal
+            return false
+        }
+        isExporting = true
+        return true
     }
 
     /// The screen is going away: cancel a running export (its file is then
@@ -328,14 +338,17 @@ struct ExportDataView: View {
     /// carries the session's start as an exact instant with its UTC offset,
     /// which names the recording wherever the file is read, and its type,
     /// which the importer reads back so a nap or quick reading is not
-    /// re-imported as an overnight.
+    /// re-imported as an overnight. A streamed beat's `wall_clock_ms` comes
+    /// next (blank for one the sensor recorded itself), so a Bluetooth
+    /// dropout the timestamps do not show is still a break once imported,
+    /// and `follows_removed_beat` last (`RRDataImporter.emuquRRExportHeader`).
     nonisolated static func rrCSVRows(for session: HRVSession, series rrSeries: RRSeries, timeZone: TimeZone = .current) -> String {
         let prefix = RRDataImporter.emuquRRExportSessionDate(session.startDate, timeZone: timeZone)
-        let suffix = "\(session.sessionType.rawValue)\n"
+        let type = session.sessionType.rawValue
         var chunk = ""
-        chunk.reserveCapacity(rrSeries.points.count * 50)
+        chunk.reserveCapacity(rrSeries.points.count * 56)
         for point in rrSeries.points {
-            chunk += "\(prefix),\(point.t_ms),\(point.rr_ms),\(suffix)"
+            chunk += "\(prefix),\(point.t_ms),\(point.rr_ms),\(type),\(point.wallClockMs.map(String.init) ?? ""),\(RRDataImporter.removedBeatCell(point))\n"
         }
         return chunk
     }
@@ -347,7 +360,7 @@ struct ExportDataView: View {
     }
 
     private func exportCSV() {
-        beginExport()
+        guard beginExport() else { return }
         exportTask = Task { await runSummaryCSVExport() }
     }
 
@@ -410,7 +423,7 @@ struct ExportDataView: View {
     /// Stream session-by-session straight to disk inside an
     /// autoreleasepool so peak memory never exceeds one session's footprint.
     private func exportAllData() {
-        beginExport()
+        guard beginExport() else { return }
         exportTask = Task { await runFullExport() }
     }
 

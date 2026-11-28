@@ -43,6 +43,18 @@ struct SleepData: Codable, Sendable {
     /// by kind; no screen lists the records themselves.
     var edits: [SleepEditRecord] = []
 
+    /// The night's sleep onset and final wake: the first start and the last
+    /// end among the stages that are sleep. Awake time before the first sleep
+    /// is latency and awake time after the last is lying awake, so neither
+    /// moves either end. The one definition every builder of `sleepStart` /
+    /// `sleepEnd` from a stage timeline uses (the resolver, the trim to the
+    /// recording start, the sleep editor). Nil when no stage is sleep.
+    static func sleepBounds(of stages: [HealthKitManager.SleepStageInterval]) -> DateInterval? {
+        let sleep = stages.filter { $0.stage != .awake }
+        guard let start = sleep.map(\.start).min(), let end = sleep.map(\.end).max(), end >= start else { return nil }
+        return DateInterval(start: start, end: end)
+    }
+
     /// Sleep latency in minutes — time awake before the first sleep.
     ///
     /// With a stage timeline, count the awake stage before the
@@ -162,6 +174,22 @@ struct SleepData: Codable, Sendable {
             splitGapMinutes: splitGapMinutes,
             edits: edits
         )
+    }
+
+    /// The copy a fetch hands on: the nap credit added when there is one,
+    /// otherwise the night as fetched.
+    func creditingNap(_ minutes: Int) -> SleepData {
+        minutes > 0 ? withNapSleepMinutes(minutes) : self
+    }
+
+    /// The copy a snapshot write stores over `prior`. The nap credit is part
+    /// of the night's derived snapshot, added by the fetch that first scored
+    /// it, so a write whose sleep carries none (a refresh, an edit built
+    /// from a night read without it) keeps the credit `prior` holds instead
+    /// of dropping it and lowering the stored 24 h duration.
+    func keepingNapCredit(of prior: SleepData?) -> SleepData {
+        guard napSleepMinutes == nil, let priorNap = prior?.napSleepMinutes, priorNap > 0 else { return self }
+        return withNapSleepMinutes(priorNap)
     }
 
     /// Whether time in bed is the night's sleep plus awake: true for a night
@@ -306,7 +334,7 @@ struct SleepData: Codable, Sendable {
         let inBed = stages.totalSleep + stages.awake
         return SleepData(
             date: date, inBedStart: recordingStart,
-            sleepStart: trimmed.filter { $0.stage != .awake }.map(\.start).min() ?? recordingStart,
+            sleepStart: Self.sleepBounds(of: trimmed)?.start ?? recordingStart,
             sleepEnd: sleepEnd, totalSleepMinutes: stages.totalSleep, inBedMinutes: inBed,
             deepSleepMinutes: stages.hasDetailed ? stages.deep : nil,
             remSleepMinutes: stages.hasDetailed ? stages.rem : nil,

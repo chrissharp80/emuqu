@@ -68,6 +68,7 @@ struct StrapRecordingGuards {
     /// a Verity Sense it ended the workout's live heart rate. Throws
     /// `alreadyRecording` or `notConnected`; `what` names the start in the log.
     func requireConnectedWithNoNightHeld(starting what: String) throws {
+        try sessionState.refuseStartWhileClaimed(starting: what)
         guard !streamingLifecycle.isPaused, !streamingLifecycle.isEndingOvernight else {
             debugLog("[RRCollector] Not starting \(what): a night is paused or being ended", level: .warning)
             throw RRCollector.CollectorError.alreadyRecording
@@ -79,25 +80,50 @@ struct StrapRecordingGuards {
         guard strapLink.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
     }
 
+    /// A session that owns what the strap records or holds, so no other
+    /// flow may stop, download or clear it.
+    enum StrapOwner: Equatable {
+        /// A night being ended: its ending stops and downloads the strap.
+        case endingNight
+        /// A workout recording or finishing: the recording is its backup.
+        case liveWorkout
+        /// A night, nap or reading recording now.
+        case liveSession
+        /// A workout the app died during, never archived: workout recovery
+        /// rebuilds it with its route.
+        case interruptedWorkout
+        /// A night paused, to be resumed, finished or discarded.
+        case pausedNight
+        /// A finished night waiting for the user to keep or discard it.
+        case pendingAcceptance
+    }
+
+    /// The one ownership rule every strap stop, download and clear asks: who
+    /// owns the strap's recording, other than `sessionId`, the session the
+    /// flow acts for (its own recording, which it may take). Nil when no
+    /// other session does. A night being ended and a live workout are never
+    /// the asker's: their own flows do not come through here.
+    func strapRecordingOwner(otherThan sessionId: UUID? = nil) -> StrapOwner? {
+        if streamingLifecycle.isEndingOvernight { return .endingNight }
+        if belongsToLiveWorkout { return .liveWorkout }
+        let isCurrent = sessionId != nil && sessionState.currentSession?.id == sessionId
+        if sessionState.isCollecting || streamingLifecycle.isOvernightStreaming, !isCurrent { return .liveSession }
+        if heldByInterruptedWorkout, recordingStore.load()?.sessionId != sessionId { return .interruptedWorkout }
+        if streamingLifecycle.isPaused, streamingLifecycle.pausedSession?.id != sessionId { return .pausedNight }
+        let pendingIds = [sessionState.currentSession?.id, sessionState.reviewArchivedSessionId]
+        if sessionState.needsAcceptance, sessionId == nil || !pendingIds.contains(sessionId) { return .pendingAcceptance }
+        return nil
+    }
+
     /// Whether the strap's recording belongs to a session the strap-only Stop
-    /// and Discard must leave alone: a night being ended (its ending
-    /// downloads the strap itself), a workout the app died during (workout
-    /// recovery rebuilds it, `strapHeldByInterruptedWorkout`) or a
-    /// live workout (the recording is its backup). `alreadyRecording` is shown
-    /// for a workout's. `action` names the caller in the log.
+    /// and Discard must leave alone (`strapRecordingOwner`): any but the
+    /// session on screen, whose recording they act on. A night being ended
+    /// downloads the strap itself; for any other owner `alreadyRecording` is
+    /// shown. `action` names the caller in the log.
     func isHeldElsewhere(_ action: String) -> Bool {
-        if streamingLifecycle.isEndingOvernight {
-            debugLog("[RRCollector] Not \(action) the strap recording: a night's ending is in progress")
-            return true
-        }
-        if heldByInterruptedWorkout {
-            debugLog("[RRCollector] Not \(action) the strap recording: it belongs to an interrupted workout, which workout recovery rebuilds", level: .warning)
-            sessionState.lastError = RRCollector.CollectorError.alreadyRecording
-            return true
-        }
-        guard belongsToLiveWorkout else { return false }
-        debugLog("[RRCollector] Not \(action) the strap recording: it is a live workout's backup", level: .warning)
-        sessionState.lastError = RRCollector.CollectorError.alreadyRecording
+        guard let owner = strapRecordingOwner(otherThan: sessionState.currentSession?.id) else { return false }
+        debugLog("[RRCollector] Not \(action) the strap recording: it belongs to another session (\(owner))", level: owner == .endingNight ? .debug : .warning)
+        if owner != .endingNight { sessionState.lastError = RRCollector.CollectorError.alreadyRecording }
         return true
     }
 

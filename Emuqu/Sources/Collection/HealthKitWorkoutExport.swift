@@ -322,7 +322,7 @@ enum HealthKitWorkoutExport {
     /// Whether a saved workout carries its heart rate: Apple Health export on,
     /// with its heart-rate switch on.
     static func writesHeartRate(with settings: UserSettings) -> Bool {
-        settings.enableHealthKitExport && settings.exportHeartRate
+        settings.exportsReading(\.exportHeartRate)
     }
 
     /// What goes into the workout's sample series besides the samples themselves.
@@ -462,12 +462,6 @@ enum HealthKitWorkoutExport {
     // Each is pure: same samples in, same HK samples out, no
     // store, no clock.
 
-    /// ACSM MET→kcal constants. kcal/min = METs × 3.5 × kg / 200.
-    /// Reference: Ainsworth 2011, Compendium of Physical Activities.
-    private static let mlOxygenPerKgPerMET = 3.5
-    private static let mlOxygenPerKcal = 200.0
-    /// Resting metabolism, by the definition of the MET.
-    private static let restingMETs = 1.0
     /// Below this a window is rounding noise and is not worth a sample.
     private static let minimumKcalPerSample = 0.01
 
@@ -557,7 +551,7 @@ enum HealthKitWorkoutExport {
     /// Per-window active energy. Better than one session total because it
     /// lets Apple Health plot calorie burn over time and attribute it to the
     /// right activity-ring minute. The kcal are worked out over the active
-    /// seconds between ticks from the net METs (`netMETs`), so Health's
+    /// seconds between ticks from the net METs (`WorkoutEnergy`), so Health's
     /// Active Energy leaves out the resting metabolism Apple Watch already
     /// writes as basal energy; the sample sits on the wall clock and never
     /// crosses a pause (`WorkoutWallClock.interval`). Each carries the
@@ -578,7 +572,7 @@ enum HealthKitWorkoutExport {
             let prevOffset = idx > 0 ? ordered[idx - 1].offsetSec : 0
             let durationSec = max(1, s.offsetSec - prevOffset)
             let minutes = Double(durationSec) / 60.0
-            let kcal = (netMETs(mets) * mlOxygenPerKgPerMET * bodyWeightKg * minutes) / mlOxygenPerKcal
+            let kcal = WorkoutEnergy.activeKilocalories(grossMETs: mets, minutes: minutes, bodyWeightKg: bodyWeightKg)
             guard kcal > minimumKcalPerSample else { continue }
             let span = clock.interval(fromActiveOffset: prevOffset, to: s.offsetSec)
             let sample = HealthSampleFactory.quantitySample(
@@ -588,12 +582,6 @@ enum HealthKitWorkoutExport {
             if let sample { out.append(sample) }
         }
         return out
-    }
-
-    /// The METs above rest: gross Compendium METs less the 1 MET of resting
-    /// metabolism, never below zero.
-    static func netMETs(_ grossMETs: Double) -> Double {
-        max(0, grossMETs - restingMETs)
     }
 
     /// The ticks sorted by offset. Live ticks already are; a merged or

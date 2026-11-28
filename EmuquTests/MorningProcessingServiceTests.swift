@@ -268,6 +268,37 @@ final class MorningProcessingServiceTests: XCTestCase {
         XCTAssertEqual(result.session.rrSeries?.startDate, fixedSessionStart, "The merged night starts at the earlier recording")
     }
 
+    /// A resumed night is archived as its paused part, which lists the
+    /// segment resumed from it, and that segment, re-anchored to the night's
+    /// start and holding every beat. A later recording of the same night
+    /// merges with the segment; the paused part, whose beats it holds, is
+    /// not merged a second time. Read as a holding, the paused part's
+    /// reference back hid the segment, and the recording stood alone.
+    func testALaterRecordingMergesWithAResumedNightsFinalSession() async throws {
+        let (parentId, finalId) = (UUID(), UUID())
+        let nightPoints = createRealisticPoints(count: 5_000)
+        let parentSeries = RRSeries(points: Array(nightPoints.prefix(2_500)), sessionId: parentId, startDate: fixedSessionStart)
+        let finalSeries = RRSeries(points: nightPoints, sessionId: finalId, startDate: fixedSessionStart)
+        let pausedAt = fixedSessionStart.addingTimeInterval(parentSeries.durationMinutes * 60)
+        _ = try archive.archive(HRVSession(
+            id: parentId, startDate: fixedSessionStart, endDate: pausedAt, state: .paused, sessionType: .overnight,
+            rrSeries: parentSeries, analysisResult: nil, artifactFlags: nil, linkedSessionIds: [finalId], pausedDate: pausedAt
+        ), skipSameNightMerge: true)
+        _ = try archive.archive(HRVSession(
+            id: finalId, startDate: fixedSessionStart, endDate: fixedSessionStart.addingTimeInterval(finalSeries.durationMinutes * 60),
+            state: .complete, sessionType: .overnight, rrSeries: finalSeries, analysisResult: nil, artifactFlags: nil,
+            linkedSessionIds: [parentId]
+        ), skipSameNightMerge: true)
+
+        let baseSession = createBaseSession(startDate: fixedSessionStart.addingTimeInterval(4 * 3600))
+        let result = await service.processOvernightData(
+            overnightRequest(points: createRealisticPoints(count: 300), baseSession: baseSession)
+        )
+
+        XCTAssertEqual(result.sameNightLinks, [finalId], "the resumed night's final session is merged, its paused part is not")
+        XCTAssertEqual(result.session.rrSeries?.points.count, 5_300, "every beat of the night once, and the new recording's")
+    }
+
     /// A streaming request for `points` with the 22:00 bedtime schedule.
     private func overnightRequest(points: [RRPoint], baseSession: HRVSession) -> MorningProcessingService.OvernightRequest {
         let base = defaultSettings

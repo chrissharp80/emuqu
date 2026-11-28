@@ -123,8 +123,8 @@ Inputs are the streamed points `S` and the internal points `I` (possibly absent)
 
 1. A source is *valid* if it has ≥ 120 beats.
 2. If `I` is invalid: use `S` if valid ("streaming (internal failed)"), else fail.
-3. If `I` is valid and `S` is invalid: use `I`.
-4. If both are valid, compute `diff = |#I − #S|` and `pct = 100·diff / max(#I, #S)`. If `#I < #S` and `pct > 5`, go to step 5. Otherwise use `I` (preferred).
+3. **Coverage.** If `S`'s first beat starts more than 60 s before `I`'s first, or its last more than 60 s after `I`'s last beat ends, on the real clock, go to step 5 whatever either count. `I` then covers only part of the session (a strap armed at a resume holds only the beats after it), and the stream's beats outside it are kept. This holds when `S` is invalid too.
+4. If `I` is valid and `S` is invalid: use `I`. If both are valid, compute `diff = |#I − #S|` and `pct = 100·diff / max(#I, #S)`. If `#I < #S` and `pct > 5`, go to step 5. Otherwise use `I` (preferred).
 5. **Gap detection on `I`.** For consecutive internal beats `prev, next`, a gap exists when `next.t_ms − prev.endMs > prev.rr_ms + 2000`. The gap spans `[prev.endMs, next.t_ms]`.
 6. **Gap fill.** Select streamed beats whose effective time `wallClockMs ?? t_ms` lies inside any gap (inclusive) or outside the span `I` recorded (before its first beat or after its last beat's end). Streamed `t_ms` is not used because it lags after Bluetooth packet loss. A strap file is a sum of intervals, so it has no gaps of its own; for it this selects the stretch the strap was not yet, or no longer, recording. If no streamed beat is selected, the composite fails.
 7. **Merge.** Two-pointer merge of `I` with the selected streamed beats, ordered by `I.t_ms` versus the streamed beat's effective time. When an internal beat is emitted, *all* following streamed beats within `|Δ| < 50 ms` of it are skipped, and vice versa (cluster-aware de-duplication). Emitted streamed beats have `t_ms` rewritten to `wallClockMs`.
@@ -236,7 +236,7 @@ With `B` beats in the band:
 - `size = 400` if `B ≥ 400`; else `B/2` if `B ≥ 240`; else `max(60, ⌊0.6·B⌋)`.
 - `step = max(10, ⌊size/10⌋)`, so 40 beats for a 400-beat window.
 
-Windows are `[e − size, e)` for `e = bandStart + size, bandStart + size + step, …, ≤ bandEnd`. A 400-beat window lasts about 6.7 min at 60 bpm (5 min at 80 bpm).
+Windows start at `s = bandStart, bandStart + step, …`. Each is `[s, e)` with `e` the first index `≥ s + size` at which the window spans 5 min, from the start of its first beat to the end of its last; a window whose `e` would pass `bandEnd` is not built. A 400-beat window lasts about 6.7 min at 60 bpm, so below about 80 bpm the window is exactly `size` beats; above it the window takes the extra beats 5 min holds. A band shorter than 5 min is scanned on `size` alone, `e = s + size`, so a short night is still measured. A tapped window is the 400 beats around the tap, widened the same way.
 
 #### 3.5.2 Per-window evaluation
 
@@ -279,7 +279,7 @@ Let `base` be the leave-current-out baseline for this night (Section 3.6.4).
 
 *Why it works.*
 
-- *Geometry.* A 400-beat window is close to the 5-min short-term recording of the Task Force standard [4] and long enough for DFA α1. Shrinking it only when the band is short means a short night is still measured rather than skipped.
+- *Geometry.* Every full window is at least the 5-min short-term recording of the Task Force standard [4], measured in time, and at least 400 beats, enough for DFA α1. A beat count alone would make the window shorter than 5 min above about 80 bpm, and the structural test (Section 3.6.1) would then reject a full window for its heart rate. Shrinking it only when the band is short means a short night is still measured rather than skipped.
 - *Strict pass first.* The 10% cap is tried first so that, whenever clean data exist, only clean data compete; 15% is a fallback that applies only when nothing would otherwise be measured.
 - *Spike filter.* Adjacent windows share about 90% of their beats, so a stable physiological state appears in several neighboring windows. A window that exceeds *both* overlapping neighbors by 50% owes the excess to the few beats it does not share with them, which is the signature of a transient rather than a state.
 - *Organized filter.* α1 near 1 and a low CV mark a stretch with a steady rhythm and no drift, which is what a repeatable measurement window needs.
@@ -292,7 +292,7 @@ Let `base` be the leave-current-out baseline for this night (Section 3.6.4).
 
 1. Session type is overnight.
 2. Data quality is not `insufficient` and not `preSleep` (Section 3.8.3).
-3. *Structural soundness:* the analysis window (the whole session if the analysis has none) lasts ≥ 5 min (300 000 ms), **and** the window is organized **or** the session lasts ≥ 3 h (10 800 s).
+3. *Structural soundness:* the analysis window (the whole session if the analysis has none) lasts ≥ 5 min (300 000 ms) from the start of its first beat to the end of its last, the span the selector builds every full window to (Section 3.5.1), **and** the window is organized **or** the session lasts ≥ 3 h (10 800 s).
 4. The reading's SDNN was measured, not estimated (an imported summary that does not state SDNN carries an estimate).
 
 *Why it works.* Gate 3 deliberately ignores the direction of the reading. The display path treats a short reading differently depending on whether it lands above or below baseline (Section 3.8.3), because a brief clean high reading is still worth showing. For aggregation, that asymmetry would be a ratchet. Short windows have the largest sampling error, so their high readings overshoot most. Admitting the high ones and rejecting the low ones would raise `lnRmssdMean`, every later night would score lower against it, and the correcting samples would be exactly the ones excluded. The structural test is therefore symmetric: a 4-minute window is not baseline-quality whichever side of the mean it falls on. The one direction-dependent exclusion comes through gate 2: a below-baseline session shorter than 3 h is marked `insufficient` by quality rule 3 (`classifyHRVQuality` in `Emuqu/Sources/Services/SessionAcceptanceService.swift`) and is not admitted, while the same session above baseline is admitted if it passes gate 3.
@@ -489,7 +489,7 @@ The vitals sub-score is the mean of whichever sub-scores exist. A missing input 
 | Input | Sub-score |
 |---|---|
 | Sleep HR (strap window mean HR, Section 3.8.1) | `max(0, 100 − 10·max(0, (HR − hrMean)/hrSD))`. Requires a baseline. At or below baseline scores 100. |
-| Respiratory rate with a 7-night baseline | `max(0, 100 − 15·max(0, (rate − baseline) − 1))`. Below baseline scores 100. |
+| Respiratory rate with a 7-night baseline (readings from at least 3 nights) | `max(0, 100 − 15·max(0, (rate − baseline) − 1))`. Below baseline scores 100. |
 | Respiratory rate without a baseline | 100 within 12–18 br/min; above 18: `100 − 15·(rate − 18)`, floor 0; below 12: 90 |
 | Apple Watch wrist temperature (deviation from the user's own baseline, which Apple establishes after about 5 nights [15]; dropped if there is no baseline) | ≤ +0.3 °C → 100; ≤ +0.5 °C → 75; ≤ +1.0 °C → 50; above → 25. Cooler than baseline scores 100. |
 
@@ -526,7 +526,7 @@ Commercial entries state only what the cited public pages say. Items marked † 
 
 Each statement gives only the part not found in a prior-art search made on 2026-10-08 (patents, vendor support pages and white papers, peer-reviewed and preprint literature, clinical-trial protocols and open-source HRV code). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
-**N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter.** Streamed beats are added only where the internal file has none: inside its gaps (next start − previous end > previous RR + 2000 ms) or before its first or after its last beat. They are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If the stream adds no beat the internal file lacks, the stream is used rather than the shorter internal file.
+**N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter or covers less of the session than the stream.** Streamed beats are added only where the internal file has none: inside its gaps (next start − previous end > previous RR + 2000 ms) or before its first or after its last beat. They are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If the stream adds no beat the internal file lacks, the stream is used rather than the shorter internal file.
 
 *Builds on:* the Polar H10's internal memory, which stores about 20 h of RR as one session [30][31]; adds a merge that takes live-stream beats only where the internal file has none, which no public tool found performs.
 
@@ -798,6 +798,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 |---|---|---|---|
 | minimumValidBeats | 120 | beats | Source validity; minimum series for band search |
 | compositeThresholdPercent | 5 | % | Internal deficit that triggers a composite |
+| spanSlackMs | 60 000 | ms | Stream span past the internal recording's that still counts as covered |
 | gap slack | 2000 | ms | Gap / recording-break tolerance beyond one RR |
 | duplicateToleranceMs | 50 | ms | Cross-source duplicate window |
 | backup interval | 60 | s | Append-only JSONL flush |

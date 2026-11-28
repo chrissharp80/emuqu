@@ -255,29 +255,34 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
         wireConsentWithdrawal()
     }
 
-    /// Withdrawing a provider's data-sharing consent stops the turn that
-    /// provider is streaming at once, as the Settings footer promises: the
-    /// next request would be refused anyway, and this also stops the reply
-    /// still arriving and any tool call not yet made.
+    /// Withdrawing a provider's data-sharing consent, or switching the AI
+    /// Assistant off, stops the turn being streamed at once, as the Settings
+    /// footer promises: the next request would be refused anyway, and this
+    /// also stops the reply still arriving and any tool call not yet made.
     private func wireConsentWithdrawal() {
         consentObservation = ObservationLoop.observe(self, read: { $0.services.providerConsentTracker.acknowledgedProviders }, onChange: { vm, _ in
             vm.stopTurnIfSharingWasWithdrawn()
         })
+        assistantSwitchObservation = ObservationLoop.observe(self, read: { $0.services.settingsManager.settings.enableAIAssistant }, onChange: { vm, _ in
+            vm.stopTurnIfSharingWasWithdrawn()
+        })
     }
 
-    /// Stops the streaming turn when its provider no longer has consent. The
-    /// stream ends as Stop ends it; the text already shown stays, marked
-    /// incomplete so the next request leaves it out, and the banner says
-    /// sharing with that provider is off.
+    /// Stops the streaming turn when its provider no longer has consent, or
+    /// the AI Assistant was switched off. The stream ends as Stop ends it;
+    /// the text already shown stays, marked incomplete so the next request
+    /// leaves it out, and the banner says sharing with that provider is off.
     func stopTurnIfSharingWasWithdrawn() {
         guard isStreaming, let streaming = streamingTurn,
-              services.providerConsentTracker.requiresConsent(streaming.provider) else { return }
-        debugLog("[Assistant] consent withdrawn from \(streaming.provider.rawValue) mid-turn; stopping the turn", level: .warning)
+              services.providerConsentTracker.requiresConsent(streaming.provider)
+                || !services.settingsManager.settings.enableAIAssistant else { return }
+        debugLog("[Assistant] sharing with \(streaming.provider.rawValue) withdrawn mid-turn; stopping the turn", level: .warning)
         cancel()
         tools.handleStreamFailure(error: AIProviderError.consentWithdrawn(streaming.provider), turnID: streaming.turnID)
     }
 
     @ObservationIgnored private var consentObservation: ObservationHandle?
+    @ObservationIgnored private var assistantSwitchObservation: ObservationHandle?
 
     /// The history, the summary and the remembered facts cannot be read while
     /// the phone is locked. When this view model was created in that state,
@@ -432,7 +437,7 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
         services.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .rejectedEmpty }
-        if refusedWhileFloIsOff() { return .rejectedNoProvider }
+        if !answersWhileFloIsOff(trimmed), refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
         guard registry.canSend(to: registry.activeProvider) else {
             errorMessage = Self.unavailableMessage(for: registry.activeProvider.id, in: registry)
@@ -556,6 +561,13 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
         }
         services.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
         router.dispatch()
+    }
+
+    /// A message the guard answers with the emergency number gets the app's
+    /// own reply even while Flo is off: that reply never reaches a model, and
+    /// "Flo is off" is no answer to someone in crisis or hurt.
+    private func answersWhileFloIsOff(_ trimmed: String) -> Bool {
+        MedicalQueryGuard.classify(trimmed)?.namesEmergencyNumber == true
     }
 
     /// True, with the reason shown, when Flo is switched off or its notice

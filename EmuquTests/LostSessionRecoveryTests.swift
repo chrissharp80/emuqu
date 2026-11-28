@@ -94,6 +94,19 @@ final class LostSessionRecoveryTests: XCTestCase {
         XCTAssertEqual(lost.first?.beatCount, 300)
     }
 
+    /// A backup too short to recover (a night or reading killed in its first
+    /// minutes, a small strap rescue) is not listed, and it is kept: no size
+    /// rule deletes recorded beats the user did not delete.
+    func testABackupTooShortToRecoverIsKeptButNotListed() async throws {
+        let short = UUID()
+        _ = try collector.rawBackup.backup(points: beats(SessionRecoveryService.minRecoverableBeatCount - 1), sessionId: short)
+
+        let lost = await collector.recovery.checkForLostSessions()
+
+        XCTAssertFalse(lost.map(\.id).contains(short))
+        XCTAssertEqual(try collector.rawBackup.retrieve(short)?.points.count, SessionRecoveryService.minRecoverableBeatCount - 1)
+    }
+
     /// A second recording of a night the archive already held is folded into
     /// it and has no entry of its own. Its backup is not lost: the night
     /// holds its beats, and recovering it would merge them in again.
@@ -227,18 +240,43 @@ final class LostSessionRecoveryTests: XCTestCase {
     /// night, and the iCloud copy is its crash-safety backup.
     func testABackupPulledFromAnotherDeviceKeepsItsICloudCopy() {
         let night = UUID()
-        let holdings = SessionRecoveryService.CloudBackupHoldings(finished: [], heldLocally: [night], uploadedHere: [])
-        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: night, holdings: holdings), .keep)
+        let holdings = SessionRecoveryService.CloudBackupHoldings(
+            removed: [], archivedNightBeats: [:], localBeats: [night: 300], uploadedHere: []
+        )
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: night, beats: 300, holdings: holdings), .keep)
     }
 
-    /// A backup this device uploaded and still holds is retired from iCloud,
-    /// a finished night's is retired whoever uploaded it, and one not held
-    /// here is saved for recovery.
+    /// A backup this device uploaded and still holds in full is retired from
+    /// iCloud, a deleted night's is retired whoever uploaded it, and one not
+    /// held here is saved for recovery.
     func testOwnAndFinishedBackupsAreRetiredAndNewOnesSaved() {
         let own = UUID(), finished = UUID(), unseen = UUID()
-        let holdings = SessionRecoveryService.CloudBackupHoldings(finished: [finished], heldLocally: [own], uploadedHere: [own])
-        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: own, holdings: holdings), .retire)
-        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: finished, holdings: holdings), .retire)
-        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: unseen, holdings: holdings), .save)
+        let holdings = SessionRecoveryService.CloudBackupHoldings(
+            removed: [finished], archivedNightBeats: [:], localBeats: [own: 300], uploadedHere: [own]
+        )
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: own, beats: 300, holdings: holdings), .retire)
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: finished, beats: 300, holdings: holdings), .retire)
+        XCTAssertEqual(SessionRecoveryService.cloudBackupDisposition(of: unseen, beats: 300, holdings: holdings), .save)
+    }
+
+    // MARK: - Recovery over an archived copy
+
+    /// A backup recovered again for a night the archive holds with more beats
+    /// (a strap fetch merged in, a fuller copy from another device) leaves
+    /// that night as it is: rebuilt from the backup, it lost what only it held.
+    func testRecoveringABackupKeepsAnArchivedCopyThatHoldsMore() async throws {
+        let id = UUID()
+        _ = try collector.rawBackup.backup(points: beats(200), sessionId: id)
+        let fuller = HRVSession(
+            id: id, startDate: Date().addingTimeInterval(-3600), endDate: Date(), state: .complete,
+            rrSeries: RRSeries(points: beats(300), sessionId: id, startDate: Date().addingTimeInterval(-3600)),
+            analysisResult: nil, artifactFlags: nil
+        )
+        _ = try archive.archive(fuller, skipSameNightMerge: true)
+
+        let recovered = await collector.recovery.recoverFromBackup(id)
+
+        XCTAssertEqual(recovered?.rrSeries?.points.count, 300, "recovery returned the backup's fragment")
+        XCTAssertEqual(try archive.retrieve(id)?.rrSeries?.points.count, 300, "the archived night lost the beats only it held")
     }
 }

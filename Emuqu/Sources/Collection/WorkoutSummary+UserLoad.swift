@@ -14,8 +14,7 @@ import os
 extension HealthKitManager.WorkoutSummary {
     /// The load the daily totals count for this workout.
     var userScaledLoad: Double {
-        let anchors = WorkoutLoadRestingHR.anchors
-        return effectiveLoad(restingHR: anchors.restingHR, maxHR: anchors.maxHR)
+        effectiveLoad(anchors: WorkoutLoadRestingHR.anchors)
     }
 }
 
@@ -40,7 +39,9 @@ enum WorkoutLoadRestingHR {
         return .resolve(
             appleRestingHR: currentAppleValue(),
             settingRestingHR: settings.effectiveRestingHR,
-            settingMaxHR: settings.effectiveMaxHR
+            settingMaxHR: settings.effectiveMaxHR,
+            settingLTHR: settings.effectiveLTHR,
+            settingSex: settings.biologicalSex
         )
     }
 

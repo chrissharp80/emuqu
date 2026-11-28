@@ -37,6 +37,16 @@ struct DailyLoopAnalysis {
     /// The training load the shared advice gate (`TrainingAdviceGate`) reads
     /// before any line here invites a hard day. Nil reads as a clear load.
     var adviceLoad: TrainingAdviceGate.Load?
+    /// The FTPs the workout's power TSS is read at when it was stored with
+    /// normalized power but no TSS (`preferredTrainingLoad`).
+    var loadFTP: TrainingLoadPrecedence.FTPAnchors = .none
+
+    /// This analysis with the workout's load read at `ftp`.
+    func readingLoad(at ftp: TrainingLoadPrecedence.FTPAnchors) -> DailyLoopAnalysis {
+        var copy = self
+        copy.loadFTP = ftp
+        return copy
+    }
 
     // MARK: Loop classification
 
@@ -321,15 +331,15 @@ struct DailyLoopAnalysis {
         }
     }
 
-    /// The workout's TRIMP-scale load: the route-history estimate when it
-    /// replaces a strap-dropout recording (`routeEstimateReplacesHRLoad`), else
-    /// the recorded Banister TRIMP, else the route estimate. Nil when the
+    /// The workout's training load as every other surface shows it
+    /// (`WorkoutMetadata.preferredTrainingLoad`): power TSS first, then the
+    /// route estimate when it replaces a strap dropout, hrTSS, METs and the
+    /// TRIMP tiers, all on the TSS scale ATL and CTL count. Nil when the
     /// workout carries no load at all.
     private var workoutLoad: Int? {
         guard let meta = workoutSession?.workoutMetadata else { return nil }
-        let recorded = meta.luciaTRIMP.flatMap { $0 > 0 ? $0 : nil }
-        let value = meta.routeEstimateReplacesHRLoad ? meta.extrapolatedTRIMP : (recorded ?? meta.extrapolatedTRIMP)
-        guard let value, value > 0 else { return nil }
+        let load = meta.preferredTrainingLoad(ftp: loadFTP, heartRate: WorkoutLoadRestingHR.anchors)
+        guard let value = load?.value, value > 0 else { return nil }
         return Int(value.rounded())
     }
 

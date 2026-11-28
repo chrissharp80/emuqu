@@ -426,13 +426,25 @@ final class CloudKitSettingsSync {
     }
 
     /// Why nothing may be pushed right now, or nil when a push may go ahead.
+    /// Read when a push starts and again right before each iCloud write, so
+    /// sync turned off while the push waits on the network writes nothing.
     private func pushSkipReason() -> String? {
         let settings = settingsManager.settings
-        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else {
+        guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding, !PurgeGate.isPurging else {
             return String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle)
         }
         guard !schemaUnavailable else { return Self.schemaPausedMessage }
         return nil
+    }
+
+    /// Thrown right before an iCloud write once a push may no longer go
+    /// ahead (`pushSkipReason`).
+    private struct PushNoLongerAllowed: Error {
+        let reason: String
+    }
+
+    private func requirePushStillAllowed() throws {
+        if let reason = pushSkipReason() { throw PushNoLongerAllowed(reason: reason) }
     }
 
     private static var schemaPausedMessage: String {
@@ -481,6 +493,7 @@ final class CloudKitSettingsSync {
         }
         let editedAt = replacingNewer ? Date() : (localEditedAt ?? Date())
         CloudSettingsRecord.write(sealed, to: record, modifiedAt: editedAt)
+        try requirePushStillAllowed()
         _ = try await privateDB.save(record)
         if replacingNewer { UserDefaults.standard.set(editedAt, forKey: Self.localEditedAtKey) }
         return true
@@ -490,6 +503,10 @@ final class CloudKitSettingsSync {
     /// hasn't been promoted to production. Cancel the debounce so we don't
     /// fire again every 2 s on every settings tweak.
     private func handlePushFailure(_ error: Error) -> String {
+        if let stopped = error as? PushNoLongerAllowed {
+            status = .idle
+            return stopped.reason
+        }
         guard !CloudKitSyncManager.isPermanentSchemaError(error) else {
             schemaUnavailable = true
             debounceTask?.cancel()
@@ -564,6 +581,7 @@ final class CloudKitSettingsSync {
         if sessionSync.zoneCreated || sessionSync.lastSyncDate != nil {
             guard try await zoneExists(sessionSync.zoneID) else { throw CKError(.zoneNotFound) }
         }
+        try requirePushStillAllowed()
         _ = try await privateDB.save(CKRecordZone(zoneID: zoneID))
         UserDefaults.standard.set(true, forKey: Self.zoneCreatedKey)
     }
@@ -760,6 +778,23 @@ enum CloudSyncMessages {
     /// A deletion could not be written to iCloud; the next sync retries it.
     static var deletionsPending: String {
         String(localized: "Some deleted sessions are still in iCloud — retrying", bundle: LanguageManager.appBundle)
+    }
+    /// Sessions this device has not got into iCloud yet; the next sync
+    /// tries them again.
+    static func uploadsWaiting(_ count: Int) -> String {
+        String(localized: "\(count) sessions still pending retry. iCloud may be unreachable.", bundle: LanguageManager.appBundle)
+    }
+    /// The archive's index did not load this launch, so sync cannot tell
+    /// which sessions still need to go up.
+    static var historyNotReadable: String {
+        String(localized: "Your history on this iPhone can't be read yet. Sync will try again.", bundle: LanguageManager.appBundle)
+    }
+    /// Sessions on this iPhone sealed with a key it does not hold
+    /// (`SessionArchive.sealedWithAnotherKeyCount`): restored from a backup
+    /// without the previous phone's Keychain. They are kept, and iCloud
+    /// brings back any that were synced there.
+    static var historyFromAnotherPhone: String {
+        String(localized: "History from your previous iPhone can't be opened on this one. If iCloud Keychain and iCloud Sync were on there, turn both on here to bring it back. Those readings are kept on this iPhone.", bundle: LanguageManager.appBundle)
     }
     static var previousSyncTimedOut: String {
         String(localized: "Previous sync timed out — retrying", bundle: LanguageManager.appBundle)

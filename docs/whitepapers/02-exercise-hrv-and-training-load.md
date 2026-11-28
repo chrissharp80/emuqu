@@ -161,7 +161,7 @@ For archived sessions:
 1. Require at least 64 RR points and re-stamp them on the gap-corrected timeline.
 2. Take the duration as the stored duration, else the last offset; it must exceed 120 s.
 3. For t = 120, 140, … ≤ duration, take the beats with offset in [t − 120 s, t) by a two-pointer sweep, which is O(n).
-4. For each window of at least 64 beats, clean it and reject it above 0.06; otherwise run DFA and emit `(t, α1, R²)`.
+4. For each window of at least 64 beats that spans at least 118 s, from its first beat's start to its last beat's end (the live dual gate; the slice is cut at a fixed time, so its span runs to the end of its last beat, where the live buffer's runs to the newest beat's start), clean it and reject it above 0.06; otherwise run DFA and emit `(t, α1, R²)`. A window whose first part fell in a dropout is not fitted on the seconds left.
 5. Each per-second sample then takes the latest reading at or before its offset if that reading is less than 20 s old, else nil.
 
 **Why the same pipeline.** Running the live filter, window, cadence and rejection offline lets older sessions benefit and keeps live and post-session numbers comparable. The gap-corrected timeline places each window where it really was. The 20 s limit is one cadence, so a sample carries only the reading that would have been on screen at that moment.
@@ -248,10 +248,10 @@ At least 30 beats are required. When HRmax or resting HR is unknown, an Edwards 
 
 #### 3.3.4 Scales and the daily series
 
-**Scales.** Power TSS and hrTSS put 100 at one hour at threshold, and MET load uses the same nominal anchor. Banister TRIMP and the route estimate are on the Banister scale. Each workout is labeled by source ("LOAD" or "TRIMP") and enters unconverted.
+**Scales.** Power TSS and hrTSS put 100 at one hour at threshold, and MET load uses the same nominal anchor. Banister TRIMP and the route estimate are on the Banister scale, where an hour at threshold is about 150 to 160, so each is converted before it is summed, shown or compared: TRIMP ÷ TRIMP(60 min at LTHR) × 100, the hrTSS rule itself, at the same resting HR, max HR, LTHR and sex coefficients. Every workout then enters on the TSS scale and is labeled "LOAD".
 
 **Daily series and the Performance Management Chart (PMC).**
-- A workout figure is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, else 0.
+- A workout figure is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, converted to the TSS scale, else 0.
 - Apple Health workouts that are not in the archive (from the Watch or other apps) join the series. When Apple Health workouts were never authorized, or were denied, the query's answer is read as no workouts, so the series is still built from the archive; a query that fails or times out for any other reason publishes nothing, and the previous load stands until the next refresh asks again.
 - Loads are summed per local day (0 on rest days), and each day is capped at 1200.
 - `X_today = load·(1 − e^(−1/τ)) + X_yesterday·e^(−1/τ)`, with τ = 7 days for ATL and 42 days for CTL; `TSB = CTL − ATL`.
@@ -335,7 +335,7 @@ Inputs:
 On rest days ATL already carries yesterday's load, and the freshness bonus handles dissipation.
 
 1. **Acute fatigue.** With recent loads, `raw = Σ load_i · e^(−h_i/24)` and `acute = 0.30 · raw`. Without them, `raw = todayTrimp` and `acute = 0.35 · todayTrimp`.
-2. **Base.** If CTL ≥ 3.2, map `(ATL + acute)/CTL` piecewise-linearly through (0 → 100), (0.8 → 85), (1.0 → 70), (1.3 → 50), (1.5 → 30) and (2.0 → 10). The base is held at 10 above 2.0, and a ratio ≤ 0 gives 100. Below CTL 3.2, the base is `max(10, 100 − 0.5·(ATL + raw))`.
+2. **Base.** Map `(ATL + acute)/max(CTL, 100/7)` piecewise-linearly through (0 → 100), (0.8 → 85), (1.0 → 70), (1.3 → 50), (1.5 → 30) and (2.0 → 10). The base is held at 10 above 2.0, and a ratio ≤ 0 gives 100. The floor, 100/7 ≈ 14.3 TSS/day, is one hour at threshold a week; below it the ratio is taken against the floor, so the base is continuous and non-decreasing in CTL for a given load.
 3. **ACWR damper.** This step applies only if ACWR > 1.3.
    - `p = min(0.05 + 0.5·(ACWR − 1.3), 0.40) · min(max(CTL, 0)/50, 1)`.
    - If R_rec ≥ 70, `p ← min(p, 0.10)`.
@@ -367,7 +367,7 @@ ATL_m and CTL_m come from the frozen snapshot, or are 0 if it is missing. The fr
 
 **Other rules.** Without training metrics, readiness equals the recovery score. When readiness differs by at least 3 points from the morning-anchor readiness (the model at the frozen morning ATL/CTL with no training), the narrative says training "pulled readiness down" or rest "lifted" it.
 
-**Why it works.** Readiness asks whether there is capacity for more load today. ATL/CTL answers this relative to what the user is accustomed to. ATL updates once a day, so the 72 h acute term (τ = 24 h) makes this morning's session count now and fade over about a day. Below CTL 3.2 the ratio is numerically unstable, so a strain branch takes over. The ACWR penalty is scaled by CTL/50 because the ratio is unstable at low chronic load [14]. It is capped at 10% when recovery is at least 70, so a ratio cannot overrule a good morning HRV-based recovery score. The blend is asymmetric for the same reason. An optimistic load model is only partly trusted, and less so at low CTL; a pessimistic one is lifted modestly. Freezing the morning value makes history reproducible, and interpolating from it keeps the live figure continuous at acceptance.
+**Why it works.** Readiness asks whether there is capacity for more load today. ATL/CTL answers this relative to what the user is accustomed to. ATL updates once a day, so the 72 h acute term (τ = 24 h) makes this morning's session count now and fade over about a day. Near a CTL of zero the ratio is numerically unstable (a 30 TSS walk at CTL 2 reads as a ratio of about 6), so the ratio divides by at least one threshold-hour a week. At that floor the first segment of the map takes about 0.57 points per TSS of a same-day workout, the rate of a strain model of 0.5 points per TSS of ATL plus the undamped load, so a beginner's light session reads as a strain model reads it. A switch between two models at a CTL boundary would instead drop a beginner's base from about 80 to 10 on the day CTL crossed it. The ACWR penalty is scaled by CTL/50 because the ratio is unstable at low chronic load [14]. It is capped at 10% when recovery is at least 70, so a ratio cannot overrule a good morning HRV-based recovery score. The blend is asymmetric for the same reason. An optimistic load model is only partly trusted, and less so at low CTL; a pessimistic one is lifted modestly. Freezing the morning value makes history reproducible, and interpolating from it keeps the live figure continuous at acceptance.
 
 ### 3.6 Fusing the two strap paths
 
@@ -404,7 +404,7 @@ Pa:Hr decoupling [11] works as follows:
 2. Compute the efficiency factor `EF = (distance/seconds)/mean HR` for each half, on the gap-corrected timeline.
 3. Report `(EF₁ − EF₂)/EF₁ × 100`.
 
-The metric is withheld under 5 minutes or 500 m.
+The metric is withheld under 5 minutes or 500 m of moving time and moving distance, the session the halves are built from, so a pause counts toward neither. The live estimate starts at the same 5 minutes of active time, and the summary sentence appears whenever the metric does.
 
 ---
 
@@ -569,9 +569,9 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 *Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: 0.95 × best NP; read-time power TSS); emuqu 8abc6d7, 2026-10-03 (current form: rolling 20-minute window with 90% coverage).
 
-**N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL branch, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
+**N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL floor, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
 - **Acute fatigue.** A 72 h exponentially decaying term (τ = 24 h, weight 0.30, over workouts since the start of the morning reading's day) is added to ATL inside a piecewise capacity-ratio map.
-- **Low-CTL branch.** Below a CTL of 3.2, the score switches to a strain branch.
+- **Low-CTL floor.** The capacity ratio divides by at least 100/7 ≈ 14.3 TSS/day, one hour at threshold a week, so the base is continuous and non-decreasing in CTL with no switch to another model. The fitness-base boundary of 2.1 TSS/day (3.2 on the Banister TRIMP scale it was set on, ÷ 1.52, the TRIMP of an hour at threshold at the default anchors per 100 TSS) only gates whether the training advice reads the ACWR.
 - **ACWR penalty.** Any penalty above an ACWR of 1.3 is scaled by min(CTL/50, 1) and capped at 10% when the morning recovery score is at least 70.
 - **Freshness.** A capped bonus is added for ATL dissipated since the morning.
 - **Blend.** The result is blended asymmetrically with the recovery score: excess trust is min(CTL/40, 1) × 0.55, and deficit uplift is 0.30.
@@ -660,7 +660,7 @@ Training load, TSB and the ACWR damper are bookkeeping on training history; they
 
 **Sustained crossings.** The 180 s sustain makes crossings robust to single beats, at the cost of missing excursions shorter than three minutes. The reported HR is taken at the start of the run without lag correction.
 
-**Unconverted load scales.** Route estimates and Banister TRIMP enter ATL/CTL on their own scale, labeled by source. Each figure stays traceable to how it was measured, at the cost of a series that mixes TSS-scale and TRIMP-scale values.
+**Converted load scales.** Route estimates and Banister TRIMP are put on the TSS scale through the hrTSS normalisation at the current anchors. A Health workout's TRIMP comes from its average HR, which reads lower than a beat-level integration of the same session, and a legacy Edwards zone TRIMP is converted as if it were Banister's, so an HR-derived load stays less accurate than a power one even on the same scale.
 
 **History-based substitution.** Route substitution needs a saved route and earlier clean runs. TRIMP per meter does not adjust for pace, weather or fitness change between runs.
 
@@ -831,10 +831,10 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | acuteFatigueTauHours | 24 | h | Acute decay |
 | acuteFatigueCoefficient | 0.30 | — | With recent loads |
 | acuteFatigueFallbackCoefficient | 0.35 | — | todayTrimp fallback |
-| ctlThreshold | 3.2 | load | Low-CTL branch |
-| novelLoadStrainCoefficient | 0.5 | — | Low-CTL branch |
+| ctlThreshold | 2.1 | TSS/day | Fitness-base boundary for ACWR advice |
+| capacityRatioCTLFloor | 100/7 ≈ 14.3 | TSS/day | Smallest CTL the capacity ratio divides by |
+| strainThreshold | 1600 | TSS-scale strain | Monotony warning (Foster's 2500 session-RPE band is near 600 at 4.2 AU per TSS, but monotony is capped at 10 here, so the TSS-scale level the strap has used is kept) |
 | capacity map | 0→100, 0.8→85, 1.0→70, 1.3→50, 1.5→30, 2.0→10 | — | Base readiness |
-| readinessFloor | 10 | points | Floor |
 | acwrOverreachingThreshold | 1.3 | — | Penalty starts |
 | penalty base / slope / cap | 0.05 / 0.50 / 0.40 | — | ACWR penalty |
 | acwrFullConfidenceCTL | 50 | load | Confidence ramp |
@@ -999,7 +999,7 @@ autoFTP(): best over running-family workouts of the last 90 days of
 readiness(Rrec, todayTrimp, CTL, ATL, anchorATL, ACWR, loads):
   if loads: raw = sum(L.load*exp(-L.h/24)); acute = 0.30*raw
   else: raw = todayTrimp; acute = 0.35*todayTrimp
-  if CTL >= 3.2: x = piecewise((ATL+acute)/CTL)
+  if CTL >= 2.1: x = piecewise((ATL+acute)/CTL)
   else: x = max(10, 100 - 0.5*(ATL+raw))
   if ACWR != nil and ACWR > 1.3:
     p = min(0.05 + 0.5*(ACWR-1.3), 0.40) * min(max(CTL,0)/50, 1)

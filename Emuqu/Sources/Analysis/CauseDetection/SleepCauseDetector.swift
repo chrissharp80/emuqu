@@ -100,7 +100,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: String(localized: "Fragmented Sleep", bundle: NarrativeLanguage.bundle),
                 confidence: confidence,
-                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.integer(Int(efficiency)))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.", bundle: NarrativeLanguage.bundle),
+                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.integer(Int(efficiency.rounded())))% sleep efficiency with \(sleep.awakeMinutes) minutes awake. Fragmented sleep reduces HRV even when total time is adequate.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: weight
             ))
         }
@@ -144,7 +144,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         causes.append(DetectedCause(
             cause: String(localized: "Low Deep Sleep", bundle: NarrativeLanguage.bundle),
             confidence: .moderateHigh,
-            explanation: String(localized: "Only \(deepMins) minutes of deep sleep (\(NarrativeLanguage.integer(Int(deepPercent)))%). Deep sleep is when HRV-restoring parasympathetic activity peaks. Alcohol, late meals, and stress reduce deep sleep.", bundle: NarrativeLanguage.bundle),
+            explanation: String(localized: "Only \(deepMins) minutes of deep sleep (\(NarrativeLanguage.integer(Int(deepPercent.rounded())))%). Deep sleep is when HRV-restoring parasympathetic activity peaks. Alcohol, late meals, and stress reduce deep sleep.", bundle: NarrativeLanguage.bundle),
             rankingWeight: 0.7
         ))
         return causes
@@ -166,7 +166,7 @@ final class SleepCauseDetector: CauseDetectionStrategy {
         let sleep = context.sleepInput
         let tonight = NarrativeLanguage.number(Double(sleep.totalSleepMinutes) / 60.0, decimals: 1)
         let sleepDiffPercent = Self.sleepDiffPercent(sleep: sleep, trends: trends)
-        let percent = NarrativeLanguage.integer(Int(abs(sleepDiffPercent)))
+        let percent = NarrativeLanguage.integer(Int(abs(sleepDiffPercent).rounded()))
         let average = NarrativeLanguage.number(trends.averageSleepMinutes / 60.0, decimals: 1)
         // Below average tonight
         if sleepDiffPercent < -HRVThresholds.trendSignificantChange, context.rmssd < HRVThresholds.rmssdGood {

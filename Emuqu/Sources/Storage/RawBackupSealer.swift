@@ -9,8 +9,9 @@ protocol SealableBackupStore: AnyObject {
     func mergeIndexIfLaunchReadFailed() throws
     /// The index row of `sessionId`, or nil.
     func existingIndexEntry(_ sessionId: UUID) -> RawRRBackup.BackupIndex?
-    /// The points file of the session and any set aside from it.
-    func appendPointFiles(of sessionId: UUID) -> [URL]
+    /// The points file of the session and any set aside from it; throws
+    /// when they cannot be listed.
+    func appendPointFiles(of sessionId: UUID) throws -> [URL]
     /// Writes `points` as the session's one-shot backup and indexes it.
     /// The caller is on the store's `appendQueue`.
     @discardableResult
@@ -172,7 +173,7 @@ struct RawBackupSealer {
     /// when none exists; false, with nothing rewritten, while the key is out
     /// of reach.
     private func resealPointFiles(_ files: [URL]) throws -> Bool {
-        let present = files.filter { FileManager.default.fileExists(atPath: $0.path) }
+        let present = files.filter { BackupFiles.isFile($0, using: .default) }
         guard !present.isEmpty else { return true }
         guard let manager = SealedJSONLines.availableManager(encryption) else { return false }
         return try present.map { try SealedJSONLines.resealFile(at: $0, with: manager) }.allSatisfy { $0 }

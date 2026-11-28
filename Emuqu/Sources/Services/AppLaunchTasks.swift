@@ -108,19 +108,18 @@ extension EmuquApp {
     @MainActor
     func appLevelWatchResumeListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutResume)
-        for await _ in stream {
+        for await note in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
-            if case .recording = recorder.lifecycle.phase {
-                recorder.pauseControl.resume()
-            }
+            recorder.resumeFromWatch(tappedAt: note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date)
         }
     }
 
     @MainActor
     func appLevelWatchAcknowledgeListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchAcknowledgedFinished)
-        for await _ in stream {
-            launchServices.recorderBox().recorder?.acknowledgeFinished()
+        for await note in stream {
+            let tappedAt = note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date
+            launchServices.recorderBox().recorder?.acknowledgeFinishedFromWatch(tappedAt: tappedAt)
         }
     }
 
@@ -430,7 +429,8 @@ extension EmuquApp {
     /// session-data repairs that follow are each gated by a UserDefaults flag
     /// after a successful run. The archive job also applies the 90-day Trash
     /// retention: each expired deleted session is permanently deleted
-    /// (`SessionRecoveryCoordinator.permanentlyDelete`: its breadcrumb route,
+    /// (`SessionRecoveryCoordinator.permanentlyDeleteExpired`, which skips one
+    /// restored or being restored since the list was made: its breadcrumb route,
     /// trashed file, raw backup here and in iCloud, and its HRV in Apple
     /// Health; the deletion mark once iCloud has confirmed it).
     private func scheduleMigrationJobs(lowPower: Bool) {
@@ -443,7 +443,7 @@ extension EmuquApp {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.state.upgradeExistingFileProtection()
             archiveRef.migrations.runDeferredMigrations()
-            await collectorJob.recovery.permanentlyDelete(archiveRef.store.expiredDeletionIds())
+            await collectorJob.recovery.permanentlyDeleteExpired(archiveRef.store.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")
         }
         let reanalysisJob = reanalysis
@@ -843,15 +843,19 @@ extension EmuquApp {
         // Iterating newest-first means the dashboard-visible session
         // gets rescored FIRST, so even if the run is cut short,
         // the user's currently-displayed score is the corrected one.
-        let allEntries = await MainActor.run { reanalysis.archive.store.entries }
+        let (allEntries, indexComplete) = await MainActor.run {
+            (reanalysis.archive.store.entries, reanalysis.archive.hasCompleteIndex)
+        }
         let unprocessed = allEntries.filter { !processed.contains($0.sessionId) }
+        // An index that did not load lists no sessions: nothing visited is
+        // not every session covered.
         guard !unprocessed.isEmpty else {
-            return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: true)
+            return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: indexComplete)
         }
         let processedThisRun = await rescoreAll(unprocessed, into: &processed, of: allEntries.count, reanalysis: reanalysis)
         return RescoreChunk(
             processed: processedThisRun, totalDone: processed.count, total: allEntries.count,
-            complete: allEntries.allSatisfy { processed.contains($0.sessionId) }
+            complete: indexComplete && allEntries.allSatisfy { processed.contains($0.sessionId) }
         )
     }
 

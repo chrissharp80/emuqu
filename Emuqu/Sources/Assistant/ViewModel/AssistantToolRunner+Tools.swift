@@ -181,11 +181,12 @@ extension AssistantToolRunner {
         state: inout ToolLoopState,
         grokQuirks: inout GrokQuirkPolicy
     ) async throws -> Bool {
-        let buffer = StreamTextBuffer(owner: owner, turnID: round.turnID)
+        let services = owner.services
+        let buffer = StreamTextBuffer(owner: owner, turnID: round.turnID) { services.verifiedAppState }
         let thisRound = try await consumeStreamRound(round, state: state, buffer: buffer)
         applyRoundEndTextPolicy(
             thisRound: thisRound, budgetExhausted: state.budgetExhausted,
-            buffer: buffer, turnID: round.turnID
+            buffer: buffer
         )
         if state.budgetExhausted { return true }
         if thisRound.isEmpty {
@@ -198,15 +199,15 @@ extension AssistantToolRunner {
         return try await recordResolutions(thisRound, round: round, state: &state)
     }
 
-    /// Tool calls run only while the provider that asked for them still has
-    /// data-sharing consent and is switched on. Web search, weather and
+    /// Tool calls run only while the AI Assistant is on and the provider that
+    /// asked for them still has data-sharing consent and is switched on. Web search, weather and
     /// route lookups send the model's arguments to outside services, so a
     /// withdrawal during the turn stops them as well as the next request.
     /// Checked before each batch and again after it; within the batch each
     /// call checks for itself (`toolRefusal`).
     private func requireConsentForTools(of provider: AIProvider) throws {
         try Self.requireConsentForTools(of: provider.id, consent: owner.services.providerConsentTracker)
-        guard owner.registry.isEnabled(provider.id) else {
+        guard owner.services.settingsManager.settings.enableAIAssistant, owner.registry.isEnabled(provider.id) else {
             debugLog("[Assistant] tool calls not run — \(provider.id.rawValue) was switched off", level: .warning)
             throw AIProviderError.consentWithdrawn(provider.id)
         }
@@ -485,57 +486,20 @@ extension AssistantToolRunner {
     /// first tool_use arrives); the rewind pulls the cursor back so the next
     /// round is still spoken from its start.
     ///
-    /// The number check runs after the rewind, on the text that stays.
+    /// The numbers were checked as each sentence was published
+    /// (`StreamTextBuffer`); the corrections in the text that stays are
+    /// reported to the next prompt here, after the rewind.
     private func applyRoundEndTextPolicy(
         thisRound: [PendingToolCall],
         budgetExhausted: Bool,
-        buffer: StreamTextBuffer,
-        turnID: UUID
+        buffer: StreamTextBuffer
     ) {
         if thisRound.isEmpty || budgetExhausted {
             buffer.advanceSpeakableCursorToCurrentEnd()
         } else {
             buffer.rewindToRoundStart()
         }
-        verifyAppStateNumbers(turnID: turnID)
-    }
-
-    /// Hallucination guard for app-state numbers (TSB / ATL /
-    /// CTL / RMSSD / recovery score). The voice path runs the
-    /// existing live-workout-metrics guard separately;
-    /// text-mode (chat) needs its own guard, otherwise fabricated
-    /// TSB-swing claims reach the chat surface unchallenged.
-    /// Runs on EVERY round-end, after the caller's rewind of a tool-use
-    /// round, so it checks only the text that stays visible (a pre-tool-use
-    /// lead-in has already been cut).
-    ///
-    /// Use the verifier's pre-built corrected text instead of
-    /// splicing ranges here. The verifier matches against its own
-    /// normalized text (spelled-out → digits), so splicing those ranges
-    /// into the original would corrupt words mid-way. Its
-    /// `correctedText` is the original text with only the claimed spans
-    /// replaced, so we just swap the whole string.
-    ///
-    /// Resolve the live turn position by id so
-    /// a shifted array (clear / regenerate / removal) can't make this
-    /// verify-and-rewrite land on the wrong turn.
-    ///
-    /// Live-workout claims (HR, power, α1) are checked first, against the
-    /// broker's snapshot (`MetricsVerifier.verify(_:againstLive:)`; nothing
-    /// while no workout records), and the app-state pass runs on their
-    /// corrected text.
-    private func verifyAppStateNumbers(turnID: UUID) {
-        guard let assistantIndex = owner.liveTurnIndex(for: turnID) else { return }
-        let original = owner.turns[assistantIndex].text
-        let live = MetricsVerifier.verify(original, againstLive: owner.services.liveWorkoutBroker.currentSnapshot())
-        let text = MetricsVerifier.correctedText(from: original, applying: live) ?? original
-        let result = MetricsVerifier.verifyAppStateClaims(text, against: owner.services.verifiedAppState)
-        let discrepancies = live + result.discrepancies
-        guard !discrepancies.isEmpty else { return }
-        debugLog(MetricsVerifier.formatForLog(discrepancies), level: .warning)
-        MetricsVerifier.recordCorrections(discrepancies)
-        owner.turns[assistantIndex].text = result.correctedText ?? text
-        owner.store.save(owner.turns)
+        buffer.commitCorrections()
     }
 
     /// Tool-resolution + budget stage of
@@ -836,7 +800,7 @@ extension AssistantToolRunner {
         voiceMode: Bool
     ) async throws -> Bool {
         let supportsTools = !tools.isEmpty && factRegistry != nil
-        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
+        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode, turnID: turnID)
         debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
         let dispatcher = provider.id == .apple && supportsTools ? owner.services.appleToolDispatcher : nil
         dispatcher?.setRegistry(factRegistry)
@@ -920,9 +884,11 @@ extension AssistantToolRunner {
 
     /// The history before the reserved turn, truncated to `provider`'s own
     /// token budget. Falls back to the primary's outbound when the reserved
-    /// turn is gone (cleared / regenerated mid-turn).
+    /// turn is gone (cleared / regenerated mid-turn), less the turns
+    /// `provider` may not see: the primary's was cut for the primary, and an
+    /// Apple primary's history can hold replies only Apple may see.
     private func fallbackOutbound(for provider: AIProvider, turnID: UUID, primaryOutbound: [ChatTurn]) -> [ChatTurn] {
-        guard let index = owner.liveTurnIndex(for: turnID) else { return primaryOutbound }
+        guard let index = owner.liveTurnIndex(for: turnID) else { return primaryOutbound.filter { $0.maySend(to: provider.id) } }
         return AssistantViewModel.truncateForSend(Array(owner.turns[..<index]), provider: provider.id).kept
     }
 
@@ -940,9 +906,10 @@ extension AssistantToolRunner {
     private func fallbackSystemPrompt(
         provider: AIProvider,
         supportsTools: Bool,
-        voiceMode: Bool
+        voiceMode: Bool,
+        turnID: UUID
     ) async -> String {
-        let contextRendered = await fallbackContextRender(provider: provider, supportsTools: supportsTools)
+        let contextRendered = await fallbackContextRender(provider: provider, supportsTools: supportsTools, turnID: turnID)
         return await owner.router.composeSystemPromptForTurn(
             rendered: contextRendered, voiceMode: voiceMode, toolMode: supportsTools
         )
@@ -961,11 +928,15 @@ extension AssistantToolRunner {
     /// A no-tools fallback can be a CLOUD provider; ambient
     /// street-level location goes to the cloud only during an active workout
     /// (disclosure-matched gate, same rule as `renderLiveStateForCloud`).
-    /// Apple keeps it: the render never leaves the device there.
-    private func fallbackContextRender(provider: AIProvider, supportsTools: Bool) async -> String {
+    /// Apple keeps it: the render never leaves the device there. The reply
+    /// in `turnID` is marked with what the render carries that a cloud
+    /// provider may not see, as on an Apple turn of its own.
+    private func fallbackContextRender(provider: AIProvider, supportsTools: Bool, turnID: UUID) async -> String {
         guard !supportsTools || provider.id == .apple else { return "" }
         let ctx = await owner.contextSource.currentContext()
-        return ctx.compactRender(includeAmbientLocation: provider.id == .apple || ctx.liveWorkout != nil)
+        let includesLocation = provider.id == .apple || ctx.liveWorkout != nil
+        owner.mark(ctx.sensitivity(ofRenderIncludingAmbientLocation: includesLocation), onTurn: turnID)
+        return ctx.compactRender(includeAmbientLocation: includesLocation)
     }
 
     /// Mark a stream as finished. The `generation` arg lets us no-op when

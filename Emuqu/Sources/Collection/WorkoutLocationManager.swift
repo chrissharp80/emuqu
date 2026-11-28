@@ -319,6 +319,32 @@ final class WorkoutLocationManager: NSObject {
         }
     }
 
+    /// Moves the end of the pause just ended back to `resumedAt`, for a
+    /// resume applied after it was asked for (a Watch Resume that arrived
+    /// late): the fixes taken after it count again, the first as the step
+    /// across the resume (distance, not time), the rest as moving. Their
+    /// distance and GPS-altitude climb are credited by the rule
+    /// `creditMovement` applies; a fix was only kept once it passed it.
+    func moveResume(to resumedAt: Date) {
+        let resumed = trackPauses.paused.filter { track[$0].timestamp > resumedAt }.sorted()
+        guard let first = resumed.first else { return }
+        trackPauses.paused.subtract(resumed)
+        trackPauses.gaps.remove(track.count)
+        trackPauses.gaps.insert(first)
+        for index in resumed {
+            distanceMeters += track[index].distance(from: track[index - 1])
+            accumulateGPSElevationFallback(from: track[index - 1], to: track[index])
+        }
+    }
+
+    #if DEBUG
+        /// Takes `fixes` as the delegate would, as though tracking, for tests.
+        func ingestForTesting(_ fixes: [CLLocation]) {
+            isTracking = true
+            fixes.forEach(ingest(location:))
+        }
+    #endif
+
     // MARK: - Internal
 
     private func resetState() {

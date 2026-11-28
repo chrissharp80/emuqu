@@ -183,8 +183,11 @@ extension WorkoutSessionLifecycle {
 
     /// start() — parameter capture, after every step that can throw, so a
     /// refused start (busy strap, a Polar throw) leaves the recorder's
-    /// thresholds, route and last summary as they were.
+    /// thresholds, route and last summary as they were. An accidental start
+    /// still on that summary, unsaved, is left as the user leaving it
+    /// (`discardNotArchived`).
     func applyStartParameters(thresholds: [WorkoutThreshold], route: Route?) {
+        discardNotArchived()
         lifecycle.finishedSession = nil
         lifecycle.saveOutcome = nil
         coaching.thresholds = WorkoutThresholdWatch(thresholds: thresholds)
@@ -365,18 +368,12 @@ extension WorkoutSessionLifecycle {
     /// factual workout snapshot on each turn. This is what lets the AI
     /// answer "what's my HR?" with the real value rather than guessing.
     ///
-    /// Also exposes the structured snapshot for the
-    /// pre-speech hallucination guard. MetricsVerifier
-    /// uses this to cross-check numeric claims against authoritative
-    /// values before TTS speaks the line.
+    /// The hallucination guard reads the live workout broker, as the chat
+    /// does (`MetricsVerifier.verifyReply`), not a context of its own.
     private func installConversationContextProviders() {
         conversation.contextSnapshotProvider = { [weak self] in
             guard let self, let sport = lifecycle.currentSession?.sport else { return nil }
             return aiContext.buildContext(sport: sport).asFactSheet()
-        }
-        conversation.liveWorkoutSnapshotProvider = { [weak self] in
-            guard let self, let sport = lifecycle.currentSession?.sport else { return nil }
-            return aiContext.buildContext(sport: sport)
         }
     }
 

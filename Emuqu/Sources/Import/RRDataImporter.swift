@@ -106,6 +106,21 @@ final class RRDataImporter: Sendable {
             let rrIntervals: [Int] // Raw RR intervals in milliseconds
             let timestamps: [Int64] // Original timestamps
             var sessionType: SessionType? // From the session_type column; nil in older exports
+            /// Each beat's `wall_clock_ms`, parallel to `timestamps`; nil for
+            /// a beat with none, empty for an export without the column.
+            var wallClocks: [Int64?] = []
+
+            /// Each beat's `follows_removed_beat` mark, parallel to
+            /// `timestamps`; empty for an export without the column.
+            var removedBeats: [Bool] = []
+
+            func wallClock(at index: Int) -> Int64? {
+                index < wallClocks.count ? wallClocks[index] : nil
+            }
+
+            func followsRemovedBeat(at index: Int) -> Bool {
+                index < removedBeats.count && removedBeats[index]
+            }
 
             var beatCount: Int {
                 rrIntervals.count
@@ -171,6 +186,10 @@ final class RRDataImporter: Sendable {
         let originalFileName: String
         let recordingDate: Date?
         let metadata: [String: String]
+        /// The beats with the times the file states for them
+        /// (`statedTimeline`), parallel to `rrIntervals`; nil when it states
+        /// none, and the beats are laid end to end.
+        var timeline: [RRPoint]?
 
         var beatCount: Int {
             rrIntervals.count
@@ -186,10 +205,10 @@ final class RRDataImporter: Sendable {
     /// The largest file an import reads. The whole file is held in memory as
     /// data, then as text, so a file past this is refused before any of it
     /// is loaded. The largest file the app itself writes for import is its
-    /// multi-session RR export: one row per beat, about 40 bytes
-    /// ("2026-01-25_0443,28800000,850,overnight"), so an 8-hour night at
-    /// 60 bpm is 28,800 rows, about 1.1 MB, and this cap holds about 230 such
-    /// nights. An archive exported as one larger file is refused.
+    /// multi-session RR export: one row per beat, about 55 bytes
+    /// ("2026-01-25T04:43:00-05:00,28800000,850,overnight,28801250"), so an
+    /// 8-hour night at 60 bpm is 28,800 rows, about 1.6 MB, and this cap
+    /// holds about 160 such nights. An archive exported as one larger file is refused.
     static let maxFileBytes = 256 * 1024 * 1024
 
     /// The most beats one recording can hold. `validate` refuses a recording
@@ -231,12 +250,14 @@ final class RRDataImporter: Sendable {
         let format = detectFormat(content: content, extension: ext)
         let parsed = try parse(content, as: format)
         try validate(parsed.rrIntervals)
+        let timed = format == .csv || format == .kubios
         return ImportResult(
             rrIntervals: parsed.rrIntervals,
             sourceFormat: format,
             originalFileName: fileName,
             recordingDate: parsed.recordingDate,
-            metadata: parsed.metadata
+            metadata: parsed.metadata,
+            timeline: timed ? statedTimeline(in: content, rrIntervals: parsed.rrIntervals) : nil
         )
     }
 
@@ -254,7 +275,7 @@ final class RRDataImporter: Sendable {
         do {
             data = try Data(contentsOf: url)
         } catch {
-            debugLog("[Import] Failed to read file \(url.lastPathComponent): \(error.localizedDescription)")
+            debugLog("[Import] Failed to read a .\(url.pathExtension) file: \(error.localizedDescription)")
             throw ImportError.unreadableFile
         }
         guard data.count <= Self.maxFileBytes else { throw ImportError.tooLarge }
@@ -272,12 +293,12 @@ final class RRDataImporter: Sendable {
         do {
             size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
         } catch {
-            debugLog("[Import] \(url.lastPathComponent): size unreadable: \(error.localizedDescription)", level: .warning)
+            debugLog("[Import] A .\(url.pathExtension) file's size is unreadable: \(error.localizedDescription)", level: .warning)
             throw ImportError.unreadableFile
         }
         guard let size else { throw ImportError.unreadableFile }
         guard size > maxBytes else { return }
-        debugLog("[Import] \(url.lastPathComponent) is \(size / 1_048_576) MB, over the import limit", level: .warning)
+        debugLog("[Import] A .\(url.pathExtension) file is \(size / 1_048_576) MB, over the import limit", level: .warning)
         throw ImportError.tooLarge
     }
 
@@ -336,20 +357,28 @@ final class RRDataImporter: Sendable {
     /// For a file that states no recording date (`recordingDate` nil — every
     /// CSV, Kubios and text file) the caller supplies the date the user
     /// gives: dating it now would put an old recording on today and into
-    /// today's baseline.
+    /// today's baseline. The beats keep the times the file states
+    /// (`timeline`), so a gap it recorded stays a gap; a file that states
+    /// none has its beats laid end to end.
     func createSession(from result: ImportResult, startingAt startDate: Date) -> HRVSession {
-        // Build RRPoints with cumulative timestamps
+        let points = result.timeline ?? Self.endToEnd(result.rrIntervals)
+        var session = HRVSession(startDate: startDate)
+        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: startDate)
+        session.endDate = startDate.addingTimeInterval(Double(points.last?.endMs ?? 0) / 1000.0)
+        session.notes = String(localized: "Imported from \(result.originalFileName)", bundle: LanguageManager.appBundle)
+        return session
+    }
+
+    /// Beats each starting where the one before ends, the first at zero.
+    static func endToEnd(_ rrIntervals: [Int]) -> [RRPoint] {
         var points: [RRPoint] = []
+        points.reserveCapacity(rrIntervals.count)
         var currentTime: Int64 = 0
-        for rr in result.rrIntervals {
+        for rr in rrIntervals {
             points.append(RRPoint(t_ms: currentTime, rr_ms: rr))
             currentTime += Int64(rr)
         }
-        var session = HRVSession(startDate: startDate)
-        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: startDate)
-        session.endDate = startDate.addingTimeInterval(Double(currentTime) / 1000.0)
-        session.notes = String(localized: "Imported from \(result.originalFileName)", bundle: LanguageManager.appBundle)
-        return session
+        return points
     }
 
     // MARK: - Format Detection

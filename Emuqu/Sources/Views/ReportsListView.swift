@@ -432,6 +432,9 @@ struct ReportsListView: View {
     nonisolated private static func renderReport(
         _ lightweightInputs: GenerationInputs, archive: SessionArchive, trainingMetricsCache: TrainingMetricsCache
     ) async throws {
+        // Every kind but a workout-only report reads its baseline nights from
+        // the index (`HistoryExportGate`).
+        if lightweightInputs.kind != .workoutOnly, !archive.hasCompleteIndex { throw ReportsListError.historyUnreadable }
         let inputs = await Task.detached { withFullSessions(lightweightInputs, archive: archive) }.value
         let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: trainingMetricsCache)
         let track: [CLLocation] = inputs.polyline.map {
@@ -483,7 +486,8 @@ struct ReportsListView: View {
         ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
             bodyWeightKg: inputs.settings.effectiveBodyWeightKg, units: inputs.units,
-            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
+            sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit,
+            loadFTP: .current(inputs.settings)
         )
     }
 
@@ -584,9 +588,12 @@ struct ReportRow: Identifiable {
 private enum ReportsListError: LocalizedError {
     case recoverySessionMissing
     case recoveryGenerationFailed
+    case historyUnreadable
 
     var errorDescription: String? {
         switch self {
+        case .historyUnreadable:
+            return HistoryExportGate.unreadableHistory
         case .recoverySessionMissing:
             return String(localized: "Recovery session data is missing — try reanalysing the session.", bundle: LanguageManager.appBundle)
         case .recoveryGenerationFailed:

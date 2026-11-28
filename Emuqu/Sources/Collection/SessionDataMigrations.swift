@@ -76,6 +76,12 @@ final class SessionDataMigrations {
     ///
     /// Timings are tuned against cold-launch traces.
     func runAllIfNeeded() async {
+        // An index that did not load lists no sessions: each pass would find
+        // nothing to do and set its flag having read nothing.
+        guard archive.hasCompleteIndex else {
+            debugLog("[SessionDataMigrations] Index not loaded this launch: migrations wait for a launch that reads it", level: .warning)
+            return
+        }
         for step in migrationSchedule {
             await sleepQuietly(step.delay, context: "SessionDataMigrations")
             // `sleepQuietly` swallows a cancellation; the chain stops on it.
@@ -107,9 +113,10 @@ extension SessionDataMigrations {
     /// unanswered query.
     nonisolated static let maxTrainingMigrationAttempts = 5
 
-    /// Ends a pass of the one-shot training migration under `key`. Its flag
-    /// is set when every candidate was answered (`complete`), or once it has
-    /// run `maxTrainingMigrationAttempts` times; otherwise it runs again on a
+    /// Ends a pass of the one-shot migration under `key`. Its flag is set
+    /// when the pass covered every candidate (`complete`: each one read,
+    /// answered and written), or once it has run
+    /// `maxTrainingMigrationAttempts` times; otherwise it runs again on a
     /// later launch. True when the flag was set.
     @discardableResult
     nonisolated static func finishTrainingMigration(key: String, complete: Bool, defaults: UserDefaults = .standard) -> Bool {

@@ -14,7 +14,12 @@ extension RawRRBackup {
     ///
     /// Switching a one-shot backup to this format replaces it, so the switch
     /// follows `backup()`'s rule: never over a backup that holds more beats.
-    func appendBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil) throws {
+    ///
+    /// `captureDate` is when the recording began, and dates the header and
+    /// the index row as `backup()`'s does: a caller that knows it wins, then
+    /// the date the backup already has, and the moment of the first append
+    /// only when neither is known. Recovery takes it as the session start.
+    func appendBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws {
         try mergeIndexIfLaunchReadFailed()
         indexLock.lock()
         let existingEntry = index.first { $0.id == sessionId }
@@ -23,11 +28,12 @@ extension RawRRBackup {
         // Nothing new to write: only an index save a failed write left owed.
         guard points.count > previousCount else { return try saveIndexIfOwed() }
         let pointsPath = pointsURL(for: sessionId)
-        let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, newCount: points.count)
+        let start = captureDate ?? existingEntry?.captureDate
+        let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, captureDate: start, newCount: points.count)
         try writeAppendData(try encodedLines(points[previousCount...], sessionId: sessionId), to: pointsPath, sessionId: sessionId) {
             try encodedLines(points[...], sessionId: sessionId)
         }
-        try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count)
+        try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count, captureDate: start)
         if switchesFormat, let legacyName = existingEntry?.fileName { removeReplacedLegacyFile(legacyName) }
     }
 
@@ -50,18 +56,18 @@ extension RawRRBackup {
     /// new file holds every point and the index names it (`appendBackup`):
     /// deleted first, a failed write or a crash in between left neither copy.
     private func startAppendFormatIfNew(
-        _ existingEntry: BackupIndex?, sessionId: UUID, deviceId: String?, newCount: Int
+        _ existingEntry: BackupIndex?, sessionId: UUID, deviceId: String?, captureDate: Date?, newCount: Int
     ) throws -> Bool {
         guard existingEntry == nil || existingEntry?.backedUpCount == nil else { return false }
         try refuseReplacingLargerBackup(existingEntry, newCount: newCount)
-        try startAppendFormat(sessionId: sessionId, deviceId: deviceId, existingEntry: existingEntry)
+        try startAppendFormat(sessionId: sessionId, deviceId: deviceId, existingEntry: existingEntry, captureDate: captureDate)
         return true
     }
 
     /// Throws when the one-shot backup a format switch would replace holds
     /// more beats than the points about to replace it.
     private func refuseReplacingLargerBackup(_ existing: BackupIndex?, newCount: Int) throws {
-        guard let existing, existing.beatCount > newCount else { return }
+        guard let existing, !FullerCopy.covers(newCount, existing.beatCount) else { return }
         throw BackupError.wouldReplaceLargerBackup(existing: existing.beatCount, new: newCount)
     }
 
@@ -73,12 +79,13 @@ extension RawRRBackup {
     /// explicitly, so the overnight appends keep working while the device is
     /// locked.
     ///
-    /// The header keeps a replaced one-shot backup's capture date: recovery
-    /// uses it as the session start, and the moment of the switch is not that.
+    /// The header is dated by the recording's start (`captureDate`), else
+    /// keeps a replaced one-shot backup's capture date: recovery uses it as
+    /// the session start, and the moment of the switch is not that.
     func startAppendFormat(
-        sessionId: UUID, deviceId: String?, existingEntry: BackupIndex?
+        sessionId: UUID, deviceId: String?, existingEntry: BackupIndex?, captureDate: Date? = nil
     ) throws {
-        let header = BackupHeader(id: sessionId, captureDate: existingEntry?.captureDate ?? Date(), deviceId: deviceId)
+        let header = BackupHeader(id: sessionId, captureDate: captureDate ?? existingEntry?.captureDate ?? Date(), deviceId: deviceId)
         try writeHeaderUnlessReadable(header)
         try keepOrStartPointsFile(sessionId)
     }
@@ -205,12 +212,12 @@ extension RawRRBackup {
 
     /// No per-backup hash in the append format — integrity is count-based.
     func updateAppendIndex(
-        sessionId: UUID, existingEntry: BackupIndex?, beatCount: Int
+        sessionId: UUID, existingEntry: BackupIndex?, beatCount: Int, captureDate: Date? = nil
     ) throws {
         let now = Date()
         let updatedEntry = BackupIndex(
             id: sessionId,
-            captureDate: existingEntry?.captureDate ?? now,
+            captureDate: captureDate ?? existingEntry?.captureDate ?? now,
             fileName: nil,
             beatCount: beatCount,
             hash: "",
@@ -252,33 +259,59 @@ extension RawRRBackup {
     /// before the append failed; reading the live file alone recovered only
     /// what came after.
     ///
-    /// Always merged by timestamp, so a beat written twice (an append retried
-    /// after a partial write) is recovered once. Without siblings the live
-    /// file must exist.
+    /// Always merged in time order, so a beat written twice (an append
+    /// retried after a partial write) is recovered once: a beat is the same
+    /// beat only when every field matches. Two beats may share a timestamp
+    /// (a composite an earlier build saved stamped a streamed batch's beats
+    /// with its one arrival time), so the timestamp alone would keep only one
+    /// of them. Beats with one timestamp keep the order they were written in.
+    /// Without siblings the live file must exist. Only files are read: a
+    /// folder set aside in a points file's place holds no beats
+    /// (`BackupFiles.isFile`).
+    ///
+    /// Throws when any part cannot be read: the directory listing that names
+    /// the siblings, or a sibling itself. What the other parts hold is not the
+    /// backup, and returned as if it were, the index count was lowered to it
+    /// (`checkRecoveredCount`) and recovery archived part of the night as
+    /// recovered. The backup stays as it is for a later read.
     func readAllPointLines(sessionId: UUID, decoder: JSONDecoder) throws -> [RRPoint] {
         let livePath = pointsURL(for: sessionId)
-        let siblings = corruptedSiblingNames(of: livePath)
-        var byTime: [Int64: RRPoint] = [:]
+        let siblings = try listedCorruptedSiblingNames(of: livePath)
+            .filter { BackupFiles.isFile(backupDirectory.appendingPathComponent($0), using: fileManager) }
+        var written: [RRPoint] = []
         for name in siblings {
             let url = backupDirectory.appendingPathComponent(name)
-            for point in (attempt("RawRRBackup.readSibling") { try readPointLines(at: url, sessionId: sessionId, decoder: decoder) } ?? []) {
-                byTime[point.t_ms] = point
+            for point in try readPointLines(at: url, sessionId: sessionId, decoder: decoder) {
+                written.append(point)
             }
         }
         if siblings.isEmpty || fileManager.fileExists(atPath: livePath.path) {
-            for point in try readPointLines(at: livePath, sessionId: sessionId, decoder: decoder) {
-                byTime[point.t_ms] = point
-            }
+            written += try readPointLines(at: livePath, sessionId: sessionId, decoder: decoder)
         }
-        return byTime.values.sorted { $0.t_ms < $1.t_ms }
+        return Self.onceEachInTimeOrder(written)
     }
 
-    /// Names of the `.corrupted_*` files set aside from this points file.
+    /// `points` without repeats of a beat (every field equal), in timestamp
+    /// order, ties in the order given.
+    static func onceEachInTimeOrder(_ points: [RRPoint]) -> [RRPoint] {
+        var seen = Set<RRPoint>()
+        let unique = points.filter { seen.insert($0).inserted }
+        return unique.enumerated().sorted { ($0.element.t_ms, $0.offset) < ($1.element.t_ms, $1.offset) }.map(\.element)
+    }
+
+    /// Names of the `.corrupted_*` files set aside from this points file;
+    /// none when the directory cannot be listed. For the storage total only
+    /// (`totalBackupSize`): a read, a discard or a re-seal lists them with
+    /// `listedCorruptedSiblingNames`.
     func corruptedSiblingNames(of livePath: URL) -> [String] {
+        attempt("RawRRBackup.listSiblings") { try listedCorruptedSiblingNames(of: livePath) } ?? []
+    }
+
+    /// Names of the `.corrupted_*` files set aside from this points file;
+    /// throws when the directory cannot be listed.
+    func listedCorruptedSiblingNames(of livePath: URL) throws -> [String] {
         let prefix = livePath.lastPathComponent + ".corrupted_"
-        return (attempt("RawRRBackup.listSiblings") {
-            try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
-        } ?? []).filter { $0.hasPrefix(prefix) }
+        return try fileManager.contentsOfDirectory(atPath: backupDirectory.path).filter { $0.hasPrefix(prefix) }
     }
 
     /// Lines that do not decode (a torn write, or a sealed line whose key is
@@ -380,22 +413,30 @@ extension RawRRBackup {
     }
 
     /// The append-format files of a session: its header, points file and any
-    /// `.corrupted_*` points files set aside from it.
-    func appendFiles(of sessionId: UUID) -> [URL] {
-        [headerURL(for: sessionId)] + appendPointFiles(of: sessionId)
+    /// `.corrupted_*` points files set aside from it. Throws when the folder
+    /// cannot be listed (`appendPointFiles`).
+    func appendFiles(of sessionId: UUID) throws -> [URL] {
+        [headerURL(for: sessionId)] + (try appendPointFiles(of: sessionId))
     }
 
-    /// The points file of a session and any set aside from it.
-    func appendPointFiles(of sessionId: UUID) -> [URL] {
+    /// The points file of a session and any set aside from it. Throws when
+    /// the folder cannot be listed: without the set-aside files, a discard
+    /// left their beats on disk while reporting every file gone
+    /// (`removeEveryFile`), and a re-seal left them in plain text while taking
+    /// the session off the queue (`RawBackupSealer.reencrypt`).
+    func appendPointFiles(of sessionId: UUID) throws -> [URL] {
         let points = pointsURL(for: sessionId)
-        return [points] + corruptedSiblingNames(of: points).map { backupDirectory.appendingPathComponent($0) }
+        return [points] + (try listedCorruptedSiblingNames(of: points)).map { backupDirectory.appendingPathComponent($0) }
     }
 
     /// Remove the append-only files of a session (`appendFiles`), returning
-    /// any still on disk; each failure is logged.
+    /// any still on disk; each failure is logged. When the folder cannot be
+    /// listed, the header and live points file go and any set-aside file
+    /// stays, holding beats the replacing backup also holds.
     @discardableResult
     func cleanupAppendFiles(for sessionId: UUID) -> [URL] {
-        BackupFiles.remove(appendFiles(of: sessionId), using: fileManager)
+        let files = attempt("RawRRBackup.listAppendFiles") { try appendFiles(of: sessionId) }
+        return BackupFiles.remove(files ?? [headerURL(for: sessionId), pointsURL(for: sessionId)], using: fileManager)
     }
 
     /// A read error (the file locked by data protection, EPERM) is not
@@ -621,8 +662,16 @@ enum SealedJSONLines {
     }
 }
 
-/// Removing a backup's files.
+/// Removing a backup's files, and telling which of them hold lines.
 enum BackupFiles {
+    /// Whether `url` is a file, not a folder. A folder in a stream's or a
+    /// points file's place is set aside like an unreadable file, and holds
+    /// no lines: a read or a re-seal passes over it, a discard removes it.
+    static func isFile(_ url: URL, using fileManager: FileManager) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+    }
+
     /// Removes each file and returns those still on disk afterwards. A file
     /// already gone counts as removed; any other failure is logged.
     static func remove(_ urls: [URL], using fileManager: FileManager) -> [URL] {

@@ -205,12 +205,10 @@ extension ArchiveStore {
         else { return nil }
         debugLog("[Archive] sameNightMerge: folding new session \(session.id.uuidString.prefix(8)) (start=\(session.startDate), score=\(session.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) into existing \(existing.sessionId.uuidString.prefix(8)) (date=\(existing.date), score=\(existing.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")) — new UUID will be discarded", level: .warning)
         do {
-            guard var existingSession = try _retrieve(existing.sessionId) else {
+            guard let existingSession = try _retrieve(existing.sessionId) else {
                 throw SessionArchive.ArchiveError.fileNotFound
             }
-            if SessionMerger.mergeSessionData(from: session, into: &existingSession) { existingSession.modifiedAt = CloudKitSessionFreshness.stamp() }
-            // Re-archive the merged existing session (this is a re-archive, won't recurse)
-            return try _archive(existingSession)
+            return try archiveFold(of: session, into: existingSession)
         } catch {
             debugLog("[Archive] sameNightMerge: failed to retrieve session \(existing.sessionId.uuidString.prefix(8)): \(error) — not archiving the new session this pass", level: .warning)
             throw error
@@ -253,16 +251,24 @@ extension ArchiveStore {
         if rewriting { markRewriteStarting(session.id) }
         defer { if rewriting { markRewriteSettled(session.id) } }
         try writeArchiveBytes(data, to: filePath, format: format, sessionID: session.id)
+        Self.betweenFileAndIndex?(session.id)
         let entry = SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
-        state.index.removeAll { $0.sessionId == session.id }
+        try indexWritten(entry, rollingBackTo: preIndex, filePath: filePath, prior: prior)
+        return entry
+    }
+
+    /// Indexes the written file; a failed save rolls the write back and throws.
+    private func indexWritten(
+        _ entry: SessionArchiveEntry, rollingBackTo preIndex: [SessionArchiveEntry], filePath: URL, prior: PriorFile
+    ) throws {
+        state.index.removeAll { $0.sessionId == entry.sessionId }
         state.index.append(entry)
         do {
             try state.saveIndex()
         } catch {
-            rollBackWrite(to: preIndex, filePath: filePath, prior: prior, id: session.id)
+            rollBackWrite(to: preIndex, filePath: filePath, prior: prior, id: entry.sessionId)
             throw error
         }
-        return entry
     }
 
     /// The file a write replaces, kept so a failed index save can put it back
@@ -449,11 +455,15 @@ extension ArchiveStore {
         return try decoder.decode(HRVSession.self, from: plaintext)
     }
 
-    /// Load linked session time ranges for split-night display.
+    /// Load linked session time ranges for split-night display: the
+    /// segments whose beats `session` holds, which Unlink can strip from it.
+    /// A paused night's link to the segment resumed from it is a reference
+    /// back (`SessionLinks.holds`), so that segment is not listed.
     /// Returns nil if the session has no linked sessions.
     func linkedSegments(for session: HRVSession) -> [LinkedSegmentInfo]? {
         guard let linkedIds = session.linkedSessionIds, !linkedIds.isEmpty else { return nil }
-        let segments = linkedIds.compactMap { segmentInfo(forLinked: $0) }
+        let holder = SessionLinks.Node(session)
+        let segments = linkedIds.compactMap { segmentInfo(forLinked: $0, heldBy: holder) }
         let normalized = Self.normalizedSplitNightSegments(
             currentSessionId: session.id,
             currentStartDate: session.startDate,
@@ -465,11 +475,13 @@ extension ArchiveStore {
         return linkedOnly.isEmpty ? nil : linkedOnly
     }
 
-    /// One linked session's span. Nil when it can't be read, or when its end
-    /// doesn't advance past its start (nothing to contribute to the night).
-    private func segmentInfo(forLinked linkedId: UUID) -> LinkedSegmentInfo? {
+    /// One linked session's span. Nil when it can't be read, when `holder`
+    /// does not hold its beats, or when its end doesn't advance past its
+    /// start (nothing to contribute to the night).
+    private func segmentInfo(forLinked linkedId: UUID, heldBy holder: SessionLinks.Node) -> LinkedSegmentInfo? {
         do {
-            guard let linked = try retrieveCounted(linkedId) else { return nil }
+            guard let linked = try retrieveCounted(linkedId),
+                  !SessionLinks.isResumeParent(holder, of: SessionLinks.Node(linked)) else { return nil }
             let end = linked.endDate ?? linked.startDate
             guard end > linked.startDate else { return nil }
             return LinkedSegmentInfo(id: linked.id, startDate: linked.startDate, endDate: end)
@@ -952,18 +964,6 @@ extension ArchiveStore {
         UserDefaults.standard.set(times, forKey: deletionTimesKey)
         unsavedDeletionTimes.withLockUnchecked { unsaved in
             if unsaved[id] == change { unsaved.removeValue(forKey: id) }
-        }
-    }
-
-    /// Check if a session with a similar start time already exists
-    /// Uses a 1-hour window to detect duplicates during import
-    /// This allows multiple sessions per day while preventing true duplicates
-    func sessionExists(for date: Date) -> Bool {
-        state.archiveLock.lock()
-        defer { state.archiveLock.unlock() }
-        let oneHour = SessionArchive.Tuning.importDuplicateWindow
-        return state.index.contains { entry in
-            abs(entry.date.timeIntervalSince(date)) < oneHour
         }
     }
 }

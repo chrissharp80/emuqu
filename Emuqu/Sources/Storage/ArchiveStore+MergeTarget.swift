@@ -13,14 +13,16 @@ extension ArchiveStore {
     /// stands alone. Caller must hold state.archiveLock.
     ///
     /// A candidate has the same session type, is neither linked to `session`
-    /// nor absorbed into another entry's linked series, and for an overnight
+    /// nor absorbed into another entry's beats (`SessionLinks.absorbedIds`:
+    /// a resumed night's final session is not, as its parent only refers
+    /// back to it), and for an overnight
     /// shares the night's anchor. A copy of the same recording (overlapping
     /// spans) wins; otherwise, when `sameSleepGap` is given, the nearest
     /// segment of the same sleep within that gap. Recordings further apart
     /// than the gap are separate sleeps and never merge.
     func mergeTarget(for session: HRVSession, sameSleepGap: TimeInterval?) -> SessionArchiveEntry? {
         let sessionSpan = SessionMerger.span(of: session)
-        let absorbed = Set(state.index.flatMap { $0.linkedSessionIds ?? [] })
+        let absorbed = SessionLinks.absorbedIds(in: state.index)
         let related = state.index
             .filter { !absorbed.contains($0.sessionId) && isMergeCandidate($0, for: session) }
             .map { entry in
@@ -62,6 +64,14 @@ extension ArchiveStore {
         return state.mergeSettings.gap()
     }
 
+    /// `mergeTarget`, taking the lock: the rule Recover asks for a
+    /// recording downloaded off the strap.
+    func lockedMergeTarget(for session: HRVSession, sameSleepGap: TimeInterval?) -> SessionArchiveEntry? {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        return mergeTarget(for: session, sameSleepGap: sameSleepGap)
+    }
+
     /// Whether the archive already holds a copy of `session`'s recording:
     /// same type, overlapping spans. Takes the lock.
     func holdsCopy(of session: HRVSession) -> Bool {
@@ -75,5 +85,19 @@ extension ArchiveStore {
     static func isCopy(_ entry: SessionArchiveEntry, of session: HRVSession) -> Bool {
         entry.sessionType == session.sessionType
             && SessionMerger.overlaps(SessionMerger.span(of: entry), SessionMerger.span(of: session))
+    }
+
+    /// The fold itself, re-archived (a re-archive, which won't recurse). A
+    /// night whose beats it changed is then analysed again from them
+    /// (`NightBeatsEdit.requestReanalysis`).
+    func archiveFold(of session: HRVSession, into existing: HRVSession) throws -> SessionArchiveEntry {
+        var merged = existing
+        let merge = SessionMerger.mergeSessionDataChangingBeats(from: session, into: &merged)
+        if merge.changed { merged.modifiedAt = CloudKitSessionFreshness.stamp() }
+        // The fold is uploaded again (`SessionArchive.archive`): asked for before the write.
+        state.reuploadRequests.record([existing.id])
+        let entry = try _archive(merged)
+        if merge.beatsChanged { NightBeatsEdit.requestReanalysis(of: merged, detail: "a same-night recording was folded in") }
+        return entry
     }
 }

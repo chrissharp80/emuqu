@@ -47,7 +47,10 @@ HUBS = "RRCollector|WorkoutRecorder|HealthKitManager|PolarManager"
 # line counts as well as the usual one property per line.
 # `[RRCollector]`, `Optional<RRCollector>` and `Weak<RRCollector>` hold the hub too.
 HUB_PROPERTY = re.compile(rf"\b(?:let|var)\s+\w+\s*:\s*(?:\[\s*|\w+<\s*)*(?:{HUBS})\b(?!\.)")
-LOCATOR = re.compile(r"\bAppDependencies\.current\b")
+# The container read by its implicit member too: `XServices(.current)` and
+# `deps: AppDependencies = .current` read the same global as
+# `AppDependencies.current` (check_explicit_dependencies.sh treats them alike).
+LOCATOR = re.compile(r"\bAppDependencies\.current\b|\(\s*\.current\s*\)|:\s*AppDependencies\s*=\s*\.current\b")
 FORWARDER = re.compile(r"func (\w+)[^{]*\{\s*(?:return\s+)?(?:try\s+)?(?:await\s+)?(?:self\.)?\w+\??\.(\w+)\(")
 
 

@@ -16,13 +16,17 @@ enum SessionRecoveryMath {
     /// because the mutual link alone reads the same both ways: a paused night
     /// that was resumed has its segment as its first link. A night that only
     /// lists same-night siblings it superseded is not linked back by them.
+    /// The rule is `SessionLinks.isResumeParent`, the parent stopping at its
+    /// pause.
     nonisolated static func isResumedSegment(
         segmentId: UUID, segmentLinks: [UUID]?, segmentEnd: Date,
         parentId: UUID, parentLinks: [UUID]?, parentPausedAt: Date?
     ) -> Bool {
-        guard segmentLinks?.first == parentId, parentLinks?.contains(segmentId) == true,
-              let parentPausedAt else { return false }
-        return segmentEnd > parentPausedAt
+        guard let parentPausedAt else { return false }
+        return SessionLinks.isResumeParent(
+            SessionLinks.Node(id: parentId, links: parentLinks, end: parentPausedAt),
+            of: SessionLinks.Node(id: segmentId, links: segmentLinks, end: segmentEnd)
+        )
     }
 
     nonisolated static func makeRecoveredWorkoutReview(from session: HRVSession) -> MorningCoordination.RecoveredWorkoutReview {
@@ -71,12 +75,23 @@ enum SessionRecoveryMath {
     }
 
     /// The last-resort tie-break, reached only when both recordings are too
-    /// short for `DataSourceSelector` to judge: keep whichever holds more
-    /// beats. Its own function because it is unreachable through
-    /// `mergedWorkoutPoints` for any input the selector CAN judge, and an
-    /// untestable branch that decides which half of a workout survives is not
-    /// worth having.
+    /// short for `DataSourceSelector` to judge: when the two span the same
+    /// stretch, keep whichever holds more beats; when either runs past the
+    /// other (`DataSourceSelector.streamReachesPastRecording`), keep both,
+    /// the strap's beats where it recorded and the archived ones outside its
+    /// span. A count cannot tell which half of a recording is missing. Its
+    /// own function because it is unreachable through `mergedWorkoutPoints`
+    /// for any input the selector CAN judge, and an untestable branch that
+    /// decides which half of a workout survives is not worth having.
     nonisolated static func longerRecording(existing: [RRPoint], strapRR: [RRPoint]) -> [RRPoint] {
+        guard !DataSourceSelector.streamReachesPastRecording(internal: strapRR, streaming: existing),
+              !DataSourceSelector.streamReachesPastRecording(internal: existing, streaming: strapRR) else {
+            return DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal: strapRR, streaming: existing)
+        }
+        return Self.moreBeats(existing: existing, strapRR: strapRR)
+    }
+
+    nonisolated private static func moreBeats(existing: [RRPoint], strapRR: [RRPoint]) -> [RRPoint] {
         strapRR.count > existing.count ? strapRR : existing
     }
 

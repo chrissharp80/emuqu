@@ -122,12 +122,14 @@ extension MorningProcessingService {
 
     /// Backup raw RR data before any processing, off the main thread.
     /// Overnight sessions can serialize to 1.5MB+ JSON; doing this inline
-    /// on the caller's actor caused morning-processing stalls.
-    func backupRawDataAsync(points: [RRPoint], sessionId: UUID, deviceId: String?, dataSource: String) async {
+    /// on the caller's actor caused morning-processing stalls. Dated by
+    /// `startDate`, the start the points' `t_ms` count from: a resumed
+    /// segment's points arrive here on its parent's clock.
+    func backupRawDataAsync(points: [RRPoint], sessionId: UUID, startDate: Date, deviceId: String?, dataSource: String) async {
         let backup = rawBackup
         await Task.detached(priority: .utility) {
             do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: deviceId)
+                try backup.backup(points: points, sessionId: sessionId, deviceId: deviceId, captureDate: startDate)
             } catch {
                 debugLog("[MorningProcessingService] Warning: Failed to backup \(dataSource) RR data: \(error)")
             }
@@ -214,10 +216,10 @@ extension MorningProcessingService {
     /// Every archived overnight recording that shares this night's anchor,
     /// alongside the base session's own points.
     ///
-    /// A session linked from another one already has its beats inside that
-    /// one's series (a resumed recording carries the paused one's), so it is
-    /// skipped: merging it again would put the same beats in twice, out of
-    /// time order.
+    /// A session whose beats another one holds (`SessionLinks.absorbedIds`:
+    /// a resumed recording carries the paused one's) is skipped: merging it
+    /// again would put the same beats in twice, out of time order. A resumed
+    /// night's final session holds them all and is read like any other.
     ///
     /// Each same-night recording is read whole (decrypted and decoded, every
     /// beat) off the main actor.
@@ -225,8 +227,9 @@ extension MorningProcessingService {
         baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule, mergeGap: TimeInterval
     ) async -> (segments: [NightSegment], links: [UUID]) {
         let sameNightEntries = sameNightEntries(of: baseSession, sleepSchedule: sleepSchedule)
-        let alreadyLinked = Set(baseSession.linkedSessionIds ?? [])
-            .union(sameNightEntries.flatMap { $0.linkedSessionIds ?? [] })
+        let alreadyLinked = SessionLinks.absorbedIds(
+            in: sameNightEntries.map(SessionLinks.Node.init) + [SessionLinks.Node(baseSession)]
+        )
         let base = NightSegment(startDate: baseSession.startDate, points: points)
         let toRead = sameNightEntries.filter { !alreadyLinked.contains($0.sessionId) }
         let archive = archive
@@ -249,17 +252,29 @@ extension MorningProcessingService {
     }
 
     /// The archived recording behind `entry` as a segment, or nil when it has
-    /// no beats or is very short (< 30 min) — likely a quick test, demo, or
-    /// accidental recording that shouldn't contaminate overnight data.
+    /// no beats or is very short (`isMergeableLength`) — likely a quick
+    /// test, demo, or accidental recording that shouldn't contaminate
+    /// overnight data.
     nonisolated private static func mergeableSegment(_ entry: SessionArchiveEntry, in archive: SessionArchive) -> NightSegment? {
         guard let archived = archive.retrieveOrLog(entry.sessionId),
               let archivedSeries = archived.rrSeries, !archivedSeries.points.isEmpty
         else { return nil }
-        guard archivedSeries.durationMinutes >= 30 else {
-            debugLog("[MorningProcessing] Skipping short session \(entry.sessionId) (\(String(format: "%.1f", archivedSeries.durationMinutes)) min) from same-night merge")
+        guard isMergeableLength(archivedSeries.points) else {
+            debugLog("[MorningProcessing] Skipping short session \(entry.sessionId) from same-night merge")
             return nil
         }
         return NightSegment(startDate: archived.startDate, points: archivedSeries.points, sessionId: entry.sessionId)
+    }
+
+    /// Shortest recording worth merging into a night.
+    nonisolated static let minimumMergeableMinutes: Int64 = 30
+
+    /// Whether a recording lasted `minimumMergeableMinutes` of real time
+    /// (`BeatTimeline.spanMs`). The beat-sum length leaves out every
+    /// interval a dropout lost or the sensor rejected, so a streamed or
+    /// Verity Sense segment that ran for half an hour could measure less.
+    nonisolated static func isMergeableLength(_ points: [RRPoint]) -> Bool {
+        BeatTimeline.spanMs(points) >= minimumMergeableMinutes * 60_000
     }
 
     /// Archived overnight entries, other than the base session, that share
@@ -378,7 +393,7 @@ extension MorningProcessingService {
         let series = merged.series
         let sleepResult = phase.sleepResult
         // Clamp sleep boundaries
-        let clamped = SleepBoundaryResolver.clamp(sleepStartMs: sleepResult.sleepStartMs, sleepEndMs: sleepResult.wakeTimeMs, recordingDurationMs: series.points.last?.endMs ?? 0)
+        let clamped = SleepBoundaryResolver.clamp(sleepStartMs: sleepResult.sleepStartMs, sleepEndMs: sleepResult.wakeTimeMs, recordingDurationMs: BeatTimeline.endMs(series.points))
         let summary = Self.dataSourceSummary(request, baseSession: baseSession, totalBeats: request.points.count)
         var finalSession = HRVSession(
             id: analyzingSession.id, startDate: analyzingSession.startDate,
@@ -510,14 +525,10 @@ extension MorningProcessingService {
         for session: HRVSession, sessionEnd: Date
     ) async -> SleepData? {
         do {
-            let fetchedSleep = try await healthKit.fetchSleepData(
-                for: session.startDate,
-                recordingEnd: sessionEnd,
-                rrPoints: session.rrSeries?.points
+            return try await healthKit.fetchNightSleep(
+                for: session.startDate, recordingEnd: sessionEnd,
+                rrPoints: session.rrSeries?.points, nightAnchor: session.startDate
             )
-            // Credit the day-before's qualifying nap toward 24h sleep duration.
-            let napMinutes = await healthKit.fetchDaytimeNapMinutes(nightAnchoredAt: session.startDate)
-            return napMinutes > 0 ? fetchedSleep.withNapSleepMinutes(napMinutes) : fetchedSleep
         } catch {
             debugLog("[MorningProcessingService] Recovery score sleep fetch failed: \(error)")
             return nil

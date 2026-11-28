@@ -288,7 +288,7 @@ extension RecordPanels {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.zen(AppTheme.primary))
-        .disabled(deviceStatus.connectionState != .connected)
+        .disabled(deviceStatus.connectionState != .connected || sessionState.blocksStart())
         .accessibilityLabel(String(localized: "Resume Recording", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Continue the paused HRV recording session", bundle: LanguageManager.appBundle))
     }
@@ -631,15 +631,20 @@ extension RecordPanels {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.zen(AppTheme.primary))
-        .disabled(deviceStatus.connectionState != .connected)
+        .disabled(deviceStatus.connectionState != .connected || sessionState.blocksStart())
         .accessibilityLabel(String(localized: "Continue Recording", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Pick up the previous session and add more data", bundle: LanguageManager.appBundle))
     }
 
+    /// Also while an earlier session's work holds the recorder (a stop's
+    /// analysis, the review's acceptance, a discard, a crash recovery,
+    /// `SessionState.blocksStart`): a start then is refused, and the spinner
+    /// shows that work is still running.
     var isActionDisabled: Bool {
+        guard !sessionState.blocksStart() else { return true }
         switch deviceStatus.recordingState {
-        case .starting, .stopping, .fetching: true
-        case .idle, .recording: false
+        case .starting, .stopping, .fetching: return true
+        case .idle, .recording: return false
         }
     }
 
@@ -668,7 +673,11 @@ extension RecordPanels {
         sessionState.lastError = error
     }
 
+    /// The Recover card's Discard. Asked again at the tap: a session may
+    /// have taken the strap's recording since the card was drawn
+    /// (`RRCollector.offersStrapRecovery`).
     func discardAndStartFresh() {
+        guard collector.offersStrapRecovery else { return }
         Task {
             do {
                 try await collector.polarManager.recording.discardStoredExercises()

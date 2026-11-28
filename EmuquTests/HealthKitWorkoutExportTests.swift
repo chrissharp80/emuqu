@@ -65,6 +65,28 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         XCTAssertFalse(HealthKitWorkoutExport.writesHeartRate(with: settings))
     }
 
+    /// One rule for every Apple Health writer: nothing new is written while
+    /// "Export to Apple Health" is off, whatever a reading's own switch says,
+    /// and workouts, which have no switch of their own, follow it alone.
+    func testEveryHealthWriteFollowsTheExportSwitch() {
+        let readings: [KeyPath<UserSettings, Bool>] = [
+            \.exportSDNN, \.exportHeartRate, \.exportRestingHeartRate, \.exportSleepData
+        ]
+        let switches = [(false, false), (false, true), (true, false), (true, true)]
+        for (exportOn, readingOn) in switches {
+            var settings = UserSettings()
+            settings.enableHealthKitExport = exportOn
+            settings.exportSDNN = readingOn
+            settings.exportHeartRate = readingOn
+            settings.exportRestingHeartRate = readingOn
+            settings.exportSleepData = readingOn
+            XCTAssertEqual(settings.exportsToAppleHealth, exportOn)
+            let expected = Array(repeating: exportOn && readingOn, count: readings.count)
+            XCTAssertEqual(readings.map { settings.exportsReading($0) }, expected, "export=\(exportOn) own=\(readingOn)")
+        }
+        XCTAssertFalse(UserSettings().exportsToAppleHealth, "Export to Apple Health is off until the user turns it on")
+    }
+
     // MARK: - Data that came from Apple Health
 
     /// A workout rebuilt from Apple Health's passive samples carries Health's
@@ -240,7 +262,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         XCTAssertTrue(
             HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75).isEmpty
         )
-        XCTAssertEqual(HealthKitWorkoutExport.netMETs(0.5), 0)
+        XCTAssertEqual(WorkoutEnergy.netMETs(0.5), 0)
     }
 
     func testNegativeMETsAreRejected() {

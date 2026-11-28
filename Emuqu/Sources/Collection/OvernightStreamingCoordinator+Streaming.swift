@@ -103,7 +103,8 @@ extension OvernightStreamingCoordinator {
     }
 
     /// A night or a resumed segment may start only once no earlier ending
-    /// owns the recorder: the ending's download, analysis and publish would
+    /// owns the recorder, nor any other work that resumes into the session
+    /// state (`SessionState.refuseStartWhileClaimed`): the ending's download, analysis and publish would
     /// otherwise overwrite the new night's session and phase. While one is in
     /// progress the start throws `alreadyRecording` (the strap's recording is
     /// still being taken off it) and the claim stays held. A claim left
@@ -111,6 +112,7 @@ extension OvernightStreamingCoordinator {
     /// `StreamingLifecycle.staleEndingClaimAge`, is dropped and logged.
     @MainActor
     func refuseWhileEndingInProgress() throws {
+        try sessionState.refuseStartWhileClaimed(starting: "a night")
         switch streamingLifecycle.clearEndingForNewNight() {
         case .clear:
             return
@@ -186,13 +188,14 @@ extension OvernightStreamingCoordinator {
             points: buffer,
             sessionId: session.id,
             deviceId: deviceId,
+            captureDate: session.startDate,
             force: force
         )
         guard didBackup else { return }
         let sessionId = session.id
         let cloudSyncManager = self.cloudSyncManager
         Task(priority: .utility) {
-            await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, deviceId: deviceId)
+            await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, recordingStart: session.startDate, deviceId: deviceId)
         }
     }
 
@@ -229,14 +232,7 @@ extension OvernightStreamingCoordinator {
             return nil
         }
         debugLog("[RRCollector] Offset child timestamps by \(offsetMs / 60000) minutes")
-        return data.points.map { point in
-            RRPoint(
-                t_ms: point.t_ms + offsetMs,
-                rr_ms: point.rr_ms,
-                wallClockMs: point.wallClockMs.map { $0 + offsetMs },
-                hr: point.hr
-            )
-        }
+        return data.points.map { $0.shifted(by: offsetMs) }
     }
 
     /// The child's identity and metadata, re-anchored to the parent's start.
@@ -305,7 +301,7 @@ extension OvernightStreamingCoordinator {
         defer { bgTask.end() }
         await endDeviceRecordingArming()
         let (baseSession, streamingPoints, reconnectCount) = await stopStreamingInfrastructure()
-        await backupStreamingData(streamingPoints, sessionId: baseSession.id)
+        await backupStreamingData(streamingPoints, sessionId: baseSession.id, startDate: baseSession.startDate)
         let isVeritySense = morning.isVeritySenseDevice(baseSession)
         let finalSession = await scoreStoppedNight(
             baseSession: baseSession, streamingPoints: streamingPoints,
@@ -614,21 +610,20 @@ extension OvernightStreamingCoordinator {
         sessionState.lastError = RRCollector.CollectorError.strapStillHoldsNight(missingMinutes: gapMinutes)
     }
 
-    /// Minutes of wall clock the streamed beats do not account for.
+    /// Minutes of real time the streamed beats do not account for.
     ///
     /// `wallClockMs` exists on a streamed beat for exactly this ("for gap
     /// detection" — `RRPoint`): `t_ms` accumulates RR intervals, so it only
     /// advances while beats are arriving, while `wallClockMs` keeps running
-    /// through a dropout. The difference between the two spans is the time the
-    /// stream was not receiving. Zero for anything not streamed, which has no
-    /// wall clock to compare against.
+    /// through a dropout. The time the stream was not receiving is read on
+    /// the real clock (`BeatTimeline.unreceivedMs`), which leaves out the
+    /// intervals a Verity Sense received and rejected: those are in its wall
+    /// clock and not in its beat clock too, but no copy on the strap holds
+    /// more of them. Zero for anything not streamed, which has no wall clock
+    /// to compare against.
     static func streamGapMinutes(_ points: [RRPoint]) -> Int {
-        guard let first = points.first, let last = points.last,
-              let firstWall = first.wallClockMs, let lastWall = last.wallClockMs
-        else { return 0 }
-        let wallSpanMs = lastWall - firstWall
-        let beatSpanMs = last.t_ms - first.t_ms
-        return max(0, Int((wallSpanMs - beatSpanMs) / 60_000))
+        guard points.first?.wallClockMs != nil, points.last?.wallClockMs != nil else { return 0 }
+        return Int(BeatTimeline.unreceivedMs(points) / 60_000)
     }
 
     /// Below this a gap is ordinary settling at either end of the night, not a
@@ -673,14 +668,15 @@ extension OvernightStreamingCoordinator {
 
     /// Backs up streaming data for crash safety. Runs off the main thread so
     /// the JSON encode + SHA256 + file write doesn't stall the UI for large
-    /// sessions (overnight = ~1.5MB JSON).
-    func backupStreamingData(_ points: [RRPoint], sessionId: UUID) async {
+    /// sessions (overnight = ~1.5MB JSON). Dated by `startDate`, the start
+    /// the points' `t_ms` count from.
+    func backupStreamingData(_ points: [RRPoint], sessionId: UUID, startDate: Date) async {
         guard !points.isEmpty else { return }
         let backup = rawBackup
         let did = strapLinkControl.state.connectedDeviceId
         await Task.detached(priority: .utility) {
             do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
+                try backup.backup(points: points, sessionId: sessionId, deviceId: did, captureDate: startDate)
                 debugLog("[RRCollector] Streaming data backed up (\(points.count) beats)")
             } catch {
                 debugLog("[RRCollector] Failed to backup streaming data: \(error)", level: .error)

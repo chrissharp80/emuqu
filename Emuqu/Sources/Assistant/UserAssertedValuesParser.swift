@@ -183,17 +183,49 @@ enum UserCorrectionDetector {
         sentence.range(of: otherTimeMarker, options: .regularExpression) != nil
     }
 
-    /// The text with every sentence that ends in a question mark, or that is
-    /// about another time or a plan (`describesAnotherTime`), removed.
+    /// The text with every sentence about another time or a plan
+    /// (`describesAnotherTime`) removed, and every question reduced to the
+    /// statements before it (`statementsBeforeTheQuestion`).
+    ///
+    /// A sentence is read across soft line breaks, and the structure around
+    /// it counts as much as its own words (`MetricsVerifier.enclosingStructure`):
+    /// "Yesterday:" over "- rhr 52" places the 52 yesterday.
     private static func statementsOnly(_ text: String) -> String {
+        let joined = MetricsVerifier.softWrapped(text as NSString) as String
         var kept: [String] = []
-        text.enumerateSubstrings(in: text.startIndex..., options: .bySentences) { sentence, _, _, _ in
+        joined.enumerateSubstrings(in: joined.startIndex..., options: .bySentences) { sentence, range, _, _ in
             guard let sentence else { return }
             let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.hasSuffix("?"), !trimmed.hasSuffix("？"), !describesAnotherTime(trimmed) { kept.append(sentence) }
+            let isQuestion = trimmed.hasSuffix("?") || trimmed.hasSuffix("？")
+            let placedElsewhere = isPlacedAtAnotherTime(NSRange(range, in: joined), in: joined)
+            if !isQuestion, !placedElsewhere, !describesAnotherTime(trimmed) { kept.append(sentence) }
+            if isQuestion { kept.append(statementsBeforeTheQuestion(trimmed)) }
         }
         return kept.joined(separator: " ")
     }
+
+    /// Whether the heading, lead-in or list item over the sentence at
+    /// `range` names another time or a plan.
+    private static func isPlacedAtAnotherTime(_ range: NSRange, in text: String) -> Bool {
+        let ns = text as NSString
+        return MetricsVerifier.enclosingStructure(of: range, in: ns).scopes.contains { describesAnotherTime(ns.substring(with: $0)) }
+    }
+
+    /// A question quotes no value ("what was my hr at 5 am?"), but a
+    /// statement can come first in the same sentence: "my hrv is 38, why
+    /// does the app say 45?" states 38. The clauses before the last one are
+    /// kept unless they open with a question word; the last clause, the
+    /// question itself, never is.
+    private static func statementsBeforeTheQuestion(_ question: String) -> String {
+        let clauses = question.components(separatedBy: CharacterSet(charactersIn: ",;"))
+        return clauses.dropLast()
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.range(of: questionOpener, options: [.regularExpression, .caseInsensitive]) == nil && !describesAnotherTime($0) }
+            .joined(separator: ". ")
+    }
+
+    private static let questionOpener =
+        #"^(?:what|why|how|when|where|which|who|is|are|was|were|do|does|did|can|could|should|would|will|am)\b"#
 
     /// The value of the last "metric [connector] number" in `text`, plus the
     /// text with every such match blanked out. A number that is a clock time
@@ -248,11 +280,19 @@ enum UserCorrectionDetector {
         let escaped = NSRegularExpression.escapedPattern(for: metric)
         let notAfterNumber = unitLikeMetrics.contains(metric) ? "(?<![\\d.])(?<![\\d.]\\s)(?<![\\d.]\\s\\s)" : ""
         let digits = metric == "pace" ? "(\\d{1,2}:[0-5]\\d|-?\\d+(?:\\.\\d+)?)" : "(-?\\d+(?:\\.\\d+)?)"
-        let number = digits + "(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))"
+        let number = digits + "(?!\\.?\\d)(?!:\\d)(?!\\s*(?:(?:am|pm|o'clock)\\b|a\\.m\\.|p\\.m\\.))" + (durationMetrics.contains(metric) ? "" : notADuration)
         let connector = "(?:is|of|=|:|was|being)" + (connectorRequired ? "" : "?")
         let unit = unitBearingMetrics.contains(metric) ? "(?:" + unitSuffix + ")?" : ""
         return "(?i)" + notAfterNumber + "\\b\(escaped)\\b\\s*" + connector + "\\s*" + number + unit
     }
+
+    /// Metrics whose value is itself a length of time ("sleep was 7.5").
+    private static let durationMetrics: Set<String> = ["sleep", "pace"]
+
+    /// A number followed by a time unit is a duration, not the metric's
+    /// value: "my recovery was 3 days", "hr 150 for 20 minutes" keeps 150.
+    private static let notADuration =
+        #"(?!\s*(?:days?|hours?|hrs?|h|weeks?|wks?|nights?|minutes?|mins?|seconds?|secs?|months?|years?)\b)"#
 
     /// A captured number as a Double; "m:ss" becomes minutes (5:30 → 5.5).
     private static func parseValue(_ raw: String) -> Double? {

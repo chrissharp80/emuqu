@@ -69,7 +69,10 @@ extension RawRRBackup {
     /// archived would be purged. The count is left unknown when the points
     /// cannot be read, so the next append writes every point again rather
     /// than appending at a guessed offset (`startAppendFormat` keeps or sets
-    /// aside what the file held).
+    /// aside what the file held). Counted over every part of the backup, the
+    /// `.corrupted_*` files set aside included (`readAllPointLines`): the live
+    /// file alone listed a set-aside night as a fragment, and the scan
+    /// discards fragments.
     private func recoveredEntry(fromHeaderNamed name: String) -> BackupIndex? {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -78,7 +81,7 @@ extension RawRRBackup {
               let header = attempt("RawRRBackup.decodeHeader", { try decoder.decode(BackupHeader.self, from: data) })
         else { return nil }
         let count = attempt("RawRRBackup.countRecovered") {
-            try readPointLines(at: pointsURL(for: header.id), sessionId: header.id, decoder: decoder).count
+            try readAllPointLines(sessionId: header.id, decoder: decoder).count
         }
         return BackupIndex(
             id: header.id, captureDate: header.captureDate, fileName: nil, beatCount: count ?? 0,

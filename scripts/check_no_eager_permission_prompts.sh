@@ -129,9 +129,10 @@ def builder_functions(lines, properties):
 
 
 def called(text, functions):
-    """The first of `functions` that `text` calls (`name(` or `self.name(`), if any."""
+    """The first of `functions` that `text` calls (`name(`, `self.name(`, or
+    through a type: `Self.name(`, `Owner.name(`), if any."""
     for name in sorted(functions):
-        if re.search(rf"(?<![\w.])(?:self\s*\.\s*)?{name}\s*\(", text):
+        if re.search(rf"(?<![\w.])(?:(?:self|Self|[A-Z]\w*)\s*\.\s*)?{name}\s*\(", text):
             return name
     return None
 
@@ -168,6 +169,8 @@ def scan(file, problems):
     # members), "propinit" (the closure that initialises a stored property,
     # run when the owner is built), or "other".
     stack = []
+    # A declaration wrapped after its `=` continues on the next line.
+    continued = False
     for n, line in enumerate(lines, 1):
         header = bool(INIT_HEADER.match(line))
         if header:
@@ -175,7 +178,8 @@ def scan(file, problems):
         opened = depth
         member = not stack or stack[-1] == "type"
         in_propinit = "propinit" in stack
-        stored_line = member and STORED.match(line) and " lazy " not in f" {line} "
+        stored_line = continued or (member and STORED.match(line) and " lazy " not in f" {line} ")
+        continued = bool(stored_line) and line.split("//", 1)[0].rstrip().endswith("=")
         first = "type" if TYPE_HEADER.search(line) and not re.search(r"\bclass\s+(?:func|var|let)\b", line) \
             else "propinit" if stored_line and re.search(r"=\s*\{", line) else "other"
         for char in line:

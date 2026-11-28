@@ -93,7 +93,7 @@ enum WorkoutAlpha1Reanalyzer {
         while t <= sessionDuration {
             // Slice RR points whose t_ms falls within this window.
             let range = sweep.range(start: Int64((t - windowSec) * 1000), end: Int64(t * 1000))
-            if let reading = fit(Array(timeline[range]), atOffsetSec: t, cadenceSec: Int(cadenceSec), minBeatsForFit: minBeatsForFit) {
+            if let reading = fit(Array(timeline[range]), atOffsetSec: t, window: (windowSec, Int(cadenceSec)), minBeatsForFit: minBeatsForFit) {
                 readings.append(reading)
             }
             t += cadenceSec
@@ -118,12 +118,15 @@ enum WorkoutAlpha1Reanalyzer {
     /// The beats re-stamped onto the gap-corrected (wall-clock) timeline.
     private static func wallClockTimeline(_ rrPoints: [RRPoint]) -> [RRPoint] {
         zip(rrPoints, WorkoutAnalyzer.gapCorrectedOffsetsMs(rrPoints)).map { point, offsetMs in
-            RRPoint(t_ms: offsetMs, rr_ms: point.rr_ms, wallClockMs: point.wallClockMs, hr: point.hr)
+            point.retimed(t_ms: offsetMs, wallClockMs: point.wallClockMs)
         }
     }
 
     /// α1 for one window's worth of RR points, or nil when the window cannot
-    /// support a fit — too few beats, or too much of it artifact-corrected.
+    /// support a fit: too few beats, too short a span (the live gate,
+    /// `LiveDFAAnalyzer.isFullWindow`, so a slice whose first part fell in a
+    /// dropout is not fitted on the seconds left), or too much of it
+    /// artifact-corrected.
     ///
     /// The artifact guard must not be `cleaned.count >=
     /// minBeatsForFit`: the line above already proves that, because cleaning
@@ -136,9 +139,14 @@ enum WorkoutAlpha1Reanalyzer {
     /// count as corrected too: the window is cleaned on the gap-corrected
     /// timeline (`LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])`), as live.
     private static func fit(
-        _ windowPoints: [RRPoint], atOffsetSec t: Double, cadenceSec: Int, minBeatsForFit: Int
+        _ windowPoints: [RRPoint], atOffsetSec t: Double, window: (sec: TimeInterval, cadenceSec: Int), minBeatsForFit: Int
     ) -> Reading? {
-        guard windowPoints.count >= minBeatsForFit else { return nil }
+        guard let first = windowPoints.first, let last = windowPoints.last,
+              LiveDFAAnalyzer.isFullWindow(
+                  beats: windowPoints.count, spanSec: Double(last.endMs - first.t_ms) / 1_000,
+                  minBeats: minBeatsForFit, windowSec: window.sec
+              ) else { return nil }
+        let cadenceSec = window.cadenceSec
         let cleaned = LiveDFAAnalyzer.cleanRRForDFA(windowPoints)
         guard cleaned.correctedFraction <= LiveDFAAnalyzer.maxCorrectedFraction,
               let result = DFAAnalyzer.compute(cleaned.values) else {

@@ -36,7 +36,7 @@ hits="$(awk '
         if (line ~ /^\/\//) next
         sub(/\/\/.*$/, "", line)
         if (!api && line ~ /(^|[^A-Za-z0-9_])(attempt|debugLog|debugLogExternal)\(/ && line !~ /func (debugLog|debugLogExternal)\(/) print NR ": " $0
-        else if (!api && line ~ /DebugLogger\.shared|\.debugLogger([^A-Za-z0-9_]|$)/) print NR ": " $0
+        else if (!api && line ~ /(DebugLogger|Self)\.shared([^A-Za-z0-9_]|$)|\.debugLogger([^A-Za-z0-9_]|$)/) print NR ": " $0
     }
     api && /^}/ { api = 0 }
 ' "$file")"

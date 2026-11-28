@@ -53,7 +53,7 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: String(localized: "Excellent Sleep Quality", bundle: NarrativeLanguage.bundle),
                 confidence: .contributingFactor,
-                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.integer(Int(efficiency)))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.", bundle: NarrativeLanguage.bundle),
+                explanation: String(localized: "Last night's sleep data shows \(NarrativeLanguage.integer(Int(efficiency.rounded())))% sleep efficiency — minimal awakenings. Uninterrupted sleep gives your body its best chance to recover.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.75
             ))
         }
@@ -71,7 +71,7 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
                 causes.append(DetectedCause(
                     cause: String(localized: "Strong Deep Sleep", bundle: NarrativeLanguage.bundle),
                     confidence: .contributingFactor,
-                    explanation: String(localized: "\(deepMins) minutes of deep sleep (\(NarrativeLanguage.integer(Int(deepPercent)))%). Deep sleep is when HRV peaks and the nervous system fully recovers.", bundle: NarrativeLanguage.bundle),
+                    explanation: String(localized: "\(deepMins) minutes of deep sleep (\(NarrativeLanguage.integer(Int(deepPercent.rounded())))%). Deep sleep is when HRV peaks and the nervous system fully recovers.", bundle: NarrativeLanguage.bundle),
                     rankingWeight: 0.7
                 ))
             }
@@ -127,7 +127,7 @@ final class PositiveCauseDetector: CauseDetectionStrategy {
             causes.append(DetectedCause(
                 cause: String(localized: "Above Your Baseline", bundle: NarrativeLanguage.bundle),
                 confidence: .excellent,
-                explanation: String(localized: "Today's HRV (\(NarrativeLanguage.integer(Int(context.rmssd)))ms) is \(NarrativeLanguage.number(pctAbove))% above your average. Your body is well-recovered and ready for challenges.", bundle: NarrativeLanguage.bundle),
+                explanation: String(localized: "Today's HRV (\(NarrativeLanguage.integer(Int(context.rmssd.rounded())))ms) is \(NarrativeLanguage.number(pctAbove))% above your average. Your body is well-recovered and ready for challenges.", bundle: NarrativeLanguage.bundle),
                 rankingWeight: 0.8
             ))
         }

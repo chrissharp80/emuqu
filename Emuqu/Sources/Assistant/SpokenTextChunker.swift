@@ -31,6 +31,13 @@ final class SpokenTextChunker {
     /// sentences said anywhere else do not. `reset()` starts it afresh.
     var safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
 
+    /// The reply spoken since the last `reset()`, as the hallucination guard
+    /// passed it, one utterance per line. The guard reads it with each new
+    /// utterance (`MetricsVerifier.verifyReply(_:after:against:)`): an earlier
+    /// line ("Night before, November 25") can decide what a number in a later
+    /// one is about. `reset()` empties it.
+    var verifiedReply = ""
+
     /// Whether there's any buffered content waiting to be emitted.
     var hasPendingContent: Bool { !pendingBuffer.isEmpty }
 
@@ -55,11 +62,12 @@ final class SpokenTextChunker {
         return speakable.isEmpty ? nil : speakable
     }
 
-    /// Clear the buffer without emitting, and start `safetyCopy` afresh: a
-    /// reset marks the start of a new reply.
+    /// Clear the buffer without emitting, and start `safetyCopy` and
+    /// `verifiedReply` afresh: a reset marks the start of a new reply.
     func reset() {
         pendingBuffer = ""
         safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
+        verifiedReply = ""
     }
 
     /// Take back the last `count` characters appended, as far as they are
@@ -157,15 +165,20 @@ final class SpokenTextChunker {
     ///   • `*word*` emphasis around whole words: the asterisks hug the text
     ///     ("*really*"), which the spaced math above never does
     ///   • leading list markers ("- foo", "* foo", "+ foo")
-    ///   • numbered list markers ("1. ", "2) ")
+    ///   • numbered list markers ("1. ", "2) ") keep their number, spoken as
+    ///     "1, ": the chat shows the number, and a line that only looks like
+    ///     a list item ("5. Nice work" after "Reps done:") must not lose it
     ///   • ATX headers (#, ##, ###)
     ///   • markdown links: [label](url) → label
+    /// A list number as spoken: "3. Cool down" reads "3, Cool down".
+    private static let spokenListNumber = "$1, "
+
     private static let markdownPatterns: [(String, String)] = [
         (#"(?<=\p{L})\*(?=\p{L})"#, ""),
         (#"(?<=\w)_(?=\w)"#, ""),
         (#"(?<![\w*])\*(?=\S)([^*\n]+?)(?<=\S)\*(?![\w*])"#, "$1"),
         (#"(?m)^\s*[-*+]\s+"#, ""),
-        (#"(?m)^\s*\d+[.)]\s+"#, ""),
+        (#"(?m)^\s*(\d+)[.)]\s+"#, spokenListNumber),
         (#"(?m)^\s*#{1,6}\s+"#, ""),
         (#"\[([^\]]+)\]\([^)]+\)"#, "$1")
     ]

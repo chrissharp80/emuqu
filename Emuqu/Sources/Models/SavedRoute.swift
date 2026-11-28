@@ -37,6 +37,9 @@ struct SavedRoute: Codable, Identifiable, Equatable, Hashable {
     /// Number of climbs in the saved route — used by the live banner
     /// ("3 climbs ahead") without needing to re-decode the polyline.
     let climbCount: Int
+    /// The fixes of `encodedPolyline` that begin a new recorded segment
+    /// (`WorkoutMetadata.gpsSegmentStarts`). Nil for one segment.
+    var segmentStarts: [Int]?
 
     /// Climbs with road names resolved via reverse geocoding. Populated
     /// by the background enrichment task in `SavedRouteStore` after the
@@ -54,7 +57,7 @@ struct SavedRoute: Codable, Identifiable, Equatable, Hashable {
     /// climbs so the road-name annotations land in the live topology.
     func toRoute() -> Route {
         let track = GPXExporter.decode(polyline: encodedPolyline, startDate: createdAt)
-        let route = Route.fromGPX(name: name, track: track)
+        let route = Route.fromGPX(name: name, track: track, segmentStarts: segmentStarts ?? [])
         guard let enriched = enrichedClimbs, !enriched.isEmpty else { return route }
         // Replace the auto-detected climbs with the enriched ones; the
         // rest of the Route (trackpoints, cumulative distances, totals)
@@ -67,7 +70,8 @@ struct SavedRoute: Codable, Identifiable, Equatable, Hashable {
             climbs: enriched,
             totalDistanceMeters: route.totalDistanceMeters,
             totalAscentMeters: route.totalAscentMeters,
-            totalDescentMeters: route.totalDescentMeters
+            totalDescentMeters: route.totalDescentMeters,
+            segmentStarts: route.segmentStarts
         )
     }
 
@@ -79,7 +83,8 @@ struct SavedRoute: Codable, Identifiable, Equatable, Hashable {
         guard let polyline = meta.gpsPolyline else { return nil }
         let track = GPXExporter.decode(polyline: polyline, startDate: session.startDate)
         guard track.count >= 2 else { return nil }
-        let route = Route.fromGPX(name: name, track: track)
+        let starts = meta.gpsSegmentStarts(count: track.count)
+        let route = Route.fromGPX(name: name, track: track, segmentStarts: starts)
         return SavedRoute(
             id: UUID(),
             name: name,
@@ -89,7 +94,8 @@ struct SavedRoute: Codable, Identifiable, Equatable, Hashable {
             totalDistanceMeters: route.totalDistanceMeters,
             totalAscentMeters: route.totalAscentMeters,
             totalDescentMeters: route.totalDescentMeters,
-            climbCount: route.climbs.count
+            climbCount: route.climbs.count,
+            segmentStarts: route.segmentStarts
         )
     }
 }

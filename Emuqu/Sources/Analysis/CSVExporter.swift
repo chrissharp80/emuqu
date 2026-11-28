@@ -86,8 +86,8 @@ enum CSVExporter {
         add("End", session.endDate.map { iso.string(from: $0) })
         add("Duration (sec)", session.duration.map { "\(Int($0))" })
         add("Distance (\(units.distUnit))", metadata?.distanceMeters.map { String(format: "%.2f", units.metresToDist($0)) })
-        add("Elevation gain (\(units.elevUnit))", metadata?.elevationGainMeters.map { "\(Int(units.metresToElev($0)))" })
-        add("Mean HR (bpm)", session.meanHR.map { "\(Int($0))" })
+        add("Elevation gain (\(units.elevUnit))", metadata?.elevationGainMeters.map { "\(Int(units.metresToElev($0).rounded()))" })
+        add("Mean HR (bpm)", session.meanHR.map { "\(Int($0.rounded()))" })
         add("RMSSD (ms)", session.rmssd.map { String(format: "%.1f", $0) })
         add("TRIMP", metadata?.luciaTRIMP.map { String(format: "%.1f", $0) })
         add("HRSS", metadata?.hrTSS.map { String(format: "%.1f", $0) })
@@ -136,13 +136,14 @@ enum CSVExporter {
         // `duration` is nil exactly when `endDate` is, so an unfinished
         // session runs to now.
         let sessionEnd = session.endDate ?? Date()
-        let inWindow = track.filter { $0.timestamp <= sessionEnd && $0.timestamp >= session.startDate }
+        // No distance across a join between recorded segments (`TrackSegments`).
+        let along = TrackSegments.cumulativeMeters(track, starts: session.workoutMetadata?.gpsSegmentStarts(count: track.count))
+        let inWindow = zip(track, along).filter { $0.0.timestamp <= sessionEnd && $0.0.timestamp >= session.startDate }
+        let origin = inWindow.first?.1 ?? 0
         var out = "timestamp,seconds_from_start,latitude,longitude,altitude_\(altShort),cumulative_distance_\(distShort),hr_bpm,pace_\(paceUnit),cadence_spm,mets,power_w,dfa_alpha1\n"
-        var cumulative = 0.0
-        for (idx, fix) in inWindow.enumerated() {
-            if idx > 0 { cumulative += fix.distance(from: inWindow[idx - 1]) }
+        for (fix, meters) in inWindow {
             out += Self.trackpointRow(
-                fix: fix, cumulative: cumulative, session: session,
+                fix: fix, cumulative: meters - origin, session: session,
                 samples: samples, units: units, iso: iso
             ) + "\n"
         }

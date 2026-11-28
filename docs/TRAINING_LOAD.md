@@ -14,9 +14,10 @@ verifiable. Citations name the file and symbol; line numbers drift.
 ## The chain at a glance
 
 ```
-workout ─▶ per-workout load (effectiveLoad)
+workout ─▶ per-workout load (effectiveLoad), always on the TSS scale
               powerTSS ▸ [route estimate, strap dropout] ▸ hrTSS ▸ METs ▸ luciaTRIMP ▸ extrapolatedTRIMP
               └ else HR-only Banister TRIMP
+              every TRIMP-scale figure ─▶ HRSS: TRIMP ÷ TRIMP(1 h at LTHR) × 100
         ─▶ daily bucket  (sum effectiveLoad per local calendar day, rest days = 0)
         ─▶ Banister EWMA, seeded from 0
               live value:  180-day window
@@ -32,14 +33,15 @@ workout ─▶ per-workout load (effectiveLoad)
 
 ## Layer 0 — Per-workout load (the stress score of a single session)
 
-`WorkoutSummary.effectiveLoad(restingHR:maxHR:)` — `HealthDataTypes.swift`
+`WorkoutSummary.effectiveLoad(anchors:)` — `HealthDataTypes.swift`
 
 ```swift
-func effectiveLoad(restingHR: Double = 60, maxHR: Double? = nil) -> Double {
-    let base = (precomputedLoad ?? 0) > 0 ? (precomputedLoad ?? 0)    // best available source
-        : calculateTrimp(restingHR: restingHR, maxHR: maxHR)          // HR-only fallback
-    return cappedLoad(base)   // clamps at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000)
+func effectiveLoad(anchors: TrainingLoadSeries.HeartRateAnchors) -> Double {
+    cappedLoad(tssScaleLoad(anchors: anchors))   // clamps at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000)
 }
+// tssScaleLoad: the stored load (power TSS, hrTSS, METs as they are; a stored
+// TRIMP or route estimate through anchors.tss), else
+// anchors.tss(fromTRIMP: calculateTrimp(...)) for the HR-only fallback.
 ```
 
 The 1000 cap is an engineering backstop against corrupt recordings, not a
@@ -66,37 +68,71 @@ wins:
 | 6 | `routeHistory` | Route-history extrapolation | `extrapolatedTRIMP`, when nothing above exists |
 
 powerTSS, hrTSS and the MET load are calibrated so **100 = one hour at
-threshold**, which is what lets the ladder fall through those three into one
-series. The other two tiers are **not** on that scale: Banister TRIMP
-(`banister`) and the route-history extrapolation (`routeHistory`, also a TRIMP
-figure) are raw TRIMP on Banister's HRR-weighted scale, where an hour at
-threshold is not pinned to 100. A session resolved at one of those tiers is
-added to the same series uncalibrated.
+threshold**. Banister TRIMP is not: on its HRR-weighted scale an hour at
+threshold comes to about 150 to 160, so an Apple Health workout scored by TRIMP, or a
+strap session resolved at the `banister` or `routeHistory` tier, would count
+about 1.5 times as much per hour as the same effort scored by hrTSS, and ATL,
+ACWR, form and readiness would jump whenever a user's workouts changed source.
 
-Sharing a scale is a calibration convention, but in this case there is also
-evidence behind the substitution — more than the previous wording claimed and
-more than the first correction of it allowed. TSS is explicitly modelled on
-Banister's TRIMP, and studies comparing load metrics against changes in aerobic
-fitness put iTRIMP and TSS at the top of the range together (r ≈ .75–.81). They
-are measuring the same construct.
+So every TRIMP-scale figure is put on the TSS scale before it is summed, shown
+or compared, through the same rule the strap's own hrTSS uses (HRSS, Fellrnr /
+intervals.icu; TrainingPeaks' hrTSS has the same anchor):
 
-What the literature also says is that they are not equally good at it. The
-accuracy order is power-derived, then HR-derived, then time/MET estimates:
-power is a direct mechanical measurement, HR tracks effort well in steady state
-and less well outside it, and a MET bucket is an estimate of an estimate. That
-is exactly the order this ladder tries them in.
+```
+TSS-scale load = TRIMP ÷ TRIMP(60 min at LTHR) × 100
+```
 
-So: substitutable enough to form one series, with real evidence behind the
-construct, and noisier the further down the ladder a session was resolved. A
-load history assembled from mixed sources is approximate, and the approximation
-is quantified above rather than asserted either way.
+with the resolved anchors (`TrainingLoadSeries.HeartRateAnchors.tss`, calling
+`WorkoutAnalyzer.hrTSS(fromTRIMP:)`): the same resting HR and max HR the TRIMP
+was scored against, the user's LTHR (`effectiveLTHR`, else 0.88 × max HR) and
+Banister's coefficients for the biological-sex setting. The strap's stored
+hrTSS is exactly this rule applied at finalize, so a workout scores the same
+whether its load came from the strap or from Health. `.banister` and
+`.routeHistory` (`TrainingLoadSource.isTRIMPScale`) are converted wherever
+they are read: in `effectiveLoad` for ATL/CTL, and in
+`WorkoutMetadata.preferredTrainingLoad` (`TrainingLoadPrecedence.onTSSScale`)
+for every row, calendar total, AI fact and share line. Every tier is then
+labelled "LOAD".
+
+What stays approximate: a Health workout's TRIMP comes from its average HR,
+which reads lower than the strap's beat-by-beat integration of the same
+session (the exponential is convex), and a legacy `luciaTRIMP` stored as
+Edwards' zone TRIMP (finalized without a resting HR) is converted as if it
+were Banister's. The accuracy order is power-derived, then HR-derived, then
+time/MET estimates, the order the ladder tries them in. Power TSS and hrTSS
+are also anchored to different thresholds (FTP, LTHR), so the conversion puts
+them on one scale but does not make an HR estimate as accurate as a power one.
+
+**Thresholds on the TSS scale.** A threshold set against load is in TSS
+units too. Where its source was Banister TRIMP, it is converted at the factor
+an hour at threshold gives at the default anchors (resting 60, max 180, LTHR
+0.88 × max): 100 TSS ≈ 152 TRIMP.
+
+| Threshold | Value | Source and conversion |
+|---|---|---|
+| `Readiness.ctlThreshold` | 2.1 TSS/day | the "meaningful fitness base" boundary below which the ACWR advice is not given, 3.2 on the TRIMP scale ÷ 1.52 |
+| `Readiness.capacityRatioCTLFloor` | 100/7 ≈ 14.3 TSS/day | the smallest CTL the readiness capacity ratio divides by: one hour at threshold a week. Readiness is continuous and non-decreasing in CTL for a given load; at the floor a same-day workout costs about 0.57 points per TSS, the rate of a strain model of 0.5 points per TSS of ATL plus the undamped load |
+| `Training.strainThreshold` | 1600 (unchanged) | Foster's moderate band is 2500 session-RPE units (RPE × min; Foster 1998) for monotony of about 1.5–2.5; at 420 AU per 100 TSS (an hour at threshold, RPE 7) that is near 600, but this app caps monotony at 10, so 600 would warn on a week of seven 20-TSS walks (strain 1400). 1600 is what the strap's TSS loads have been held to |
+| `interpretCTL` bands (Deep Dive PDF) | 20 / 40 / 70 / 100 | TrainingPeaks / Coggan PMC ranges for CTL in TSS/day |
+| `acwrFullConfidenceCTL` 50, `modelTrustDivisor` 40, `freshnessGainMultiplier` 1.5 | unchanged | no TRIMP-scale derivation; applied to the strap's hrTSS since hrTSS shipped, so they already act on TSS |
+
+Ratios (ACWR bands, capacity-ratio breakpoints, Foster monotony) do not depend
+on the scale. TSB, ramp-rate and daily-load bands (TSB ±5/10/25, ramp 8
+TSS/day/week, daily load 50/150/300) were written as TSS conventions and now
+apply to every workout. The daily-load bands grade the Deep Dive report's
+"Yesterday's load" row, which shows the snapshot's prior-day load on the TSS
+scale (`TrainingContext.yesterdayLoad`) and is labelled load, not TRIMP. A
+figure is labelled TRIMP only where it is a Banister TRIMP as computed
+(`luciaTRIMP`: the workout PDF's Banister TRIMP row, the Holistic report's
+internal-load row, the CSV column).
 
 HealthKit-sourced workouts
-(from other apps) carry no `precomputedLoad` and fall to Layer 0b.
+(from other apps) carry no `precomputedLoad` and fall to Layer 0b, whose
+TRIMP is then put on the TSS scale as above.
 
 ### 0b. HR-only Banister TRIMP (the fallback)
 
-`WorkoutSummary.calculateTrimp(restingHR:maxHR:)` — `HealthDataTypes.swift`
+`WorkoutSummary.calculateTrimp(restingHR:maxHR:sex:)` — `HealthDataTypes.swift`
 
 ```
 HRR   = clamp( (avgHR − restingHR) / (maxHR − restingHR), 0, 1 )
@@ -143,10 +179,14 @@ for the live value and `TrainingMetricsCache.buildDailySeries`
    `TrainingHealthQueries+Queries.swift`): a HealthKit workout overlapping an
    archive workout by ≥60% of the shorter one is dropped, because the archive
    copy is the same session with strap precision. The rest are deduplicated
-   (`deduplicateWorkouts`): scanning starts up to 30 min apart, two workouts
-   merge when they are the same type starting within 5 min, or overlap by
-   ≥60% of the shorter. The richer copy is kept (precomputed load 8, average
-   HR 4, max HR 2, calories 1).
+   (`deduplicateWorkouts`): every workout starting before another ends is
+   compared with it, however far apart they started, and two workouts merge
+   when they are the same type starting within 5 min with intersecting spans,
+   or overlap by ≥60% of the shorter. Copies that each cover ≥60% of the
+   other keep the richer one (precomputed load 8, average HR 4, max HR 2,
+   calories 1); a copy nested in a longer one (a recording started an hour
+   into an imported GPX hike) gives way to the longer, which covers all of
+   the training.
 3. HealthKit workouts under 1 minute are dropped as ghosts (`summary(for:)`, `TrainingHealthQueries+Queries.swift`).
 4. `daily[startOfDay(workout.date)] += workout.effectiveLoad(restingHR, maxHR)`.
    Workouts before the window's first day or after its last are skipped.
@@ -236,8 +276,8 @@ calendar days' load (rest days 0, capped at 10), strain = the week's load ×
 monotony. The warning ("unusually similar day-to-day") is
 `FosterMonotonyWarning.isRaised`, one rule for both Load & Trajectory and the
 Training Load screen: monotony > `monotonyThreshold` (2.0) **and** strain >
-`strainThreshold` (1600: Foster's moderate band, 2500, ×0.64 for the TRIMP
-scale), both in `RecoveryScoreConstants.swift` `RecoveryScoreConstants.Training`.
+`strainThreshold` (1600, TSS-scale strain; see the thresholds table above for
+why Foster's 2500 session-RPE band does not convert directly), both in `RecoveryScoreConstants.swift` `RecoveryScoreConstants.Training`.
 
 ---
 

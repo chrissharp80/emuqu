@@ -238,7 +238,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     private func handleWatchStrapSample(_ message: [String: Any]) {
         guard !Self.isStaleStrapSample(message) else { return }
         latestWatchStrapHR = WatchPayloadBounds.plausibleHeartRate(message["hr"] as? Int)
-        let rrThisBatch = Self.rrMillis(in: message)
+        let rrThisBatch = WatchStrapBeat.beats(rrMillis: Self.rrMillis(in: message), sentAt: Self.sentAt(message))
         if !rrThisBatch.isEmpty {
             pendingWatchStrapRRLock.lock()
             pendingWatchStrapRR.append(contentsOf: rrThisBatch)
@@ -251,6 +251,13 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             pendingWatchStrapRRLock.unlock()
         }
         latestWatchStrapAt = Date()
+    }
+
+    /// When the Watch received the sample (`ts`), which is when its beats
+    /// end; when it arrived here for a sample without a usable one.
+    private static func sentAt(_ message: [String: Any]) -> TimeInterval {
+        guard let ts = message["ts"] as? Double, ts.isFinite, ts > 0 else { return Date().timeIntervalSince1970 }
+        return ts
     }
 
     /// WatchConnectivity round-trips numeric arrays as `[Double]` on some
@@ -337,16 +344,15 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     ]
 
     /// The four plain stop/pause/resume/acknowledge controls, which differ only
-    /// in which callback they invoke; a stop and a pause are handed the time
-    /// they were tapped (`tapDate`). A resume is applied when it arrives (see
-    /// `WorkoutRecorder.pauseFromWatch`). Nil for everything else, and for a
-    /// control whose callback is not wired yet.
+    /// in which callback they invoke; each is handed the time it was tapped
+    /// (`tapDate`). Nil for everything else, and
+    /// for a control whose callback is not wired yet.
     private func controlHandler(for type: MessageType, message: [String: Any]) -> (() -> WatchControlRefusal?)? {
         switch type {
         case .stopWorkoutFromWatch: return tappedHandler(onStopWorkoutFromWatch, tappedAt: Self.tapDate(message))
         case .pauseWorkoutFromWatch: return tappedHandler(onPauseWorkoutFromWatch, tappedAt: Self.tapDate(message))
-        case .resumeWorkoutFromWatch: return onResumeWorkoutFromWatch
-        case .acknowledgeFinishedFromWatch: return onAcknowledgeFinishedFromWatch
+        case .resumeWorkoutFromWatch: return tappedHandler(onResumeWorkoutFromWatch, tappedAt: Self.tapDate(message))
+        case .acknowledgeFinishedFromWatch: return tappedHandler(onAcknowledgeFinishedFromWatch, tappedAt: Self.tapDate(message))
         default: return nil
         }
     }

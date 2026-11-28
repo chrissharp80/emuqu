@@ -115,20 +115,32 @@ enum RecoveryScoreConstants {
         /// Exponential decay time constant (hours) for acute fatigue
         static let acuteFatigueTauHours: Double = 24.0
 
-        /// CTL threshold above which capacity-ratio model is used. Below
-        /// this, the "novel load" model kicks in — meaning any workout
-        /// looks like a lot relative to an effectively-zero fitness base.
+        /// The CTL below which there is no meaningful fitness base: the
+        /// acute:chronic ratio is then noise, and the training advice and the
+        /// analysis summary do not read it (`TrainingAdviceGate`). Readiness
+        /// itself has no switch here; its ratio divides by at least
+        /// `capacityRatioCTLFloor`.
         ///
-        /// 3.2 = 5.0 × the Banister-TRIMP
-        /// 0.64 scaling factor (see HealthWorkoutSummary.calculateTrimp).
-        /// The semantic boundary — "has a
-        /// meaningful fitness base vs doesn't" — has to move with the
-        /// TRIMP scale or every user's CTL silently drops below the
-        /// threshold and the app interprets normal training as novel
-        /// overload.
-        static let ctlThreshold: Double = 3.2
-        /// CTL < ctlThreshold path: strain coefficient for novel load
-        static let novelLoadStrainCoefficient: Double = 0.5
+        /// In TSS per day, the scale every load is on
+        /// (`HeartRateAnchors.tss`). The boundary, "has a meaningful fitness
+        /// base vs doesn't", was set at 3.2 on Banister's TRIMP scale; an
+        /// hour at threshold is 100 TSS and about 152 TRIMP at the default
+        /// anchors (resting 60, max 180, LTHR 0.88 x max), so the same base
+        /// is 3.2 / 1.52 = 2.1 TSS per day.
+        static let ctlThreshold: Double = 2.1
+
+        /// The smallest CTL the capacity ratio divides by, in TSS per day:
+        /// one hour at threshold a week, 100 TSS / 7 days. Below it the
+        /// ratio is noise around a near-zero denominator (one 30-TSS walk at
+        /// CTL 2.1 reads as a ratio of 6); against this floor the same walk
+        /// reads near 1, "matched". At this floor the capacity map's first
+        /// segment (15 points per 0.8 of ratio) takes about 0.57 points per
+        /// TSS of a same-day workout counted at 0.43 of its load (ATL's
+        /// 1 - e^(-1/7) plus the 0.30 acute share), the rate a pure strain
+        /// model of 0.5 points per TSS of ATL plus the undamped load gives,
+        /// so a beginner's first light workout reads as a strain model
+        /// would read it.
+        static let capacityRatioCTLFloor: Double = 100.0 / 7.0
 
         /// Capacity ratio breakpoints and corresponding readiness values
         static let capacityRatioBreak1: Double = 0.8
@@ -161,9 +173,9 @@ enum RecoveryScoreConstants {
 
         /// ACWR is mathematically noisy at low CTL.
         /// Gabbett's original work was on professional rugby (CTL 60-90);
-        /// at CTL=16 a single 40-TRIMP walk swings the ratio by ~0.2.
+        /// at CTL=16 a single 25-TSS walk swings the ratio by ~0.2.
         /// Penalising readiness off a noisy ratio is a false alarm.
-        /// Confidence ramps linearly: full penalty at CTL ≥ 50, zero
+        /// Confidence ramps linearly: full penalty at CTL ≥ 50 TSS/day, zero
         /// effective penalty at CTL = 0. Smooth ramp avoids a cliff.
         static let acwrFullConfidenceCTL: Double = 50.0
 
@@ -177,12 +189,12 @@ enum RecoveryScoreConstants {
         static let acwrRescueRecoveryThreshold: Double = 70.0
         static let acwrPenaltyAutonomicRescueCap: Double = 0.10
 
-        /// Freshness gain multiplier per ATL unit dissipated
+        /// Freshness gain multiplier per ATL unit (TSS per day) dissipated
         static let freshnessGainMultiplier: Double = 1.5
         /// Maximum freshness gain from ATL dissipation
         static let freshnessGainCap: Double = 20.0
 
-        /// Recovery modulation: model trust scales with CTL
+        /// Recovery modulation: model trust scales with CTL (TSS per day)
         static let modelTrustDivisor: Double = 40.0
         /// Maximum model trust fraction when model overestimates.
         /// At 0.55 the blend is ~45% recovery / 55% model, consistent with
@@ -191,9 +203,6 @@ enum RecoveryScoreConstants {
         static let modelTrustCeiling: Double = 0.55
         /// Recovery uplift fraction when model underestimates
         static let recoveryUpliftFraction: Double = 0.30
-
-        /// Floor for readiness and capacity model
-        static let readinessFloor: Double = 10.0
     }
 
     // MARK: - Readiness Labels & Messages
@@ -230,15 +239,22 @@ enum RecoveryScoreConstants {
     // MARK: - Training Score
 
     enum Training {
-        /// Foster's monotony threshold (mean/SD of 7-day daily TRIMP).
-        /// This is a RATIO — unchanged by uniform TRIMP scaling.
+        /// Foster's monotony threshold (mean/SD of 7-day daily load).
+        /// This is a RATIO, unchanged by the load's scale.
         static let monotonyThreshold: Double = 2.0
         /// Foster's strain (weekly load × monotony) above which a monotonous
         /// week raises the monotony warning (`FosterMonotonyWarning`).
         ///
-        /// Foster's moderate strain band, 2500, scaled by the Banister-TRIMP
-        /// 0.64 factor (see HealthWorkoutSummary.calculateTrimp) so it sits
-        /// at the same physiological load in this app's load units.
+        /// In TSS-scale strain. Foster's moderate band, 2500, is in
+        /// session-RPE units (CR-10 RPE x minutes; Foster 1998, Med Sci
+        /// Sports Exerc 30(7):1164-1168), for athletes whose monotony ran
+        /// about 1.5-2.5. An hour at threshold (RPE 7) is 420 AU and 100 TSS,
+        /// which would put the band near 600, but monotony here is capped at
+        /// 10, not 2.5, so a week of seven 20-TSS walks already reaches
+        /// strain 1400; at 600 it would raise the warning on a light,
+        /// unvaried week, the pattern the warning must not flag
+        /// (`FosterMonotonyWarningTests`). 1600 is the level the strap's
+        /// TSS-scale loads have been held to since hrTSS shipped, kept.
         static let strainThreshold: Double = 1600.0
         /// Monotony modifier values. Not read: no code scales a score by
         /// monotony (the monotony warning uses `monotonyThreshold` and

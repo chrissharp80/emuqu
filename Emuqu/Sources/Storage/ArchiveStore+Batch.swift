@@ -3,6 +3,18 @@ import Foundation
 // Writing many sessions at once (imports): one lock, one index save.
 
 extension ArchiveStore {
+    /// Check if a session with a similar start time already exists
+    /// Uses a 1-hour window to detect duplicates during import
+    /// This allows multiple sessions per day while preventing true duplicates
+    func sessionExists(for date: Date) -> Bool {
+        state.archiveLock.lock()
+        defer { state.archiveLock.unlock() }
+        let oneHour = SessionArchive.Tuning.importDuplicateWindow
+        return state.index.contains { entry in
+            abs(entry.date.timeIntervalSince(date)) < oneHour
+        }
+    }
+
     // MARK: - Batch archive
 
     /// The result of walking one batch: entries to append, and how many
@@ -127,11 +139,14 @@ extension ArchiveStore {
             }
             // Update with any new/better data from import: an edit made here,
             // stamped and queued to upload again (`postBatchChangeNotifications`).
-            if SessionMerger.mergeSessionData(from: session, into: &existingSession) {
+            let merge = SessionMerger.mergeSessionDataChangingBeats(from: session, into: &existingSession)
+            if merge.changed {
                 existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
+                state.reuploadRequests.record([existingSession.id])
                 try _archive(existingSession)
                 outcome.updatedIds.append(existingSession.id)
             }
+            if merge.beatsChanged { NightBeatsEdit.requestReanalysis(of: existingSession, detail: "an imported recording was folded in") }
             state.recordFold(of: session.id, into: entry.sessionId)
         } catch {
             debugLog("[Archive] archiveBatch: could not merge \(session.id.uuidString.prefix(8)) into \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
@@ -179,10 +194,6 @@ extension ArchiveStore {
         if !outcome.newEntries.isEmpty || !outcome.updatedIds.isEmpty {
             NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
         }
-        if !outcome.updatedIds.isEmpty {
-            NotificationCenter.default.post(
-                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": Set(outcome.updatedIds)]
-            )
-        }
+        if !outcome.updatedIds.isEmpty { requestReupload(of: Set(outcome.updatedIds)) }
     }
 }

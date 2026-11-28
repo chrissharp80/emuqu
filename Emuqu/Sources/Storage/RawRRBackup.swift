@@ -462,7 +462,7 @@ final class RawRRBackup: @unchecked Sendable {
     private func replaceableIndexEntry(_ sessionId: UUID, newCount: Int) throws -> BackupIndex? {
         try mergeIndexIfLaunchReadFailed()
         guard let existing = existingIndexEntry(sessionId) else { return nil }
-        if Self.beatCount(of: existing) > newCount {
+        if !FullerCopy.covers(newCount, Self.beatCount(of: existing)) {
             throw BackupError.wouldReplaceLargerBackup(existing: Self.beatCount(of: existing), new: newCount)
         }
         return existing
@@ -487,15 +487,21 @@ final class RawRRBackup: @unchecked Sendable {
     ///   - points: All RR points collected so far (not just new ones)
     ///   - sessionId: Session ID for cross-reference
     ///   - deviceId: Optional device identifier
+    ///   - captureDate: When the recording began, the moment the points'
+    ///     `t_ms` count from (`appendBackup`)
     ///   - force: Force backup even if time threshold not met (for reconnection events, lifecycle events)
     ///   - interval: Seconds between disk flushes (default 60)
     /// - Returns: True when every point and the session's index row are on
     ///   disk, false if skipped (too soon, no data) or a write threw
     @discardableResult
-    func incrementalBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, force: Bool = false, interval: TimeInterval = 60) -> Bool {
+    func incrementalBackup(
+        points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil, force: Bool = false, interval: TimeInterval = 60
+    ) -> Bool {
         guard !points.isEmpty else { return false }
         return appendQueue.sync {
-            incrementalBackupLocked(points: points, sessionId: sessionId, deviceId: deviceId, force: force, interval: interval)
+            incrementalBackupLocked(
+                points: points, sessionId: sessionId, deviceId: deviceId, captureDate: captureDate, force: force, interval: interval
+            )
         }
     }
 
@@ -504,13 +510,15 @@ final class RawRRBackup: @unchecked Sendable {
     /// that threw is retried by the next call that is due: the interval
     /// counts from the attempt (the row's `lastBackupTime` in memory), so a
     /// disk that keeps failing is tried once an interval, not on every tick.
-    private func incrementalBackupLocked(points: [RRPoint], sessionId: UUID, deviceId: String?, force: Bool, interval: TimeInterval) -> Bool {
+    private func incrementalBackupLocked(
+        points: [RRPoint], sessionId: UUID, deviceId: String?, captureDate: Date?, force: Bool, interval: TimeInterval
+    ) -> Bool {
         let existingEntry = indexLock.withLock { index.first { $0.id == sessionId } }
         guard force || Self.isDue(lastBackup: existingEntry?.lastBackupTime, interval: interval) else {
             return false
         }
         do {
-            try appendBackup(points: points, sessionId: sessionId, deviceId: deviceId)
+            try appendBackup(points: points, sessionId: sessionId, deviceId: deviceId, captureDate: captureDate)
             return true
         } catch {
             debugLog("[RawRRBackup] ❌ Incremental backup failed: \(error)")
@@ -698,20 +706,13 @@ final class RawRRBackup: @unchecked Sendable {
         PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
     }
 
-    /// Export a backup to CSV format
+    /// A backup as the one-recording RR CSV (`RRDataImporter.recordingCSV`),
+    /// both clocks kept so a dropout in it is still visible.
     func exportToCSV(_ sessionId: UUID) throws -> String {
         guard let entry = try retrieve(sessionId) else {
             throw BackupError.notFound
         }
-
-        var csv = "timestamp_ms,rr_ms,hr_bpm\n"
-        for point in entry.points {
-            // Guard rr_ms > 0: a zero interval that survived persistence would
-            // otherwise write "inf" into the hr cell (garbage, not a crash).
-            let hr = point.rr_ms > 0 ? 60000.0 / Double(point.rr_ms) : 0
-            csv += "\(point.t_ms),\(point.rr_ms),\(String(format: "%.1f", hr))\n"
-        }
-        return csv
+        return RRDataImporter.recordingCSV(points: entry.points)
     }
 }
 

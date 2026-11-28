@@ -17,10 +17,6 @@ extension WorkoutRecorder {
         /// Workouts at or under this many seconds always fetch — too little
         /// data for the density estimate to mean anything.
         static let minElapsedSecForDensityCheck: TimeInterval = 60
-        /// Workout-window tolerance (ms) for bounding device-internal
-        /// `t_ms` values once they are on the workout's clock — absorbs the
-        /// residual timing slack. Used by the merge shell.
-        static let deviceWindowToleranceMs: Int64 = 60_000
 
         /// Streaming density ≥ threshold — return the streaming buffer
         /// as-is. Payload feeds the shell's skip log line.
@@ -162,6 +158,10 @@ extension WorkoutRecorder {
     /// to sample HR at +60 / +120 s, which means a user who closes the
     /// summary and immediately starts another workout would otherwise
     /// hit a `strapBusy` throw because `strapStream.isStreaming == true`.
+    /// An accidental start the user leaves without saving has its backups
+    /// retired here (`WorkoutSessionLifecycle.discardNotArchived`): leaving
+    /// the summary that said it was not saved is the user's choice.
+    ///
     /// Calling `stopStreaming()` here is safe — the HRR task is already
     /// holding any samples it captured before this point, so the data
     /// in the archive is whatever was recoverable in the time window
@@ -174,6 +174,7 @@ extension WorkoutRecorder {
     /// would drop the rest of its beats.
     func acknowledgeFinished() {
         guard lifecycle.phase == .finished else { return }
+        session.discardNotArchived()
         lifecycle.finishedSession = nil
         lifecycle.saveOutcome = nil
         lifecycle.phase = .idle
@@ -185,6 +186,28 @@ extension WorkoutRecorder {
         }
         _ = stream.stopStreaming()
         debugLog("[WorkoutRecorder] acknowledgeFinished — stopped lingering Polar stream")
+    }
+
+    /// `acknowledgeFinished` for a Watch Done tapped at `tappedAt`, applied
+    /// only when it was tapped after the workout now finished ended
+    /// (`controlIsCurrent`): a Done queued for an earlier workout's summary,
+    /// delivered late, must not dismiss this one or retire its backups.
+    func acknowledgeFinishedFromWatch(tappedAt: Date?) {
+        guard Self.controlIsCurrent(tappedAt: tappedAt, lastChange: lifecycle.finishedSession?.endDate) else {
+            return debugLog("[WorkoutRecorder] Watch Done tapped before this workout ended: ignored")
+        }
+        acknowledgeFinished()
+    }
+
+    /// `acknowledgeFinished` for the summary of `workoutId` only. A caller
+    /// that suspended first (a delete from the summary) may resume after
+    /// another workout finished and owns the summary; that one is left.
+    func acknowledgeFinished(of workoutId: UUID) {
+        guard lifecycle.finishedSession?.id == workoutId else {
+            debugLog("[WorkoutRecorder] acknowledgeFinished — another workout's summary is showing; leaving it")
+            return
+        }
+        acknowledgeFinished()
     }
 }
 
@@ -205,26 +228,35 @@ private func selectMergedWorkoutRR(
         streamingPoints: streamingPoints, internalPoints: bounded,
         sessionId: sessionId, sessionStart: startDate
     ) else {
-        debugLog("[Recorder.finalize] DataSourceSelector returned nil — keeping streaming buffer (\(streamingPoints.count) beats)")
-        return streamingPoints
+        // Both too short to judge: the recovery tie-break keeps each one's span.
+        let kept = SessionRecoveryMath.longerRecording(existing: streamingPoints, strapRR: bounded)
+        debugLog("[Recorder.finalize] DataSourceSelector returned nil — streaming \(streamingPoints.count) + device \(bounded.count) → \(kept.count) beats")
+        return kept
     }
     debugLog("[Recorder.finalize] workout RR merged: streaming=\(streamingPoints.count) device=\(bounded.count) → \(selection.points.count) (\(selection.normalizedSource))")
     return selection.points
 }
 
 @MainActor
-/// Time-bound to the workout window. `t_ms` is already on the workout's
-/// clock (`StrapRecording.points(onClockOf:)` shifted it by the arming
-/// delay); a 60 s tolerance absorbs the residual timing slack at either end.
+/// Time-bound to the workout window, each beat at its real start
+/// (`BeatTimeline`): a Verity Sense recording's beat clock leaves out its
+/// rejected intervals, so by `t_ms` its beats from after the stop still fit.
+/// The beats are already on the workout's clock
+/// (`StrapRecording.points(onClockOf:)` shifted them by the arming delay).
+/// A beat that starts after the stop is left out: a Watch End dated
+/// by the tap reaches the phone later, and the strap kept recording until it
+/// arrived, the same cut the streamed beats get
+/// (`WorkoutAnalyzer.rrPoints(_:endingAt:sessionStart:)`).
 ///
 /// This is also a paranoia guard for the case where
 /// `clearAnyExistingExercises()` failed before this workout and the H10
 /// still has unrelated samples (e.g. last night's overnight) attached to
 /// the same fetch.
-private func boundedToWorkoutWindow(_ devicePoints: [RRPoint], startDate: Date, stopDate: Date) -> [RRPoint] {
+func boundedToWorkoutWindow(_ devicePoints: [RRPoint], startDate: Date, stopDate: Date) -> [RRPoint] {
     let workoutDurationMs = MillisecondOffset.between(stopDate, and: startDate, fallback: 0)
-    let toleranceMs = WorkoutRecorder.DeviceFetchDecision.deviceWindowToleranceMs
-    let bounded = devicePoints.filter { $0.t_ms >= 0 && $0.t_ms <= workoutDurationMs + toleranceMs }
+    let bounded = zip(devicePoints, BeatTimeline.ms(devicePoints))
+        .filter { $0.1 >= 0 && $0.1 <= workoutDurationMs }
+        .map(\.0)
     if bounded.count != devicePoints.count {
         debugLog("[Recorder.finalize] H10 fetch returned \(devicePoints.count) points, \(devicePoints.count - bounded.count) outside workout window — discarded")
     }

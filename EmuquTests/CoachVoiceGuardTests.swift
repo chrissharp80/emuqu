@@ -859,6 +859,22 @@ extension CoachVoiceGuardTests {
         }
     }
 
+    /// A regulatory-clearance claim is deflected in every Latin-script
+    /// language the catalogue ships, as the copy linter's every-locale check
+    /// relies on.
+    func testARegulatoryClearanceClaimIsDeflectedInEveryLatinLocale() {
+        let claims = [
+            ("en", "Emuqu is FDA-cleared."), ("de", "Emuqu ist CE-zertifiziert."), ("fr", "Emuqu est approuvé par la FDA."),
+            ("es", "Emuqu está aprobado por la FDA."), ("pt-BR", "O Emuqu é aprovado pela FDA."), ("it", "Emuqu è approvato dalla FDA."),
+            ("nl", "Emuqu is goedgekeurd door de FDA."), ("da", "Emuqu er godkendt af FDA."), ("nb", "Emuqu er godkjent av FDA."),
+            ("sv", "Emuqu är godkänd av FDA."), ("fi", "Emuqu on FDA:n hyväksymä."), ("is", "Emuqu er samþykkt af FDA."),
+            ("ru", "Emuqu одобрено FDA.")
+        ]
+        for (locale, sentence) in claims {
+            XCTAssertTrue(CoachVoiceGuard.scrub(sentence).didIntercept, "[\(locale)] a clearance claim was delivered: \(sentence)")
+        }
+    }
+
     static let coachingLookalikes = [
         "Du könntest heute locker laufen.", "Sie könnten morgen eine Pause einlegen.",
         "Puedes tener un día libre mañana.", "La sesión puede tener cinco intervalos.", "Podrías tener un día suave.",
@@ -878,15 +894,18 @@ extension CoachVoiceGuardTests {
         "Pisteet 90 tarkoittavat, että olet selvästi OMAN normaalisi yläpuolella.",
         "Плюс следы, которые вы явно сохранили кнопкой.", "Damit die Muskeln heilen können.",
         "Draag de borstband volgens het voorschrift van de fabrikant.",
-        "The prescribed pace for this session is 5:10/km.", "Today's training prescription is 5x1k."
+        "The prescribed pace for this session is 5:10/km.", "Today's training prescription is 5x1k.",
+        "You could have a rest day tomorrow.", "You might have time for an easy jog.",
+        "Your plan prescribes 3x10 min at threshold.", "Your coach prescribed an easy day."
     ]
 
     static let narrowedClaims = [
         "Sie könnten eine Infektion haben.", "Puede que tengas una infección.", "Podrías tener una infección.",
         "Você pode ter uma infecção.", "Potresti avere un'infezione.", "Du kan ha en infektion.", "У вас возможно инфекция.",
-        "You may have COVID.", "心房細動と診断されました。", "医生诊断你有心脏病。", "ليست تشخيصًا طبيًا لحالتك.",
-        "Ce n'est pas un diagnostic médical.", "This is true recovery.", "That is low blood sugar.",
+        "You may have COVID.", "心房細動と診断されました。", "医生诊断你有心脏病。", "هذا تشخيص طبي لحالتك.",
+        "C'est un diagnostic médical.", "This is true recovery.", "That is low blood sugar.",
         "Olet selvästi palautunut.", "Вы явно перетренированы.", "Das kann deine Krankheit heilen.",
-        "Your doctor may prescribe medication.", "Dit is alleen op voorschrift verkrijgbaar.", "У вас признаки тахикардии."
+        "Your doctor may prescribe medication.", "Dit is alleen op voorschrift verkrijgbaar.", "У вас признаки тахикардии.",
+        "You may have a viral infection.", "Your doctor prescribed medication."
     ]
 }

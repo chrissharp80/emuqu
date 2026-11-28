@@ -167,6 +167,22 @@ final class PDFReportGenerator {
         /// deviation can be shown.
         var wristTemperatureLacksBaseline = false
         let restingHeartRate: Double?
+        /// Where `restingHeartRate` came from, which decides what the report
+        /// may say the recovery score does with it. Unknown unless the data
+        /// was built with its night (`init(from:night:result:)`), so a value
+        /// whose source was not established never claims to be scored.
+        var restingHRSource: RestingHRSource = .unknown
+
+        /// The measure `restingHeartRate` is.
+        enum RestingHRSource: Equatable, Sendable {
+            /// The strap's sleep HR, the one the recovery score compares
+            /// with the sleep-HR baseline.
+            case strapSleep
+            /// Apple Health's daytime resting HR: shown, not scored.
+            case appleResting
+            /// Not established.
+            case unknown
+        }
 
         var hasAnyData: Bool {
             respiratoryRate != nil || oxygenSaturation != nil || wristTemperature != nil
@@ -200,6 +216,24 @@ final class PDFReportGenerator {
             wristTemperature = hk.wristTemperatureDeviation
             wristTemperatureLacksBaseline = hk.wristTemperature != nil && hk.wristTemperatureDeviation == nil
             restingHeartRate = hk.restingHeartRate
+        }
+
+        /// `vitals` for `night`, with the night's sleep HR in place as the
+        /// score reads it (`HRVSession.withSleepHeartRate`), and its source
+        /// named: the strap's sleep HR when it is that, otherwise Apple
+        /// Health's resting HR. `result` is the analysis to read the strap's
+        /// heart rate from when the night has none stored yet.
+        init(from vitals: RecoveryVitals?, night: HRVSession, result: HRVAnalysisResult? = nil) {
+            let analysis = result ?? night.analysisResult
+            self.init(from: vitals.map { night.withSleepHeartRate($0, from: analysis) })
+            restingHRSource = Self.source(of: restingHeartRate, strapSleepHR: analysis.flatMap(night.strapSleepHeartRate(in:)))
+        }
+
+        /// The source of `restingHeartRate`: the strap's when it equals the
+        /// night's strap sleep HR, Apple Health's otherwise, unknown without one.
+        static func source(of restingHeartRate: Double?, strapSleepHR: Double?) -> RestingHRSource {
+            guard let restingHeartRate else { return .unknown }
+            return restingHeartRate == strapSleepHR ? .strapSleep : .appleResting
         }
     }
 
@@ -417,7 +451,7 @@ private func mergedTrainingContext(
         atl: live.atl,
         ctl: live.ctl,
         tsb: live.tsb,
-        yesterdayTrimp: frozen?.yesterdayTrimp ?? 0,
+        yesterdayTrimp: frozen?.yesterdayLoad ?? 0,
         vo2Max: frozen?.vo2Max,
         daysSinceHardWorkout: frozen?.daysSinceHardWorkout,
         recentWorkouts: frozen?.recentWorkouts

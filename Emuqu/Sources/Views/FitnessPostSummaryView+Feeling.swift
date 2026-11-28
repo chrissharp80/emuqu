@@ -145,7 +145,7 @@ extension FitnessPostSummaryView {
             bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: meta.samples ?? [],
             splits: meta.splits ?? [],
-            trimp: meta.luciaTRIMP,
+            load: meta.preferredTrainingLoad(ftp: loadAnchors, heartRate: WorkoutLoadRestingHR.anchors)?.value,
             decouplingPercent: meta.decouplingPercent
         )
     }
@@ -275,7 +275,8 @@ extension FitnessPostSummaryView {
             endDate: session.endDate,
             dominantAlpha1Band: dominantBand,
             narrative: analysis?.heroNarrative ?? "",
-            routeCoordinates: coords
+            routeCoordinates: coords,
+            routeSegmentStarts: session.workoutMetadata?.gpsSegmentStarts(count: coords.count) ?? []
         )
     }
 
@@ -355,6 +356,30 @@ extension FitnessPostSummaryView {
         .modifier(PartialBannerChrome())
     }
 
+    /// An accidental start (`WorkoutAccidentalStart`) that was not saved:
+    /// says so, and saves it when the user wants it kept. Leaving the summary
+    /// without saving lets it go.
+    func notArchivedBanner(save: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(String(localized: "Workout not saved", bundle: LanguageManager.appBundle))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            Text(String(localized: "It lasted under a minute with no heart rate or movement, so it looks like an accidental start. Tap Save to keep it.", bundle: LanguageManager.appBundle))
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(String(localized: "Save", bundle: LanguageManager.appBundle), action: save)
+                .font(.footnote.weight(.semibold))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(PartialBannerChrome())
+    }
+
     private struct PartialBannerChrome: ViewModifier {
         func body(content: Content) -> some View {
             content
@@ -412,7 +437,7 @@ extension FitnessPostSummaryView {
         if let mean = session.meanHR {
             tiles.append(.init(
                 label: String(localized: "AVG HR", bundle: LanguageManager.appBundle),
-                value: "\(Int(mean))",
+                value: "\(Int(mean.rounded()))",
                 sub: String(localized: "bpm", bundle: LanguageManager.appBundle),
                 icon: "heart.fill",
                 tint: AppTheme.fitnessAccent
@@ -444,7 +469,8 @@ extension FitnessPostSummaryView {
     }
 
     /// Primary "LOAD" tile uses `preferredTrainingLoad`, which
-    /// prefers powerTSS over hrTSS over luciaTRIMP. Per published research
+    /// prefers powerTSS over hrTSS over luciaTRIMP, every tier on the TSS
+    /// scale. Per published research
     /// (TrainingPeaks, Stryd RSS): power-based TSS is the canonical
     /// training-load number when a power meter contributed, not a fallback for
     /// missing HR. The sub-line names the source so the user can tell at a
@@ -454,9 +480,9 @@ extension FitnessPostSummaryView {
 
     private func appendLoadTile(_ tiles: inout [WorkoutKeyStatsCard.Stat]) {
         let meta = session.workoutMetadata
-        if let load = meta?.preferredTrainingLoad(ftp: loadAnchors) {
+        if let load = meta?.preferredTrainingLoad(ftp: loadAnchors, heartRate: WorkoutLoadRestingHR.anchors) {
             let sub = loadTileSubtitle(load, meta: meta)
-            let label = loadTileLabel(load.source)
+            let label = load.source.displayLabel
             let icon: String = load.source == .power ? "bolt.fill" : "waveform.path"
             let tint: Color = load.source == .power ? .yellow : AppTheme.dustyRose
             tiles.append(.init(
@@ -475,8 +501,7 @@ extension FitnessPostSummaryView {
     /// The sub-line names the load's source. The strap-dropped case needs no
     /// comparison here: `preferredTrainingLoad` already makes the route
     /// estimate the load (`.routeHistory`) when `routeEstimateReplacesHRLoad`,
-    /// and a route estimate (TRIMP scale) is never set against a power,
-    /// HRSS or METs load on another scale.
+    /// already on the TSS scale the power, HRSS and METs loads share.
     private func loadTileSubtitle(_ load: (value: Double, source: WorkoutMetadata.TrainingLoadSource), meta: WorkoutMetadata?) -> String {
         switch load.source {
         case .power: return meta?.partialDataReason != nil ? String(localized: "Coggan · power · partial HR", bundle: LanguageManager.appBundle) : String(localized: "Coggan · power", bundle: LanguageManager.appBundle)
@@ -487,13 +512,6 @@ extension FitnessPostSummaryView {
         }
     }
 
-    private func loadTileLabel(_ source: WorkoutMetadata.TrainingLoadSource) -> String {
-        switch source {
-        case .power, .hr, .mets: return String(localized: "LOAD", bundle: LanguageManager.appBundle)
-        case .banister, .routeHistory: return "TRIMP"
-        }
-    }
-
     private func appendSecondaryLoadTile(_ tiles: inout [WorkoutKeyStatsCard.Stat]) {
         let meta = session.workoutMetadata
         // HRSS (the HR-based load) — a secondary tile only when the
@@ -501,10 +519,10 @@ extension FitnessPostSummaryView {
         // as `preferredTrainingLoad` resolves it), so power-equipped users
         // still see the HR-side number for comparison without it competing
         // as the headline.
-        if meta?.preferredTrainingLoad(ftp: loadAnchors)?.source == .power, let tss = meta?.hrTSS {
+        if meta?.preferredTrainingLoad(ftp: loadAnchors, heartRate: WorkoutLoadRestingHR.anchors)?.source == .power, let tss = meta?.hrTSS {
             tiles.append(.init(
                 label: "HRSS",
-                value: "\(Int(tss))",
+                value: "\(Int(tss.rounded()))",
                 sub: String(localized: "1-hour threshold = 100 pts", bundle: LanguageManager.appBundle),
                 icon: "speedometer",
                 tint: .blue
@@ -544,8 +562,12 @@ extension FitnessPostSummaryView {
             initialPosition: .region(summary.regionForTrack(coordinates)),
             interactionModes: []
         ) {
-            MapPolyline(coordinates: coordinates)
-                .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            // One line per recorded segment: none across a join (`TrackSegments`).
+            let segments = TrackSegments.split(coordinates, starts: session.workoutMetadata?.gpsSegmentStarts)
+            ForEach(segments.indices, id: \.self) { index in
+                MapPolyline(coordinates: segments[index])
+                    .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            }
             if let start = coordinates.first {
                 Marker(String(localized: "Start", bundle: LanguageManager.appBundle), coordinate: start).tint(AppTheme.sage)
             }

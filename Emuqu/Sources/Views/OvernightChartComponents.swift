@@ -395,12 +395,17 @@ struct OvernightHRChartCanvas: View {
     ///
     /// `hrAreaGradient` is hoisted to instance scope — otherwise it
     /// is a fresh Gradient per Canvas redraw.
+    ///
+    /// The trace lifts at every recording break between two plotted beats
+    /// (`TimeDomainAnalyzer.recordingRuns`), as the PDF overnight chart
+    /// does: a streamed Bluetooth dropout leaves `t_ms` running on, so only
+    /// the beats' own break check sees it. A stretch of more than 5 minutes
+    /// without a plotted value (artifacts dropped) is not bridged either.
     private func drawPolarHR(_ context: inout GraphicsContext, _ geo: HRChartGeometry) {
-        let samples: [(ms: Int64, hr: Double)] = geo.plotHR.compactMap { index, hr in
-            guard index >= 0, index < geo.points.count, geo.totalDurationMs > 0 else { return nil }
-            return (geo.points[index].t_ms, hr)
-        }
-        for seg in splitIntoSegments(samples, gapThresholdMs: 300_000, geo: geo) where seg.count >= 2 {
+        guard geo.totalDurationMs > 0 else { return }
+        let runs = Self.polarHRRuns(plotHR: geo.plotHR, points: geo.points)
+        let segments = runs.flatMap { splitIntoSegments($0, gapThresholdMs: 300_000, geo: geo) }
+        for seg in segments where seg.count >= 2 {
             let (linePath, fillPath) = areaPaths(seg, height: geo.size.height)
             context.fill(
                 fillPath,
@@ -408,6 +413,17 @@ struct OvernightHRChartCanvas: View {
             )
             context.stroke(linePath, with: .color(AppTheme.terracotta), lineWidth: 1.5)
         }
+    }
+
+    /// The plotted beats (index into `points`, bpm) at their `t_ms`, one
+    /// array per stretch between recording breaks
+    /// (`TimeDomainAnalyzer.recordingRuns`). Indices outside `points` are
+    /// left out.
+    static func polarHRRuns(plotHR: [(Int, Double)], points: [RRPoint]) -> [[(ms: Int64, hr: Double)]] {
+        let plotted = plotHR.filter { $0.0 >= 0 && $0.0 < points.count }
+        let runs = TimeDomainAnalyzer.recordingRuns(of: plotted.map(\.0), in: points)
+        let samples: [(ms: Int64, hr: Double)] = plotted.map { (points[$0.0].t_ms, $0.1) }
+        return SeriesRuns.split(samples, runs: runs)
     }
 
     /// Project timestamped HR samples into chart points, breaking the run
@@ -458,7 +474,7 @@ struct OvernightHRChartCanvas: View {
         let nadirCircle = Path(ellipseIn: CGRect(x: nadirX - 6, y: nadirY - 6, width: 12, height: 12))
         context.fill(nadirCircle, with: .color(AppTheme.mist))
         context.stroke(nadirCircle, with: .color(.white), lineWidth: 2)
-        let nadirText = Text("\(Int(stats.nadirHR))")
+        let nadirText = Text("\(Int(stats.nadirHR.rounded()))")
             .font(.caption.bold())
             .foregroundColor(AppTheme.mist)
         context.draw(nadirText, at: CGPoint(x: nadirX, y: nadirY - 16))

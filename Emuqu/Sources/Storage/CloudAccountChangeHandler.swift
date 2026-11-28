@@ -27,12 +27,15 @@ struct CloudAccountChangeHandler {
     /// future/unknown values, so leaving it out tripped "switch must be
     /// exhaustive" (a warning under Swift 5, a hard error under stricter
     /// concurrency settings).
+    ///
+    /// A status read across a later account change is stale: that change's
+    /// own handler reads the status again, so this one writes nothing
+    /// (`CloudAccountIdentity.checkGeneration`).
     func handle() async {
-        let status: CKAccountStatus
-        do {
-            status = try await manager.container.accountStatus()
-        } catch {
-            debugLog("[CloudKit] Account change: status check failed: \(error.localizedDescription)", level: .warning)
+        let generation = CloudAccountIdentity.checkGeneration
+        guard let status = await readAccountStatus() else { return }
+        guard CloudAccountIdentity.checkGeneration == generation else {
+            debugLog("[CloudKit] Account change: the account changed again during the status check — left to that change's check", level: .info)
             return
         }
         switch status {
@@ -44,6 +47,16 @@ struct CloudAccountChangeHandler {
             debugLog("[CloudKit] Account change: iCloud temporarily unavailable — will retry on next sync", level: .warning)
         @unknown default:
             break
+        }
+    }
+
+    /// The account status, or nil when it could not be read.
+    private func readAccountStatus() async -> CKAccountStatus? {
+        do {
+            return try await manager.container.accountStatus()
+        } catch {
+            debugLog("[CloudKit] Account change: status check failed: \(error.localizedDescription)", level: .warning)
+            return nil
         }
     }
 

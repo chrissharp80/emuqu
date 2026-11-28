@@ -459,6 +459,8 @@ extension VoiceAudioPipeline {
     /// "Recent Problems") AND shows a short user-facing banner. If the guard
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
+        let lastAssistant = controller.assistantViewModel.turns.last(where: { $0.role == .assistant })?.text ?? ""
+        if VoiceEchoHeuristics.mustReachGuard(transcript, lastAssistantTurn: lastAssistant) { return false }
         if controller.looksLikeEcho(of: transcript), !answersHeardConfirmation(transcript) {
             debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
             controller.services.assistantInbox.flashTransientNotice(String(
@@ -497,6 +499,13 @@ extension VoiceAudioPipeline {
               controller.assistantViewModel.turns.last(where: { $0.role == .assistant })?.text == reply
         else { return false }
         return controller.echoOverlapRatio(transcript: transcript, against: reply) >= 0.4
+    }
+
+    /// A crisis or emergency report that interrupted the reply: sent like a
+    /// finished turn, so the guard answers it and the answer is spoken.
+    func answerInterruptingFragment(_ fragment: String) {
+        debugLog("[VoiceConv] barge-in fragment of \(fragment.count) characters reaches the guard", level: .warning)
+        dispatchTranscript(fragment)
     }
 
     /// Hand the transcript to the shared chat view model. It appends a user
@@ -789,7 +798,7 @@ extension VoiceAudioPipeline {
         let delta = String(turn.text[start ..< end])
         controller.spokenCharCursor = safeLen
         controller.currentResponseText = String(turn.text.prefix(safeLen))
-        if let chunk = controller.textChunker.append(delta: delta) { controller.speak(chunk) }
+        if let chunk = controller.textChunker.append(delta: delta) { controller.speak(chunk, numbersVerified: true) }
     }
 
     @MainActor
@@ -820,7 +829,7 @@ extension VoiceAudioPipeline {
     /// the reply failed with nothing said.
     @MainActor
     private func speakResponseTail() {
-        if let remainder = controller.textChunker.finalize() { controller.speak(remainder) }
+        if let remainder = controller.textChunker.finalize() { controller.speak(remainder, numbersVerified: true) }
         speakConfirmationQuestionIfShown()
         speakErrorRecoveryLineIfNeeded()
     }
@@ -837,14 +846,17 @@ extension VoiceAudioPipeline {
     /// once this line has played to the end
     /// (`VoiceConversationController.confirmationLineEnded`); a reply voice
     /// detached from (a workout alert preempting it) never speaks it, so its
-    /// request lapses.
+    /// request lapses. The question is spoken word for word or not at all
+    /// (`speakVerbatim`): a line the output perimeter would rewrite is left
+    /// unasked, so its request lapses too.
     @MainActor
     func speakConfirmationQuestionIfShown() {
         let turns = controller.assistantViewModel.turns
         guard let idx = controller.activeAssistantIndex, turns.indices.contains(idx),
-              turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt else { return }
+              turns[idx].role == .assistant, let question = turns[idx].confirmationPrompt,
+              let line = controller.speakVerbatim(question, voice: WorkoutVoiceCoach.appLanguageVoice())
+        else { return }
         controller.currentResponseText += (controller.currentResponseText.isEmpty ? "" : " ") + question
-        guard let line = controller.speak(question, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) else { return }
         controller.spokenConfirmation = (utterance: line, turnID: turns[idx].id)
     }
 

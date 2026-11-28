@@ -47,7 +47,7 @@ Both devices are fully interchangeable — recording, fetch, recovery, and disca
 
 When stopping an overnight session, preference order (`DataSourceSelector`):
 1. **Internal recording** (preferred) — no Bluetooth gaps
-2. **Composite** (internal + streaming gap-fill) — if internal has >5% fewer beats than streaming
+2. **Composite** (internal + streaming gap-fill) — if internal has >5% fewer beats than streaming, or the stream runs more than 60 s (`spanSlackMs`) before or after the span the internal recording covers (a strap armed at a resume holds only what came after it)
 3. **Streaming only** — if internal fetch failed, or if the composite could not be built
 4. **RawRRBackup** — if both failed (a separate recovery path, `SessionRecoveryCoordinator+Backup`)
 
@@ -287,13 +287,13 @@ Window selection operates on the **30-70% band of actual sleep duration** (from 
 | **Peak RMSSD** | Highest RMSSD, no organization filter |
 | **Peak SDNN** | Highest total variability |
 | **Peak Total Power** | Highest frequency domain power (SDNN proxy) |
-| **Custom** | User tap on chart → 400-beat window, ignores 30-70% band |
+| **Custom** | User tap on chart → 400-beat window widened to span 5 min, ignores 30-70% band |
 
 A custom window is a preview until the user taps Apply. Apply (`ReanalysisService.applyManualAnalysis` → `persistManualAnalysis`) re-scores the session from that window, sets `windowUserAdjusted`, keeps the automatic pick in `autoWindowResult` / `autoWindowScore`, archives the session (requesting a re-upload) and feeds it to `BaselineTracker.update`. From then on the stored score, the baseline later nights are scored against, and the trends all use the custom window. Cancel or leaving the screen saves nothing.
 
 ### Algorithm Steps
 
-**Config**: 400-beat target window, 40-beat slide step, clean-beat requirement = max(50, 75% of window) capped at 300 for full windows, 30-70% band, stability weight 10.0.
+**Config**: 400-beat target window that also spans at least 5 min (`minWindowSpanMs`, first beat's start to last beat's end), 40-beat slide step, clean-beat requirement = max(50, 75% of window) capped at 300 for full windows, 30-70% band, stability weight 10.0.
 
 **Artifact rate is a two-pass rule, not one number.** Pass 1 keeps only windows at or under
 `maxArtifactRateStrict = 0.10`, the bound the literature converges on (Plews 2013, Lipponen &
@@ -302,7 +302,7 @@ methods, no window at all) does the scan re-run at `maxArtifactRate = 0.15`, so 
 and `HRVDetailV2View` surfaces the rate so the user knows the reading is degraded.
 
 **Step 1**: Build all windows within 30-70% using adaptive sizing:
-- ≥400 beats in band → full 400-beat windows
+- ≥400 beats in band → full 400-beat windows, extended beat by beat until each spans 5 min (a band shorter than 5 min is scanned on beat count alone)
 - 240-399 beats → 50% of available beats
 - <240 beats → 60% of available (minimum 60 beats)
 - Step size: max(10, windowSize / 10)
@@ -483,7 +483,7 @@ The primary signal is the ratio of current effective load to chronic training lo
 ```
 acuteFatigue  = Σ TRIMP_i × 0.30 × e^(−hoursAgo_i / 24)   (workouts in the last 72 h; today's TRIMP × 0.35 without them)
 effectiveLoad = ATL + acuteFatigue
-capacityRatio = effectiveLoad / CTL          (when CTL ≥ 3.2)
+capacityRatio = effectiveLoad / max(CTL, 100/7)
 ```
 
 Piecewise linear mapping to 0-100:
@@ -497,7 +497,7 @@ ratio 1.5  → 30   (sharp recent increase over the chronic base)
 ratio 2.0+ → 10   (extreme overload)
 ```
 
-When CTL < 3.2 (no training history): `readiness = max(10, 100 - (ATL + undamped acute load) × 0.5)`, where the acute load is the decayed TRIMP sum without the 0.30 factor (`ctlThreshold` = 3.2)
+The CTL floor, 100/7 ≈ 14.3 TSS/day (`capacityRatioCTLFloor`, one hour at threshold a week), keeps the ratio from dividing by a near-zero base: readiness is continuous and non-decreasing in CTL for a given load, with no switch to another model at a CTL boundary.
 
 ### ACWR Modifier (Training Readiness only — NOT the recovery score)
 
@@ -727,7 +727,7 @@ Edits reach devices that already hold the session. An edit (feeling, tags or not
 
 ### Apple Health Export
 
-Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportHRV`, or a single summary when the recording is too short; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Every sample and workout also carries that identity as `HKMetadataKeySyncIdentifier` with a rising `HKMetadataKeySyncVersion`, so HealthKit itself replaces a re-exported object (from this device or another) instead of keeping both. Every metric's re-write saves the new samples before deleting the session's earlier ones that HealthKit did not already replace, and re-writes of the same session run one at a time, each Health call bounded by a timeout (`HealthSampleReplacer`). A workout export finds the session's earlier workouts (by identity, or a copy saved before workouts carried one by its start), saves the new one, then deletes the earlier workouts with their samples and route; active energy is written net of the 1 MET of rest. When Health refuses the read of the earlier workouts because the phone is locked (`errorDatabaseInaccessible`; any other read failure fails the export), the new workout is still saved and the session is noted in `PendingWorkoutReplacements` (UserDefaults `hkPendingWorkoutReplacements`, removed by Delete All My Data); the next foreground backfill (`backfillWorkoutsToHealthKit`) first finds that session's exports and deletes all but the one with the highest sync version, keeping the entry for another try when the read or a delete fails. The export stamp written to the archive afterwards (`healthKitExportedAt`) asks for no iCloud re-upload and leaves `modifiedAt` alone: it travels with the session's next real upload. A trimmed or rebuilt workout is exported again and replaces its copy. Deleting a session forever deletes everything it exported: HRV, heart rate, resting HR, sleep and workouts (`HealthWriteAndObserve.removeExports`). A heart-rate summary exported under another end date is found by searching ±25 h for the session's identity (`summarySearchSpan`). Heart-rate, HRV and sleep saves and deletes are bounded by a 30 s write timeout (`HealthSampleReplacement.writeTimeout`), their reads by shorter ones. Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`, `HealthKitWorkoutExport.swift`, `HealthExportIdentity.swift` and `HealthWriteAndObserve.swift`.)
+Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportHRV`, or a single summary when the recording is too short; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Every sample and workout also carries that identity as `HKMetadataKeySyncIdentifier` with a rising `HKMetadataKeySyncVersion`, so HealthKit itself replaces a re-exported object (from this device or another) instead of keeping both. Every metric's re-write saves the new samples before deleting the session's earlier ones that HealthKit did not already replace, and re-writes of the same session run one at a time, each Health call bounded by a timeout (`HealthSampleReplacer`). A workout export finds the session's earlier workouts (by identity, or a copy saved before workouts carried one by its start), saves the new one, then deletes the earlier workouts with their samples and route; active energy is written net of the 1 MET of rest. When Health refuses the read of the earlier workouts because the phone is locked (`errorDatabaseInaccessible`; any other read failure fails the export), the new workout is still saved and the session is noted in `PendingWorkoutReplacements` (UserDefaults `hkPendingWorkoutReplacements`, removed by Delete All My Data); the next foreground backfill (`backfillWorkoutsToHealthKit`) first finds that session's exports and deletes all but the one with the highest sync version, keeping the entry for another try when the read or a delete fails. The export stamp written to the archive afterwards (`healthKitExportedAt`) asks for no iCloud re-upload and leaves `modifiedAt` alone: it travels with the session's next real upload. A trimmed or rebuilt workout is exported again and replaces its copy. Deleting a session forever deletes everything it exported: HRV, heart rate, resting HR, sleep and workouts (`HealthWriteAndObserve.removeExports`). A heart-rate summary exported under another end date is found by searching ±25 h for the session's identity (`summarySearchSpan`). Heart-rate, HRV and sleep saves and deletes are bounded by a 30 s write timeout (`HealthSampleReplacement.writeTimeout`), their reads by shorter ones. Nothing new is written while the setting is off, workouts included: every writer reads `UserSettings.exportsToAppleHealth` or `exportsReading(_:)` when it writes. Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`, `HealthKitWorkoutExport.swift`, `HealthExportIdentity.swift` and `HealthWriteAndObserve.swift`.)
 
 Reading from Health leaves out the app's own writes: the resting-HR reads (`fetchAppleRestingHR`, `latestQuantitySample`), and the sleep and vitals observers. Those observers are `HealthSampleWatch` queries: an `HKObserverQuery` plus an anchored read from an anchor stored in `UserDefaults` across launches, so samples added while the app was not running arrive on the next launch. One read runs per anchor at a time (`HealthSampleWatch.ReadGate`): a change that fires during a read has that read run once more when it ends, from the anchor it kept, so nothing is delivered twice and an older anchor is never written back. Sleep has background delivery; vitals background delivery is off, and the vitals observer starts at launch with the sleep one.
 

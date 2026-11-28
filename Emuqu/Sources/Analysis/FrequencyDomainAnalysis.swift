@@ -117,6 +117,14 @@ enum FrequencyDomainAnalyzer {
     /// multiple of another.
     private static let vlfMinDuration: Double = 10.0
 
+    /// The time `sampleCount` evenly spaced samples span, first to last, in
+    /// minutes: the duration the resampled run was built from
+    /// (`sampleCount = duration · fs + 1`), so every VLF gate reads the
+    /// same length for the same beats.
+    static func spanMinutes(sampleCount: Int, fs: Double) -> Double {
+        Double(max(0, sampleCount - 1)) / fs / 60.0
+    }
+
     // MARK: - Welch Configuration
 
     /// Default segment length for Welch's method (256 samples = 64 sec at 4 Hz)
@@ -161,8 +169,15 @@ enum FrequencyDomainAnalyzer {
     /// a new run starting after every recording break
     /// (`TimeDomainAnalyzer.beatsAfterRecordingBreak`), also one that falls
     /// on a removed beat.
+    ///
+    /// Each beat sits at its real time (`BeatTimeline`), the axis a spectrum
+    /// is defined on (Task Force 1996; Kubios interpolates across removed
+    /// beats on it). The beat clock leaves out every interval a Verity Sense
+    /// rejected, so on it the series is shorter than the time it covers and
+    /// every frequency, LF and HF with it, reads high by the share removed.
     private static func cleanRuns(_ series: RRSeries, flags: [ArtifactFlags], range: Range<Int>) -> [CleanRun] {
         let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: range)
+        let beatTimes = BeatTimeline.ms(series.points, in: range)
         var runs: [CleanRun] = []
         var previous: Int?
         for i in range where !flags[i].isArtifact {
@@ -170,7 +185,7 @@ enum FrequencyDomainAnalyzer {
             if runs.isEmpty || previous.map({ spansBreak(breaks, after: $0, upTo: i) }) == true {
                 runs.append(CleanRun())
             }
-            runs[runs.count - 1].times.append((Double(point.t_ms) + Double(point.rr_ms) / 2.0) / 1_000.0)
+            runs[runs.count - 1].times.append((Double(beatTimes[i - range.lowerBound]) + Double(point.rr_ms) / 2.0) / 1_000.0)
             runs[runs.count - 1].rr.append(Double(point.rr_ms))
             previous = i
         }
@@ -204,10 +219,10 @@ enum FrequencyDomainAnalyzer {
         let fs = resampleFrequency
         guard let psd = pooledWelchPSD(signals, segLen: defaultWelchSegmentLength) else {
             guard let longest = signals.max(by: { $0.count < $1.count }), longest.count >= 64 else { return nil }
-            return computePSD(signal: longest, fs: fs, usableWindowMin: Double(longest.count - 1) / fs / 60.0)
+            return computePSD(signal: longest, fs: fs, usableWindowMin: spanMinutes(sampleCount: longest.count, fs: fs))
         }
         let bands = bandPowers(psd: psd, fs: fs, fftN: defaultWelchSegmentLength)
-        let minutes = Double(signals.reduce(0) { $0 + $1.count }) / fs / 60.0
+        let minutes = signals.reduce(0.0) { $0 + spanMinutes(sampleCount: $1.count, fs: fs) }
         let vlf = minutes >= vlfMinDuration
             ? pooledWelchPSD(signals, segLen: vlfWelchSegmentLength).map { bandPowers(psd: $0, fs: fs, fftN: vlfWelchSegmentLength).vlf }
             : nil
@@ -304,7 +319,7 @@ enum FrequencyDomainAnalyzer {
             ),
             fs: fs, fftN: segLen
         )
-        let windowMin = usableWindowMin ?? (Double(data.count) / fs / 60.0)
+        let windowMin = usableWindowMin ?? spanMinutes(sampleCount: data.count, fs: fs)
         return metrics(vlf: windowMin >= vlfMinDuration ? vlfPower(data: data, fs: fs) : nil, lf: bands.lf, hf: bands.hf)
     }
 
@@ -537,7 +552,7 @@ enum FrequencyDomainAnalyzer {
             return FrequencyDomainMetrics(vlf: nil, lf: 0, hf: 0, lfHfRatio: nil, totalPower: 0)
         }
         let bands = bandPowers(psd: psd, fs: fs, fftN: fftN)
-        let windowMin = usableWindowMin ?? (Double(sampleCount) / fs / 60.0)
+        let windowMin = usableWindowMin ?? spanMinutes(sampleCount: sampleCount, fs: fs)
         return FrequencyDomainMetrics(
             vlf: windowMin >= vlfMinDuration ? bands.vlf : nil,
             lf: bands.lf,

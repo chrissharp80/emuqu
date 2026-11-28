@@ -205,7 +205,7 @@ final class RawRRBackupTests: XCTestCase {
         try backup.backup(points: points, sessionId: sessionId)
 
         let csv = try backup.exportToCSV(sessionId)
-        XCTAssertTrue(csv.hasPrefix("timestamp_ms,rr_ms,hr_bpm\n"))
+        XCTAssertTrue(csv.hasPrefix("timestamp_ms,rr_ms,hr_bpm,wall_clock_ms,follows_removed_beat\n"))
         XCTAssertTrue(csv.contains("0,800,"))
         XCTAssertTrue(csv.contains("800,750,"))
     }
@@ -755,7 +755,9 @@ extension RawRRBackupTests {
         try backup.appendBackup(points: points, sessionId: sessionId)
         try SealedJSONLines.encode(points, with: backup.lineEncoder, manager: nil).data.write(to: backup.pointsURL(for: sessionId))
         let unreadable = backup.backupDirectory.appendingPathComponent(backup.pointsURL(for: sessionId).lastPathComponent + ".corrupted_1")
-        try FileManager.default.createDirectory(at: unreadable, withIntermediateDirectories: false)
+        try Data("{}\n".utf8).write(to: unreadable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: unreadable.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: unreadable.path) }
         PendingEncryptionLedger.record(sessionId, in: .rawBackup)
 
         backup.sealer.reencrypt(sessionId, in: backup)

@@ -8,8 +8,16 @@ extension WindowSelector {
     // MARK: - Configuration
 
     struct Config {
-        /// Number of beats per analysis window (400 beats ≈ 6-7 min at 60bpm)
+        /// Fewest beats in a full analysis window (400 beats ≈ 6.7 min at
+        /// 60 bpm). A window also spans at least `minWindowSpanMs`, so above
+        /// about 80 bpm it holds more beats than this.
         var beatsPerWindow: Int = 400
+        /// Shortest full analysis window, first beat's start to last beat's
+        /// end: the 5-minute short-term recording of the Task Force standard
+        /// (Circulation 1996;93:1043-1065), and the span the acceptance rule
+        /// trusts (`HRVConstants.MinimumDuration.forReliableWindowMs`), so a
+        /// full window is never judged too short for its heart rate.
+        var minWindowSpanMs: Int64 = HRVConstants.MinimumDuration.forReliableWindowMs
         /// Sliding window step in beats
         var slideStepBeats: Int = 40
         /// **Preferred** maximum artifact rate for a valid block.
@@ -705,10 +713,33 @@ extension WindowSelector {
 
     /// The `beatsPerWindow` slice centred on the beat closest to the tapped
     /// time, pulled back from the end of the recording when centring would
-    /// overrun it. A tap before the first beat or past the last one lands on
-    /// that beat, so it selects the first or last window. `points` is
-    /// non-empty (the caller checked `beatsPerWindow`).
+    /// overrun it, then widened to span `config.minWindowSpanMs` as an
+    /// automatic window is (`manualTimeFloored`). A tap before the first beat
+    /// or past the last one lands on that beat, so it selects the first or
+    /// last window. `points` is non-empty (the caller checked
+    /// `beatsPerWindow`).
     private func manualWindowIndices(points: [RRPoint], targetMs: Int64) -> (Int, Int) {
+        let (start, end) = manualBeatIndices(points: points, targetMs: targetMs)
+        let (windowStartIdx, windowEndIdx) = manualTimeFloored(points: points, start: start, end: end)
+        debugLog("[WindowSelector] Manual selection at \(formatTime(targetMs)) -> indices \(windowStartIdx)-\(windowEndIdx)")
+        return (windowStartIdx, windowEndIdx)
+    }
+
+    /// `start ..< end` widened to span `config.minWindowSpanMs`: on towards
+    /// the end of the recording when it has the beats, otherwise back from
+    /// its end. A recording shorter than that span keeps every beat.
+    private func manualTimeFloored(points: [RRPoint], start: Int, end: Int) -> (Int, Int) {
+        if let flooredEnd = timeFlooredEnd(points: points, start: start, minEnd: end, limit: points.count) {
+            return (start, flooredEnd)
+        }
+        var flooredStart = start
+        while flooredStart > 0, Self.spanMs(points, flooredStart ..< points.count) < config.minWindowSpanMs {
+            flooredStart -= 1
+        }
+        return (flooredStart, points.count)
+    }
+
+    private func manualBeatIndices(points: [RRPoint], targetMs: Int64) -> (Int, Int) {
         let targetIdx = closestBeatIndex(points: points, targetMs: targetMs)
         let halfWindow = config.beatsPerWindow / 2
         var windowStartIdx = max(0, targetIdx - halfWindow)
@@ -719,8 +750,6 @@ extension WindowSelector {
             windowEndIdx = points.count
             windowStartIdx = max(0, windowEndIdx - config.beatsPerWindow)
         }
-
-        debugLog("[WindowSelector] Manual selection at \(formatTime(targetMs)) -> indices \(windowStartIdx)-\(windowEndIdx)")
         return (windowStartIdx, windowEndIdx)
     }
 

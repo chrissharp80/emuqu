@@ -500,13 +500,14 @@ struct VitalsDetailV2View: View {
     /// One overnight reading per night for the last 30 days, picked by
     /// `DashboardSessionPolicy.sessionForDay` (reliable for HRV aggregates,
     /// the longest when a night has several). Each night's heart rate is the
-    /// strap's nocturnal mean when there is one — the same number the Sleep
-    /// heart rate row shows — and the stored snapshot's otherwise.
+    /// strap's nocturnal mean, the same number the Sleep heart rate row
+    /// shows. A night without one has no point: Apple's daytime resting HR
+    /// is another measure and would not belong on the same line.
     private func buildTrend() -> [TrendPoint] {
         var out: [TrendPoint] = []
         for s in trendNights() {
             let v = s.vitalsSnapshot
-            if let rhr = Self.strapMeanHR(of: s) ?? v?.restingHeartRate {
+            if let rhr = Self.strapMeanHR(of: s) {
                 out.append(TrendPoint(date: s.startDate, metric: Self.rhrSeries, value: rhr))
             }
             if let resp = v?.respiratoryRate {

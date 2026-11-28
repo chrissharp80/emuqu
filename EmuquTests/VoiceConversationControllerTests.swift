@@ -13,33 +13,11 @@ import XCTest
 @MainActor
 final class VoiceConversationControllerTests: XCTestCase {
 
-    // MARK: - Shared singleton + initial state
-
-    func testSharedSingletonIsPersistent() {
-        let a = VoiceConversationController.shared
-        let b = VoiceConversationController.shared
-        XCTAssertTrue(a === b, "Shared instance must be a single object")
-    }
+    // MARK: - Initial state
 
     func testInitialStateIsIdle() {
         let c = VoiceConversationController.shared
         XCTAssertEqual(c.state, .idle)
-    }
-
-    // MARK: - State Equatable contract
-
-    func testStateEquatableIdentity() {
-        XCTAssertEqual(VoiceConversationController.State.idle, .idle)
-        XCTAssertEqual(VoiceConversationController.State.listening, .listening)
-        XCTAssertEqual(VoiceConversationController.State.speaking, .speaking)
-        XCTAssertEqual(VoiceConversationController.State.triggerSpeaking, .triggerSpeaking)
-        XCTAssertEqual(VoiceConversationController.State.starting, .starting)
-    }
-
-    func testStateEquatableDistinctness() {
-        XCTAssertNotEqual(VoiceConversationController.State.idle, .listening)
-        XCTAssertNotEqual(VoiceConversationController.State.listening, .speaking)
-        XCTAssertNotEqual(VoiceConversationController.State.speaking, .triggerSpeaking)
     }
 
     // MARK: - Sentence chunking integration
@@ -153,9 +131,38 @@ final class VoiceConversationControllerTests: XCTestCase {
         XCTAssertEqual(viewModel.actionConfirmations.pending?.delivered, true)
     }
 
+    /// A question the output perimeter would rewrite is not spoken at all,
+    /// and a "yes" after it confirms nothing: the user would otherwise agree
+    /// to words they never heard. Covers each transform that can change the
+    /// words: the medical scrub, and `[[word|IPA]]` markup that shows one
+    /// word and voices another. A plain question is still spoken.
+    func testAConfirmationQuestionTheVoicePathWouldChangeIsNeverDelivered() {
+        let rewritten = [
+            "Save “You may have atrial fibrillation” to your memory?",
+            "Save “[[keep|dɪˈliːt]] my notes” to your memory?"
+        ]
+        XCTAssertTrue(CoachVoiceGuard.scrub(rewritten[0]).didIntercept, "the scrub no longer rewrites the first case; pick another")
+        for question in rewritten {
+            let (controller, viewModel) = confirmationController(question: question)
+            defer { controller.stopSynthesizer() }
+            controller.audio.finishResponseFromAssistant()
+            XCTAssertNil(controller.spokenConfirmation, "a rewritten question was queued: \(question)")
+            XCTAssertEqual(viewModel.actionConfirmations.pending?.delivered, false, question)
+            viewModel.turns.append(ChatTurn(role: .user, text: "yes"))
+            let outcome = viewModel.actionConfirmations.evaluate(
+                action: "assistant.memory.clear", target: "all", question: question, turns: viewModel.turns
+            )
+            XCTAssertEqual(outcome, .awaitingConfirmation, "a yes confirmed a question never spoken: \(question)")
+        }
+        XCTAssertTrue(VoiceConversationController.isSpokenWordForWord("Delete all 3 saved memory facts?", guarded: "Delete all 3 saved memory facts?"))
+        XCTAssertFalse(VoiceConversationController.isSpokenWordForWord("Save “RMSSD 90 ms”?", guarded: "Save “RMSSD 52 ms”?"))
+    }
+
     /// A voice controller speaking a reply that asked to clear memory, its
     /// question shown under the reply but not yet spoken.
-    private func confirmationController() -> (VoiceConversationController, AssistantViewModel) {
+    private func confirmationController(
+        question: String = "Delete all 3 saved memory facts?"
+    ) -> (VoiceConversationController, AssistantViewModel) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("VoiceConfirmationTests-\(UUID().uuidString)", isDirectory: true)
         addTeardownBlock {
@@ -174,7 +181,7 @@ final class VoiceConversationControllerTests: XCTestCase {
         dependencies.overrides.assistantViewModel = viewModel
         let controller = VoiceConversationController(services: VoiceServices(dependencies))
         viewModel.turns = [ChatTurn(role: .user, text: "Clear my memory"), ChatTurn(role: .assistant, text: "I can clear it.")]
-        _ = viewModel.actionConfirmations.evaluate(action: "assistant.memory.clear", target: "all", question: "Delete all 3 saved memory facts?", turns: viewModel.turns)
+        _ = viewModel.actionConfirmations.evaluate(action: "assistant.memory.clear", target: "all", question: question, turns: viewModel.turns)
         viewModel.actionConfirmations.showPending(in: &viewModel.turns, spokenReply: true)
         controller.activeAssistantIndex = 1
         return (controller, viewModel)

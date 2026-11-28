@@ -317,10 +317,11 @@ enum DashboardSessionPolicy {
 /// personal baseline (`BaselineTracker.daysCollected`, at most one a night).
 /// Help, Flo's knowledge base, onboarding and the dashboard all state it:
 ///
-/// - Nights 1-2: the morning report scores the night on general HRV
-///   thresholds; there is no personal baseline yet.
-/// - From night 3: the score compares the night with the user's own baseline
-///   (`RecoveryBaselineStats.minimumDays`), cautiously until night 7.
+/// - Nights 1-3: the morning report scores the night on general HRV
+///   thresholds; a night is scored against the nights before it, and fewer
+///   than `RecoveryBaselineStats.minimumDays` (3) give no personal baseline.
+/// - From night 4: the score compares the night with the user's own baseline,
+///   cautiously through the first week.
 /// - From night 14: the Dashboard and the score detail show the score and
 ///   its verdict; before that they show "Building your baseline".
 /// - From night 28: the baseline counts as mature ("Full algorithm").

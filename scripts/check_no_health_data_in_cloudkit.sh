@@ -106,17 +106,40 @@ SETTER = re.compile(r"\.set(?:Value|Object)\s*\((.*),\s*forKey:\s*(?:\"([^\"]+)\
 
 texts = {p: p.read_text(encoding="utf-8", errors="ignore") for p in files}
 # A constant name may be declared in more than one file with different
-# values, so a name resolves to every value it is given anywhere.
-constants = {}
-for text in texts.values():
-    for name, value in CONSTANT.findall(text):
-        constants.setdefault(name, set()).add(value)
+# values, so a name resolves to every value it is given anywhere. A bare name
+# resolves among the record files' constants. A qualified one (`Keys.score`)
+# names its type, and key types often live in a file that never names
+# CKRecord, so it resolves among every Swift file's, where a
+# `case name = "value"` counts too.
+CASE_VALUE = re.compile(r"\bcase\s+(\w+)\s*=\s*\"([^\"]+)\"")
+
+
+def collect(sources, pattern_sets):
+    found = {}
+    for text in sources:
+        for pattern in pattern_sets:
+            for name, value in pattern.findall(text):
+                found.setdefault(name, set()).add(value)
+    return found
+
+
+constants = collect(texts.values(), (CONSTANT,))
+all_texts = [q.read_text(encoding="utf-8", errors="ignore") for root in sys.argv[2:] for q in pathlib.Path(root).rglob("*.swift")]
+qualified_constants = collect(all_texts, (CONSTANT, CASE_VALUE))
 
 
 def keys_of(literal, name):
+    """Every key a subscript or setter can write. A name that resolves to no
+    constant is still checked by its own name, so an unresolved key is never
+    skipped: `Field.meanRMSSD.rawValue` is the key `meanRMSSD` unless the case
+    gives another raw value."""
     if literal:
         return {literal}
-    return constants.get((name or "").split(".")[-1], set())
+    parts = (name or "").split(".")
+    if len(parts) > 1 and parts[-1] == "rawValue":
+        parts = parts[:-1]
+    table = qualified_constants if len(parts) > 1 else constants
+    return table.get(parts[-1], set()) | {parts[-1]}
 
 
 def is_record(name, aliases):
@@ -198,12 +221,12 @@ fi
 # decompresses without decrypting makes the backup unreadable the
 # same day, on the same device, and it surfaces as "no backup" rather than an
 # error.
-# The readers are the functions that actually decompress: `decodePoints`
+# The readers are the functions that actually decompress: `decodePayload`
 # (live backups, called by `liveBackupSummary`) and `decodeSessionAsset`
 # (CloudPullCoordinator; every session payload, for the pull and for the
 # health scrub). A reader that is not found, or no longer decompresses in its
 # own body, is a config error rather than a pass.
-for reader in decodePoints decodeSessionAsset; do
+for reader in decodePayload decodeSessionAsset; do
     file="$(grep -rlnE "func $reader\b" Emuqu/Sources/Storage 2>/dev/null | head -1)"
     if [[ -z "$file" ]]; then
         echo "check_no_health_data_in_cloudkit: reader $reader not found under Emuqu/Sources/Storage — re-point this gate at it." >&2

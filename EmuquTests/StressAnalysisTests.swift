@@ -227,4 +227,26 @@ final class StressAnalysisTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(score, 1)
         XCTAssertLessThanOrEqual(score, 10)
     }
+
+    // MARK: - Hard-workout taper
+
+    /// The taper excuses 2, 1 and 0.5 points of readiness on the day of a
+    /// hard workout and the two days after, and nothing later or with no hard
+    /// workout on record (register entry `hard-workout-readiness-taper`).
+    @MainActor
+    func testTheHardWorkoutTaperExcusesLowReadinessForTwoDays() {
+        let expected: [(days: Int?, adjustment: Double)] = [(0, -2), (1, -1), (2, -0.5), (3, 0), (nil, 0)]
+        for row in expected {
+            let load = TrainingLoad(
+                vo2Max: nil, recentWorkouts: [], weeklyLoadScore: 0,
+                daysSinceHardWorkout: row.days, acuteChronicRatio: nil, metrics: nil
+            )
+            XCTAssertEqual(load.readinessAdjustment, row.adjustment, "days since hard workout: \(String(describing: row.days))")
+        }
+        let rested = StressAnalyzer.computeReadinessScore(rmssd: 30, baselineRMSSD: 45, alpha1: nil)
+        let afterHard = StressAnalyzer.computeReadinessScore(rmssd: 30, baselineRMSSD: 45, alpha1: nil, trainingLoadAdjustment: -1)
+        let positive = StressAnalyzer.computeReadinessScore(rmssd: 30, baselineRMSSD: 45, alpha1: nil, trainingLoadAdjustment: 1)
+        XCTAssertEqual(afterHard - rested, 1, accuracy: 1e-9, "the allowance is added to the score")
+        XCTAssertEqual(positive, rested, "a positive adjustment is ignored")
+    }
 }

@@ -37,7 +37,8 @@ extension WorkoutFinalizer {
         )
         classifySessionAndAttachData(
             session: &session, metadata: &metadata, series: analysis.series,
-            rrPoints: rrPoints, stopDate: stopDate
+            rrPoints: rrPoints, stopDate: stopDate,
+            activeSeconds: TimeInterval(recording.pauseTimeline.activeSeconds(sessionStart: startDate, now: stopDate))
         )
         attachAIContextSnapshot(to: &session, sport: analysis.sport, stopDate: stopDate)
         await attachTrainingSnapshot(to: &session, stopDate: stopDate)
@@ -97,7 +98,7 @@ extension WorkoutFinalizer {
             userMaxHR: userMaxHR,
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
-            sex: Self.banisterSex(for: settings.biologicalSex),
+            sex: WorkoutAnalyzer.BanisterSex(settings.biologicalSex),
             splitDistanceMeters: Self.splitDistanceMeters(),
             pauses: recording.location?.trackPauses ?? WorkoutAnalyzer.TrackPauses()
         )
@@ -110,16 +111,6 @@ extension WorkoutFinalizer {
     /// a 6.35 km walk shows "mi 1..mi 6" for a 3.95 mi walk.
     private static func splitDistanceMeters() -> Double {
         UnitsPreferenceStore.current.resolved == .imperial ? UnitConstants.metersPerMile : 1000.0
-    }
-
-    /// Banister's original work gave different exponents for men vs
-    /// women. Map the settings enum; `.other` → male coefficients (the
-    /// historical default in the literature when sex is unspecified).
-    private static func banisterSex(for biologicalSex: UserSettings.BiologicalSex?) -> WorkoutAnalyzer.BanisterSex {
-        switch biologicalSex {
-        case .female: return .female
-        default: return .male
-        }
     }
 
     /// Finalize stage 2 — base metadata + the session's distance.
@@ -185,6 +176,7 @@ extension WorkoutFinalizer {
     private func applyAnalyzerMetrics(to metadata: inout WorkoutMetadata, computed: WorkoutMetadata, hrrSamples: [HRRSample]) {
         metadata.gpsPolyline = computed.gpsPolyline
         metadata.gpsFixTimes = computed.gpsFixTimes
+        metadata.gpsSegmentStarts = computed.gpsSegmentStarts
         metadata.splits = computed.splits
         metadata.luciaTRIMP = computed.luciaTRIMP
         // Record the saved-library route name (if any)
@@ -327,7 +319,7 @@ extension WorkoutFinalizer {
         metadata.extrapolatedTRIMP = estimate.estimatedTRIMP
         metadata.extrapolationConfidence = estimate.confidence
         metadata.extrapolationRouteName = estimate.routeName
-        debugLog("[WorkoutRecorder.finalize] Route TRIMP estimate: \(String(format: "%.0f", estimate.estimatedTRIMP)) (recorded=\(metadata.luciaTRIMP.map { String(format: "%.0f", $0) } ?? "nil"), route=\(estimate.routeName), conf=\(String(format: "%.2f", estimate.confidence)), priorDominant=\(estimate.priorDominant))")
+        debugLog("[WorkoutRecorder.finalize] Route TRIMP estimate: \(String(format: "%.0f", estimate.estimatedTRIMP)) (recorded=\(metadata.luciaTRIMP.map { String(format: "%.0f", $0) } ?? "nil"), conf=\(String(format: "%.2f", estimate.confidence)), priorDominant=\(estimate.priorDominant))")
     }
 
     /// Finalize stage 8 — Concept2 PM5 rowing telemetry.
@@ -382,7 +374,7 @@ extension WorkoutFinalizer {
             bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: metadata.samples ?? [],
             splits: metadata.splits ?? [],
-            trimp: metadata.luciaTRIMP,
+            load: metadata.preferredTrainingLoad(ftp: .current(settings), heartRate: WorkoutLoadRestingHR.anchors)?.value,
             decouplingPercent: metadata.decouplingPercent
         )
         metadata.analysisSnapshot = WorkoutAnalysisSnapshotBuilder.build(snapshotInputs)
@@ -400,22 +392,29 @@ extension WorkoutFinalizer {
     /// "Estimated — strap dropout" badge is more honest than
     /// silently dropping the data.
     ///
-    /// Sessions with no HR AND no GPS movement are a different case:
-    /// they're almost certainly accidental Start taps, not real
-    /// recordings. Those go to `.failed`, and `archive(session:)` does not
-    /// write a `.failed` session, so the archive (and iCloud and Apple
-    /// Health after it) isn't littered with ghost rows.
+    /// A session under a minute of active time with no HR, no movement and
+    /// few samples is a different case: almost certainly an accidental Start
+    /// tap (`WorkoutAccidentalStart`). It goes to `.failed`, which
+    /// `archive(session:)` does not write on its own: the summary says it was
+    /// not saved and offers to save it. The time is the wall clock less the
+    /// pauses (`activeSeconds`), so a long workout whose ticker was suspended
+    /// with the phone locked is saved like any other, and that time is stored
+    /// as its duration (`WorkoutMetadata.activeSeconds`).
     private func classifySessionAndAttachData(
         session: inout HRVSession,
         metadata: inout WorkoutMetadata,
         series: RRSeries?,
         rrPoints: [RRPoint],
-        stopDate: Date
+        stopDate: Date,
+        activeSeconds: TimeInterval
     ) {
-        let hasMeaningfulData = rrPoints.count >= 60
-            || (metadata.distanceMeters ?? 0) > 50
-            || (metadata.samples?.count ?? 0) >= 30
-        if hasMeaningfulData {
+        let accidental = WorkoutAccidentalStart.isAccidental(
+            beats: rrPoints.count, distanceMeters: metadata.distanceMeters,
+            sampleCount: metadata.samples?.count ?? 0, activeSeconds: activeSeconds
+        )
+        if accidental {
+            session.state = .failed
+        } else {
             session.state = .complete
             // A dropout needs a strap that sent something. A workout with no
             // beats at all never had one (no strap, or Watch heart rate), and
@@ -423,9 +422,8 @@ extension WorkoutFinalizer {
             if !rrPoints.isEmpty, rrPoints.count < 60 {
                 metadata.partialDataReason = .strapDisconnected
             }
-        } else {
-            session.state = .failed
         }
+        metadata.activeSeconds = activeSeconds
         session.workoutMetadata = metadata
         session.rrSeries = series
         session.endDate = stopDate

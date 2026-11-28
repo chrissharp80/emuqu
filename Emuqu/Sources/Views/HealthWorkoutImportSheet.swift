@@ -20,6 +20,9 @@ struct HealthWorkoutImportSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var candidates: [HealthWorkoutImporter.Candidate]?
+    /// The workout list could not be read from Apple Health (a read error or
+    /// timeout), so an empty list says nothing about what is imported.
+    @State private var listUnread = false
     /// Recordings that died before capturing anything. Listed first: this is
     /// the one the user came here angry about.
     @State private var interrupted: [HealthWorkoutImporter.InterruptedSession] = []
@@ -157,14 +160,23 @@ struct HealthWorkoutImportSheet: View {
         }
     }
 
-    /// Without Apple Health on the device nothing was read, so the sheet
-    /// says that instead of claiming the history is complete.
+    /// Without Apple Health on the device, or with a list read that failed,
+    /// nothing was read, so the sheet says that instead of claiming the
+    /// history is complete.
     private var emptyExplanation: some View {
-        Text(HKHealthStore.isHealthDataAvailable()
-            ? String(localized: "Every workout Apple Health has from the last 30 days is already in Emuqu.", bundle: LanguageManager.appBundle)
-            : String(localized: "Apple Health is not available on this device", bundle: LanguageManager.appBundle))
-        .font(.footnote)
-        .foregroundStyle(.secondary)
+        Text(emptyExplanationText)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+    }
+
+    private var emptyExplanationText: String {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return String(localized: "Apple Health is not available on this device", bundle: LanguageManager.appBundle)
+        }
+        guard !listUnread else {
+            return String(localized: "Apple Health couldn't be read just now. Close this and try again.", bundle: LanguageManager.appBundle)
+        }
+        return String(localized: "Every workout Apple Health has from the last 30 days is already in Emuqu.", bundle: LanguageManager.appBundle)
     }
 
     /// States the limit here rather than letting the user discover it in a
@@ -277,7 +289,9 @@ struct HealthWorkoutImportSheet: View {
         interrupted = await Task.detached(priority: .userInitiated) {
             HealthWorkoutImporter.scanInterruptedSessions(archive: archive)
         }.value
-        candidates = await importer.candidates(archive: archive)
+        let found = await importer.candidates(archive: archive)
+        listUnread = found == nil
+        candidates = found ?? []
     }
 
     private func startRebuild(_ stub: HealthWorkoutImporter.InterruptedSession) {

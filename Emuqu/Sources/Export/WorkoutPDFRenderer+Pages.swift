@@ -109,7 +109,7 @@ extension WorkoutPDFRenderer {
             guard let p = split.averagePaceSecPerKm else { return "—" }
             return report.units.formatPace(secondsPerMeter: p / 1_000) ?? "—"
         }()
-        let hrStr = split.averageHR.map { String(localized: "\(Int($0)) bpm", bundle: LanguageManager.appBundle) } ?? "—"
+        let hrStr = split.averageHR.map { String(localized: "\(Int($0.rounded())) bpm", bundle: LanguageManager.appBundle) } ?? "—"
         let elevStr = split.elevationGainMeters.map { report.units.formatElevation(meters: $0) } ?? "—"
         let values = ["\(unit) \(split.index)", paceStr, hrStr, elevStr]
         var x = report.config.margin
@@ -151,7 +151,7 @@ extension WorkoutPDFRenderer {
             y += 18
             for (idx, secs) in zs.enumerated() where secs > 0 {
                 let label = "Z\(idx + 1)"
-                let pct = Int((Double(secs) / Double(total)) * 100)
+                let pct = Int((Double(secs) / Double(total) * 100).rounded())
                 drawText("\(label):  \(PDFReadingDirection.isolated(PDFDurationText.minutesSeconds(secs)))  ·  \(pct)%", at: CGPoint(x: report.config.margin, y: y), font: report.config.monoFont, color: report.config.textPrimary)
                 y += 14
             }
@@ -256,16 +256,12 @@ extension WorkoutPDFRenderer {
         return "—"
     }
 
-    /// Mean METs of the per-second samples over the moving minutes they
-    /// were recorded in; paused time burns nothing here.
+    /// Active energy from the per-tick METs (`WorkoutEnergy`), the figure
+    /// written to Apple Health's Active Energy; paused time burns nothing here.
     func calorieString() -> String {
         guard let samples = report.session.workoutMetadata?.samples,
-              let duration = report.session.activeWorkoutSeconds else { return "—" }
-        let mets = samples.compactMap(\.mets)
-        guard !mets.isEmpty else { return "—" }
-        let avgMETs = mets.reduce(0, +) / Double(mets.count)
-        let weight = report.userBodyWeightKg
-        let kcal = (avgMETs * 3.5 * weight * (duration / 60.0)) / 200.0
+              let kcal = WorkoutEnergy.activeKilocalories(samples: samples, bodyWeightKg: report.userBodyWeightKg)
+        else { return "—" }
         return String(format: "%.0f kcal", locale: LanguageManager.appLocale, kcal)
     }
 
@@ -529,7 +525,7 @@ extension WorkoutPDFRenderer {
         if pctMax >= 0.85 {
             return (
                 String(localized: "Hard effort — quality session", bundle: bundle),
-                String(localized: "\(durationMin)-min session, peak HR at \(Int(pctMax*100))% max. High internal load — needs full recovery.", bundle: bundle),
+                String(localized: "\(durationMin)-min session, peak HR at \(Int((pctMax * 100).rounded()))% max. High internal load — needs full recovery.", bundle: bundle),
                 .caution
             )
         }

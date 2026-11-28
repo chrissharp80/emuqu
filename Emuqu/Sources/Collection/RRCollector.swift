@@ -65,10 +65,8 @@ final class RRCollector {
     // morning-processing property the collector also publishes.
     //
     // Writers: `CollectorBindings.setupBindings()` pushes PolarManager
-    // updates into `deviceStatus`. The computed getters below forward
-    // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
-    // through to it. SwiftUI views read
-    // `deviceStatus` directly from the environment.
+    // updates into `deviceStatus`. SwiftUI views read `deviceStatus`
+    // directly from the environment.
 
     // MARK: - Internal State (accessed by extension files)
 
@@ -313,9 +311,11 @@ final class RRCollector {
     /// What the Record screen's Recover card offers: a recording the app has
     /// never downloaded, or one still running on the strap that no session of
     /// this app owns (left by a crash, or started on the strap). Recover stops
-    /// a running one before it downloads.
+    /// a running one before it downloads. Neither the card's Recover nor its
+    /// Discard is offered while another session owns the strap's recording
+    /// (`StrapRecordingGuards.strapRecordingOwner`).
     var offersStrapRecovery: Bool {
-        strapGuards.hasUnrecoveredData || strapGuards.holdsOrphanedRecording
+        (strapGuards.hasUnrecoveredData || strapGuards.holdsOrphanedRecording) && strapGuards.strapRecordingOwner() == nil
     }
 
     // MARK: - Initialization

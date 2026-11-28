@@ -56,7 +56,7 @@ struct LiveWaveformView: View {
     /// Current heart rate
     private var currentHR: Int? {
         guard let lastRR = displayPoints.last, lastRR.rr_ms > 0 else { return nil }
-        return Int(60000.0 / Double(lastRR.rr_ms))
+        return Int((60000.0 / Double(lastRR.rr_ms)).rounded())
     }
 
     /// Current RR
@@ -182,7 +182,9 @@ struct LiveWaveformView: View {
         let range = yRange
         for (index, point) in points.enumerated() {
             let position = plotPoint(index, of: point, count: points.count, size: size, range: range)
-            if index == 0 {
+            // The line lifts at a recording break (a Bluetooth dropout) or a
+            // removed beat: the beats either side were never adjacent.
+            if index == 0 || !TimeDomainAnalyzer.isAdjacentBeat(points[index - 1], point) {
                 path.move(to: position)
             } else {
                 path.addLine(to: position)

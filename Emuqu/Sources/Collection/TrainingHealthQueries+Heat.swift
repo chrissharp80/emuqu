@@ -23,13 +23,17 @@ extension TrainingHealthQueries {
     /// counting it would over-state acclimation. A workout is treated as
     /// indoor when its `HKMetadataKeyIndoorWorkout` flag is true, or when its
     /// activity type isn't one that's normally done outdoors.
+    ///
+    /// Emuqu's own exports are left out, as for the load
+    /// (`otherSourcesWorkoutPredicate`): the archive holds those sessions,
+    /// and an export stays in Health after its session is trashed.
     func fetchOutdoorWorkoutsForHeat(days: Int) async -> [HeatWorkoutInput] {
         guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let end = Date()
         let startOfToday = calendar.startOfDay(for: end)
         guard let start = calendar.date(byAdding: .day, value: -days, to: startOfToday) else { return [] }
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let predicate = Self.otherSourcesWorkoutPredicate(from: start, to: end)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(

@@ -85,6 +85,25 @@ final class SleepTimelineEditorTests: XCTestCase {
         XCTAssertEqual(saved.inBedMinutes, 435)
     }
 
+    /// Onset and wake are the first and last sleep stage, as the resolver
+    /// defines them, after any edit: the awake time the editor keeps inside
+    /// the segment stays latency before sleep and lying awake after it, so
+    /// an edit elsewhere in the night moves neither end.
+    func testAnEditKeepsOnsetAndWakeOnSleepStages() {
+        let intervals = [interval(stage: .awake, 0, 30), interval(stage: .core, 30, 400), interval(stage: .awake, 400, 430)]
+        let original = SleepData(
+            date: anchor, inBedStart: anchor, sleepStart: date(30), sleepEnd: date(400),
+            totalSleepMinutes: 370, inBedMinutes: 430, awakeMinutes: 60, sleepEfficiency: 370.0 / 430 * 100,
+            boundarySource: .healthKit, stageIntervals: intervals
+        )
+        let edited = SleepTimelineState.initial(from: original).applying(.carveAwake(start: date(200), end: date(210)))
+        let saved = SleepScienceAnalyzer.buildSleepDataFromTimelineState(original: original, state: edited)
+        XCTAssertEqual(saved.sleepStart, date(30))
+        XCTAssertEqual(saved.sleepEnd, date(400))
+        XCTAssertEqual(saved.sleepLatencyMinutes, 30)
+        XCTAssertEqual(saved.effectiveSegments.first?.sleepStart, date(30))
+    }
+
     // MARK: - addSegment
 
     func testAddSegmentContributesToTotalButNotToStages() {

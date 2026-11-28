@@ -742,8 +742,8 @@ enum SleepResolver {
         return SleepData(
             date: ctx.fallbackDate,
             inBedStart: inBedStart(ctx: ctx, sleepStages: sleepStages),
-            sleepStart: sleepStages.map(\.start).min(),
-            sleepEnd: sleepStages.map(\.end).max(),
+            sleepStart: SleepData.sleepBounds(of: stages)?.start,
+            sleepEnd: SleepData.sleepBounds(of: stages)?.end,
             totalSleepMinutes: total,
             inBedMinutes: inBed,
             deepSleepMinutes: deep,

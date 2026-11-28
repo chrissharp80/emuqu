@@ -82,6 +82,11 @@ struct CloudHealthScrubCoordinator {
     /// record with the stripped payload. Only records still believed to be in
     /// iCloud are marked; anything else is already pending (it uploads
     /// stripped) or deleted.
+    ///
+    /// The batch leaves the list only once the sync state queueing it is on
+    /// disk. Taken off first, a kill before that save left those records
+    /// holding their Apple Health readings in iCloud, with nothing left to
+    /// rewrite them.
     func dripReupload() async {
         var remaining = await remainingIds()
         guard !remaining.isEmpty else { return }
@@ -92,11 +97,12 @@ struct CloudHealthScrubCoordinator {
             manager.state.markRemoved(id)
             marked += 1
         }
-        defaults.set(remaining, forKey: Self.remainingKey)
         if marked > 0 {
             await manager.state.saveSyncStateAsync()
+            guard manager.state.isLoaded, !manager.state.hasUnsavedBookkeeping else { return }
             debugLog("[CloudKit] Health scrub: re-marked \(marked) for upload, \(remaining.count) remaining")
         }
+        defaults.set(remaining, forKey: Self.remainingKey)
     }
 
     // MARK: - iCloud Sync off

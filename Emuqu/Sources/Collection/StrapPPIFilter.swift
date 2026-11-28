@@ -64,17 +64,33 @@ enum StrapPPIFilter {
     /// interval counted, accepted or not. The window selector and the sleep
     /// boundaries read `wallClockMs ?? t_ms`, and the break check between
     /// beats compares wall clocks, so a stretch of rejected intervals no
-    /// longer pulls the rest of the night earlier.
+    /// longer pulls the rest of the night earlier. The beat after any
+    /// rejected run carries `followsRemovedBeat` (`marksRemovedBeat`).
     static func rrPoints(from samples: [StrapPPISample]) -> [RRPoint] {
         var points: [RRPoint] = []
         var beatMs: Int64 = 0
         var elapsedMs: Int64 = 0
+        var removed = false
         for sample in samples {
             defer { elapsedMs += Int64(max(0, sample.ppInMs)) }
-            guard let interval = acceptedInterval(sample) else { continue }
-            points.append(RRPoint(t_ms: beatMs, rr_ms: interval, wallClockMs: elapsedMs))
+            guard let interval = acceptedInterval(sample) else {
+                removed = true
+                continue
+            }
+            points.append(RRPoint(t_ms: beatMs, rr_ms: interval, wallClockMs: elapsedMs, followsRemovedBeat: marksRemovedBeat(removed, after: points)))
             beatMs += Int64(interval)
+            removed = false
         }
         return points
+    }
+
+    /// Whether the next kept beat is marked as following a removed one: the
+    /// gate rejected an interval since the last kept beat, and there is a
+    /// kept beat before it for the mark to separate it from. The same rule
+    /// for the live stream and a recording pulled off the sensor, so a
+    /// removed beat is never differenced across (Task Force 1996: adjacent
+    /// NN intervals only).
+    static func marksRemovedBeat(_ removedSinceLastKept: Bool, after kept: [RRPoint]) -> Bool {
+        removedSinceLastKept && !kept.isEmpty
     }
 }

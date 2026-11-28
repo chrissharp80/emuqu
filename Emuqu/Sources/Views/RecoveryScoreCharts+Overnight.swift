@@ -413,7 +413,7 @@ extension RecoveryScoreCharts {
             let isArtifact = flags.map { absolute < $0.count && $0[absolute].isArtifact } ?? false
             return !isArtifact && HRVConstants.RRInterval.isValid(points[absolute].rr_ms)
         }
-        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: lo ..< hi)
+        let breaks = TimeDomainAnalyzer.beatsNotAdjacentToPrevious(in: points, range: lo ..< hi)
         let validPairs = (1 ..< hi - lo).count { isValid($0) && isValid($0 - 1) && !breaks.contains(lo + $0) }
         guard validPairs >= 20 else { return nil }
         return TimeDomainAnalyzer.rmssd(points: points, range: lo ..< hi, isValid: isValid)
@@ -602,11 +602,14 @@ struct OvernightTimeAxis: ViewModifier {
 // `private` at file scope is fileprivate, so every call site in this
 // file resolves the same way.
 
+/// One line per run (`SeriesRuns`): none across a hole in the night.
 private func hrvLineMarks(_ series: [RecoveryScoreCharts.RMSSDPoint]) -> some ChartContent {
-    ForEach(series) { p in
+    let runs = SeriesRuns.runs(of: series.map(\.time), maxGap: SeriesRuns.overnightMaxGapSeconds)
+    return ForEach(Array(series.enumerated()), id: \.element.id) { index, p in
         LineMark(
             x: .value("Time", p.time),
-            y: .value("RMSSD", p.rmssd)
+            y: .value("RMSSD", p.rmssd),
+            series: .value("Run", runs[index])
         )
         .foregroundStyle(AppTheme.wongOptimal)
     }
@@ -637,11 +640,14 @@ private func hrvAudioDescriptor(_ series: [RecoveryScoreCharts.RMSSDPoint]) -> s
     )
 }
 
+/// One line per run (`SeriesRuns`): none across a hole in the night.
 private func hrLineMarks(_ series: [RecoveryScoreCharts.HRPoint]) -> some ChartContent {
-    ForEach(series) { p in
+    let runs = SeriesRuns.runs(of: series.map(\.time), maxGap: SeriesRuns.overnightMaxGapSeconds)
+    return ForEach(Array(series.enumerated()), id: \.element.id) { index, p in
         LineMark(
             x: .value("Time", p.time),
-            y: .value("HR", p.hr)
+            y: .value("HR", p.hr),
+            series: .value("Run", runs[index])
         )
         .foregroundStyle(AppTheme.wongAttention.opacity(0.7))
     }

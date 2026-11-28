@@ -540,13 +540,18 @@ final class CloudUploadRecordTests: XCTestCase {
         let points = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 800, rr_ms: 800 + $0 % 7) }
         let record = CKRecord(recordType: "LiveRRBackup", recordID: CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID))
         record["sessionId"] = sessionId.uuidString as CKRecordValue
-        let assetURL = try CloudKitLiveBackupManager.attachUpload(of: points, sessionId: sessionId, to: record)
+        let recordingStart = Date(timeIntervalSince1970: 1_785_538_800)
+        let assetURL = try CloudKitLiveBackupManager.attachUpload(of: points, recordingStart: recordingStart, sessionId: sessionId, to: record)
         defer { removeFile(assetURL) }
 
         XCTAssertEqual(Set(record.allKeys()), ["sessionId", "captureDate", "rrData"],
-                       "A live backup may carry only these plain fields; the beats go in the sealed asset")
-        let uploaded = try JSONDecoder().decode([RRPoint].self, from: try openedAssetBytes(record["rrData"]))
+                       "A live backup may carry only these plain fields; the beats and the recording's start go in the sealed asset")
+        let opened = try openedAssetBytes(record["rrData"])
+        // A build that reads only the beats still opens it.
+        let uploaded = try JSONDecoder().decode([RRPoint].self, from: opened)
         XCTAssertEqual(uploaded.map(\.rr_ms), points.map(\.rr_ms))
+        XCTAssertEqual(try LiveBackupPayload.decode(opened).recordingStart, recordingStart,
+                       "the recording's start must travel sealed with the beats; the plain capture date is the first upload's")
     }
 
     /// The asset's bytes, checked to be sealed and then opened with the cloud

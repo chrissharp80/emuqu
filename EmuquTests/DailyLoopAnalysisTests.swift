@@ -503,15 +503,28 @@ final class DailyLoopAnalysisTests: XCTestCase {
         XCTAssertEqual(a.loopState, .undetermined)
     }
 
-    /// TRIMP is surfaced in the paragraph so the number the user sees on the
-    /// card matches the one in the PDF.
-    func testParagraphReportsTrimp() {
-        let a = makeAnalysis(
-            workout: makeWorkout(alphas: [0.60], peakHR: 150, trimp: 137),
-            overnight: makeOvernight(rmssd: 50),
-            recent: [makeOvernight(rmssd: 48), makeOvernight(rmssd: 50), makeOvernight(rmssd: 52)]
-        )
-        XCTAssertTrue(a.loopParagraph.contains("training load of 137"))
+    /// The paragraph's "training load" is the workout's preferred load on the
+    /// TSS scale (`preferredTrainingLoad`), the number every other surface
+    /// shows: power TSS ahead of hrTSS, and hrTSS ahead of the raw Banister
+    /// TRIMP, which is on another scale.
+    func testParagraphReportsPreferredLoadNotRawTRIMP() {
+        let recent = [makeOvernight(rmssd: 48), makeOvernight(rmssd: 50), makeOvernight(rmssd: 52)]
+        let cases: [(powerTSS: Double?, hrTSS: Double?, expected: String)] = [
+            (nil, 96, "training load of 96"),
+            (80, 96, "training load of 80")
+        ]
+        for c in cases {
+            let name = c.powerTSS == nil ? "hrTSS over TRIMP" : "power TSS over hrTSS and TRIMP"
+            let session = makeWorkout(alphas: [0.60], peakHR: 150, trimp: 137)
+            var metadata = session.workoutMetadata
+            metadata?.hrTSS = c.hrTSS
+            metadata?.powerTSS = c.powerTSS
+            let a = makeAnalysis(
+                workout: makeWorkout(metadata: metadata), overnight: makeOvernight(rmssd: 50), recent: recent
+            )
+            XCTAssertTrue(a.loopParagraph.contains(c.expected), "\(name): \(a.loopParagraph)")
+            XCTAssertFalse(a.loopParagraph.contains("training load of 137"), "\(name): raw TRIMP shown as load")
+        }
     }
 
     // MARK: - Fixtures

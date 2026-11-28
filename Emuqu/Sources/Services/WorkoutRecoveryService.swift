@@ -47,7 +47,7 @@ enum WorkoutRecoveryService {
         unitsPreference: UnitsPreference,
         pauses: WorkoutAnalyzer.TrackPauses = WorkoutAnalyzer.TrackPauses()
     ) -> WorkoutMetadata {
-        let banisterSex: WorkoutAnalyzer.BanisterSex = settings.biologicalSex == .female ? .female : .male
+        let banisterSex = WorkoutAnalyzer.BanisterSex(settings.biologicalSex)
         return WorkoutAnalyzer.analyze(
             sport: sport,
             rrPoints: rrPoints,
@@ -158,7 +158,7 @@ enum WorkoutRecoveryService {
             bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: metadata.samples ?? [],
             splits: metadata.splits ?? [],
-            trimp: metadata.luciaTRIMP,
+            load: metadata.preferredTrainingLoad(ftp: .current(settings), heartRate: WorkoutLoadRestingHR.anchors)?.value,
             decouplingPercent: metadata.decouplingPercent
         )
         metadata.analysisSnapshot = WorkoutAnalysisSnapshotBuilder.build(snapshotInputs)
@@ -196,8 +196,9 @@ enum WorkoutRecoveryService {
         discardBackupsOnAccept: Bool = false,
         /// When set, use THIS GPS track instead of the on-disk one — the path
         /// for recovering a route from the Apple Watch (HealthKit) when the
-        /// phone's GPS died mid-workout. Distance/splits recompute from it.
-        overrideTrack: [CLLocation]? = nil,
+        /// phone's GPS died mid-workout. Distance/splits recompute from it,
+        /// and nothing is taken across a join between its segments.
+        overrideTrack: SegmentedTrack? = nil,
         /// Apply the trailing-rest auto-trim to `overrideRRPoints` too. Used by
         /// the strap-augment path (the merged strap recording still has the
         /// post-workout tail). The manual trim/Save passes false — the user
@@ -247,7 +248,7 @@ enum WorkoutRecoveryService {
     struct Overrides {
         let strapRRPoints: [RRPoint]?
         let rrPoints: [RRPoint]?
-        let track: [CLLocation]?
+        let track: SegmentedTrack?
         let autoTrim: Bool
         let distanceMeters: Double?
         let discardBackupsOnAccept: Bool
@@ -281,9 +282,11 @@ enum WorkoutRecoveryService {
             (trackBackup.retrieve(sessionId), Self.loadRRBackup(rawBackup, sessionId: sessionId))
         }.value
         debugLog("[WorkoutRecovery] start sessionId=\(sessionId.uuidString.prefix(8)) reason=\(reason.rawValue) hasTrack=\(workoutRecord != nil) hasRR=\(rrEntry != nil) trackPoints=\(workoutRecord?.track.count ?? 0) rrPoints=\(rrEntry?.points.count ?? 0)")
-        // Both empty AND no strap recording = nothing to recover.
+        // Both empty AND no strap recording = nothing to recover. A rebuild of
+        // an archived copy (`overrides.rrPoints`, even none for a workout with
+        // no heart rate) works from that copy's own streams.
         if workoutRecord == nil, rrEntry == nil,
-           overrides.strapRRPoints?.isEmpty ?? true, overrides.rrPoints?.isEmpty ?? true {
+           overrides.strapRRPoints?.isEmpty ?? true, overrides.rrPoints == nil {
             debugLog("[WorkoutRecovery] aborting — no on-disk backup or strap recording for session", level: .warning)
             return nil
         }
@@ -338,6 +341,7 @@ enum WorkoutRecoveryService {
         Self.carryForward(from: archived, into: &session)
         if Self.wasExportedByEmuqu(archived) { HealthKitBackfill.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }
+        Self.applyKeptSampleFields(to: &metadata, recovered: recovered, archived: archived, settings: deps.settingsManager.settings)
         Self.attachAnalysisSnapshot(
             to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec,
             rrPoints: recovered.rrPoints, settings: deps.settingsManager.settings
@@ -365,8 +369,10 @@ enum WorkoutRecoveryService {
         let pauses: PauseTimeline
         let rrPoints: [RRPoint]
         let track: [CLLocation]
-        let rawTrackWasEmpty: Bool
-        /// Offsets the backup marked as rows whose heart rate came from Apple
+        /// The fixes of `track` that begin a new recorded segment
+        /// (`TrackSegments`); empty for the phone's own continuous track.
+        let trackSegmentStarts: [Int]
+        /// Offsets the source marked as rows whose heart rate came from Apple
         /// Health, including rows past a trimmed end.
         let backupHealthKitHROffsets: [Int]
         let liveSamples: [WorkoutSample]
@@ -377,12 +383,14 @@ enum WorkoutRecoveryService {
     /// it like the beats and the track, so charts and elevation stop there.
     /// The end is placed on the wall clock (`resolveEndDate`), the pauses the
     /// backup holds are closed at it, and the active time leaves them out.
+    /// The streams are the backup's, or the archived copy's own once its
+    /// backups are gone (`sourceStreams`), so every figure is recomputed from
+    /// what the trim keeps.
     private static func resolveRecovered(
         sessionId: UUID, startDate: Date, prepared: Prepared, overrides: Overrides
     ) -> RecoveredWorkout {
-        let record = prepared.workoutRecord
-        let (rawTrack, liveSamples) = (overrides.track ?? record?.track ?? [], record?.samples ?? [])
-        let baroSamples = record?.barometricSamples ?? []
+        let streams = Self.sourceStreams(prepared, overrideTrack: overrides.track)
+        let (rawTrack, liveSamples, baroSamples) = (streams.track, streams.samples, streams.baroSamples)
         let rr = Self.resolvedRR(
             diskPoints: prepared.rrEntry?.points ?? [], strapPoints: overrides.strapRRPoints, overridePoints: overrides.rrPoints,
             autoTrimOverride: overrides.autoTrim, sessionId: sessionId, startDate: startDate)
@@ -395,8 +403,8 @@ enum WorkoutRecoveryService {
         return RecoveredWorkout(
             sport: Self.recoveredSport(prepared), startDate: startDate, endDate: endDate,
             durationSec: durationSec, pauses: pauses, rrPoints: rr.points,
-            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate),
-            rawTrackWasEmpty: rawTrack.isEmpty, backupHealthKitHROffsets: record?.healthKitHROffsets ?? [],
+            track: Self.clipTrack(rawTrack, isOverride: overrides.track != nil, endDate: endDate), trackSegmentStarts: streams.trackSegmentStarts,
+            backupHealthKitHROffsets: streams.healthKitHROffsets,
             liveSamples: liveSamples.filter { Double($0.offsetSec) <= durationSec },
             baroSamples: baroSamples.filter { $0.timestamp <= endDate }
         )
@@ -413,13 +421,30 @@ enum WorkoutRecoveryService {
         _ recovered: RecoveredWorkout, settings: UserSettings, unitsPreference: UnitsPreference
     ) async -> WorkoutMetadata {
         let (sport, rrPoints, startDate, track) = (recovered.sport, recovered.rrPoints, recovered.startDate, recovered.track)
-        let pauses = Self.trackPauses(of: track, windows: recovered.pauses.pauseWindows(now: recovered.endDate))
+        var pauses = Self.trackPauses(of: track, windows: recovered.pauses.pauseWindows(now: recovered.endDate))
+        pauses.breaks = Set(TrackSegments.starts(recovered.trackSegmentStarts, count: track.count))
         return await Task.detached(priority: .userInitiated) {
             Self.runAnalyzer(
                 sport: sport, rrPoints: rrPoints, startDate: startDate,
                 track: track, settings: settings, unitsPreference: unitsPreference, pauses: pauses
             )
         }.value
+    }
+
+    /// The figures recomputed from the kept samples (`applySampleDerivedFields`)
+    /// over the rebuild's active time, at the FTP the workout was scored
+    /// with, else the user's for the sport, and each split's mean α1 as the
+    /// live finalize gives it.
+    private static func applyKeptSampleFields(
+        to metadata: inout WorkoutMetadata, recovered: RecoveredWorkout, archived: HRVSession?, settings: UserSettings
+    ) {
+        let ftp = archived?.workoutMetadata?.ftpAtTimeOfSession ?? WorkoutAIContextBuilder.sportFTP(for: recovered.sport, settings: settings)
+        Self.applySampleDerivedFields(to: &metadata, activeSeconds: recovered.durationSec, ftp: ftp)
+        if let splits = metadata.splits, let samples = metadata.samples {
+            metadata.splits = WorkoutAnalyzer.enrichSplitsWithAlpha1(
+                splits: splits, samples: samples, startDate: recovered.startDate, track: recovered.track
+            )
+        }
     }
 
     /// The marked offsets that name a kept row, sorted, or nil when none do:
@@ -434,10 +459,10 @@ enum WorkoutRecoveryService {
     /// The rows the crash backup marked as heart rate from Apple Health keep
     /// their markers, so the iCloud upload leaves that heart rate out.
     ///
-    /// Re-finalizing with the GPS backup already gone (a trim of an
-    /// already-recovered session) keeps the distance/route the original
-    /// recovery computed. The off-body tail we trim away had no GPS, so a trim
-    /// must not zero a real distance.
+    /// Re-finalizing with the GPS backup already gone (a trim of a saved
+    /// workout) works from the archived copy's stored track and samples
+    /// (`sourceStreams`), so distance, route, splits and elevation are those
+    /// of the kept part.
     ///
     /// The analyzer pass walks every beat and GPS fix of the workout, so it
     /// runs off the main actor.
@@ -454,11 +479,12 @@ enum WorkoutRecoveryService {
         )
         metadata.healthKitHROffsets = Self.healthKitHROffsets(recovered.backupHealthKitHROffsets, in: recovered.liveSamples)
         metadata.pauseSpans = WorkoutPauseSpan.spans(of: recovered.pauses)
-        if recovered.baroSamples.isEmpty { Self.applyGPSElevation(to: &metadata, track: recovered.track) }
-        Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
-        if recovered.rawTrackWasEmpty, let existing = prepared.existingSession?.workoutMetadata {
-            Self.backfillRouteFields(into: &metadata, from: existing)
+        metadata.activeSeconds = recovered.durationSec
+        if recovered.baroSamples.isEmpty {
+            Self.applyGPSElevation(to: &metadata, track: recovered.track, starts: recovered.trackSegmentStarts)
         }
+        Self.attachRouteExtrapolation(to: &metadata, track: recovered.track, sport: recovered.sport, archive: deps.archive, savedRouteStore: deps.savedRouteStore)
+        Self.applyKeptSampleFields(to: &metadata, recovered: recovered, archived: prepared.existingSession, settings: settings)
         Self.attachAnalysisSnapshot(to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec, rrPoints: recovered.rrPoints, settings: settings)
         return metadata
     }
@@ -528,9 +554,15 @@ enum WorkoutRecoveryService {
     /// with the same 5 m per-fix gate the live recorder's fallback uses
     /// (`WorkoutLocationManager.accumulateGPSElevationFallback`). Left nil
     /// without two fixes, so a trim can still keep the earlier figures.
-    private static func applyGPSElevation(to metadata: inout WorkoutMetadata, track: [CLLocation]) {
+    private static func applyGPSElevation(to metadata: inout WorkoutMetadata, track: [CLLocation], starts: [Int]) {
         guard track.count > 1 else { return }
-        let deltas = zip(track, track.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }.filter { abs($0) >= 5.0 }
+        // No climb is taken across a join between segments (`TrackSegments`).
+        // A fix with no altitude (a negative vertical accuracy, as a stored
+        // polyline without one decodes) adds no climb.
+        let deltas = TrackSegments.split(track, starts: starts).flatMap { segment in
+            let withAltitude = segment.filter { $0.verticalAccuracy >= 0 }
+            return zip(withAltitude, withAltitude.dropFirst()).map { pair in pair.1.altitude - pair.0.altitude }
+        }.filter { abs($0) >= 5.0 }
         metadata.elevationGainMeters = deltas.filter { $0 > 0 }.reduce(0, +)
         metadata.elevationLossMeters = -deltas.filter { $0 < 0 }.reduce(0, +)
     }
@@ -551,6 +583,7 @@ enum WorkoutRecoveryService {
         applyBarometricElevation(to: &metadata, baroSamples: baroSamples)
         metadata.gpsPolyline = computed.gpsPolyline
         metadata.gpsFixTimes = computed.gpsFixTimes
+        metadata.gpsSegmentStarts = computed.gpsSegmentStarts
         metadata.splits = computed.splits
         metadata.luciaTRIMP = computed.luciaTRIMP
         metadata.hrTSS = computed.hrTSS
@@ -562,20 +595,19 @@ enum WorkoutRecoveryService {
         return metadata
     }
 
-    /// Carry route fields forward from an earlier recovery when re-finalizing
-    /// with the GPS backup already deleted.
-    ///
-    /// This is the trim path: the user trims an already-recovered session, and
-    /// its on-disk track is long gone. The off-body tail being cut had no GPS,
-    /// so a trim must never zero a distance the first recovery legitimately
-    /// computed. Each field is filled only when the new value is absent —
-    /// a real recomputed value always wins.
+    /// Carry route fields forward from the archived copy when the rebuild
+    /// covers the same time and could not recompute them (a distance from
+    /// Apple Health's passive total, with no track): they still describe the
+    /// workout. Never after a trim, where they describe time it no longer has
+    /// (`carryForward`). Each field is filled only when the new value is
+    /// absent — a real recomputed value always wins.
     static func backfillRouteFields(into metadata: inout WorkoutMetadata, from existing: WorkoutMetadata) {
         if (metadata.distanceMeters ?? 0) == 0 { metadata.distanceMeters = existing.distanceMeters }
         if metadata.splits?.isEmpty ?? true { metadata.splits = existing.splits }
         if metadata.gpsPolyline == nil {
             metadata.gpsPolyline = existing.gpsPolyline
             metadata.gpsFixTimes = existing.gpsFixTimes
+            metadata.gpsSegmentStarts = existing.gpsSegmentStarts
         }
         if metadata.elevationGainMeters == nil { metadata.elevationGainMeters = existing.elevationGainMeters }
         if metadata.elevationLossMeters == nil { metadata.elevationLossMeters = existing.elevationLossMeters }
@@ -628,8 +660,8 @@ enum WorkoutRecoveryService {
         return (trimmed, trimmed.count < merged.count)
     }
 
-    /// Prefer the merged strap + disk series; fall back to whichever side has
-    /// more beats when the selector can't reconcile them.
+    /// Prefer the merged strap + disk series; when the selector can't judge
+    /// them, the recovery tie-break decides (`SessionRecoveryMath.longerRecording`).
     private static func mergedPoints(
         diskPoints: [RRPoint], strapPoints: [RRPoint]?, sessionId: UUID, startDate: Date
     ) -> [RRPoint] {
@@ -644,7 +676,7 @@ enum WorkoutRecoveryService {
             debugLog("[WorkoutRecovery] merged strap(\(strap.count)) + disk(\(diskPoints.count)) → \(selection.points.count) [\(selection.normalizedSource)]")
             return selection.points
         }
-        return strap.count > diskPoints.count ? strap : diskPoints
+        return SessionRecoveryMath.longerRecording(existing: diskPoints, strapRR: strap)
     }
 
     // MARK: - Trailing-rest trim
@@ -656,7 +688,9 @@ enum WorkoutRecoveryService {
     /// trailing rest begins.
     ///
     /// Only trims when the drop is SUSTAINED — matching "HR drops clearly for
-    /// 1–2 minutes". ~4 windows of 20 beats ≈ 80+ beats of trailing rest.
+    /// 1–2 minutes": the beats after the last active window must last
+    /// `minimumTrailingRestMs` of real time (`BeatTimeline.spanMs`), not a
+    /// beat count, which lasts less the higher the HR.
     static func trimTrailingRest(_ points: [RRPoint]) -> [RRPoint] {
         let windowBeats = 20
         guard points.count > windowBeats * 8 else { return points }
@@ -670,10 +704,13 @@ enum WorkoutRecoveryService {
         var lastActiveWindow = -1
         for (idx, hr) in windows.enumerated() where hr >= threshold { lastActiveWindow = idx }
         guard lastActiveWindow >= 0, lastActiveWindow < windows.count - 1 else { return points }
-        guard windows.count - 1 - lastActiveWindow >= 4 else { return points }
+        guard BeatTimeline.spanMs(Array(points[((lastActiveWindow + 1) * windowBeats)...])) >= minimumTrailingRestMs else { return points }
         let cutWindow = min(windows.count, lastActiveWindow + 1 + 2) // short cooldown
         return Array(points[0 ..< min(points.count, cutWindow * windowBeats)])
     }
+
+    /// Shortest trailing rest that is trimmed: the lower end of "1–2 minutes".
+    static let minimumTrailingRestMs: Int64 = 60_000
 
     /// Windowed HR across the whole recording.
     private static func windowedHeartRates(_ points: [RRPoint], windowBeats: Int) -> [Double] {
@@ -714,7 +751,7 @@ enum WorkoutRecoveryService {
             parts.append(CoachReportGenerator.formatDistance(m, units: unitsPreference))
         }
         if let t = metadata.luciaTRIMP, t > 0 {
-            parts.append(String(localized: "TRIMP \(Int(t))", bundle: LanguageManager.appBundle))
+            parts.append(String(localized: "TRIMP \(Int(t.rounded()))", bundle: LanguageManager.appBundle))
         }
         return listFormatter.string(from: parts) ?? parts.joined(separator: ", ")
     }

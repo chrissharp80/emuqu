@@ -24,7 +24,7 @@ extension MedicalTermLexicon {
     /// which the injury reply answers.
     static let selfHarm = Concept(
         id: "self-harm",
-        latin: [
+        latin: selfHarmActsAndPlans + [
             // "Suicide sprints" (and runs, drills, shuttles, lines) are a
             // common conditioning drill, so that shape is excluded; the plural
             // "suicides" never matches inside `\b…\b`. The lookahead lives on
@@ -113,7 +113,7 @@ extension MedicalTermLexicon {
             "хоч(?:у|ется)\\s+(?:убить\\s+себя|причинить\\s+себе\\s+(?:вред|боль))",
             "покончить\\s+с\\s+жизнью", "лишить\\s+себя\\s+жизни", "самоповрежд\\w*"
         ] + selfHarmRumination,
-        unbounded: [
+        unbounded: selfHarmActsAndPlansUnbounded + [
             "自殺", "自杀", "자살", "انتحار",
             // ja: "死にたい", "消えたい", "生きたくない". "死にそう" and
             // "死ぬほど" are the idioms.
@@ -184,6 +184,82 @@ extension MedicalTermLexicon {
         "(?:думаю|думать|думала?)\\s+(?:о\\s+том,?\\s+(?:чтобы|как)\\s+)?(?:убить\\s+себя|умереть|покончить\\s+с\\s+(?:собой|жизнью))",
         "жить\\s+не\\s+хочется", "не\\s+хочется\\s+жить", "поконч\\w*\\s+с\\s+собой"
     ]
+
+    /// What the Columbia Suicide Severity Rating Scale screens for beyond the
+    /// wish to die: an act already taken (an overdose: "I took too many
+    /// pills", "I overdosed on my pills"), a method ("hang myself"), and a
+    /// plan with a time ("I'm going to end it tonight"), plus its first
+    /// question, the wish not to wake up. Someone saying one of these is in
+    /// danger now, which is what the crisis reply's emergency line is for.
+    ///
+    /// Each needs the shape that has no training sense. "End it" alone is a
+    /// session cut short ("I'm going to end it here, my legs are gone"), so
+    /// only "end it" with a finality or a night ("tonight", "for good")
+    /// counts. Pills need a quantity or "at once" ("I took all my meds this
+    /// morning" is a routine), and "overdosed" needs medication or nothing
+    /// after it ("I overdosed on intervals" is a joke). "Shoot myself in the
+    /// foot" is an idiom.
+    static let selfHarmActsAndPlans: [String] = [
+        "(?:took|taken|swallowed|downed)\\s+(?:way\\s+)?(?:too\\s+many|a\\s+(?:whole\\s+)?(?:bottle|handful|pack|packet|box|strip)\\s+of)"
+            + "\\s+(?:my\\s+|the\\s+|his\\s+|her\\s+)?(?:\\w+\\s+)?(?:pills|meds|medications?|medicines?|tablets|painkillers|sleeping\\s+pills|capsules)",
+        "(?:took|taken|swallowed)\\s+all\\s+(?:of\\s+)?(?:my|the)\\s+(?:\\w+\\s+)?(?:pills|meds|medications?|tablets|painkillers)\\s+at\\s+once",
+        "overdos(?:e|ed|ing)\\s+on\\s+(?:my\\s+|some\\s+|the\\s+)?(?:\\w+\\s+)?"
+            + "(?:pills|meds|medications?|medicines?|tablets|painkillers|insulin|antidepressants|paracetamol|tylenol|acetaminophen|opioids|sleeping\\s+pills)",
+        "i(?:['’]?ve|\\s+have|\\s+just)?\\s+(?:just\\s+)?overdosed(?=\\s*(?:[.!?,]|$|and\\b))",
+        "(?:hang|drown|poison|stab)\\s+myself", "shoot\\s+myself(?!\\s+in\\s+the\\s+(?:foot|leg))", "slit\\s+my\\s+wrists?",
+        "jump\\s+(?:off|from)\\s+(?:a|the)\\s+(?:bridge|building|roof|cliff|balcony)(?!\\s+(?:into|in)\\s+the\\s+(?:water|pool|lake|river|sea))",
+        "end(?:ing)?\\s+it\\s+(?:tonight|for\\s+good|once\\s+and\\s+for\\s+all)", "end\\s+my\\s+life\\s+tonight",
+        "take\\s+my\\s+life(?!\\s+(?:back|in\\s+(?:my|your)\\s+(?:own\\s+)?hands|seriously))", "(?:i['’]?m|i\\s+am)\\s+done\\s+(?:with\\s+life|living)", "can['’]?t\\s+go\\s+on\\s+living",
+        "(?:wish|want|hope)\\s+i\\s+(?:could\\s+)?(?:go\\s+to\\s+sleep\\s+and\\s+)?(?:never|not)\\s+wake\\s+up",
+        "(?:don['’]?t|do\\s+not)\\s+want\\s+to\\s+wake\\s+up\\s+(?:again|ever|anymore|tomorrow)",
+        // de: "zu viele Tabletten genommen", "eine Überdosis genommen", "mit meinem Leben Schluss machen".
+        "zu\\s+viele\\s+(?:tabletten|pillen|medikamente|schlaftabletten)\\s+(?:genommen|geschluckt|eingenommen)",
+        "(?:eine\\s+)?[üu]berdosis\\s+(?:genommen|geschluckt|tabletten|medikamente|schlaftabletten)",
+        "(?:mit\\s+(?:meinem|dem)\\s+leben\\s+schluss|schluss\\s+mit\\s+(?:meinem|dem)\\s+leben)", "mich\\s+(?:erh[äa]ngen|vergiften)",
+        // es: "tomé demasiadas pastillas", "una sobredosis", "acabar con todo esta noche".
+        "(?:tom[ée]|me\\s+tom[ée]|tragu[ée]|me\\s+he\\s+tomado|he\\s+tomado)\\s+(?:demasiadas|todas\\s+las|un\\s+frasco\\s+de|una\\s+caja\\s+de)\\s+"
+            + "(?:pastillas|p[íi]ldoras|medicinas|medicamentos|pastis)",
+        "(?:tom[ée]|me\\s+tom[ée]|he\\s+tomado)\\s+una\\s+sobredosis", "sobredosis\\s+de\\s+(?:pastillas|medicamentos|p[íi]ldoras)",
+        "acabar\\s+con\\s+todo\\s+(?:esta\\s+noche|hoy|de\\s+una\\s+vez)", "ahorcarme",
+        // pt-BR: "tomei remédios demais", "tomei uma overdose", "acabar com tudo hoje à noite".
+        "tomei\\s+(?:rem[ée]dios|comprimidos|p[íi]lulas)\\s+demais", "tomei\\s+(?:todos\\s+os|uma\\s+cartela\\s+(?:inteira\\s+)?de)\\s+(?:rem[ée]dios|comprimidos|p[íi]lulas)",
+        "tomei\\s+uma\\s+overdose", "overdose\\s+de\\s+(?:rem[ée]dios|comprimidos|p[íi]lulas)",
+        "acabar\\s+com\\s+tudo\\s+(?:hoje(?:\\s+[àa]\\s+noite)?|esta\\s+noite|de\\s+vez)", "me\\s+enforcar",
+        // fr: "j'ai pris trop de médicaments", "fait une overdose", "je vais en finir ce soir".
+        "(?:pris|aval[ée])\\s+trop\\s+de\\s+(?:m[ée]dicaments|cachets|pilules|comprim[ée]s)",
+        "aval[ée]\\s+tou(?:s|tes)\\s+(?:mes|les)\\s+(?:m[ée]dicaments|cachets|pilules|comprim[ée]s)", "fait\\s+une\\s+(?:overdose|surdose)",
+        "en\\s+finir\\s+(?:ce\\s+soir|cette\\s+nuit|aujourd['’]hui|pour\\s+de\\s+bon)", "me\\s+pendre",
+        // it: "ho preso troppe pillole", "un'overdose", "la faccio finita stasera".
+        "(?:preso|ingoiato)\\s+(?:troppe|tutte\\s+le)\\s+(?:pillole|pastiglie|compresse|medicine)", "(?:fatto|preso)\\s+un['’]?\\s*overdose",
+        "la\\s+faccio\\s+finita(?!\\s+con\\b)", "impiccarmi",
+        // nl: "te veel pillen genomen", "een overdosis genomen", "er vannacht een einde aan maken".
+        "te\\s+veel\\s+(?:pillen|tabletten|medicijnen|pilletjes)\\s+(?:genomen|geslikt|ingenomen)", "(?:een\\s+)?overdosis\\s+(?:genomen|ingenomen|geslikt)",
+        "er\\s+(?:vannacht|vanavond|vandaag)\\s+een\\s+einde\\s+aan\\s+(?:maken|maak)", "mezelf\\s+ophangen",
+        // da, nb: "taget for mange piller", "tok en overdose", "gjøre slutt på livet".
+        "(?:taget|tog|tatt|tok|slugt|slugte|svelget|svelgt)\\s+for\\s+mange\\s+(?:piller|tabletter)",
+        "(?:taget|tog|tatt|tok)\\s+(?:en\\s+)?overdos(?:is|e)", "gj?[øo]r(?:e)?\\s+(?:en\\s+ende|slutt)\\s+p[åa]\\s+(?:livet|mitt\\s+liv|mit\\s+liv)",
+        "gj?[øo]r(?:e)?\\s+(?:en\\s+ende|slutt)\\s+p[åa]\\s+det\\s+(?:i\\s+nat|i\\s+natt|i\\s+aften|i\\s+kveld)", "h(?:æ|e)nge\\s+(?:mig|meg)(?!\\s+(?:p[åa]|med|i)\\b)",
+        // sv: "tagit för många tabletter", "tog en överdos", "göra slut på mitt liv".
+        "(?:tagit|tog|svalt|svalde)\\s+f[öo]r\\s+m[åa]nga\\s+(?:tabletter|piller)", "(?:tagit|tog)\\s+(?:en\\s+)?[öo]verdos",
+        "g[öo]ra?\\s+slut\\s+p[åa]\\s+(?:mitt\\s+liv|livet)", "g[öo]r\\s+slut\\s+p[åa]\\s+det\\s+(?:i\\s+natt|i\\s+kv[äa]ll)", "h[äa]nga\\s+mig(?!\\s+(?:p[åa]|med|i)\\b)",
+        // fi: "otin liikaa lääkkeitä", "otin yliannostuksen", "lopetan kaiken tänä yönä".
+        "otin\\s+liikaa\\s+(?:l[äa][äa]kkeit[äa]|pillereit[äa]|tabletteja|unil[äa][äa]kkeit[äa])", "(?:otin|ottanut|otti)\\s+yliannostuksen",
+        "lopet(?:an|taa)\\s+kaiken\\s+(?:t[äa]n[äa]\\s+y[öo]n[äa]|t[äa]n[äa][äa]n|t[äa]n[äa]\\s+iltana)", "hirtt[äa][äa]\\s+itseni",
+        // is: "tók of margar töflur", "of stóran skammt", "binda enda á líf mitt".
+        "t[óo]k\\s+of\\s+margar\\s+(?:t[öo]flur|pillur)", "of\\s+st[óo]ran\\s+skammt", "binda\\s+enda\\s+[áa]\\s+l[íi]f\\s+mitt",
+        "enda\\s+[þt]etta\\s+[íi]\\s+n[óo]tt", "hengja\\s+mig",
+        // ru: "выпил слишком много таблеток", "наглотался таблеток", "покончу с этим сегодня ночью".
+        "(?:выпил|выпила|принял|приняла)\\s+(?:слишком\\s+много|все|целую\\s+пачку)\\s+таблеток", "наглотал\\w*\\s+таблеток",
+        "(?:сделал|сделала|принял|приняла)\\s+передозировку", "(?:покончу|закончу)\\s+(?:с\\s+этим|со\\s+всем|всё|все)\\s+(?:сегодня|этой\\s+ночью)",
+        "повеситься"
+    ] + selfHarmIntentAndSigns
+
+    static let selfHarmActsAndPlansUnbounded: [String] = [
+        "薬を飲みすぎた", "薬を大量に飲", "睡眠薬を大量", "オーバードーズ", "今夜死ぬつもり", "今夜死にます", "今夜死のう", "人生を終わりにする", "首を吊",                 // ja
+        "吃了太多药", "吞了很多药", "吃了一整瓶", "过量服药", "服药过量", "今晚就结束自己", "今晚结束一切", "今晚就结束一切", "了结自己", "上吊",                          // zh-Hans
+        "약을 너무 많이 먹", "약을 한꺼번에", "약을 과다 복용", "약을 과다복용", "수면제를 많이", "모든 걸 끝내고 싶", "모든 것을 끝내고 싶", "목을 매달",        // ko
+        "جرعة زائدة من الأدوية", "جرعة زائدة من الحبوب", "أخذت جرعة زائدة", "اخذت جرعة زائدة", "تناولت جرعة زائدة", "ابتلعت الكثير من الحبوب", "ابتلعت كل الحبوب", "أنهي كل شيء الليلة", "انهي كل شيء الليلة", "أشنق نفسي", "اشنق نفسي"                                  // ar
+    ] + selfHarmIntentAndSignsUnbounded
 
     static let selfHarmRuminationUnbounded: [String] = [
         "死のうと", "死んでしまいたい", "消えてしまいたい", "生きるのがつらい", "生きるのが辛い", "リスカ",   // ja

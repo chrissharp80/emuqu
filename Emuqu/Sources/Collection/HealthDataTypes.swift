@@ -14,11 +14,12 @@ struct HealthWorkoutSummary: Codable {
     let caloriesBurned: Double?
     let averageHR: Double?
     let maxHR: Double?
-    /// Pre-computed training load (TSS or TRIMP scale)
-    /// carried straight from `WorkoutMetadata.preferredTrainingLoad`
-    /// when this summary was built from the app's own archive. When
-    /// non-nil, `effectiveLoad(...)` returns this directly instead
-    /// of computing HR-based Banister TRIMP from `averageHR`. This
+    /// Pre-computed training load as stored (TSS scale, or TRIMP scale for
+    /// the `.banister` and `.routeHistory` tiers), carried from
+    /// `TrainingLoadPrecedence.stored` when this summary was built from the
+    /// app's own archive. When non-nil, `effectiveLoad(...)` uses it, placed
+    /// on the TSS scale by its source, instead of computing HR-based Banister
+    /// TRIMP from `averageHR`. This
     /// is what lets the daily TRIMP buildup — and therefore ATL,
     /// CTL, and TSB — anchor on powerTSS for power-equipped users
     /// rather than on HR alone. HealthKit-sourced summaries leave
@@ -298,7 +299,7 @@ struct HealthWorkoutSummary: Codable {
     /// Calculate TRIMP (Training Impulse) using Banister's method.
     /// TRIMP = duration_min × HRR × a × e^(k × HRR)
     ///   (a = 0.64, k = 1.92 male; a = 0.86, k = 1.67 female — see
-    ///   `banisterIntensityFactor`)
+    ///   `WorkoutAnalyzer.banisterTRIMP`)
     ///
     /// The scaling factor is part of the published formula and is what keeps
     /// TRIMP values in the range third-party trackers (iSmoothRun, Athlytic,
@@ -314,13 +315,13 @@ struct HealthWorkoutSummary: Codable {
     /// else the user's setting; the user's max HR), never a fixed default.
     ///
     /// Single entry point the daily-load builder uses to ask
-    /// "what's the stress score for this workout?" Returns `precomputedLoad`
-    /// straight through when present (i.e. the archive's powerTSS / hrTSS
-    /// via `preferredTrainingLoad`), otherwise falls back to the HR-only
-    /// Banister TRIMP formula. Keeps the call site in `buildDailyTrimp`
-    /// simple while letting power-equipped sessions skip the HR estimate.
+    /// "what's the stress score for this workout?" Uses `precomputedLoad`
+    /// when present (the archive's powerTSS / hrTSS / METs load via
+    /// `TrainingLoadPrecedence.stored`), otherwise the HR-only Banister TRIMP
+    /// formula. Keeps the call site in `buildDailyTrimp` simple while letting
+    /// power-equipped sessions skip the HR estimate.
     ///
-    /// Load = Coggan TSS (power) when available, else Banister TRIMP (HR).
+    /// Load = Coggan TSS (power) when available, else heart-rate TSS.
     /// Both scale CONTINUOUSLY with intensity AND duration — a resting-HR
     /// session already computes ≈0 (Banister HRR≈0, a smooth taper), and a
     /// long easy session yields its true moderate load.
@@ -337,10 +338,23 @@ struct HealthWorkoutSummary: Codable {
     /// the recorded span — app-recorded workouts already clamp duration to
     /// min(sample-span, recording-span) in `fromAppArchive` — and by capping
     /// ONLY at a non-physiological extreme.
-    func effectiveLoad(restingHR: Double, maxHR: Double) -> Double {
-        let base = (precomputedLoad ?? 0) > 0 ? (precomputedLoad ?? 0)
-            : calculateTrimp(restingHR: restingHR, maxHR: maxHR)
-        return cappedLoad(base)
+    ///
+    /// Every figure is on the TSS scale (100 = one hour at threshold): power
+    /// TSS, hrTSS and the METs load already are; a TRIMP (this workout's own
+    /// from its average HR, or a stored TRIMP or route estimate) is placed on
+    /// it through the hrTSS rule at `anchors` (`HeartRateAnchors.tss`), so a
+    /// workout counts the same whichever source scored it.
+    func effectiveLoad(anchors: TrainingLoadSeries.HeartRateAnchors) -> Double {
+        cappedLoad(tssScaleLoad(anchors: anchors))
+    }
+
+    /// `effectiveLoad` before the corruption cap.
+    private func tssScaleLoad(anchors: TrainingLoadSeries.HeartRateAnchors) -> Double {
+        guard let stored = precomputedLoad, stored > 0 else {
+            return anchors.tss(fromTRIMP: calculateTrimp(restingHR: anchors.restingHR, maxHR: anchors.maxHR, sex: anchors.sex))
+        }
+        let source = precomputedLoadSource.flatMap(WorkoutMetadata.TrainingLoadSource.init(rawValue:))
+        return source?.isTRIMPScale == true ? anchors.tss(fromTRIMP: stored) : stored
     }
 
     /// The ONLY guard the evidence supports: cap a single workout at a
@@ -373,28 +387,16 @@ struct HealthWorkoutSummary: Codable {
     /// dashboard load and every SwiftUI body rebuild that touched training
     /// readiness. Aggregate-level logs live in the callers
     /// (buildDailyTrimp / TrainingMetricsCache).
-    func calculateTrimp(restingHR: Double, maxHR: Double) -> Double {
-        guard let effectiveAvgHR = averageHR else { return 0 }
-        let hrRange = maxHR - restingHR
-        let hrReserve = hrRange > 0 ? max(0, min(1, (effectiveAvgHR - restingHR) / hrRange)) : 0
-        return durationMinutes * hrReserve * Self.banisterIntensityFactor(hrReserve: hrReserve)
-    }
-
-    /// Banister TRIMP weighting differs by biological sex because the
-    /// blood-lactate response to exercise intensity differs:
-    ///   Male:   0.64 × e^(1.92 × HRR)
-    ///   Female: 0.86 × e^(1.67 × HRR)
-    /// Source: Banister 1991 / Morton, Fitz-Clarke, Banister 1990.
     ///
-    /// Falls back to male values when the user hasn't set a sex
-    /// preference rather than guessing.
-    private static func banisterIntensityFactor(hrReserve: Double) -> Double {
-        let isFemale = AppDependencies.current.app.settingsManager.settingsSnapshot.biologicalSex == .female
-        let k = isFemale ? TrainingConstants.TRIMP.femaleWeighting
-                         : TrainingConstants.TRIMP.maleWeighting
-        let coefficient = isFemale ? TrainingConstants.TRIMP.femaleScale
-                                   : TrainingConstants.TRIMP.maleScale
-        return coefficient * exp(k * hrReserve)
+    /// The weighting is `WorkoutAnalyzer.banisterTRIMP`'s, the one the strap's
+    /// beat-level TRIMP uses, with Banister's coefficients for `sex` (the
+    /// anchors', from the biological-sex setting: male when it is not set,
+    /// rather than guessing).
+    func calculateTrimp(restingHR: Double, maxHR: Double, sex: WorkoutAnalyzer.BanisterSex) -> Double {
+        guard let effectiveAvgHR = averageHR, maxHR > restingHR else { return 0 }
+        return WorkoutAnalyzer.banisterTRIMP(
+            minutes: durationMinutes, heartRateReserve: (effectiveAvgHR - restingHR) / (maxHR - restingHR), sex: sex
+        )
     }
 
     /// Intensity score 0-100: up to 50 points for duration (reached at 100

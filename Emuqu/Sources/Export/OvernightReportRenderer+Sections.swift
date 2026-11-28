@@ -75,7 +75,7 @@ extension OvernightReportRenderer {
         y: CGFloat,
         boxWidth: CGFloat
     ) {
-        let hrRangeText = hrRange.map { "\(Int($0.min))-\(Int($0.max))" } ?? reportMissingValue
+        let hrRangeText = hrRange.map { "\(Int($0.min.rounded()))-\(Int($0.max.rounded()))" } ?? reportMissingValue
         // Row 1: Duration, Sleep, Deep Sleep, HR Range
         let row1Stats: [(String, String, UIColor)] = [
             (String(localized: "Recording", bundle: LanguageManager.appBundle), durationFormatted, config.primaryColor),
@@ -109,7 +109,7 @@ extension OvernightReportRenderer {
         let peakText = peakRMSSD.map { String(format: "%.0f ms", locale: LanguageManager.appLocale, $0) } ?? reportMissingValue
         // Row 2: Nadir HR, Peak HRV with times
         let row2Stats: [(String, String, UIColor)] = [
-            (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), hrRange.map { "\(Int($0.min)) bpm" } ?? reportMissingValue, UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
+            (String(localized: "Nadir HR", bundle: LanguageManager.appBundle), hrRange.map { "\(Int($0.min.rounded())) bpm" } ?? reportMissingValue, UIColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1)),
             (String(localized: "@ Time", bundle: LanguageManager.appBundle), clock(hrRange?.nadirTime), UIColor.darkGray),
             (String(localized: "Peak HRV", bundle: LanguageManager.appBundle), peakText, config.primaryColor),
             (String(localized: "@ Time", bundle: LanguageManager.appBundle), clock(peakHRVTime), UIColor.darkGray)
@@ -199,7 +199,8 @@ extension OvernightReportRenderer {
 
         drawOvernightHRGrid(in: graphRect, minHR: minHR, maxHR: maxHR, range: range)
         drawOvernightAnalysisWindow(result: result, pointCount: points.count, in: graphRect)
-        drawOvernightHRCurve(hrData, pointCount: points.count, in: graphRect, minHR: minHR, range: range)
+        let breaks = TimeDomainAnalyzer.beatsNotAdjacentToPrevious(in: points, range: points.indices)
+        drawOvernightHRCurve(hrData, pointCount: points.count, breaks: breaks, in: graphRect, minHR: minHR, range: range)
         // Border
         UIColor.lightGray.setStroke()
         UIBezierPath(rect: graphRect).stroke()
@@ -226,11 +227,12 @@ extension OvernightReportRenderer {
     private func drawOvernightHRCurve(
         _ hrData: [(Int, Double)],
         pointCount: Int,
+        breaks: Set<Int>,
         in graphRect: CGRect,
         minHR: Double,
         range: Double
     ) {
-        let path = overnightHRPath(hrData, pointCount: pointCount, in: graphRect, minHR: minHR, range: range)
+        let path = overnightHRPath(hrData, pointCount: pointCount, breaks: breaks, in: graphRect, minHR: minHR, range: range)
         config.accentColor.setStroke()
         path.lineWidth = 1.0
         path.stroke()
@@ -557,29 +559,32 @@ private func drawOvernightHRGrid(in graphRect: CGRect, minHR: Double, maxHR: Dou
     }
 }
 
+/// The trace, lifted wherever a recording break (`breaks`, beat indices
+/// that follow one) lies between two plotted beats, so no line joins beats
+/// either side of a hole.
 private func overnightHRPath(
     _ hrData: [(Int, Double)],
     pointCount: Int,
+    breaks: Set<Int>,
     in graphRect: CGRect,
     minHR: Double,
     range: Double
 ) -> UIBezierPath {
     let path = UIBezierPath()
-    var first = true
+    var previous: Int?
     let xScale = graphRect.width / CGFloat(pointCount)
-
     for (idx, hr) in hrData {
-        let x = graphRect.minX + CGFloat(idx) * xScale
-        let yPos = overnightHRY(hr, in: graphRect, minHR: minHR, range: range)
-
-        if first {
-            path.move(to: CGPoint(x: x, y: yPos))
-            first = false
-        } else {
-            path.addLine(to: CGPoint(x: x, y: yPos))
-        }
+        let point = CGPoint(x: graphRect.minX + CGFloat(idx) * xScale, y: overnightHRY(hr, in: graphRect, minHR: minHR, range: range))
+        let lifted = previous.map { breakLies(in: breaks, after: $0, through: idx) } ?? true
+        if lifted { path.move(to: point) } else { path.addLine(to: point) }
+        previous = idx
     }
     return path
+}
+
+/// Whether a beat in `breaks` lies in `previous + 1 ... index`.
+private func breakLies(in breaks: Set<Int>, after previous: Int, through index: Int) -> Bool {
+    breaks.contains { $0 > previous && $0 <= index }
 }
 
 private func strokeTagPill(_ text: String, attributes: [NSAttributedString.Key: Any], x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) {

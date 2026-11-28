@@ -43,9 +43,9 @@ final class TrainingLoadConsistencyTests: XCTestCase {
         let anchors = TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR: nil, settingRestingHR: 48, settingMaxHR: 185)
         let session = workout(on: day(0))
         let daily = TrainingLoadSeries.dailyLoad(workouts: [session], firstDay: day(-2), lastDay: day(0), anchors: anchors)
-        let expected = session.effectiveLoad(restingHR: 48, maxHR: 185)
+        let expected = session.effectiveLoad(anchors: anchors)
         XCTAssertEqual(daily[day(0)] ?? -1, expected, accuracy: 1e-9)
-        XCTAssertGreaterThan(expected - session.effectiveLoad(restingHR: 60, maxHR: 185), 5)
+        XCTAssertGreaterThan(expected - session.effectiveLoad(anchors: .init(restingHR: 60, maxHR: 185, lthr: anchors.lthr)), 2)
     }
 
     // MARK: - One builder, one EWMA

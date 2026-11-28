@@ -33,16 +33,41 @@ struct TrashRestoreCoordinator {
     /// replaced the iCloud tombstone. Their next upload overrides the deletion
     /// instead of yielding to it. Persisted, so a restore made offline survives
     /// a relaunch before it syncs.
+    ///
+    /// Called before the deletion mark is dropped. The restore undoes the
+    /// deletion this device holds, so it is dated after that deletion's time
+    /// (`restoreTime(_:after:)`), which for a deletion iCloud confirmed is
+    /// iCloud's own: a device clock running behind would otherwise date the
+    /// restore before the tombstone, and other devices would delete it again.
     func noteRestored(_ sessionId: UUID, at restoredAt: Date = Date()) {
         var ids = Set(UserDefaults.standard.stringArray(forKey: Self.restoredFromTrashKey) ?? [])
         ids.insert(sessionId.uuidString)
         UserDefaults.standard.set(Array(ids), forKey: Self.restoredFromTrashKey)
-        var times = UserDefaults.standard.dictionary(forKey: Self.restoredFromTrashAtKey) ?? [:]
-        times[sessionId.uuidString] = restoredAt.timeIntervalSince1970
-        UserDefaults.standard.set(times, forKey: Self.restoredFromTrashAtKey)
+        let deletedAt = manager.archive.store.deletionTime(of: sessionId)
+        storeRestoreTime(Self.restoreTime(restoredAt, after: deletedAt), of: sessionId)
         manager.state.markRemoved(sessionId)
         manager.state.saveSyncState()
         manager.state.savePendingQueue()
+    }
+
+    /// A restore that undoes a deletion made at `deletedAt` is later than it.
+    nonisolated static func restoreTime(_ restoredAt: Date, after deletedAt: Date?) -> Date {
+        guard let deletedAt else { return restoredAt }
+        return max(restoredAt, deletedAt.addingTimeInterval(1))
+    }
+
+    /// A restore still waiting to upload, made while a tombstone iCloud
+    /// timed at `deletionAt` was being written: dated after that tombstone.
+    func keepRestore(_ sessionId: UUID, after deletionAt: Date) {
+        guard isRestored(sessionId) else { return }
+        let current = restoreTime(of: sessionId) ?? Date()
+        storeRestoreTime(Self.restoreTime(current, after: deletionAt), of: sessionId)
+    }
+
+    private func storeRestoreTime(_ restoredAt: Date, of sessionId: UUID) {
+        var times = UserDefaults.standard.dictionary(forKey: Self.restoredFromTrashAtKey) ?? [:]
+        times[sessionId.uuidString] = restoredAt.timeIntervalSince1970
+        UserDefaults.standard.set(times, forKey: Self.restoredFromTrashAtKey)
     }
 
     func isRestored(_ sessionId: UUID) -> Bool {

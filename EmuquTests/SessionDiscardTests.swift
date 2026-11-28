@@ -103,7 +103,7 @@ final class SessionDiscardTests: XCTestCase {
         let night = try archivedNight(daysAgo: 1)
         review(night, savedForReview: night.id, on: collector)
 
-        collector.morning.clearAcceptanceState()
+        collector.morning.clearAcceptanceState(of: night.id)
         XCTAssertNil(collector.sessionState.reviewArchivedSessionId)
         collector.sessionState.currentSession = night
         await collector.rejectSession()

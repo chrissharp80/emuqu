@@ -66,7 +66,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v3.5.nov2026`), the version is stored with every score and shown on the
+  (`v3.6.nov2026`), the version is stored with every score and shown on the
   score-detail screen, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).
@@ -74,13 +74,13 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   the help centre, the assistant's fact catalogue and the PDF report. A copy
   linter and a perimeter check keep prohibited medical vocabulary out of all
   of them. The English patterns cover the Swift sources and the string
-  catalogue; twelve regulated-claim concepts (named conditions, diagnosis,
-  treatment, regulatory clearance and similar) are also checked in all 17
-  catalogue languages. The linter reads the Swift sources and string
-  catalogues, not these docs.
+  catalogue; the regulated-claim concepts (named conditions, diagnosis,
+  injury prediction, overtraining, treatment, regulatory clearance and
+  similar) are also checked in all 17 catalogue languages. The linter reads
+  the Swift sources and string catalogues, not these docs.
 - **Running all night on a phone.** Background Bluetooth capture with
   incremental backup, recovery from the strap's own memory after a crash, and
-  CloudKit sync that never touches the main thread.
+  CloudKit sync between devices.
 
 ## How it is built
 
@@ -226,7 +226,7 @@ routine step.
 
 ### CI
 
-Emuqu is developed by one person, pushing to `main`. Five workflows live in
+Emuqu is developed by one person, pushing to `main`. Six workflows live in
 `.github/workflows/`:
 
 - **`gates.yml`** runs on every pull request and push to `main`, on a Linux runner, in about a minute:
@@ -240,12 +240,16 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
   ratcheted floors read from `.ci/` at run time: overall, logic and views, and one per
   critical area (each source folder but `Protocols/`, the archive, the assistant's confirmation
   step and the log scrubber).
+- **`mutations.yml`** runs the mutation harness on demand and before every
+  TestFlight upload: each mutation changes one high-stakes behaviour (the
+  score arithmetic, encryption, the medical-claim guard, the data purge) and
+  the test suite must fail on it.
 - **`performance.yml`** runs the analysis performance tests on demand.
 - **`security.yml`** runs on every pull request, every push to `main` and
   weekly. It submits the SBOM to GitHub's dependency graph, so the Swift
   packages get Dependabot alerts, then runs CodeQL for Swift and, on a pull
   request, a dependency review of what it changes.
-- **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
+- **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml` and `mutations.yml`.
 
 The macOS build, the unit suite with its coverage floors and Thread Sanitizer
 run on every pull request on GitHub's standard macOS runner, which costs a
@@ -301,6 +305,7 @@ until you turn it on, and the hosted AI providers ask for consent first.
 | Weather for outdoor workouts | Coordinates rounded to about 1 km | MET Norway (CC BY 4.0) |
 | Nearby roads and trails | Approximate coordinates | Overpass (OpenStreetMap) |
 | Street names and addresses | Coordinates | Apple's geocoder and Apple Maps |
+| Place search, walking directions and a workout report's route map | The area they cover | Apple Maps |
 | Elevation | Route coordinates rounded to about 11 m | OpenTopoData |
 | WhisperKit voice input, once chosen | Nothing about you; the speech model is downloaded once | Hugging Face (huggingface.co) |
 

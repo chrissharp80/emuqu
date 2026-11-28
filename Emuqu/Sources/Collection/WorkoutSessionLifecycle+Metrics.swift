@@ -169,10 +169,11 @@ extension WorkoutSessionLifecycle {
 
     /// Publish to HealthKit as an HKWorkout so the session appears in
     /// Apple Fitness / Health and is visible to third-party apps
-    /// linked through HealthKit (TrainingPeaks, Athlytic, Zones).
-    /// Best-effort — if auth isn't granted or the API call fails,
-    /// the in-app session is canonical and unaffected.
+    /// linked through HealthKit (TrainingPeaks, Athlytic, Zones), when
+    /// "Export to Apple Health" is on. Best-effort: if auth isn't granted or
+    /// the API call fails, the in-app session is canonical and unaffected.
     func exportToHealthKitIfAvailable(_ session: HRVSession) {
+        guard services.settingsManager.settings.exportsToAppleHealth else { return }
         let healthStore = core.healthAccess.store
         let sampleStore = core.healthSampleStore
         let weight = settingsProvider().effectiveBodyWeightKg
@@ -303,6 +304,8 @@ extension WorkoutSessionLifecycle {
         /// only filters the index.
         let pastWorkoutIds: [UUID]
         let archive: SessionArchive
+        /// The FTPs the daily report reads a workout's power TSS at.
+        let loadFTP: TrainingLoadPrecedence.FTPAnchors
     }
 
     /// Pulls today's overnight session plus the overnight sessions before it
@@ -345,7 +348,7 @@ extension WorkoutSessionLifecycle {
                 .sorted { $0.date > $1.date }
                 .prefix(CoachReportGenerator.historyLimit)
                 .map(\.sessionId),
-            archive: archive
+            archive: archive, loadFTP: .current(settings)
         )
     }
 
@@ -491,7 +494,7 @@ extension WorkoutSessionLifecycle {
             overnightSession: inputs.todayOvernight, recentOvernightSessions: inputs.recentOvernight,
             userMaxHR: inputs.maxHR, userRestingHR: inputs.restingHR, userLTHR: inputs.lthr,
             userBodyWeightKg: inputs.bodyWeightKg, units: inputs.units, sleepSchedule: inputs.sleepSchedule,
-            temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot
+            temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot, loadFTP: inputs.loadFTP
         )
     }
 

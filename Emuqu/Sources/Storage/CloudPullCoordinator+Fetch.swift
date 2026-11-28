@@ -17,6 +17,8 @@ extension CloudPullCoordinator {
         /// Ids of sessions archived NEW, or replaced without their sleep
         /// snapshot, by this pull — handed to the HK sleep/vitals backfill below.
         var backfillIds: [UUID] = []
+        /// Records sealed with a key this device does not hold yet.
+        var awaitingKey = 0
     }
 
     /// List every record and process each; then re-queue what iCloud lacks,
@@ -30,6 +32,7 @@ extension CloudPullCoordinator {
             let results = try await fetchAllRemoteRecords()
             let counts = await processRemoteRecords(results)
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return }
+            manager.recordsAwaitingKeyCount = counts.awaitingKey
             reuploadSessionsMissingFromCloud(results)
             await manager.state.saveSyncStateAsync()
             await manager.state.savePendingQueueAsync()
@@ -132,6 +135,7 @@ extension CloudPullCoordinator {
             counts.newSessions += outcome.new
             counts.deleted += outcome.deleted
             counts.refreshed += outcome.refreshed
+            counts.awaitingKey += outcome.awaitingKey
             if let id = outcome.backfillId { counts.backfillIds.append(id) }
         }
         return counts
@@ -243,11 +247,11 @@ extension CloudPullCoordinator {
             return RecordOutcome(new: counts.new, deleted: counts.deleted)
         }
         if deletedFlag == CloudKitSyncManager.keptOnDeviceMarker {
-            _ = isKnownLocally(sessionId)
+            _ = isKnownLocally(sessionId, listed: record)
             return RecordOutcome()
         }
         let adopting = isRestoreToAdopt(record, sessionId: sessionId)
-        guard adopting || !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
+        guard adopting || !isKnownLocally(sessionId, listed: record) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
         guard let fetched = await assetFile(for: record) else { return RecordOutcome() }
         return await importPulledSession(from: fetched, sessionId: sessionId, sessionIdString: sessionIdString, adoptingRestore: adopting)
     }
@@ -291,6 +295,8 @@ extension CloudPullCoordinator {
         do {
             return try await manager.privateDB.record(for: record.recordID)
         } catch {
+            // A pull the stall watchdog abandoned reports nothing into the next one.
+            guard !Task.isCancelled else { return nil }
             manager.lastPullErrorMessage = manager.cloudKitErrorMessage(error)
             debugLog("[CloudKit] Pull: fetching \(record.recordID.recordName.prefix(8)) failed: \(error.localizedDescription)", level: .warning)
             return nil
@@ -303,16 +309,30 @@ extension CloudPullCoordinator {
     /// a local change waiting to go up, and iCloud holding an older copy does
     /// not make it uploaded. Whether a held copy is replaced by a newer one is
     /// `refreshIfRemoteIsNewer`'s decision.
-    private func isKnownLocally(_ sessionId: UUID) -> Bool {
+    private func isKnownLocally(_ sessionId: UUID, listed record: CKRecord) -> Bool {
         guard manager.archive.store.exists(sessionId) || manager.archive.store.wasIntentionallyDeleted(sessionId) else {
             return false
         }
         // A Trash restore not yet uploaded is not in iCloud, whatever the
         // queue says: its upload clears the flag.
         if !manager.state.pendingUploadIds.contains(sessionId), !manager.trashRestore.isRestored(sessionId) {
-            manager.state.markUploaded(sessionId)
+            markHeldCopy(sessionId, against: record)
         }
         return true
+    }
+
+    /// A held copy edited later than the iCloud copy (`holdsUnsentEdit`) is a
+    /// change iCloud lacks whatever the bookkeeping says, such as one whose
+    /// upload request was lost with the launch that made it: it is queued to
+    /// go up rather than marked uploaded. Any other held copy is what iCloud
+    /// holds, or older.
+    private func markHeldCopy(_ sessionId: UUID, against record: CKRecord) {
+        let local = manager.archive.entryById(sessionId)?.modifiedAt
+        if CloudKitSessionFreshness.holdsUnsentEdit(localModifiedAt: local, remoteModifiedAt: CloudKitSessionFreshness.modifiedAt(of: record)) {
+            manager.state.markRemoved(sessionId)
+        } else {
+            manager.state.markUploaded(sessionId)
+        }
     }
 
     /// Asset read + decompress + JSON decode run off
@@ -348,7 +368,9 @@ extension CloudPullCoordinator {
     /// device's, still travelling through iCloud Keychain — is not a failure:
     /// it stays un-imported and the next pull, once the key has arrived,
     /// imports it. Reporting it as an error would withhold the sync stamp and
-    /// re-run the full pull on every activation until then.
+    /// re-run the full pull on every activation until then. It is counted
+    /// instead (`RecordOutcome.awaitingKey`), and the sync ends waiting for
+    /// keys rather than up to date (`CloudKitSyncManager.completion`).
     ///
     /// A record saved by a newer app version is skipped the same way: this
     /// build refuses to write it, and an error would keep sync failing on
@@ -391,10 +413,12 @@ extension CloudPullCoordinator {
     func importFailure(_ error: Error, sessionIdString: String) -> RecordOutcome {
         if let codecError = error as? CloudPayloadCodec.CodecError, case .noMatchingKey = codecError {
             debugLogExternal("iCloud record \(sessionIdString.prefix(8)) is waiting for its backup key to sync to this device", cause: .iCloud)
+            return RecordOutcome(awaitingKey: 1)
         } else if let archiveError = error as? SessionArchive.ArchiveError,
                   case .newerSchemaVersion(let version) = archiveError {
             debugLog("[CloudKit] Pull: \(sessionIdString.prefix(8)) is from a newer app version (schema v\(version)) — skipped until the app is updated", level: .warning)
-        } else {
+        } else if !Task.isCancelled {
+            // A pull the stall watchdog abandoned reports nothing into the next one.
             manager.lastPullErrorMessage = String(localized: "A session from iCloud couldn't be imported: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
             debugLog("[CloudKit] Pull: Failed to process \(sessionIdString.prefix(8)): \(error.localizedDescription)", level: .warning)
         }
@@ -468,22 +492,32 @@ extension CloudPullCoordinator {
     /// directly (`deleteWithoutTrash`), which throws when the file will
     /// neither go nor move into the Trash, keeping the session.
     ///
-    /// A copy with a change of this device's still waiting to upload (queued,
-    /// `pendingUploadIds`: an edit made offline, say) goes to this device's
-    /// Trash instead, so the change is not lost unrecoverably; removed as
-    /// above when the Trash cannot take it.
+    /// A copy with a change of this device's that iCloud does not hold yet
+    /// (`hasUnsentLocalChange`) goes to this device's Trash instead, so the
+    /// change is not lost unrecoverably. When the Trash cannot take it the
+    /// copy stays, and the next pull tries again: it is never removed
+    /// without a Trash copy.
     private func removeLocalCopy(_ sessionId: UUID, deletedAt: Date?) throws {
-        if manager.state.pendingUploadIds.contains(sessionId) {
-            do {
-                try manager.archive.delete(sessionId, deletedAt: deletedAt)
-                return
-            } catch {
-                debugLog("[CloudKit] Pull: the Trash could not keep \(sessionId.uuidString.prefix(8))'s unsynced change: \(error)", level: .warning)
-            }
+        if hasUnsentLocalChange(sessionId, deletedAt: deletedAt) {
+            try manager.archive.delete(sessionId, deletedAt: deletedAt)
+            return
         }
         try manager.archive.deleteWithoutTrash(sessionId, deletedAt: deletedAt)
         if !manager.archive.store.discardTrashed(sessionId) {
             debugLog("[CloudKit] Pull: \(sessionId.uuidString.prefix(8)) left a copy in the Trash, removed when the Trash expires", level: .warning)
         }
+    }
+
+    /// Whether this device changed the session in a way iCloud does not hold
+    /// yet: an upload queued in the sync state (`pendingUploadIds`), a
+    /// re-upload request on disk that sync has not taken in yet
+    /// (`ReuploadRequestJournal`: an edit made while a long sync held the
+    /// serializer), or a copy stamped as changed after the deletion was
+    /// written to iCloud (`modifiedAt`).
+    func hasUnsentLocalChange(_ sessionId: UUID, deletedAt: Date?) -> Bool {
+        if manager.state.pendingUploadIds.contains(sessionId) { return true }
+        if manager.archive.state.reuploadRequests.pending[sessionId] != nil { return true }
+        guard let deletedAt, let modifiedAt = manager.archive.entryById(sessionId)?.modifiedAt else { return false }
+        return modifiedAt > deletedAt
     }
 }

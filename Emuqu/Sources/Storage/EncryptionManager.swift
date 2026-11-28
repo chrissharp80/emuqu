@@ -14,6 +14,17 @@ import Security
 /// Legacy format (v1): [version: UInt8] [nonce + ciphertext + tag: AES-GCM combined]
 ///   or bare:          [nonce + ciphertext + tag: AES-GCM combined]
 ///
+/// ## Keyring
+///
+/// Version 1 is a keyring, not one key: every key that has sealed data is
+/// kept, each under a Keychain account of its own (its id), and a blob opens
+/// with whichever key authenticates it (AES-GCM fails closed, so trying each
+/// is safe). New data is sealed with the primary key
+/// (`primaryAccount(among:)`). A key is minted only when the device holds
+/// none, and always under a new account, so a key restored or migrated later
+/// under the original account (`legacyAccount`) joins the ring beside it and
+/// neither replaces the other. Keys are never deleted.
+///
 /// ## Key Rotation Procedure
 ///
 /// 1. Increment ``currentKeyVersion`` (e.g. 1 → 2). A new 256-bit key is
@@ -29,7 +40,7 @@ import Security
 ///    deleted via `SecItemDelete` with the old account name, but leaving it
 ///    is harmless (in case a backup restore brings back old data).
 final class EncryptionManager: Sendable {
-    static let shared = EncryptionManager()
+    static let shared = EncryptionManager(keyStore: .keychain)
 
     // MARK: - Key Versioning
 
@@ -64,7 +75,23 @@ final class EncryptionManager: Sendable {
         return "session-encryption-key-v\(version)"
     }
 
-    private init() {}
+    /// Where the version-1 keys are kept (`KeyStore`).
+    private let keyStore: KeyStore
+
+    /// The version-1 keys read or minted this process, and when the store
+    /// was last read. Only keys actually read or minted are held, so a locked
+    /// Keychain's failure is never memoized.
+    private let keyring = OSAllocatedUnfairLock<KeyringState>(initialState: KeyringState())
+
+    /// How soon after a read a blob no held key opens reads the store again,
+    /// for a key that arrived since. Bounded, so a run of foreign or legacy
+    /// blobs costs one Keychain read, not one each.
+    private let keyRefreshInterval: TimeInterval
+
+    init(keyStore: KeyStore, keyRefreshInterval: TimeInterval = 10) {
+        self.keyStore = keyStore
+        self.keyRefreshInterval = keyRefreshInterval
+    }
 
     // MARK: - Public API
 
@@ -73,7 +100,7 @@ final class EncryptionManager: Sendable {
     /// - Returns: Versioned encrypted data: [magic "FR"] + [version byte] + [nonce + ciphertext + tag]
     func encrypt(_ data: Data) throws -> Data {
         let version = Self.currentKeyVersion
-        let key = try getOrCreateKey(version: version)
+        let key = try sealingKey()
         let sealedBox = try AES.GCM.seal(data, using: key)
 
         guard let combined = sealedBox.combined else {
@@ -125,14 +152,15 @@ final class EncryptionManager: Sendable {
     }
 
     private func openSealed(_ combined: Data, version: UInt8) throws -> Data {
-        let key = try loadKey(version: version)
-        return try AES.GCM.open(try AES.GCM.SealedBox(combined: combined), using: key)
+        let box = try AES.GCM.SealedBox(combined: combined)
+        guard version != Self.currentKeyVersion else { return try openWithKeyring(box) }
+        return try AES.GCM.open(box, using: try loadKey(version: version))
     }
 
     /// Check if encryption is available (current key version)
     var isAvailable: Bool {
         do {
-            _ = try getOrCreateKey(version: Self.currentKeyVersion)
+            _ = try sealingKey()
             return true
         } catch {
             return false
@@ -203,6 +231,10 @@ final class EncryptionManager: Sendable {
 
     // MARK: - Key Management
 
+    /// The key of a version other than the keyring's (`currentKeyVersion`),
+    /// under that version's own account; a frame naming a version this
+    /// install never had throws `keyNotFound`.
+    ///
     /// Errors other than `keyNotFound` (e.g. errSecInteractionNotAllowed when
     /// the device is locked) propagate and are NOT cached, so a later unlocked
     /// call re-tries the keychain. We must never silently create a new key
@@ -219,58 +251,11 @@ final class EncryptionManager: Sendable {
         if let cached = cachedKeys.withLock({ $0[version] }) { return cached }
         let account = keychainAccount(for: version)
         let key = SymmetricKey(data: try retrieveKeyFromKeychain(account: account))
-        makeKeyMigratable(account: account)
+        Self.makeKeyMigratable(account: account)
         return cachedKeys.withLock { cache in
             if let existing = cache[version] { return existing }
             cache[version] = key
             return key
-        }
-    }
-
-    private func getOrCreateKey(version: UInt8) throws -> SymmetricKey {
-        try cachedKeys.withLock { cache in
-            try loadOrCreateKey(version: version, cache: &cache)
-        }
-    }
-
-    private func loadOrCreateKey(version: UInt8, cache: inout [UInt8: SymmetricKey]) throws -> SymmetricKey {
-        // Reuse the memoized key if we've already retrieved/created it this
-        // process (see `cachedKeys`). Skips a keychain round-trip per decrypt.
-        if let cached = cache[version] {
-            return cached
-        }
-        let account = keychainAccount(for: version)
-        do {
-            let key = SymmetricKey(data: try retrieveKeyFromKeychain(account: account))
-            makeKeyMigratable(account: account)
-            cache[version] = key
-            return key
-        } catch EncryptionError.keyNotFound {
-            // Key genuinely doesn't exist — create one
-            let newKey = SymmetricKey(size: .bits256)
-            try storeKeyInKeychain(newKey, account: account)
-            cache[version] = newKey
-            return newKey
-        }
-    }
-
-    private func storeKeyInKeychain(_ key: SymmetricKey, account: String) throws {
-        let keyData = key.withUnsafeBytes { Data($0) }
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: keyData,
-            kSecAttrAccessible as String: Self.keyAccessibility
-        ]
-
-        // Delete any existing key first
-        SecItemDelete(query as CFDictionary)
-
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw EncryptionError.keychainError(status)
         }
     }
 
@@ -280,15 +265,15 @@ final class EncryptionManager: Sendable {
     /// key was minted over them. Without the suffix the key moves with an
     /// encrypted or iCloud backup and with a phone-to-phone transfer, next to
     /// the files it opens. It still never leaves the device in the clear.
-    private static var keyAccessibility: CFString { kSecAttrAccessibleAfterFirstUnlock }
+    static var keyAccessibility: CFString { kSecAttrAccessibleAfterFirstUnlock }
 
     /// Keys stored by earlier builds were this-device-only. Their accessibility
     /// is updated in place on first use — the key bytes do not change — so the
     /// next backup carries them. A failure is harmless and retried next launch.
-    private func makeKeyMigratable(account: String) {
+    static func makeKeyMigratable(account: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
+            kSecAttrService as String: AppConfig.keychainService,
             kSecAttrAccount as String: account,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
@@ -343,6 +328,166 @@ final class EncryptionManager: Sendable {
                 String(localized: "Keychain error: \(Int(status))", bundle: bundle)
             }
         }
+    }
+}
+
+// MARK: - Keyring (key version 1)
+
+extension EncryptionManager {
+    /// One version-1 key and the Keychain account it is stored under, which
+    /// is its id.
+    struct StoredKey: Sendable {
+        let account: String
+        let key: SymmetricKey
+    }
+
+    /// Where the version-1 keys live: the Keychain in the app; tests hold
+    /// them in memory.
+    struct KeyStore: Sendable {
+        /// Every version-1 key held; throws when the store refuses the read
+        /// (a Keychain locked before the first unlock), which is not "none".
+        let read: @Sendable () throws -> [StoredKey]
+        /// Adds a new key under an account of its own and returns it.
+        let add: @Sendable () throws -> StoredKey
+
+        static let keychain = KeyStore(read: { try EncryptionManager.keychainRing() }, add: { try EncryptionManager.mintInKeychain() })
+    }
+
+    /// The ring held in memory, and when the store was last read.
+    struct KeyringState: Sendable {
+        var keys: [StoredKey] = []
+        var lastRead: Date?
+    }
+
+    /// The account the original single key was stored under, and still is on
+    /// every install from before the keyring. A restored Keychain brings a key
+    /// back under it.
+    static let legacyAccount = "session-encryption-key"
+
+    /// Accounts of keys minted for the ring: each new key gets its own, so
+    /// none is ever written over another.
+    static let ringAccountPrefix = "session-encryption-key-id-"
+
+    /// Which held key seals new data: the original account's when present
+    /// (every older install keeps sealing as it did), otherwise the lowest
+    /// ring account, so the choice does not change between launches. Nil when
+    /// none is held.
+    static func primaryAccount(among accounts: [String]) -> String? {
+        if accounts.contains(legacyAccount) { return legacyAccount }
+        return accounts.filter { $0.hasPrefix(ringAccountPrefix) }.min()
+    }
+
+    /// The primary key, read from the store on first use and minted under
+    /// an account of its own only when the store holds none. A locked store
+    /// throws and mints nothing. Minting is serialized, so two first writers
+    /// share one key.
+    func sealingKey() throws -> SymmetricKey {
+        if let key = Self.primaryKey(in: keyring.withLock { $0.keys }) { return key }
+        if let key = Self.primaryKey(in: try readStore()) { return key }
+        return try keyring.withLock { ring in
+            if let key = Self.primaryKey(in: ring.keys) { return key }
+            let minted = try keyStore.add()
+            ring.keys.append(minted)
+            debugLog("[Encryption] minted a key under its own account; any key restored later is kept beside it")
+            return minted.key
+        }
+    }
+
+    /// Opens a version-1 box with whichever held key authenticates it, the
+    /// primary first. When none does, and the store was not read in the last
+    /// `keyRefreshInterval`, it is read again: a key that arrived since (a
+    /// restored or migrated Keychain item) joins the ring and is tried.
+    /// Throws `keyNotFound` when no key is held at all, the store's error when
+    /// it refuses the read, and an authentication failure otherwise.
+    func openWithKeyring(_ box: AES.GCM.SealedBox, now: Date = Date()) throws -> Data {
+        let state = keyring.withLock { $0 }
+        if let opened = Self.open(box, withAnyOf: state.keys) { return opened }
+        let stale = state.lastRead.map { now.timeIntervalSince($0) >= keyRefreshInterval } ?? true
+        let held = stale ? try readStore(now: now) : state.keys
+        guard !held.isEmpty else { throw EncryptionError.keyNotFound }
+        let arrived = held.filter { key in !state.keys.contains { $0.account == key.account } }
+        if let opened = Self.open(box, withAnyOf: arrived) { return opened }
+        throw CryptoKitError.authenticationFailure
+    }
+
+    /// Reads the store and adds what it holds to the ring; the whole ring.
+    private func readStore(now: Date = Date()) throws -> [StoredKey] {
+        let held = try keyStore.read()
+        return keyring.withLock { ring in
+            for key in held where !ring.keys.contains(where: { $0.account == key.account }) {
+                ring.keys.append(key)
+            }
+            ring.lastRead = now
+            return ring.keys
+        }
+    }
+
+    private static func primaryKey(in keys: [StoredKey]) -> SymmetricKey? {
+        guard let account = primaryAccount(among: keys.map(\.account)) else { return nil }
+        return keys.first { $0.account == account }?.key
+    }
+
+    /// The plaintext from the first of `keys`, primary first, whose key
+    /// authenticates `box`; nil when none does.
+    private static func open(_ box: AES.GCM.SealedBox, withAnyOf keys: [StoredKey]) -> Data? {
+        let primary = primaryAccount(among: keys.map(\.account))
+        let ordered = keys.filter { $0.account == primary } + keys.filter { $0.account != primary }
+        for stored in ordered {
+            do {
+                return try AES.GCM.open(box, using: stored.key)
+            } catch {
+                // A key that does not authenticate the box fails closed; the next is tried.
+                continue
+            }
+        }
+        return nil
+    }
+
+    /// Every version-1 key in the Keychain: the original account's and each
+    /// ring account's. `errSecItemNotFound` is none; any other failure (a
+    /// locked device) throws rather than reading as none, so it never leads
+    /// to a mint. The original account's key is made backup-eligible on read
+    /// (`makeKeyMigratable`).
+    static func keychainRing() throws -> [StoredKey] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: AppConfig.keychainService,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecReturnData as String: true,
+            kSecReturnAttributes as String: true
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return [] }
+        guard status == errSecSuccess, let items = result as? [[String: Any]] else { throw EncryptionError.keychainError(status) }
+        let keys = items.compactMap(storedKey(from:))
+        if keys.contains(where: { $0.account == legacyAccount }) { makeKeyMigratable(account: legacyAccount) }
+        return keys
+    }
+
+    private static func storedKey(from item: [String: Any]) -> StoredKey? {
+        guard let account = item[kSecAttrAccount as String] as? String,
+              account == legacyAccount || account.hasPrefix(ringAccountPrefix),
+              let data = item[kSecValueData as String] as? Data else { return nil }
+        return StoredKey(account: account, key: SymmetricKey(data: data))
+    }
+
+    /// A new key under a new ring account, backup-eligible
+    /// (`keyAccessibility`) and kept on this device's Keychain only (not
+    /// synchronizable, as the original key). Nothing is deleted first.
+    static func mintInKeychain() throws -> StoredKey {
+        let key = SymmetricKey(size: .bits256)
+        let account = ringAccountPrefix + UUID().uuidString
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: AppConfig.keychainService,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: key.withUnsafeBytes { Data($0) },
+            kSecAttrAccessible as String: keyAccessibility
+        ]
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else { throw EncryptionError.keychainError(status) }
+        return StoredKey(account: account, key: key)
     }
 }
 

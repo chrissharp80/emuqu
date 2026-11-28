@@ -68,6 +68,24 @@ final class WorkoutStrapOwnershipTests: XCTestCase {
         XCTAssertFalse(stream.isStreaming)
     }
 
+    /// A delete from the summary resumes after its trash write; another
+    /// workout finished meanwhile owns the summary and keeps it.
+    func testADeleteAcknowledgesOnlyTheSummaryOfTheWorkoutItDeleted() {
+        let recorder = makeRecorder()
+        let deleted = HRVSession(sessionType: .workout)
+        let showing = HRVSession(sessionType: .workout)
+        recorder.lifecycle.phase = .finished
+        recorder.lifecycle.finishedSession = showing
+
+        recorder.acknowledgeFinished(of: deleted.id)
+        XCTAssertEqual(recorder.lifecycle.phase, .finished)
+        XCTAssertEqual(recorder.lifecycle.finishedSession?.id, showing.id)
+
+        recorder.acknowledgeFinished(of: showing.id)
+        XCTAssertEqual(recorder.lifecycle.phase, .idle)
+        XCTAssertNil(recorder.lifecycle.finishedSession)
+    }
+
     /// A Watch workout never started a stream: the beats a stopped strap
     /// stream kept from an earlier recording are not counted or read as this
     /// workout's heart rate.
@@ -91,6 +109,19 @@ final class WorkoutStrapOwnershipTests: XCTestCase {
         XCTAssertEqual(WorkoutRRMerge.liveStrapBuffer(source: .strap, streaming: beats(3)).count, 3)
         XCTAssertTrue(WorkoutRRMerge.liveStrapBuffer(source: .watch, streaming: beats(3)).isEmpty)
         XCTAssertTrue(WorkoutRRMerge.liveStrapBuffer(source: .none, streaming: beats(3)).isEmpty)
+    }
+
+    /// The beat after a PPI interval the quality gate rejected is marked as
+    /// following a removed beat, also when the rejection ended the batch
+    /// before; the beats around it otherwise are not.
+    func testABeatAfterARejectedPPIIntervalIsMarked() {
+        let stream = streamBuffering(since: Date())
+        stream.ppiRemovedSinceLastBeat = false
+        let good = StrapPPIReading(ppInMs: 800, ppErrorEstimate: 5, blockerBit: 0, hr: 70)
+        let rejected = StrapPPIReading(ppInMs: 800, ppErrorEstimate: 60, blockerBit: 1, hr: 70)
+        stream.ingestPpi([good, good, rejected])
+        stream.ingestPpi([good, good])
+        XCTAssertEqual(stream.streamedRRPoints.map(\.isAfterRemovedBeat), [false, false, true, false])
     }
 
     /// A Verity Sense keeps sending its heart rate while every PPI interval

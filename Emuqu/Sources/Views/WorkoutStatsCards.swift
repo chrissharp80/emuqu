@@ -26,12 +26,16 @@ struct WorkoutStatsCards {
 }
 
 /// Active (un-paused) workout time for display: duration, average pace and
-/// calories. Recorded samples are stamped with the recorder's clock, which
-/// stops while paused, so the last sample's offset is the active time. With
-/// no samples it falls back to the wall-clock start → end.
+/// calories. A workout saved with its active time (`WorkoutMetadata.activeSeconds`,
+/// the wall clock less the pauses) shows that: its samples can stop while
+/// the phone is locked. One saved before shows what it always did: the
+/// samples are stamped with the recorder's clock, which stops while paused,
+/// so the last sample's offset is the active time; with no samples, the
+/// wall-clock start → end.
 enum WorkoutActiveTime {
-    static func seconds(samples: [WorkoutSample]?, wallClock: TimeInterval?) -> TimeInterval? {
-        if let last = samples?.last?.offsetSec, last > 0 { return TimeInterval(last) }
+    static func seconds(metadata: WorkoutMetadata?, wallClock: TimeInterval?) -> TimeInterval? {
+        if let active = metadata?.activeSeconds, active > 0 { return active }
+        if let last = metadata?.samples?.last?.offsetSec, last > 0 { return TimeInterval(last) }
         return wallClock
     }
 }

@@ -48,15 +48,15 @@ enum AppKnowledgeBase {
     ## Recovery Score (\(ScoringVersion.current))
     - **0–100 composite**. Tier verdict: 90+ Excellent · 75–89 Good · 60–74 Fair · 45–59 Pay Attention · 30–44 Low · <30 Very low.
     - **Three factors** (D2 detail screen explains each):
-      - **HRV — 60% weight** (the core signal). Strap-derived ln(RMSSD) vs the user's own baseline (up to 60 nights; from the 3rd night, cautious until the 7th).
+      - **HRV — 60% weight** (the core signal). Strap-derived ln(RMSSD) vs the user's own baseline (up to 60 nights; from the 4th night, scored against the 3 or more nights before it, cautious through the first week).
       - **Sleep — 25% weight** (the lever the user can move tonight). Duration + efficiency + stages.
       - **Vitals — 15% weight** (slow-moving context). Resp rate, wrist temp, resting HR vs baselines.
     - **Without vitals** the weights are HRV 70% / Sleep 30%, or HRV 85% / Sleep 15% on a night with HRV \
       more than 1 SD below baseline and a sleep score under 50 (so the poor sleep is not counted twice on \
       top of the HRV drop). Without sleep the score is HRV only.
-    - **When the score appears** (one rule, counted in nights in the baseline): nights 1–2 the morning \
-      report scores on general HRV thresholds; from the 3rd night the score compares the user with \
-      their own baseline; the Dashboard and score detail show the score from the 14th night \
+    - **When the score appears** (one rule, counted in nights in the baseline): nights 1–3 the morning \
+      report scores on general HRV thresholds (fixed RMSSD bands, provisional); from the 4th night the score \
+      compares the user with their own baseline; the Dashboard and score detail show the score from the 14th night \
       ("Building your baseline" before that); from the 28th night the pip reads "Full algorithm".
     - **Baseline**: overnight readings only, one per night (the night's wake date), and a night is \
       scored against the nights before it, never against itself or later nights.

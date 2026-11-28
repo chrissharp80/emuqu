@@ -17,23 +17,43 @@
 #    user can see would present a made-up figure as a confidence. It may not
 #    leave Analysis/CauseDetection.
 #
-# 2. The code that decides a recovery score is hashed token by token
-#    (scripts/lib/scoring_hash.py, scheme `decl-tokens`): the scoring files
-#    whole (RecoveryScoreConstants.swift, HRVThresholds.swift,
-#    RecoveryScoreCalculator*.swift, ScoreDetailBuilder, VitalsScoring,
-#    SleepScienceAnalyzer), named roots elsewhere (the ScoringBounds /
-#    ScoringWeights enums of Constants.swift, the baseline statistics the
-#    z-score divides by), and every declaration those reach by name, wherever
-#    it is declared: the baseline SD floors, the night window and minimum
-#    night count, the fragmentation weights. Numbers, operators and names all
-#    count; comments, whitespace, string contents and access modifiers do
-#    not, and each token is keyed by the declaration it sits in, so moving or
-#    reordering declarations leaves the hash alone. Change a weight, a band,
-#    a threshold, a comparison or the table the score binds to and the hash
+# 2. The code that decides a stored score is hashed token by token
+#    (scripts/lib/scoring_hash.py, scheme `stored-defuse`). Nothing in it is
+#    listed by hand. It starts from the expressions a stored score field is
+#    given (the score, its breakdown, the analysis result, the frozen
+#    readiness, the training, vitals and sleep snapshots, the HRV quality,
+#    the baseline's stored nights), the arguments of every stored type's
+#    initializer, and the conditions that decide whether each write runs.
+#    From there it follows what those expressions use: the functions they
+#    call (into their return expressions), the locals they read back to
+#    where they are defined, the parameters they read back to the argument
+#    each caller passes, the closures a caller hands over back to where they
+#    are invoked, the properties they read back to every write of them, and
+#    a value stored by key (UserDefaults, the Keychain, a file) that a hashed
+#    reader loads back to the write that stores it.
+#    Receivers are typed by inference; where a receiver's type is unknown, a
+#    name with few declarations is taken whole, a common one only for its
+#    Analysis functions and cases. SwiftUI views and copy-only types are not
+#    hashed. Numbers, operators and names all count; comments, whitespace,
+#    string contents and access modifiers do not, and each token is keyed by
+#    the declaration it sits in, so moving or reordering declarations leaves
+#    the hash alone. Change a weight, a band, a threshold, a comparison, the
+#    baseline's admission rule or the night key it counts by, and the hash
 #    moves; the gate then requires ScoringVersion.current to have moved too.
 #    This is what stops an archive quietly becoming a mixture of two
 #    algorithms under one version string, the failure the version stamp
-#    exists to prevent.
+#    exists to prevent. Saving, syncing, speaking and drawing a score are
+#    not hashed, so editing them needs no bump.
+#
+#    The gate also checks its own coverage on every run: every body token of
+#    a hashed function, found by bracket matching alone, must be filed under
+#    that function; a number planted in each hashed declaration must land in
+#    its hashed tokens; and every Analysis function the traced expressions
+#    name must be hashed. A failure there is a hole in the hash, and the gate goes red.
+#
+#    The base's own sources must hash under the current scheme. A scheme whose
+#    roots the base lacks cannot hash it, and that fails (exit 2) rather than
+#    skipping the comparison, unless SCORING_ALLOW_UNHASHABLE_BASE=1 is set.
 #
 #    The baseline line is `<version> <hash> <scheme>`. A change to how the
 #    hash is computed rehashes with no scoring change, so the scheme is
@@ -158,6 +178,8 @@ def hash_under(scheme):
 
 scheme = scoring_hash.CURRENT_SCHEME
 current_hash, seen = hash_under(scheme)
+for hole in scoring_hash.self_check():
+    problems.append(f"coverage: {hole}")
 
 version_src = pathlib.Path("Emuqu/Sources/Analysis/ScoringVersion.swift").read_text(encoding="utf-8")
 match = re.search(r'static let current\s*=\s*"([^"]+)"', version_src)
@@ -214,8 +236,12 @@ if len(base_fields) in (2, 3):
 # The base's sources hashed under the current scheme too, so a change of
 # scheme that measures more (an operator, a constant outside the scoring
 # files) cannot carry an edit only the new scheme sees: the base and the tree
-# are compared under one scheme. A base the current scheme cannot read
-# (a root it lacks) leaves the comparison above to stand alone.
+# are compared under one scheme. A base the current scheme cannot read (a
+# root it lacks) is a configuration error, not a pass: skipping the
+# comparison let a scheme that names a declaration only the tree has carry
+# any scoring change past the gate. SCORING_ALLOW_UNHASHABLE_BASE=1 skips it
+# on purpose, for a scheme change that has to name a new declaration; the
+# run says so.
 base_tree = os.environ.get("BASE_TREE", "")
 if base_tree and len(base_fields) in (2, 3) and version == base_fields[0]:
     import subprocess
@@ -224,6 +250,17 @@ if base_tree and len(base_fields) in (2, 3) and version == base_fields[0]:
         cwd=base_tree, capture_output=True, text=True,
     )
     base_now = run.stdout.split()[0] if run.returncode == 0 and run.stdout.split() else ""
+    if not base_now:
+        reason = (run.stderr or run.stdout).strip() or f"exit {run.returncode}"
+        if os.environ.get("SCORING_ALLOW_UNHASHABLE_BASE") != "1":
+            sys.stderr.write(
+                f"check_scoring_governance: the base's sources cannot be hashed under {scheme!r} ({reason}), "
+                "so the change cannot be compared with the base. Make every root of the scheme one the base "
+                "has, or set SCORING_ALLOW_UNHASHABLE_BASE=1 to skip this comparison on purpose.\n"
+            )
+            raise SystemExit(2)
+        print(f"check_scoring_governance: note: base comparison under {scheme!r} skipped "
+              f"(SCORING_ALLOW_UNHASHABLE_BASE=1): {reason}", file=sys.stderr)
     if base_now and base_now != current_hash:
         problems.append(
             f"scoring code differs from the base branch under the current {scheme!r} scheme "

@@ -165,12 +165,12 @@ final class ReadinessCalculationTests: XCTestCase {
     }
 
     func testSparseDataFallbackDoesNotOverrideOverload() {
-        // CTL=3 (sparse data), heavy workout → model says readiness is very low.
+        // CTL=2 (sparse data, under ctlThreshold), heavy workout → model says readiness is very low.
         // Fallback should NOT override this because the training signal is real.
         let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 85,
             todayTrimp: 150,
-            ctl: 3,
+            ctl: 2,
             atl: 10,
             morningATL: nil,
             acuteChronicRatio: nil

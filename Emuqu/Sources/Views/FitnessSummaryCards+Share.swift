@@ -51,7 +51,7 @@ extension FitnessSummaryCards {
     /// summary hero shows (`WorkoutActiveTime`), so a paused workout's recap
     /// card carries the same duration and pace.
     private var recapActiveSeconds: TimeInterval {
-        max(0, WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration) ?? 0)
+        max(0, WorkoutActiveTime.seconds(metadata: session.workoutMetadata, wallClock: session.duration) ?? 0)
     }
 
     private func recapDuration() -> String {
@@ -67,16 +67,13 @@ extension FitnessSummaryCards {
     }
 
     /// Use `preferredTrainingLoad` so power-equipped sessions show
-    /// their TSS instead of an HR-only TRIMP.
+    /// their TSS instead of an HR-only estimate; every tier is on the TSS
+    /// scale, so every one reads "Load".
     private func recapSummary(meta: WorkoutMetadata?) -> String {
-        guard let load = meta?.preferredTrainingLoad(ftp: .current(settingsManager.settings)), load.value > 0 else { return "Emuqu" }
-        let label: String
-        switch load.source {
-        case .power, .hr, .mets: label = String(localized: "Load", bundle: LanguageManager.appBundle)
-        case .banister, .routeHistory: label = "TRIMP"
-        }
+        let anchors = WorkoutLoadRestingHR.anchors
+        guard let load = meta?.preferredTrainingLoad(ftp: .current(settingsManager.settings), heartRate: anchors), load.value > 0 else { return "Emuqu" }
         // Round to match other load displays
-        return "\(label) \(Int(load.value.rounded()))"
+        return "\(String(localized: "Load", bundle: LanguageManager.appBundle)) \(Int(load.value.rounded()))"
     }
 
     /// The route map for the recap card, nil without a track. MapKit takes
@@ -85,7 +82,8 @@ extension FitnessSummaryCards {
     private func renderTrackImage() async -> UIImage? {
         guard !track.isEmpty else { return nil }
         let coords = track.map(\.coordinate)
-        return await RecapCard.renderRouteMap(coordinates: coords, tint: UIColor(AppTheme.primary))
+        let starts = session.workoutMetadata?.gpsSegmentStarts(count: coords.count) ?? []
+        return await RecapCard.renderRouteMap(coordinates: coords, segmentStarts: starts, tint: UIColor(AppTheme.primary))
     }
 
     /// Write to temp file with meaningful name so the share sheet
@@ -452,6 +450,9 @@ extension FitnessSummaryCards {
     struct ElevationPoint {
         let distance: Double  // km from start
         let altitude: Double  // meters
+        /// The recorded segment of the track the point is on; the chart
+        /// draws no line from one segment into the next (`TrackSegments`).
+        var segment = 0
     }
 
     /// The right-hand column of a metric row: the value, optionally captioned.
@@ -517,7 +518,7 @@ extension FitnessSummaryCards {
             Spacer()
             splitPaceText(split)
             if let hr = split.averageHR {
-                Text(String(localized: "\(Int(hr)) bpm", bundle: LanguageManager.appBundle))
+                Text(String(localized: "\(Int(hr.rounded())) bpm", bundle: LanguageManager.appBundle))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                     .frame(width: 70, alignment: .trailing)

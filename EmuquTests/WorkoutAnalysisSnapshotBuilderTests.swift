@@ -46,7 +46,7 @@ final class WorkoutAnalysisSnapshotBuilderTests: XCTestCase {
         distanceMeters: Double? = 5_000,
         userMaxHR: Int = 190,
         splits: [Split] = [],
-        trimp: Double? = 80,
+        load: Double? = 80,
         decouplingPercent: Double? = nil,
         elevationGainMeters: Double? = nil
     ) -> WorkoutAnalysisSnapshotBuilder.Inputs {
@@ -61,7 +61,7 @@ final class WorkoutAnalysisSnapshotBuilderTests: XCTestCase {
             bodyWeightKg: 75,
             samples: samples,
             splits: splits,
-            trimp: trimp,
+            load: load,
             decouplingPercent: decouplingPercent
         )
     }

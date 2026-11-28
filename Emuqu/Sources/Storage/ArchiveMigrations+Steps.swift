@@ -42,6 +42,12 @@ extension ArchiveMigrations {
     func runDeferredMigrations() {
         reencryptPendingSessions(in: archive)
         archive.state.resealPlainIndexIfNeeded()
+        // An index that did not load lists none of the sessions: a pass over
+        // it would set each backfill's done flag having read nothing.
+        guard archive.hasCompleteIndex else {
+            debugLog("[Archive] Index not loaded this launch: archive migrations wait for a launch that reads it", level: .warning)
+            return
+        }
         migrateRecoveryScores()
         migrateEndDates()
         migrateMetrics()
@@ -112,8 +118,8 @@ extension ArchiveMigrations {
     /// not. Setting it only when the work list comes back empty would never
     /// happen: an entry with nothing to patch (a workout has no sleep
     /// fields) stays in the list for good, and every launch would re-read and
-    /// decrypt all of them. A session that fails to load keeps the flag off
-    /// so the next launch tries it again.
+    /// decrypt all of them. A session that fails to load, or patches the
+    /// index could not save, keep the flag off so the next launch tries again.
     @discardableResult
     private func runIndexMigration(
         flag: String, label: String,
@@ -130,8 +136,8 @@ extension ArchiveMigrations {
             guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label, encryption: archive.encryption) else { loadedAll = false; continue }
             if let patched = patch(entry, session) { patches.append((entry.sessionId, patched)) }
         }
-        applyIndexPatches(patches, label: label)
-        if loadedAll { UserDefaults.standard.set(true, forKey: flag) }
+        let saved = applyIndexPatches(patches, label: label)
+        if loadedAll, saved { UserDefaults.standard.set(true, forKey: flag) }
         return patches.count
     }
 
@@ -151,24 +157,32 @@ extension ArchiveMigrations {
     }
 
     /// Phase 3 of every migration here: apply the patches under lock and
-    /// persist. A no-op when nothing was patched.
+    /// persist. A no-op when nothing was patched. False when the index could
+    /// not be saved: the patches then live only in memory.
     ///
     /// A patch was built from the entry as it stood in phase 1. If the session
     /// was re-archived since, its entry now carries a new file hash, and the
     /// patch would put the old one back — the next read then fails its
     /// integrity check. Such a patch is dropped; the re-archive already wrote a
     /// complete entry.
-    private func applyIndexPatches(_ patches: [(UUID, SessionArchiveEntry)], label: String) {
-        guard !patches.isEmpty else { return }
+    @discardableResult
+    private func applyIndexPatches(_ patches: [(UUID, SessionArchiveEntry)], label: String) -> Bool {
+        guard !patches.isEmpty else { return true }
         archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
         for (id, patchedEntry) in patches {
             if let idx = archive.state.index.firstIndex(where: { $0.sessionId == id }),
                archive.state.index[idx].fileHash == patchedEntry.fileHash {
                 archive.state.index[idx] = patchedEntry
             }
         }
-        do { try archive.state.saveIndex() } catch { debugLog("[Archive] Failed to save index after \(label): \(error)") }
-        archive.archiveLock.unlock()
+        do {
+            try archive.state.saveIndex()
+            return true
+        } catch {
+            debugLog("[Archive] Failed to save index after \(label): \(error)", level: .warning)
+            return false
+        }
     }
 
     /// If neither sleep field resolves, there's nothing to patch — leave the
@@ -344,11 +358,7 @@ extension ArchiveMigrations {
         guard archive.state.mergeSettings.mode() != .off else { return }
         let (quarantineWork, changedKeepers) = duplicateQuarantineWork()
         // Posted outside the lock phase 1 held, as every archive change is.
-        if !changedKeepers.isEmpty {
-            NotificationCenter.default.post(
-                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": changedKeepers]
-            )
-        }
+        archive.store.requestReupload(of: changedKeepers)
         guard !quarantineWork.isEmpty else { return }
         // Phase 2: move files to quarantine without holding the lock
         // (releasing the lock between phases lets the main thread sneak in)
@@ -361,17 +371,18 @@ extension ArchiveMigrations {
     }
 
     /// Phase 3: update archive.index + tombstones under lock, for the copies
-    /// not written since phase 1 checked them. Each retired id is then kept
-    /// under its keeper (`recordFold`), which holds its user content: a screen
-    /// or queue that still names the retired copy writes to the keeper.
+    /// not written since phase 1 checked them. Each retired id is kept under
+    /// its keeper (`recordFold`) before the tombstones are saved, so a screen
+    /// naming it writes to the keeper even after a kill before the index save
+    /// (`finishInterruptedMoves`); a listed copy's fold is not followed.
     private func retireUnlessWritten(_ checkedMoves: [(QuarantineMove, String)]) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         let moves = keepingCopiesWrittenSinceTheCheck(checkedMoves)
         guard !moves.isEmpty else { return }
         do {
-            try retireQuarantined(Set(moves.map(\.id)))
             moves.forEach { archive.state.recordFold(of: $0.id, into: $0.keeper) }
+            try retireQuarantined(Set(moves.map(\.id)))
         } catch {
             debugLog("[Archive] ⚠️ Failed to save the indexes after quarantining duplicates — moving the files back: \(error)", level: .warning)
             restoreFromQuarantine(moves)
@@ -418,6 +429,7 @@ extension ArchiveMigrations {
         archive.state.deletedSessionIds.formUnion(ids)
         do {
             try archive.state.saveDeletedIndex()
+            ids.forEach { ArchiveStore.betweenFileAndIndex?($0) }
             try archive.state.saveIndex()
         } catch {
             archive.state.index = preIndex
@@ -531,6 +543,7 @@ extension ArchiveMigrations {
             }
             guard changed else { return false }
             keeper.modifiedAt = CloudKitSessionFreshness.stamp()
+            archive.noteReuploadIntent([keeperId])
             _ = try archive.store._archive(keeper, skipSameNightMerge: true)
             return true
         } catch {
@@ -770,18 +783,9 @@ extension ArchiveMigrations {
     /// new file hash be replaced in the index with a stale one. It is rare work —
     /// only nights with unlinked segments — so the short hold is the right trade.
     func relinkSameNightSessions() {
-        let workItems = relinkWorkItems()
-        guard !workItems.isEmpty else { return }
-        let results = workItems.compactMap { relinkUnderLock($0) }
-        guard !results.isEmpty else { return }
-        // We rewrote the session files in place. The CloudKit copy is now
-        // stale. Signal the sync manager to clear its "uploaded" set for
-        // these IDs so the next sync pushes the corrected versions.
-        NotificationCenter.default.post(
-            name: .flowRecoveryArchiveSessionsNeedReupload,
-            object: nil,
-            userInfo: ["sessionIds": Set(results.map(\.sessionId))]
-        )
+        let results = relinkWorkItems().compactMap { relinkUnderLock($0) }
+        // Rewritten in place, so stale in iCloud: each asked to upload again before its write.
+        archive.store.requestReupload(of: Set(results.map(\.sessionId)))
     }
 
     /// Phase 1: identify groups needing re-link under lock. A night's
@@ -837,13 +841,33 @@ extension ArchiveMigrations {
     /// (`ArchiveStore.rollBackWrite`): the stored index would otherwise keep
     /// the old hash for the rewritten file, and every read of the night would
     /// fail its integrity check after a relaunch. The next launch tries again.
+    ///
+    /// File and entry change in two steps, so the rewrite carries the marker
+    /// every rewrite of an archived session does (`markRewriteStarting`) for
+    /// the next launch to re-hash by (`healInterruptedRewrites`); the
+    /// upload-again request is recorded before the write.
     private func relinkUnderLock(_ work: RelinkWork) -> RelinkResult? {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        guard let idx = archive.state.index.firstIndex(where: { $0.sessionId == work.parentEntry.sessionId }),
+        let id = work.parentEntry.sessionId
+        guard let idx = archive.state.index.firstIndex(where: { $0.sessionId == id }),
               archive.state.index[idx].fileHash == work.parentEntry.fileHash,
               let prior = priorFile(for: work),
-              let result = relink(work) else { return nil }
+              let session = relinkedSession(work) else { return nil }
+        archive.noteReuploadIntent([id])
+        archive.store.markRewriteStarting(id)
+        defer { archive.store.markRewriteSettled(id) }
+        guard let hashString = writeRelinked(session, to: work.fileURL, id: id) else { return nil }
+        ArchiveStore.betweenFileAndIndex?(id)
+        let result = RelinkResult(sessionId: id, hashString: hashString, links: session.linkedSessionIds ?? [])
+        return indexRelinked(result, at: idx, work: work, prior: prior)
+    }
+
+    /// Saves the relinked entry, or puts the previous file and entry back
+    /// when the save fails. Caller holds the lock.
+    private func indexRelinked(
+        _ result: RelinkResult, at idx: Int, work: RelinkWork, prior: ArchiveStore.PriorFile
+    ) -> RelinkResult? {
         let preIndex = archive.state.index
         archive.state.index[idx] = Self.relinked(archive.state.index[idx], result: result)
         do {
@@ -867,24 +891,21 @@ extension ArchiveMigrations {
         }
     }
 
-    /// Phase 2 for one night: read, modify, and write the parent's file.
-    /// Nil when nothing needed adding or the write failed. Caller holds the
-    /// lock.
+    /// Phase 2 for one night: the parent read and given the links it lacks.
+    /// Nil when nothing needed adding or the parent could not be read.
+    /// Caller holds the lock.
     ///
     /// Uses the shared full-session decoder — we MUST preserve rrSeries
     /// through the round-trip; the lightweight decoder would erase the strap's
     /// beat-by-beat data on write.
-    private func relink(_ work: RelinkWork) -> RelinkResult? {
+    private func relinkedSession(_ work: RelinkWork) -> HRVSession? {
         guard var session = loadForRelink(work) else { return nil }
         var links = session.linkedSessionIds ?? []
         let missingLinks = work.otherIds.filter { !Set(links).contains($0) }
         guard !missingLinks.isEmpty else { return nil }
         links.append(contentsOf: missingLinks)
         session.linkedSessionIds = links
-        guard let hashString = writeRelinked(session, to: work.fileURL, id: work.parentEntry.sessionId) else {
-            return nil
-        }
-        return RelinkResult(sessionId: work.parentEntry.sessionId, hashString: hashString, links: links)
+        return session
     }
 
     private func loadForRelink(_ work: RelinkWork) -> HRVSession? {

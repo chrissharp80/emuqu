@@ -100,6 +100,13 @@ final class SpokenTextChunkerTests: XCTestCase {
         )
     }
 
+    /// A numbered list keeps its numbers when spoken, as the chat shows them,
+    /// so a line that only looks like a list item loses nothing.
+    func testStripMarkdownKeepsListNumbers() {
+        XCTAssertEqual(SpokenTextChunker.stripMarkdownForSpeech("1. Warm up\n2) Intervals"), "1, Warm up\n2, Intervals")
+        XCTAssertEqual(SpokenTextChunker.stripMarkdownForSpeech("Reps done:\n5. Nice work."), "Reps done:\n5, Nice work.")
+    }
+
     func testStripMarkdownPreservesMathAsterisk() {
         // "5 * 3" must NOT lose the asterisk — only word-adjacent * is emphasis.
         let stripped = SpokenTextChunker.stripMarkdownForSpeech("5 * 3 = 15")
@@ -139,14 +146,16 @@ final class SpokenTextChunkerTests: XCTestCase {
         )
     }
 
-    func testStripMarkdownRemovesNumberedListMarkers() {
+    /// The marker's punctuation goes and its number is spoken, as the chat
+    /// shows it (`testStripMarkdownKeepsListNumbers`).
+    func testStripMarkdownSpeaksNumberedListMarkersAsTheirNumber() {
         let input = """
         1. one
         2) two
         """
         XCTAssertEqual(
             SpokenTextChunker.stripMarkdownForSpeech(input),
-            "one\ntwo"
+            "1, one\n2, two"
         )
     }
 

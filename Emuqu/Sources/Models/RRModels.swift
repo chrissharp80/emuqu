@@ -1,7 +1,7 @@
 import Foundation
 
 /// A single RR interval point
-struct RRPoint: Codable, Equatable {
+struct RRPoint: Codable, Hashable {
     /// Start timestamp in milliseconds since session start (cumulative from RR intervals)
     let t_ms: Int64
     /// RR interval duration in milliseconds
@@ -14,17 +14,30 @@ struct RRPoint: Codable, Equatable {
     /// Heart rate calculated by the device (bpm)
     /// Only populated during streaming mode (from Polar H10 sensor); nil for internal recording
     let hr: Int?
+    /// True when the sensor's quality gate removed one or more intervals
+    /// right before this beat (`StrapPPIFilter`), so it is not adjacent to
+    /// the beat before it in the series and no successive difference is
+    /// taken across the pair (Task Force 1996; `TimeDomainAnalyzer.isAdjacentBeat`).
+    /// Nil otherwise, and then not encoded, so a beat without it is stored
+    /// and synced exactly as before and an older build ignores the key.
+    let followsRemovedBeat: Bool?
+
+    /// Whether `followsRemovedBeat` is set.
+    var isAfterRemovedBeat: Bool {
+        followsRemovedBeat == true
+    }
 
     /// The same beat moved `offsetMs` later on both the session clock and the
     /// wall clock — how a child segment is re-based onto its parent's timeline
     /// when two recordings are merged.
     func shifted(by offsetMs: Int64) -> RRPoint {
-        RRPoint(
-            t_ms: t_ms + offsetMs,
-            rr_ms: rr_ms,
-            wallClockMs: wallClockMs.map { $0 + offsetMs },
-            hr: hr
-        )
+        retimed(t_ms: t_ms + offsetMs, wallClockMs: wallClockMs.map { $0 + offsetMs })
+    }
+
+    /// The same beat at other times. Every copy that moves a beat goes through
+    /// this, so its heart rate and `followsRemovedBeat` are never dropped.
+    func retimed(t_ms newTMs: Int64, wallClockMs newWallClockMs: Int64?) -> RRPoint {
+        RRPoint(t_ms: newTMs, rr_ms: rr_ms, wallClockMs: newWallClockMs, hr: hr, followsRemovedBeat: isAfterRemovedBeat)
     }
 
     /// Whether this RR interval falls within the physiologically valid range
@@ -38,14 +51,17 @@ struct RRPoint: Codable, Equatable {
         self.rr_ms = rr_ms
         wallClockMs = nil
         hr = nil
+        followsRemovedBeat = nil
     }
 
-    /// Full initializer with wall-clock timestamp (for streaming mode)
-    init(t_ms: Int64, rr_ms: Int, wallClockMs: Int64?, hr: Int? = nil) {
+    /// Full initializer with wall-clock timestamp (for streaming mode).
+    /// `followsRemovedBeat` false is stored as nil (not encoded).
+    init(t_ms: Int64, rr_ms: Int, wallClockMs: Int64?, hr: Int? = nil, followsRemovedBeat: Bool = false) {
         self.t_ms = t_ms
         self.rr_ms = rr_ms
         self.wallClockMs = wallClockMs
         self.hr = hr
+        self.followsRemovedBeat = followsRemovedBeat ? true : nil
     }
 
     /// End timestamp (start + duration)
@@ -92,14 +108,17 @@ struct RRSeries: Codable {
         return lastWall - firstWall
     }
 
-    /// Estimated data loss percentage based on wall-clock vs cumulative RR time drift
-    /// Positive value indicates data was likely dropped during streaming
+    /// Estimated share of the recording, in percent, that was never received:
+    /// the real-clock time no beat accounts for (`BeatTimeline.unreceivedMs`)
+    /// over the real-clock span. The beat clock `durationMs` leaves out a
+    /// Verity Sense's rejected intervals as well as dropouts, so set against
+    /// the wall clock it counted every rejected interval as lost. Nil without
+    /// wall-clock timestamps.
     var estimatedDataLossPercent: Double? {
-        guard let wallDuration = wallClockDurationMs, wallDuration > 0 else { return nil }
-        let rrDuration = durationMs
-        let drift = wallDuration - rrDuration
-        guard drift > 0 else { return 0.0 } // No loss or clock drift backwards (unlikely)
-        return (Double(drift) / Double(wallDuration)) * 100.0
+        guard hasWallClockTimestamps else { return nil }
+        let spanMs = BeatTimeline.spanMs(points)
+        guard spanMs > 0 else { return nil }
+        return Double(BeatTimeline.unreceivedMs(points)) / Double(spanMs) * 100.0
     }
 
     /// Find gaps in the data where wall-clock time advanced more than expected
@@ -246,6 +265,20 @@ extension [RRPoint] {
     func lastBeatEnd(after start: Date) -> Date? {
         guard let last else { return nil }
         return start.addingTimeInterval(TimeInterval(last.exportTimeMs + Int64(last.rr_ms)) / 1000.0)
+    }
+
+    /// Smoothed heart rate: the bpm of these beats' median interval, rounded
+    /// to the nearest beat. Raw rr_ms swings with normal RR variation (one
+    /// beat might read 48 or 92 from the same heart rate); the median of the
+    /// last few reads like a real heart rate. The one rule for the live
+    /// display and the post-workout recovery readings. Beats without a
+    /// positive interval are left out; nil when none is left.
+    var medianHeartRateBPM: Int? {
+        let intervals = compactMap { $0.rr_ms > 0 ? Double($0.rr_ms) : nil }.sorted()
+        guard !intervals.isEmpty else { return nil }
+        let mid = intervals.count / 2
+        let median = intervals.count.isMultiple(of: 2) ? (intervals[mid - 1] + intervals[mid]) / 2 : intervals[mid]
+        return Int((60_000.0 / median).rounded())
     }
 }
 
@@ -532,15 +565,32 @@ struct PeakCapacity: Codable {
 
 /// Training context snapshot - captured at time of HRV recording
 /// Stores ATL/CTL/TSB so historical reports show training state from that day
+///
+/// The load figures are stored as recorded, on the scale they were recorded
+/// on (`loadScale`), and read on the TSS scale every band, blend and display
+/// uses (`atl`, `ctl`, `tsb`, `yesterdayLoad`). A snapshot frozen before
+/// every load moved to the TSS scale carries no `loadScale` and is on
+/// Banister's TRIMP scale; it is placed on the TSS scale when read, through
+/// the hrTSS rule at the current anchors (`HeartRateAnchors.tss`), and never
+/// rewritten.
 struct TrainingContext: Codable, Sendable {
-    /// Acute Training Load (7-day EWMA of TRIMP) - "fatigue"
-    let atl: Double
-    /// Chronic Training Load (42-day EWMA of TRIMP) - "fitness"
-    let ctl: Double
-    /// Training-load balance (CTL - ATL) - "form/freshness"
-    let tsb: Double
-    /// Yesterday's TRIMP (training load day before this reading)
-    let yesterdayTrimp: Double
+    /// The scale a snapshot's load figures were recorded on.
+    enum LoadScale: String, Codable, Sendable {
+        /// Banister TRIMP, the scale of every snapshot frozen before the
+        /// TSS scale; what a snapshot without a stamp is on.
+        case trimp
+        /// TSS (100 = one hour at threshold).
+        case tss
+    }
+
+    /// ATL as recorded, on `scale`.
+    let recordedATL: Double
+    /// CTL as recorded, on `scale`.
+    let recordedCTL: Double
+    /// TSB as recorded, on `scale`.
+    let recordedTSB: Double
+    /// The load of the day before this reading as recorded, on `scale`.
+    let recordedYesterdayLoad: Double
     /// VO2max at time of recording (user override or HealthKit)
     var vo2Max: Double?
     /// Days since last hard workout
@@ -548,15 +598,29 @@ struct TrainingContext: Codable, Sendable {
     /// The five most recent workouts of the training load's list (its last
     /// 14 days), for context
     let recentWorkouts: [WorkoutSnapshot]?
+    /// The scale the figures were recorded on; nil on a snapshot frozen
+    /// before the stamp existed, which is on the TRIMP scale.
+    let loadScale: LoadScale?
 
-    init(atl: Double, ctl: Double, tsb: Double, yesterdayTrimp: Double, vo2Max: Double?, daysSinceHardWorkout: Int?, recentWorkouts: [WorkoutSnapshot]?) {
-        self.atl = atl
-        self.ctl = ctl
-        self.tsb = tsb
-        self.yesterdayTrimp = yesterdayTrimp
+    private enum CodingKeys: String, CodingKey {
+        case recordedATL = "atl", recordedCTL = "ctl", recordedTSB = "tsb"
+        case recordedYesterdayLoad = "yesterdayTrimp"
+        case vo2Max, daysSinceHardWorkout, recentWorkouts, loadScale
+    }
+
+    /// The figures on `loadScale`; a context built now is on the TSS scale.
+    init(
+        atl: Double, ctl: Double, tsb: Double, yesterdayTrimp: Double, vo2Max: Double?,
+        daysSinceHardWorkout: Int?, recentWorkouts: [WorkoutSnapshot]?, loadScale: LoadScale? = .tss
+    ) {
+        recordedATL = atl
+        recordedCTL = ctl
+        recordedTSB = tsb
+        recordedYesterdayLoad = yesterdayTrimp
         self.vo2Max = vo2Max
         self.daysSinceHardWorkout = daysSinceHardWorkout
         self.recentWorkouts = recentWorkouts
+        self.loadScale = loadScale
     }
 
     /// Acute:Chronic Ratio (injury risk indicator)
@@ -579,13 +643,14 @@ struct TrainingContext: Codable, Sendable {
 
         let snapshots = Self.snapshots(of: load)
         let safe = Self.sanitized(metrics)
-        atl = safe.atl
-        ctl = safe.ctl
-        tsb = safe.tsb
-        self.yesterdayTrimp = yesterdayTrimp
+        recordedATL = safe.atl
+        recordedCTL = safe.ctl
+        recordedTSB = safe.tsb
+        recordedYesterdayLoad = yesterdayTrimp
         vo2Max = load.vo2Max
         daysSinceHardWorkout = load.daysSinceHardWorkout
         recentWorkouts = snapshots.isEmpty ? nil : snapshots
+        loadScale = .tss
     }
 
     /// Sanitize against NaN/Inf at the source. This is the ONE

@@ -28,7 +28,7 @@ final class CoachVoiceGuardNegationTests: XCTestCase {
         ("You're not in a danger zone.", "You are in the danger zone."),
         ("You don't need to see a doctor about this.", "You should see a doctor about this."),
         ("You are definitely not sick.", "You are definitely sick."),
-        ("This doesn't look like a diagnosis of anything.", "My diagnosis is that you are run down."),
+        ("This doesn't look like a pathology.", "This looks like a pathology."),
         ("These are not symptoms of a disease.", "These are symptoms of a disease."),
         ("Es gibt keine Anzeichen von Übertraining.", "Das ist Übertraining."),
         ("Il n'y a aucun signe de surentraînement.", "C'est du surentraînement."),

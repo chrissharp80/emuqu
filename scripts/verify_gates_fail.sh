@@ -59,6 +59,17 @@ restore_all() {
     TOUCHED=()
 }
 
+# Whether a red gate fell over rather than reported the violation: an
+# interpreter error (a Python traceback, a bash unbound variable, syntax error
+# or missing command) or an exit code no gate uses for a finding (126 and 127
+# are bash's could-not-run codes, above 128 is a signal). A plant that breaks
+# the gate itself proves nothing about whether it catches the violation.
+gate_crashed() {
+    local code="$1" output="$2"
+    (( code == 126 || code == 127 || code > 128 )) && return 0
+    grep -qE 'Traceback \(most recent call last\)|: unbound variable|: syntax error|: command not found' <<<"$output"
+}
+
 # check <name> <gate command> <file to mutate> <python mutation>
 check() {
     local name="$1" gate="$2" file="$3" mutation="$4"
@@ -82,11 +93,15 @@ check() {
         return
     fi
 
-    eval "$gate" >/dev/null 2>&1
-    local code=$?
+    local output code
+    output="$(eval "$gate" 2>&1)"
+    code=$?
     restore_all
 
-    if (( code != 0 )); then
+    if (( code != 0 )) && gate_crashed "$code" "$output"; then
+        printf "  \033[31mFAIL\033[0m  %-34s CRASHED instead of reporting (exit %d); a crash is not a catch\n" "$name" "$code"
+        FAIL=$((FAIL + 1))
+    elif (( code != 0 )); then
         printf "  \033[32mPASS\033[0m  %-34s went red on a planted violation\n" "$name"
         PASS=$((PASS + 1))
     else
@@ -235,6 +250,30 @@ check "copy_perimeter/permission_prompt" \
     "Emuqu/Info.plist" \
     "import pathlib;p=pathlib.Path('Emuqu/Info.plist');s=p.read_text();o='Emuqu reads from Apple Health';assert s.count(o)==1;p.write_text(s.replace(o,'Emuqu diagnoses overtraining from Apple Health'))"
 
+# Every concept the README says is checked in all 17 languages, planted in a
+# French translation with no English word for the English patterns to catch.
+check "copy_perimeter/translated_diagnosis" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='Les segments sont notés indépendamment.';assert s.count(o)==1;p.write_text(s.replace(o,'Emuqu peut diagnostiquer votre état.'))"
+
+check "copy_perimeter/translated_overtraining" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='Les segments sont notés indépendamment.';assert s.count(o)==1;p.write_text(s.replace(o,'Les segments montrent un surentraînement.'))"
+
+check "copy_perimeter/translated_injury_risk" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Localizable.xcstrings" \
+    "import pathlib;p=pathlib.Path('Emuqu/Localizable.xcstrings');s=p.read_text();o='Les segments sont notés indépendamment.';assert s.count(o)==1;p.write_text(s.replace(o,'Les segments montrent un risque de blessure.'))"
+
+# A concept the every-locale list names but the linter cannot load must stop
+# the run, not drop out of the check while it reports clean.
+check "copy_perimeter/unloadable_concept" \
+    "python3 Tools/copy_linter/lint.py" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='        diagnosis, injuryRisk, overtraining'+chr(10)+'    ]';assert s.count(o)==1;p.write_text(s.replace(o,'        diagnosis, injuryRisk, overtraining, plantedMissingConcept'+chr(10)+'    ]'))"
+
 check "perimeter_sync/concept_not_scrubbed" \
     "./scripts/check_perimeter_sync.sh" \
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
@@ -348,8 +387,8 @@ check "snapshot_refs/identical_references" \
 # ships as a latent crash.
 check "empty_range/unguarded_loop" \
     "./scripts/check_empty_range_loops.sh" \
-    "Emuqu/Sources/Analysis/Verification.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/Verification.swift');s=p.read_text();o='        guard points.count > 1 else { return 0 }\n\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Services/TopoElevationService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/TopoElevationService.swift');s=p.read_text();o='        guard elevations.count > 1 else { return (0, 0) }\n\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # The second shape of the same trap: `0 ..< (count - N)` is invalid, not empty,
 # on a collection shorter than N.
@@ -411,6 +450,18 @@ check "log_redaction/place_name" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedRoute(savedRoute: SavedRoute) { debugLog(\"route: \\(savedRoute.name)\") }'+chr(10))"
 
+# A saved route's name copied out of the route, and a chosen file's name
+# logged through a local `log(_:)` wrapper.
+check "log_redaction/user_named_field" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedRouteName(estimate: RouteTRIMPEstimate) { debugLog(\"route=\\(estimate.routeName)\") }'+chr(10))"
+
+check "log_redaction/log_wrapper" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedFile(originalFileName: String) { log(\"Source: \\(originalFileName)\") }'+chr(10))"
+
 # A call into Polar's firmware update reaches Zip's unzip, which an
 # allowance in security.yml says the app never does.
 check "unreached_advisories" \
@@ -441,6 +492,24 @@ check "log_redaction/location_coordinate" \
     "./scripts/check_log_redaction.sh" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedCoordinate(location: CLLocation) { debugLog(\"at \\(location.coordinate)\") }'+chr(10))"
+
+# A location abbreviated to `loc` is still the location.
+check "log_redaction/loc_value" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedLoc(loc: CLLocation) { debugLog(\"at \\(loc)\") }'+chr(10))"
+
+# A message built in a local before the call carries its value into the call.
+check "log_redaction/prebuilt_message" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedPrebuilt(road: String) {'+chr(10)+'    let msg = \"on \\(road)\"'+chr(10)+'    debugLog(msg)'+chr(10)+'}'+chr(10))"
+
+# Text appended to a local message with `+=` reaches the call too.
+check "log_redaction/appended_message" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedAppended(query: String) {'+chr(10)+'    var line = \"asked\"'+chr(10)+'    line += \": \" + query'+chr(10)+'    debugLog(\"[x] \\(line)\")'+chr(10)+'}'+chr(10))"
 
 # What the user typed, lowercased on the way in, is still what they typed.
 check "log_redaction/transformed_query" \
@@ -947,10 +1016,13 @@ check "scoring_governance/age_norm_edit" \
     "Emuqu/Sources/Analysis/HRVThresholds.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVThresholds.swift');s=p.read_text();o='case 20 ..< 30: 45.0';assert s.count(o)==1;p.write_text(s.replace(o,'case 20 ..< 30: 50.0'))"
 
-check "scoring_governance/inline_z_clamp" \
+# An inline clamp on a live score path moves the hash. (The percentile
+# z-clamp in `zToPercentileScore` is not on any score path, so it is not
+# hashed.)
+check "scoring_governance/inline_score_clamp" \
     "./scripts/check_scoring_governance.sh" \
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='max(-3.0, min(3.0, z))';assert s.count(o)==1;p.write_text(s.replace(o,'max(-2.5, min(2.5, z))'))"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift');s=p.read_text();o='if rmssd > 0 { return min(100, max(0, absoluteRMSSDScore(rmssd))) }';assert s.count(o)==1;p.write_text(s.replace(o,'if rmssd > 0 { return min(99, max(0, absoluteRMSSDScore(rmssd))) }'))"
 
 check "scoring_governance/sleep_cap_edit" \
     "./scripts/check_scoring_governance.sh" \
@@ -987,6 +1059,114 @@ check "scoring_governance/flipped_operator" \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
 
+# Inputs that reach a stored score through an instance value rather than a
+# name the scoring files write move the hash too: the ANS norms and the SNS
+# index the composite's ANS balance reads, the HRV quality rule that swaps
+# in the baseline, the overnight window's time floor, the sleep staging
+# epoch floor and the training readiness curve.
+check "scoring_governance/ans_norm_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Utilities/Constants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');s=p.read_text();o='static let refRMSSD: Double = 42.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let refRMSSD: Double = 40.0'))"
+
+check "scoring_governance/sns_index_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/StressAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/StressAnalysis.swift');s=p.read_text();o='let zMeanHR = (meanHR - StressNormativeConstants.refMeanHR)';assert s.count(o)==1;p.write_text(s.replace(o,'let zMeanHR = (meanHR + StressNormativeConstants.refMeanHR)'))"
+
+check "scoring_governance/hrv_quality_rule_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/SessionAcceptanceService.swift');s=p.read_text();o='let longEnough = sessionDuration >= HRVConstants';assert s.count(o)==1;p.write_text(s.replace(o,'let longEnough = sessionDuration > HRVConstants'))"
+
+check "scoring_governance/window_span_floor_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/WindowSelector+Scoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/WindowSelector+Scoring.swift');s=p.read_text();o='var minWindowSpanMs: Int64 = HRVConstants.MinimumDuration.forReliableWindowMs';assert s.count(o)==1;p.write_text(s.replace(o,'var minWindowSpanMs: Int64 = 0'))"
+
+check "scoring_governance/sleep_epoch_floor_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift');s=p.read_text();o='private static let minValidRRsPerWindow = 8';assert s.count(o)==1;p.write_text(s.replace(o,'private static let minValidRRsPerWindow = 9'))"
+
+check "scoring_governance/readiness_curve_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/ReadinessScoring.swift');s=p.read_text();o='guard capacityRatio > 0 else { return r.readinessAtZero }';assert s.count(o)==1;p.write_text(s.replace(o,'guard capacityRatio >= 0 else { return r.readinessAtZero }'))"
+
+# The values stored beside a score and read back into it move the hash too:
+# the training snapshot behind the frozen readiness (the CTL time constant,
+# Banister's weighting, the LTHR that puts a TRIMP on the TSS scale, the day
+# a morning reading stops at), the vitals snapshot, read in a function with a
+# default argument, and the naps folded into the sleep snapshot.
+check "scoring_governance/training_chronic_days_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Utilities/Constants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');s=p.read_text();o='static let chronicDays: Int = 42';assert s.count(o)==1;p.write_text(s.replace(o,'static let chronicDays: Int = 28'))"
+
+check "scoring_governance/banister_weighting_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Utilities/Constants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');s=p.read_text();o='static let maleWeighting: Double = 1.92';assert s.count(o)==1;p.write_text(s.replace(o,'static let maleWeighting: Double = 1.90'))"
+
+check "scoring_governance/trimp_to_tss_lthr_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TrainingLoadSeries.swift');s=p.read_text();o='?? maxHR * 0.88';assert s.count(o)==1;p.write_text(s.replace(o,'?? maxHR * 0.85'))"
+
+check "scoring_governance/morning_load_day_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift');s=p.read_text();o='let lastDay = forMorningReading ? (calendar.date(byAdding: .day, value: -1, to: today)';assert s.count(o)==1;p.write_text(s.replace(o,'let lastDay = forMorningReading ? (calendar.date(byAdding: .day, value: -2, to: today)'))"
+
+check "scoring_governance/vitals_body_after_default_argument_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift');s=p.read_text();o='restingHeartRate: rhr';assert s.count(o)==1;p.write_text(s.replace(o,'restingHeartRate: nil'))"
+
+check "scoring_governance/nap_episode_gap_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Collection/SleepHealthQueries+Queries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/SleepHealthQueries+Queries.swift');s=p.read_text();o='iv.start.timeIntervalSince(prevEnd) > episodeGapSeconds';assert s.count(o)==1;p.write_text(s.replace(o,'iv.start.timeIntervalSince(prevEnd) >= episodeGapSeconds'))"
+
+# The hash covers what a stored score reaches, not a list: the baseline's
+# admission rule (an instance method the baseline update calls) and the night
+# key it counts nights by (a method on the sleep schedule) each change every
+# later score, and each must move the hash.
+check "scoring_governance/baseline_admission_always_true" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/BaselineTracker.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/BaselineTracker.swift');s=p.read_text();a='    private func admitsToBaseline(_ session: HRVSession, result: HRVAnalysisResult) -> Bool {'+chr(10);b='        return !result.isEstimated(.sdnn)'+chr(10)+'    }'+chr(10);assert s.count(a)==1 and s.count(b)==1;i=s.index(a)+len(a);j=s.index(b,i)+len(b);p.write_text(s[:i]+'        true'+chr(10)+'    }'+chr(10)+s[j:])"
+
+check "scoring_governance/night_key_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Models/SleepSchedule.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/SleepSchedule.swift');s=p.read_text();o='Calendar.current.startOfDay(for: firstWake(after: overnightWindowStart(relativeTo: date)))';assert s.count(o)==1;p.write_text(s.replace(o,'Calendar.current.startOfDay(for: date)'))"
+
+# A value handed to a hashed reader through storage is hashed where it is
+# stored: training load reads the resting HR that `WorkoutLoadRestingHR.record`
+# keeps in UserDefaults, so changing what it stores moves the hash.
+check "scoring_governance/persisted_resting_hr_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift');s=p.read_text();o='UserDefaults.standard.set([\"value\": value,';assert s.count(o)==1;p.write_text(s.replace(o,'UserDefaults.standard.set([\"value\": value * 2,'))"
+
+# A function with a closure default argument keeps its body under its own
+# name: an edit to the masked RMSSD estimator's body moves the hash.
+check "scoring_governance/body_after_closure_default_edit" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TimeDomainAnalysis.swift');s=p.read_text();o='        guard pairCount >= 1 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard pairCount >= 2 else { return nil }'))"
+
+# The gate checks its own coverage. With the walker made to drop a closure
+# default argument's function, as it once did, that function's body is filed
+# under another declaration and the coverage check must go red. The gate is
+# read for its coverage findings alone, since the hash moves too.
+check "scoring_governance/coverage_hole_detected" \
+    '! grep -q "coverage: " <<<"$(./scripts/check_scoring_governance.sh 2>&1)"' \
+    "scripts/lib/scoring_hash.py" \
+    "import pathlib;p=pathlib.Path('scripts/lib/scoring_hash.py');s=p.read_text();o='scope.signature = self.pending';assert s.count(o)==1;p.write_text(s.replace(o,'scope.signature = None'))"
+
 # A change of hashing scheme must not open a window for a constant change:
 # with the base's baseline written under the older `static-lets` scheme, a
 # constant edited and the baseline rewritten under the current scheme still
@@ -994,7 +1174,7 @@ check "scoring_governance/flipped_operator" \
 # commits a `static-lets` baseline as the base, then takes the working copy's
 # constants and gate and records their current-scheme hash.
 check "scoring_governance/scheme_change_hides_constant_change" \
-    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s decl-tokens\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-tokens | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/scheme_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py static-lets | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "static-lets base" --allow-empty) && cp Emuqu/Sources/Utilities/RecoveryScoreConstants.swift "$d/Emuqu/Sources/Utilities/" && (cd "$d" && printf "%s %s stored-defuse\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-defuse | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
@@ -1004,9 +1184,20 @@ check "scoring_governance/scheme_change_hides_constant_change" \
 # current scheme, version unchanged, still fails, because the base's own
 # sources are hashed under the current scheme as well.
 check "scoring_governance/scheme_change_hides_operator_change" \
-    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s decl-tokens\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-tokens | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    'd="$BACKUP_DIR/operator_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-literals\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-literals | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-literals base" --allow-empty) && cp Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift "$d/Emuqu/Sources/Analysis/" && (cd "$d" && printf "%s %s stored-defuse\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-defuse | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift');s=p.read_text();o='where z <= bands[i + 1].z';assert s.count(o)==1;p.write_text(s.replace(o,'where z < bands[i + 1].z'))"
+
+# A base the current scheme cannot hash must fail, not skip the comparison:
+# with the base recorded under `decl-flow`, a stored field that only the tree
+# declares (a constant appended to a file no scheme reads otherwise) leaves
+# the base's sources unhashable, and the gate must say so rather than pass. A
+# throwaway clone commits the `decl-flow` base, then declares the field, and
+# writes the baseline the tree hashes to.
+check "scoring_governance/unhashable_base_is_an_error" \
+    'd="$BACKUP_DIR/unhashable_clone"; rm -rf "$d"; git clone -q --no-hardlinks . "$d" && cp scripts/check_scoring_governance.sh "$d/scripts/" && cp scripts/lib/scoring_hash.py "$d/scripts/lib/" && (cd "$d" && printf "%s %s decl-flow\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py decl-flow | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && git -c user.name=gate -c user.email=gate@localhost commit -qam "decl-flow base" --allow-empty && printf "\nenum PlantedScoringRoot {\n    static let plantedScoringRootValue = 1.0\n}\n" >> Emuqu/Sources/Utilities/Extensions.swift && printf "%s %s stored-defuse\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$(python3 scripts/lib/scoring_hash.py stored-defuse | cut -d" " -f1)" > .ci/scoring_constants_hash.txt && SCORING_BASE_REF=HEAD ./scripts/check_scoring_governance.sh)' \
+    "scripts/lib/scoring_hash.py" \
+    "import pathlib;p=pathlib.Path('scripts/lib/scoring_hash.py');s=p.read_text();o='    \"BaselineTracker\": [\"historicalData\"],';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    \"PlantedScoringRoot\": [\"plantedScoringRootValue\"],'))"
 
 # The mutation harness credits a mutation only to a recorded assertion
 # failure. With that requirement taken out, a run that stopped after a test
@@ -1187,6 +1378,147 @@ check "budget_monotonicity/swiftlint_threshold_raised" \
     "./scripts/check_budget_monotonicity.sh HEAD" \
     ".swiftlint.yml" \
     "import pathlib;p=pathlib.Path('.swiftlint.yml');s=p.read_text();o='line_length:'+chr(10)+'  warning: 300';assert s.count(o)==1;p.write_text(s.replace(o,'line_length:'+chr(10)+'  warning: 1700'))"
+
+# Spellings each gate's header claims and an earlier pattern missed.
+check "logger_self_reference/self_shared" \
+    "./scripts/check_logger_self_reference.sh" \
+    "Emuqu/Sources/Utilities/DebugLog.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/DebugLog.swift');p.write_text(p.read_text()+chr(10)+'extension DebugLogger { func plantedReentry() { Self.shared.flush() } }'+chr(10))"
+
+check "hr_feed/guarded_start" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        feed.start(generation: generation)';assert s.count(o)==1;p.write_text(s.replace(o,'        guard plantedReady else { return }'+chr(10)+o))"
+
+check "hr_feed/thread_sleep" \
+    "./scripts/check_hr_feed_subscribes_on_link.sh" \
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapHeartRateFeed.swift');p.write_text(p.read_text()+chr(10)+'func plantedWait() { Thread.sleep(forTimeInterval: 10) }'+chr(10))"
+
+check "test_skip_budget/multiline_disabled" \
+    "./scripts/check_test_skip_budget.sh" \
+    "EmuquTests/StressAnalysisTests.swift" \
+    "import pathlib;p=pathlib.Path('EmuquTests/StressAnalysisTests.swift');p.write_text(p.read_text()+chr(10)+'@Test('+chr(10)+'    \"planted\",'+chr(10)+'    .disabled(\"radio\")'+chr(10)+')'+chr(10)+'func plantedDisabled() {}'+chr(10))"
+
+check "test_skip_budget/slack" \
+    "./scripts/check_test_skip_budget.sh" \
+    ".ci/test_skip_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/test_skip_budget.txt');p.write_text(str(int(p.read_text().strip())+1)+chr(10))"
+
+check "spec_conformance/discarded_error" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfunc plantedDiscard() {\n    do { try plantedDiscardThrow() } catch { _ = error }\n}\nfunc plantedDiscardThrow() throws {}\n')"
+
+check "spec_conformance/example_inside_a_word" \
+    "./scripts/check_refactor_spec_conformance.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfunc plantedCorpse() {\n    // let memoryUsage = Probe.read()\n    // archive.save(memoryUsage)\n}\n')"
+
+check "coremotion_handler_isolation/event_updates" \
+    "./scripts/check_coremotion_handler_isolation.sh" \
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='        pedometer.startUpdates(from: start) { @Sendable [weak self] data, error in';assert s.count(o)==1;p.write_text(s.replace(o,'        pedometer.startEventUpdates { event, _ in _ = event }'+chr(10)+o))"
+
+check "locale_formatting/nsstring_format" \
+    "./scripts/check_locale_formatting.sh" \
+    "Emuqu/Sources/Views/SettingsView.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFormat = NSString(format: \"%.1f km\", 1.0) as String'+chr(10))"
+
+check "xcodebuild_pinned/spaced_make_alias" \
+    "./scripts/check_xcodebuild_pinned.sh" \
+    "Makefile" \
+    "import pathlib;p=pathlib.Path('Makefile');p.write_text(p.read_text()+chr(10)+'PLANTED_XCODEBUILD = xcode'+'build'+chr(10)+'planted-build:'+chr(10)+chr(9)+'\$(PLANTED_XCODEBUILD) test -scheme Emuqu'+chr(10))"
+
+check "xcodebuild_pinned/python_heredoc_in_shell" \
+    "./scripts/check_xcodebuild_pinned.sh" \
+    "scripts/check_file_names.sh" \
+    "import pathlib;p=pathlib.Path('scripts/check_file_names.sh');p.write_text(p.read_text()+chr(10)+'python3 - <<PLANTED'+chr(10)+'import subprocess; subprocess.run([\"xcode'+'build\", \"test\", \"-scheme\", \"Emuqu\"])'+chr(10)+'PLANTED'+chr(10))"
+
+check "eager_permission_prompt/qualified_builder_in_init" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    init() { peripheralManager = Self.plantedMake() }'+chr(10)+'    static func plantedMake() -> CBPeripheralManager { CBPeripheralManager(delegate: nil, queue: nil) }'))"
+
+check "eager_permission_prompt/wrapped_stored_property" \
+    "./scripts/check_no_eager_permission_prompts.sh" \
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift');s=p.read_text();o='    @ObservationIgnored private var peripheralManager: CBPeripheralManager?';assert s.count(o)==1;p.write_text(s.replace(o,o+chr(10)+'    private let plantedManager: CBPeripheralManager ='+chr(10)+'        CBPeripheralManager(delegate: nil, queue: nil)'))"
+
+check "no_developer_endpoint/unlisted_sdk" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu.xcodeproj/project.pbxproj" \
+    "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');p.write_text(p.read_text()+'\n/* planted https://github.com/TelemetryDeck/SwiftSDK reference */\n')"
+
+check "gates_wired/fallback_echo" \
+    "./scripts/check_gates_wired.sh" \
+    ".github/workflows/ci.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/ci.yml');s=p.read_text();o='run: ./scripts/check_log_redaction.sh'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,'run: ./scripts/check_log_redaction.sh || echo \"::warning::failed\"'+chr(10)))"
+
+check "gates_wired/make_ignore_errors" \
+    "./scripts/check_gates_wired.sh" \
+    "Makefile" \
+    "import pathlib;p=pathlib.Path('Makefile');s=p.read_text();o=chr(9)+'@build/validation-venv/bin/python -I Tools/validation/test_ports.py';assert s.count(o)==1;p.write_text(s.replace(o,chr(9)+'@-build/validation-venv/bin/python -I Tools/validation/test_ports.py'))"
+
+check "doc_links/watch_path" \
+    "./scripts/check_doc_links.sh" \
+    "README.md" \
+    "import pathlib;p=pathlib.Path('README.md');p.write_text(p.read_text()+'\nSee \`EmuquWatch Watch App/PlantedGone.swift\` for details.\n')"
+
+check "doc_links/budget_value_on_the_line_before" \
+    "./scripts/check_doc_links.sh" \
+    "docs/LOCALIZATION.md" \
+    "import pathlib;p=pathlib.Path('docs/LOCALIZATION.md');p.write_text(p.read_text()+'\nThe floor is 100 percent; see\nmin_localization_coverage.txt for details.\n')"
+
+check "fixed_font/qualified_constant" \
+    "./scripts/check_fixed_font_budget.sh" \
+    "Emuqu/Sources/Views/SettingsView.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private enum PlantedLayout {'+chr(10)+'    static let plantedTitleSize: CGFloat = 34'+chr(10)+'}'+chr(10)+'private let plantedFixedFont = Text(\"x\").font(.system(size: PlantedLayout.plantedTitleSize, weight: .bold))'+chr(10))"
+
+check "localization_bundle/inside_interpolation" \
+    "./scripts/check_localization_bundle.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'let plantedNested = \"\\\\(String(localized: \"planted average\")): 1\"'+chr(10))"
+
+check "log_redaction/wrapped_value" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedWrapped(email: String?) { debugLog(\"to \\\\(String(describing: email))\") }'+chr(10))"
+
+check "log_redaction/logger_sink" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedSink(query: String) { DebugLogger.shared.log(\"asked \\\\(query)\") }'+chr(10))"
+
+check "log_redaction/optional_logger" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedOptional(logger: Logger?, query: String) { logger?.info(\"asked \\\\(query)\") }'+chr(10))"
+
+check "cloudkit/key_from_enum_raw_value" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');p.write_text(p.read_text()+chr(10)+'func plantedWrite(record: CKRecord, s: HRVSession) { record[PlantedField.meanRMSSD.rawValue] = 1.0 as CKRecordValue }'+chr(10))"
+
+check "science_register/computed_property" \
+    "./scripts/check_science_register.sh" \
+    "Emuqu/Sources/Collection/TrainingLoad.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingLoad.swift');p.write_text(p.read_text()+chr(10)+'extension TrainingLoad { var plantedSleepDebtPenalty: Double { 1.0 } }'+chr(10))"
+
+check "coupling_budget/implicit_member_read" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'let plantedServices = WorkoutServices(.current)'+chr(10))"
+
+check "empty_range/guard_that_does_not_dominate" \
+    "./scripts/check_empty_range_loops.sh" \
+    "Emuqu/Sources/Analysis/Verification.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/Verification.swift');p.write_text(p.read_text()+'\nfunc plantedRange(xs: [Int]) {\n    if xs.count >= 2 { print(xs) }\n    for i in 0 ..< xs.count - 2 { print(i) }\n}\n')"
+
+check "empty_range/guard_of_the_wrong_polarity" \
+    "./scripts/check_empty_range_loops.sh" \
+    "Emuqu/Sources/Analysis/Verification.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/Verification.swift');p.write_text(p.read_text()+'\nfunc plantedRange(xs: [Int]) {\n    guard xs.isEmpty else { return }\n    for i in 1 ..< xs.count { print(i) }\n}\n')"
 
 # The Thread Sanitizer gate needs a simulator build, so here it runs against a
 # stand-in xcodebuild that behaves as the real one does in the ways the gate

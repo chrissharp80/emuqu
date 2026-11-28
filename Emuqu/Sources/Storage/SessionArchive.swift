@@ -88,6 +88,14 @@ final class SessionArchive: Sendable {
     /// (`ArchiveIndexState.hasCompleteIndex`). Takes `archiveLock`.
     var hasCompleteIndex: Bool { state.hasCompleteIndex }
 
+    /// Session files on disk, sealed, that no key on this device opens, as
+    /// the last orphan scan found them (`reconcileOrphanFiles`): an iPhone
+    /// restored without the previous phone's Keychain. They are kept as they
+    /// are, so a later key can still open them. Takes `archiveLock`.
+    var sealedWithAnotherKeyCount: Int {
+        archiveLock.withLock { state.sealedWithAnotherKeyCount }
+    }
+
     // MARK: - Shared JSON Coders
     //
     // Allocating a fresh `JSONDecoder()`/`JSONEncoder()` (and re-setting
@@ -175,8 +183,10 @@ final class SessionArchive: Sendable {
         }
     }
 
-    /// Deferred launch work: adopt crash-orphaned session files and emit the
-    /// tombstone diagnostic. Kept out of `init` so neither the
+    /// Deferred launch work: finish the changes a kill interrupted
+    /// (`finishInterruptedMoves`, `finishInterruptedDeletes`,
+    /// `healInterruptedRewrites`), adopt crash-orphaned session files and emit
+    /// the tombstone diagnostic. Kept out of `init` so neither the
     /// directory scan nor the per-tombstone `attributesOfItem` walk blocks
     /// the launch critical path. Idempotent — safe to call once after first
     /// paint, off the main thread. Orphan adoption still happens, just a
@@ -192,6 +202,7 @@ final class SessionArchive: Sendable {
     /// (`AppLaunchTasks.scheduleMigrationJobs`).
     func boot() {
         retryFailedIndexLoad()
+        store.finishInterruptedMoves()
         store.finishInterruptedDeletes()
         normalizeIndexIdentity()
         reconcileOrphanFiles()
@@ -243,6 +254,10 @@ final class SessionArchive: Sendable {
     /// A file of a tombstoned session, or of one deleted forever
     /// (`ForgottenSessions`), is never adopted.
     ///
+    /// Sealed files no key here opens are counted
+    /// (`sealedWithAnotherKeyCount`) and, like every file that does not
+    /// decode, left untouched.
+    ///
     /// Runs off-main from `boot()`, so all `index`/
     /// `deletedSessionIds` access must hold `archiveLock`. Snapshot the
     /// current state under the lock, do the slow file decode WITHOUT the
@@ -264,9 +279,7 @@ final class SessionArchive: Sendable {
         let indexed = IndexedFiles(state.index)
         let deleted = state.deletedSessionIds.union(ForgottenSessions.ids)
         archiveLock.unlock()
-        let newEntries = files.compactMap {
-            orphanEntry(for: $0, indexed: indexed, deleted: deleted)
-        }
+        let newEntries = orphanEntries(in: files, indexed: indexed, deleted: deleted)
         guard !newEntries.isEmpty else { return }
         adoptOrphans(newEntries)
     }
@@ -274,7 +287,8 @@ final class SessionArchive: Sendable {
     /// Includes the CloudKit sync state sidecars (`sync_state.json`,
     /// `pending_uploads.json`, `quarantined_uploads.json`,
     /// `local_only_sessions.json`, `record_versions.json` — every file
-    /// `CloudKitSyncState` writes).
+    /// `CloudKitSyncState` writes), and the upload-again requests
+    /// (`ReuploadRequestJournal`).
     /// They live in the same archive directory
     /// but aren't session files; without this list the reconciler tries
     /// to decode them as HRVSession on every cold launch and logs
@@ -287,7 +301,8 @@ final class SessionArchive: Sendable {
             "pending_uploads.json",
             "quarantined_uploads.json",
             "local_only_sessions.json",
-            "record_versions.json"
+            "record_versions.json",
+            ReuploadRequestJournal.fileName
         ]
     }
 
@@ -302,7 +317,7 @@ final class SessionArchive: Sendable {
     /// are written encrypted, so a plain JSON decode skipped every real orphan
     /// as "undecodable" and a lost index could only be rebuilt by hand.
     private func orphanEntry(
-        for file: URL, indexed: IndexedFiles, deleted: Set<UUID>
+        for file: URL, indexed: IndexedFiles, deleted: Set<UUID>, sealedElsewhere: inout Int
     ) -> SessionArchiveEntry? {
         let name = file.lastPathComponent
         guard file.pathExtension == "json",
@@ -313,9 +328,7 @@ final class SessionArchive: Sendable {
         let bareId = (name as NSString).deletingPathExtension
         if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) || indexed.sessionIds.contains(uuid) { return nil }
         guard let data = attempt("Archive.readOrphan", { try Data(contentsOf: file) }),
-              let session = attempt("Archive.decodeOrphan", {
-                  try ArchiveStore.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
-              })
+              let session = decodeOrphan(file, sealedElsewhere: &sealedElsewhere)
         else {
             debugLog("[Archive] reconcileOrphanFiles: skipping undecodable orphan \(name)")
             return nil
@@ -324,6 +337,39 @@ final class SessionArchive: Sendable {
         return SessionArchiveEntry.make(
             from: session, hash: SessionFileCodec.sha256Hex(data), filePath: name
         )
+    }
+
+    /// The adoptable orphans among `files`; the sealed ones no key here opens
+    /// are counted into `sealedWithAnotherKeyCount`.
+    private func orphanEntries(in files: [URL], indexed: IndexedFiles, deleted: Set<UUID>) -> [SessionArchiveEntry] {
+        var sealedElsewhere = 0
+        let entries = files.compactMap {
+            orphanEntry(for: $0, indexed: indexed, deleted: deleted, sealedElsewhere: &sealedElsewhere)
+        }
+        archiveLock.withLock { state.sealedWithAnotherKeyCount = sealedElsewhere }
+        return entries
+    }
+
+    /// The orphan as decoded, or nil, with a sealed file no key here opens
+    /// counted in `sealedElsewhere`.
+    private func decodeOrphan(_ file: URL, sealedElsewhere: inout Int) -> HRVSession? {
+        do {
+            return try ArchiveStore.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
+        } catch {
+            if Self.isSealedWithAnotherKey(error) { sealedElsewhere += 1 }
+            debugLog("[Archive] reconcileOrphanFiles: \(file.lastPathComponent) does not open: \(error)")
+            return nil
+        }
+    }
+
+    /// Whether opening a sealed file failed because no key on this device
+    /// opens it: the key is missing, or the one here fails authentication.
+    /// A Keychain locked for now (`EncryptionManager.isKeyLocked`) and bytes
+    /// that opened but did not decode are not that.
+    nonisolated static func isSealedWithAnotherKey(_ error: Error) -> Bool {
+        if error is CryptoKitError { return true }
+        if case .keyNotFound? = error as? EncryptionManager.EncryptionError { return true }
+        return false
     }
 
     /// Append the adoptable orphans under the lock, re-checking so a
@@ -411,6 +457,7 @@ final class SessionArchive: Sendable {
         archiveLock.lock()
         let entry: SessionArchiveEntry
         let wasArchived = state.index.contains { $0.sessionId == session.id }
+        if requestingReupload && wasArchived { state.reuploadRequests.record([session.id]) }
         do {
             entry = try store._archive(session, skipSameNightMerge: skipSameNightMerge)
         } catch {
@@ -422,9 +469,7 @@ final class SessionArchive: Sendable {
         archiveLock.unlock()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: entry.sessionId)
         if folded { NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id) }
-        if folded || (requestingReupload && wasArchived) {
-            postReuploadRequest(for: entry.sessionId)
-        }
+        if folded || (requestingReupload && wasArchived) { postReuploadRequest(for: entry.sessionId) }
         return entry
     }
 
@@ -495,7 +540,7 @@ final class SessionArchive: Sendable {
                 archiveLock.unlock()
                 return false
             }
-            if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
+            if requestingReupload { stampForReupload(&session) }
             _ = try store._archive(session, skipSameNightMerge: true)
         } catch {
             archiveLock.unlock()
@@ -507,11 +552,24 @@ final class SessionArchive: Sendable {
         return true
     }
 
-    /// Ask CloudKit sync to upload this session again.
+    /// An edit's stamp, and its upload-again request recorded before the
+    /// write. Caller holds `archiveLock`.
+    private func stampForReupload(_ session: inout HRVSession) {
+        session.modifiedAt = CloudKitSessionFreshness.stamp()
+        state.reuploadRequests.record([session.id])
+    }
+
+    /// Ask CloudKit sync to upload this session again
+    /// (`ArchiveStore.requestReupload`).
     func postReuploadRequest(for id: UUID) {
-        NotificationCenter.default.post(
-            name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": Set([id])]
-        )
+        store.requestReupload(of: [id])
+    }
+
+    /// Records, on disk, that these sessions are to be uploaded again: called
+    /// before the write that changes them, by writers that post the request
+    /// once it is done. Does not take `archiveLock`.
+    func noteReuploadIntent(_ ids: Set<UUID>) {
+        state.reuploadRequests.record(ids)
     }
 
     /// Retrieve an archived session
@@ -633,6 +691,8 @@ final class ArchiveIndexState: @unchecked Sendable {
     /// The key the session files and the index are sealed with.
     let encryption: EncryptionManager
     let mergeSettings: MergeSettings
+    /// Upload-again requests, kept from before each change they cover.
+    let reuploadRequests: ReuploadRequestJournal
 
     /// Mutable archive index: every read AND write MUST hold `archiveLock`.
     /// A raw read while a locked writer mutates the CoW array buffer is
@@ -655,6 +715,9 @@ final class ArchiveIndexState: @unchecked Sendable {
     /// were moved aside and the in-memory index started empty), so the index
     /// does not list the sessions that file held.
     var indexDecodeFailed = false
+    /// Sealed session files the last orphan scan found that no key here
+    /// opens (`SessionArchive.sealedWithAnotherKeyCount`).
+    var sealedWithAnotherKeyCount = 0
     /// The `index.json` entries a newer build wrote that this build would
     /// lose by re-encoding them, kept as read so `saveIndex` writes them back
     /// (`IndexEntriesFromNewerBuild`).
@@ -684,6 +747,7 @@ final class ArchiveIndexState: @unchecked Sendable {
         archiveDirectory = directory ?? Self.defaultDirectory(fileManager: .default)
         indexFile = archiveDirectory.appendingPathComponent("index.json")
         deletedIndexFile = archiveDirectory.appendingPathComponent("deleted.json")
+        reuploadRequests = ReuploadRequestJournal(directory: archiveDirectory)
         self.encryption = encryption
         self.mergeSettings = mergeSettings
     }
@@ -732,6 +796,7 @@ final class ArchiveIndexState: @unchecked Sendable {
         deletedSessionIds = []
         indexReadFailed = false
         indexDecodeFailed = false
+        sealedWithAnotherKeyCount = 0
         deletedIndexReadFailed = false
         foldedInto = [:]
         sortedEntriesCache = nil

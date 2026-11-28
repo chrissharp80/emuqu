@@ -85,6 +85,35 @@ final class ProviderConsentTrackerTests: XCTestCase {
         }
     }
 
+    /// Switching the AI Assistant off stops a request even to a provider
+    /// with consent: a summary, tool round or fallback after the switch
+    /// never connects.
+    func testARequestWithTheAssistantOffIsNotSent() async throws {
+        ProviderConsentTracker.shared.acknowledge(.anthropic)
+        let settingsManager = AppDependencies.current.app.settingsManager
+        let wasOn = settingsManager.settings.enableAIAssistant
+        settingsManager.settings.enableAIAssistant = false
+        defer { settingsManager.settings.enableAIAssistant = wasOn }
+        let request = URLRequest(url: try XCTUnwrap(URL(string: "https://127.0.0.1:9/v1/messages")))
+        do {
+            try await Self.open(request)
+            XCTFail("The request was sent with the AI Assistant off")
+        } catch let AIProviderError.consentWithdrawn(provider) {
+            XCTAssertEqual(provider, .anthropic)
+        }
+    }
+
+    /// The WhisperKit model, fetched from Hugging Face on first use, is
+    /// loaded only for a voice session with voice mode on; Apple Speech
+    /// never needs it.
+    func testTheWhisperKitModelIsUsedOnlyWithVoiceModeOn() {
+        let whisperKitApplies = STTProviderKind.effective(preferred: .whisperKit) == .whisperKit
+        XCTAssertFalse(VoiceConversationController.usesWhisperKit(preferred: .whisperKit, voiceModeOn: false))
+        XCTAssertFalse(VoiceConversationController.usesWhisperKit(preferred: .apple, voiceModeOn: true))
+        XCTAssertFalse(VoiceConversationController.usesWhisperKit(preferred: .apple, voiceModeOn: false))
+        XCTAssertEqual(VoiceConversationController.usesWhisperKit(preferred: .whisperKit, voiceModeOn: true), whisperKitApplies)
+    }
+
     /// The tool gate refuses a provider without consent and lets Apple
     /// Intelligence, which needs none, through.
     func testTheToolGateRefusesAProviderWithoutConsent() throws {

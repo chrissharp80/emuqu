@@ -46,12 +46,16 @@ final class HealthKitBackfill {
     ///
     /// First, before the watermark: a workout saved while the phone was
     /// locked has its earlier copies deleted (`PendingWorkoutReplacements`).
+    ///
+    /// Nothing is written while "Export to Apple Health" is off, and a pass
+    /// stops at the next workout once it is turned off, leaving the watermark
+    /// where it was so turning it on again scans the archive.
     @discardableResult
     func backfillWorkoutsToHealthKit(
         archive: SessionArchive,
         bodyWeightKg: Double
     ) async -> (exported: Int, skipped: Int, failed: Int) {
-        guard access.isAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
+        guard access.isAvailable, exportsNow, workoutWriteAuthorized else { return (0, 0, 0) }
         await PendingWorkoutReplacements.finish(in: sampleReplacer.store)
         let candidates = archive.store.entries.filter { $0.sessionType == .workout }
         let watermark = Self.backfillWatermark(candidates)
@@ -62,16 +66,18 @@ final class HealthKitBackfill {
         var tally = (exported: 0, skipped: 0, failed: 0)
         for entry in candidates {
             await Task.yield()
+            guard exportsNow else { return tally }
             await backfillOne(entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
         }
         // Advance the watermark only when nothing failed, so failed sessions
         // are retried next foreground (until the retry ceiling skips them).
-        if tally.failed == 0 {
-            UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey)
-        }
+        if tally.failed == 0 { UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey) }
         debugLog("[HealthKitManager] backfill complete — exported=\(tally.exported) skipped=\(tally.skipped) failed=\(tally.failed) of \(candidates.count) candidates")
         return tally
     }
+
+    /// "Export to Apple Health", read when asked.
+    private var exportsNow: Bool { access.settingsProvider().exportsToAppleHealth }
 
     /// Only proceed if the user has granted workout-write — otherwise every
     /// export throws and we'd burn battery.
@@ -83,15 +89,14 @@ final class HealthKitBackfill {
     ///
     /// `.warning`, not `debugLogExternal`: this has to reach the user-facing
     /// problems list. Logged as an external event it would stay invisible while
-    /// every workout fails to reach Apple Health — and the training load, which
-    /// is built only from HealthKit workouts, would be computed without them.
+    /// every workout fails to reach Apple Health.
     /// Once per launch, because backfill checks on every foreground.
     private var workoutWriteAuthorized: Bool {
         guard access.store.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
             if !hasReportedWorkoutWriteDenied {
                 hasReportedWorkoutWriteDenied = true
                 debugLog(
-                    "[HealthKitManager] Workouts can't be written to Apple Health — writing is off for Workouts. Turn it on in Settings → Health → Data Access & Devices → Emuqu. Until then workouts stay in Emuqu only and the training load will not include them.",
+                    "[HealthKitManager] Workouts can't be written to Apple Health — writing is off for Workouts. Turn it on in Settings → Health → Data Access & Devices → Emuqu. Until then workouts stay in Emuqu only.",
                     level: .warning
                 )
             }
@@ -160,7 +165,7 @@ final class HealthKitBackfill {
         // between would look unexported and go to Health twice.
         guard HealthExportClaims.claim(entry.sessionId) else { return tally.failed += 1 }
         defer { HealthExportClaims.release(entry.sessionId) }
-        guard var session = readableSession(entry, archive: archive) else { return tally.skipped += 1 }
+        guard var session = readableSession(entry, archive: archive, tally: &tally) else { return }
         guard Self.needsBackfill(session) else { return tally.skipped += 1 }
         guard !Self.exportedUnstamped().contains(entry.sessionId.uuidString) else {
             return stampAlreadyExported(entry.sessionId, archive: archive, tally: &tally)
@@ -168,18 +173,25 @@ final class HealthKitBackfill {
         await exportClaimed(&session, entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
     }
 
-    /// The session, or nil when it cannot be read (its file is missing or
-    /// cannot be decrypted). Retrying will not make it readable, so the
-    /// caller counts it as skipped rather than failed: counted as failed it
-    /// held the watermark for good, and every foreground decrypted every
-    /// workout again.
-    private func readableSession(_ entry: SessionArchiveEntry, archive: SessionArchive) -> HRVSession? {
+    /// The session, or nil when it cannot be read. A failure retrying will
+    /// not clear (the file missing, undecryptable or undecodable) counts as
+    /// skipped: counted as failed it held the watermark for good, and every
+    /// foreground decrypted every workout again. One that clears by itself
+    /// (`ArchiveAccessFailure.mayClear`: the device locked, the disk full)
+    /// counts as failed, so the watermark holds and the workout is exported
+    /// once it can be read, not left out of Apple Health as done.
+    private func readableSession(
+        _ entry: SessionArchiveEntry, archive: SessionArchive, tally: inout (exported: Int, skipped: Int, failed: Int)
+    ) -> HRVSession? {
         let id = entry.sessionId.uuidString.prefix(8)
         do {
             if let session = try archive.retrieve(entry.sessionId) { return session }
             debugLog("[HealthKitManager] backfill: workout \(id) is listed but missing from the archive — skipped", level: .warning)
+            tally.skipped += 1
         } catch {
-            debugLog("[HealthKitManager] backfill: workout \(id) could not be read — skipped: \(error.localizedDescription)", level: .warning)
+            let forNow = ArchiveAccessFailure.mayClear(error)
+            debugLog("[HealthKitManager] backfill: workout \(id) could not be read (\(forNow ? "retried" : "skipped")): \(error.localizedDescription)", level: .warning)
+            if forNow { tally.failed += 1 } else { tally.skipped += 1 }
         }
         return nil
     }

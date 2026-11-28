@@ -28,13 +28,12 @@ extension SessionDataMigrations {
             let outcomes = workouts.map { Self.stripWorkoutSleepSnapshot($0, archive: archive) }
             return (outcomes.filter { $0 == .stripped }.count, outcomes.filter { $0 == .failed }.count, workouts.count)
         }.value
-        // A workout whose write failed still carries the snapshot: leave the
-        // flag unset so the next launch tries again.
-        guard failed == 0 else {
-            debugLog("[WorkoutSleepCleanup] Stripped sleepSnapshot from \(cleaned) of \(examined) workouts; \(failed) could not be written — retrying next launch", level: .warning)
+        // A workout that could not be read or written may still carry the
+        // snapshot: leave the flag unset so a later launch tries again.
+        guard Self.finishTrainingMigration(key: Self.workoutSleepCleanupKey, complete: failed == 0) else {
+            debugLog("[WorkoutSleepCleanup] Stripped sleepSnapshot from \(cleaned) of \(examined) workouts; \(failed) could not be read or written: retrying next launch", level: .warning)
             return
         }
-        defaults.set(true, forKey: Self.workoutSleepCleanupKey)
         debugLog("[WorkoutSleepCleanup] Complete. Stripped sleepSnapshot from \(cleaned) of \(examined) workouts.")
     }
 
@@ -52,8 +51,9 @@ extension SessionDataMigrations {
     nonisolated private static func stripWorkoutSleepSnapshot(
         _ entry: SessionArchiveEntry, archive: SessionArchive
     ) -> WorkoutCleanupOutcome {
-        guard let session = archive.retrieveOrLog(entry.sessionId, caller: "WorkoutSleepCleanup"),
-              session.sessionType == .workout,
+        // Unread is not "nothing to strip".
+        guard let session = archive.retrieveOrLog(entry.sessionId, caller: "WorkoutSleepCleanup") else { return .failed }
+        guard session.sessionType == .workout,
               session.sleepSnapshot != nil
         else { return .unchanged }
         do {

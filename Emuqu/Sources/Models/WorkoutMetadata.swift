@@ -221,11 +221,13 @@ extension WorkoutMetadata {
     }
 
     /// Seconds of the workout spent moving, the clock pace, calories and a
-    /// TCX lap's timer time are measured on: the last per-second sample's
+    /// TCX lap's timer time are measured on: the active time stored at save
+    /// (`activeSeconds`), else the last per-second sample's
     /// offset (the ticker records none while paused), else
     /// `wallClockDuration` less the recorded pauses. Nil when neither is
     /// known.
     func movingSeconds(wallClockDuration: Double?) -> Double? {
+        if let activeSeconds, activeSeconds > 0 { return activeSeconds }
         if let moving = totalDurationSec(), moving > 0 { return moving }
         guard let wallClockDuration else { return nil }
         let paused = (pauseSpans ?? []).reduce(0.0) { $0 + $1.seconds }
@@ -289,6 +291,11 @@ struct WorkoutMetadata: Codable, Equatable {
     /// was stored, or re-saved by a build that drops it; their exports
     /// spread the fix times evenly.
     var gpsFixTimes: Data?
+    /// The fixes of `gpsPolyline` that begin a new recorded segment: a GPX
+    /// `<trkseg>` or `<trk>`, a separate Apple Health route, or a pause the
+    /// source stopped recording through. No distance, time or line is taken
+    /// from the fix before one to it (`TrackSegments`). Nil for one segment.
+    var gpsSegmentStarts: [Int]?
     /// Total distance covered in meters (GPS-derived, treadmill pedometer, or
     /// indoor-bike trainer).
     var distanceMeters: Double?
@@ -305,6 +312,13 @@ struct WorkoutMetadata: Codable, Equatable {
     /// `offsetSec` of the per-second samples (`activeOffset(forWallClockSeconds:)`).
     /// Nil for a workout without pauses or recorded before this existed.
     var pauseSpans: [WorkoutPauseSpan]?
+    /// The workout's active time when it was saved: the wall clock from
+    /// start to end less every pause. The per-second samples can hold far
+    /// less (a workout with no sensor records none while the phone is
+    /// locked), so where this is stored it is the duration shown
+    /// (`WorkoutActiveTime`). Nil for a workout saved before this existed,
+    /// which reads its duration from the samples as it always did.
+    var activeSeconds: Double?
 
     // MARK: Per-tick time series
     /// Per-second samples of HR, pace, cadence, altitude, α1, METs. Drives
@@ -467,14 +481,13 @@ struct WorkoutMetadata: Codable, Equatable {
     // recent-workouts list, the AI coach, and load-trajectory rows all
     // pick the best available source through the same property.
     //
-    // Scale note: powerTSS and hrTSS are both calibrated so 100 = one
-    // hour at threshold, so they're directly substitutable. luciaTRIMP
-    // is on Banister's HRR-coefficient scale and ranks numerically
-    // lower — only used as a fallback when no hrTSS was stored (HRmax or
-    // HRrest unknown at finalize, or a legacy session; LTHR itself is
-    // optional for hrTSS). extrapolatedTRIMP comes from
-    // `RouteTRIMPEstimator` and is on TRIMP scale too; it's the
-    // partial-data backup for HR-dropout sessions.
+    // Scale note: powerTSS, hrTSS and the METs load are calibrated so
+    // 100 = one hour at threshold. luciaTRIMP (used only when no hrTSS was
+    // stored: HRmax or HRrest unknown at finalize, or a legacy session) and
+    // extrapolatedTRIMP (`RouteTRIMPEstimator`, the backup for HR-dropout
+    // sessions) are stored on Banister's TRIMP scale, and are placed on the
+    // TSS scale through the hrTSS rule (`HeartRateAnchors.tss`) before they
+    // are shown, summed or compared, so every tier reads on one scale.
     enum TrainingLoadSource: String {
         /// Coggan power-based TSS. Best available; HR-independent.
         case power
@@ -493,18 +506,15 @@ struct WorkoutMetadata: Codable, Equatable {
         /// Route-history extrapolation when HR was lost mid-workout.
         case routeHistory
 
-        /// Canonical short label for the value this source produces.
-        /// Power/HR/METs load is on the TSS scale → "LOAD"; only the
-        /// Banister/route-history fallbacks are on the TRIMP scale → "TRIMP".
-        /// Single source of truth for the label so
-        /// no display can print an effective-load value under the wrong name
-        /// (the "TRIMP 94 here / 111 TRIMP there" split for the same workout).
-        var displayLabel: String {
-            switch self {
-            case .power, .hr, .mets: String(localized: "LOAD", bundle: LanguageManager.appBundle)
-            case .banister, .routeHistory: String(localized: "TRIMP", bundle: LanguageManager.appBundle)
-            }
-        }
+        /// Whether the value stored for this source is on Banister's TRIMP
+        /// scale, so it goes through the hrTSS rule (`HeartRateAnchors.tss`)
+        /// before it meets a TSS.
+        var isTRIMPScale: Bool { self == .banister || self == .routeHistory }
+
+        /// Canonical short label for a workout's load. Every source's value
+        /// is on the TSS scale by the time it is shown (`preferredTrainingLoad`,
+        /// `effectiveLoad`), so every source reads "LOAD".
+        var displayLabel: String { String(localized: "LOAD", bundle: LanguageManager.appBundle) }
     }
 
     /// METs-based load on the same TSS scale (100 = 1 h
@@ -674,10 +684,11 @@ struct WorkoutMetadata: Codable, Equatable {
         return (luciaTRIMP ?? 0) < Self.routeDropoutRecordedShare * estimate
     }
 
-    /// Preferred numeric load + the source it came from: exactly
-    /// `TrainingLoadPrecedence.stored`, the figure ATL/CTL count, under the
-    /// FTPs `ftp` (`FTPAnchors.current(settings)` of the settings the
-    /// caller renders with). Order is by published accuracy:
+    /// Preferred numeric load + the source it came from: the tier
+    /// `TrainingLoadPrecedence.stored` picks under the FTPs `ftp`
+    /// (`FTPAnchors.current(settings)` of the settings the caller renders
+    /// with), on the TSS scale at `heartRate` (`TrainingLoadPrecedence.onTSSScale`),
+    /// the figure ATL/CTL count. Order is by published accuracy:
     ///   1. powerTSS (Coggan, with Stryd / cycling power; either
     ///      the stored value over moving time OR derived at read time
     ///      from NP and the current effective FTP — incl. auto-estimate)
@@ -691,8 +702,10 @@ struct WorkoutMetadata: Codable, Equatable {
     ///
     /// Callers use the source tag to label the displayed number
     /// honestly ("Coggan · power", "METs · partial", etc.).
-    nonisolated func preferredTrainingLoad(ftp: TrainingLoadPrecedence.FTPAnchors) -> (value: Double, source: TrainingLoadSource)? {
-        TrainingLoadPrecedence.stored(self, ftp: ftp)
+    nonisolated func preferredTrainingLoad(
+        ftp: TrainingLoadPrecedence.FTPAnchors, heartRate: TrainingLoadSeries.HeartRateAnchors
+    ) -> (value: Double, source: TrainingLoadSource)? {
+        TrainingLoadPrecedence.stored(self, ftp: ftp).map { TrainingLoadPrecedence.onTSSScale($0, anchors: heartRate) }
     }
 
     // MARK: Rowing-specific (from Concept2 PM5)
@@ -749,8 +762,8 @@ struct WorkoutMetadata: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
         case sport
-        case gpsPolyline, gpsFixTimes, distanceMeters, elevationGainMeters, elevationLossMeters
-        case splits, laps, liveMarkers, pauseSpans
+        case gpsPolyline, gpsFixTimes, gpsSegmentStarts, distanceMeters, elevationGainMeters, elevationLossMeters
+        case splits, laps, liveMarkers, pauseSpans, activeSeconds
         case samples, healthKitHROffsets
         case hrrSamples, decouplingPercent, efficiencyFactor, luciaTRIMP, hrTSS
         case averagePowerWatts, normalizedPowerWatts, peakPowerWatts
@@ -778,6 +791,7 @@ struct WorkoutMetadata: Codable, Equatable {
         unrecognizedSportRawValue = Self.unrecognizedSport(in: c)
         gpsPolyline = try c.decodeIfPresent(Data.self, forKey: .gpsPolyline)
         gpsFixTimes = try c.decodeIfPresent(Data.self, forKey: .gpsFixTimes)
+        gpsSegmentStarts = c.optionalValue([Int].self, .gpsSegmentStarts)
         distanceMeters = try c.decodeIfPresent(Double.self, forKey: .distanceMeters)
         elevationGainMeters = try c.decodeIfPresent(Double.self, forKey: .elevationGainMeters)
         elevationLossMeters = try c.decodeIfPresent(Double.self, forKey: .elevationLossMeters)
@@ -785,6 +799,7 @@ struct WorkoutMetadata: Codable, Equatable {
         laps = try c.decodeIfPresent([Lap].self, forKey: .laps)
         liveMarkers = c.optionalValue([LiveMarker].self, .liveMarkers)
         pauseSpans = c.optionalValue([WorkoutPauseSpan].self, .pauseSpans)
+        activeSeconds = try c.decodeIfPresent(Double.self, forKey: .activeSeconds)
         samples = try c.decodeIfPresent([WorkoutSample].self, forKey: .samples)
         healthKitHROffsets = try c.decodeIfPresent([Int].self, forKey: .healthKitHROffsets)
         hrrSamples = c.optionalValue([HRRSample].self, .hrrSamples)
@@ -847,6 +862,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encode(unrecognizedSportRawValue ?? sport.rawValue, forKey: .sport)
         try c.encodeIfPresent(gpsPolyline, forKey: .gpsPolyline)
         try c.encodeIfPresent(gpsFixTimes, forKey: .gpsFixTimes)
+        try c.encodeIfPresent(gpsSegmentStarts, forKey: .gpsSegmentStarts)
         try c.encodeIfPresent(distanceMeters, forKey: .distanceMeters)
         try c.encodeIfPresent(elevationGainMeters, forKey: .elevationGainMeters)
         try c.encodeIfPresent(elevationLossMeters, forKey: .elevationLossMeters)
@@ -854,6 +870,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encodeIfPresent(laps, forKey: .laps)
         try c.encodeIfPresent(liveMarkers, forKey: .liveMarkers)
         try c.encodeIfPresent(pauseSpans, forKey: .pauseSpans)
+        try c.encodeIfPresent(activeSeconds, forKey: .activeSeconds)
         try c.encodeIfPresent(samples, forKey: .samples)
         try c.encodeIfPresent(healthKitHROffsets, forKey: .healthKitHROffsets)
     }
@@ -969,13 +986,14 @@ enum PartialDataReason: String, Codable, Equatable {
 extension [HRRSample] {
     /// The canonical HRR@60s reading, preferring strap-derived over Watch over
     /// HealthKit-computed when more than one provenance is present.
-    var bestAtOneMinute: HRRSample? { best(near: 60, tolerance: 10) }
+    var bestAtOneMinute: HRRSample? { best(near: 60) }
 
     /// Same idea for 2-minute mark.
-    var bestAtTwoMinutes: HRRSample? { best(near: 120, tolerance: 15) }
+    var bestAtTwoMinutes: HRRSample? { best(near: 120) }
 
-    private func best(near offset: Int, tolerance: Int) -> HRRSample? {
-        let within = filter { abs($0.offsetSec - offset) <= tolerance }
+    /// Within the tolerance the capture stores readings by.
+    private func best(near offset: Int) -> HRRSample? {
+        let within = filter { HRRSample.isReading(atOffset: $0.offsetSec, for: offset) }
         let order: [HRRSample.Provenance] = [.strap, .watchSamples, .healthKitComputed]
         return order.lazy.compactMap { prov in within.first { $0.provenance == prov } }.first
     }

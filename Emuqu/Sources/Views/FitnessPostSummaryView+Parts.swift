@@ -69,7 +69,7 @@ extension FitnessPostSummaryView {
               let paceStr = units.formatPace(secondsPerMeter: pace / 1_000)
         else { return nil }
         let unitLabel = LocalizedUnit.symbol(resolved.isMile ? UnitLength.miles : UnitLength.kilometers)
-        let hrPart = fastest.averageHR.map { " · " + String(localized: "\(Int($0)) bpm", bundle: LanguageManager.appBundle) } ?? ""
+        let hrPart = fastest.averageHR.map { " · " + String(localized: "\(Int($0.rounded())) bpm", bundle: LanguageManager.appBundle) } ?? ""
         return (pace: paceStr, caption: "\(unitLabel) \(fastest.index)\(hrPart)")
     }
 

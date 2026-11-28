@@ -362,7 +362,7 @@ struct CompactToolRouter {
                 ("date", "YYYY-MM-DD"),
                 ("period", "7d / 14d / 30d / 90d / 180d / 365d / last_week / last_month / last_year / all_time"),
                 ("sport", "Sport identifier (run, bike, walk, etc.)"),
-                ("daily_trimp", "Daily TRIMP value (number as string)"),
+                ("daily_trimp", "Daily training load on the TSS scale ATL/CTL use (number as string)"),
                 ("params", "Comma-separated parameter blob for advanced queries")
             ], required: ["which"])
         ]

@@ -5,17 +5,22 @@ import Foundation
 extension MorningSessionPipeline {
     /// Accept the current session - archives and updates the baseline. The
     /// H10's own copy stays on the strap as a backup until the next recording.
+    /// The acceptance holds the recorder while it runs, so no recording
+    /// starts under it (`SessionState.RecorderClaim`), and what it clears
+    /// when it is done is this night's review only (`clearAcceptanceState`).
     func acceptSession() async throws {
         guard let session = sessionState.currentSession, session.state == .complete else {
             throw RRCollector.CollectorError.noSessionToAccept
         }
+        let claim = sessionState.claimRecorder()
+        defer { sessionState.releaseRecorder(claim) }
         do {
             try await runAcceptance(session)
         } catch {
-            await MainActor.run { sessionState.lastError = error }
+            sessionState.lastError = error
             throw error
         }
-        await MainActor.run { clearAcceptedSessionState() }
+        clearAcceptedSessionState(of: session.id)
     }
 
     /// Delegate the heavy work to the acceptance service.
@@ -32,9 +37,9 @@ extension MorningSessionPipeline {
         _ = try await acceptanceService.processAcceptance(
             session: session,
             inputs: inputs,
-            enableHealthKitExport: settings.enableHealthKitExport,
+            enableHealthKitExport: settings.exportsToAppleHealth,
             clearPersistedRecordingState: { [weak self] in
-                self?.recordingStore.clear()
+                self?.recordingStore.clear(ifItIs: session.id)
             }
         )
     }
@@ -42,8 +47,8 @@ extension MorningSessionPipeline {
     /// UI state updates stay here rather than in the service. The accepted
     /// night is kept, so it is no longer the one "Discard" may remove.
     @MainActor
-    private func clearAcceptedSessionState() {
-        clearAcceptanceState()
+    private func clearAcceptedSessionState(of sessionId: UUID) {
+        clearAcceptanceState(of: sessionId)
         archiveSignal.notifyChanged()
     }
 
@@ -73,7 +78,7 @@ extension MorningSessionPipeline {
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule,
             exportMetrics: exportMetrics,
-            enableHealthKitExport: settings.enableHealthKitExport
+            enableHealthKitExport: settings.exportsToAppleHealth
         )
 
         if updated {
@@ -85,7 +90,16 @@ extension MorningSessionPipeline {
     /// Clear acceptance UI state — for overnight sessions that are already
     /// archived. The night stays, so "Discard" no longer points at it. The
     /// one reset of the review UI: acceptance and rejection run it too.
-    func clearAcceptanceState() {
+    ///
+    /// `sessionId` is the session the caller read before its work suspended
+    /// (nil when there was none). The review is cleared unless another
+    /// session took the recorder since (`SessionState.recorderTaken`): a
+    /// recording that began meanwhile is not this review's to clear.
+    func clearAcceptanceState(of sessionId: UUID?) {
+        guard !sessionState.recorderTaken(since: sessionId) else {
+            debugLog("[RRCollector] Review of \(sessionId?.uuidString.prefix(8) ?? "-") ended after another session took the recorder; that session's state is left as it is", level: .warning)
+            return
+        }
         sessionState.currentSession = nil
         sessionState.forgetReviewedNight()
         sessionState.needsAcceptance = false
@@ -103,13 +117,13 @@ extension MorningSessionPipeline {
     /// baseline by `discardReviewArchivedSession`, which
     /// `RRCollector.rejectSession` runs first.
     func rejectSession() async {
+        let sessionId = sessionState.currentSession?.id
         await acceptanceService.processRejection(
-            sessionId: sessionState.currentSession?.id,
+            sessionId: sessionId,
             clearPersistedRecordingState: { [weak self] in
-                self?.recordingStore.clear()
+                if let sessionId { self?.recordingStore.clear(ifItIs: sessionId) } else { self?.recordingStore.clear() }
             }
         )
-
-        await MainActor.run { clearAcceptanceState() }
+        clearAcceptanceState(of: sessionId)
     }
 }

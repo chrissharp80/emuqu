@@ -245,12 +245,15 @@ struct FitnessTabView: View {
     }
 
     /// A just-finished workout's summary watches the recorder for a failed
-    /// save and offers the retry.
+    /// save and offers the retry, and for an accidental start left unsaved
+    /// and offers to save it.
     private func saveRetry(for item: WorkoutSummaryItem) -> FitnessPostSummaryView.SaveRetry? {
         guard item.isJustCompleted, let recorder = recorderBox.recorder else { return nil }
-        return FitnessPostSummaryView.SaveRetry(lifecycle: recorder.lifecycle) {
-            recorder.session.retryUnsavedWorkouts()
-        }
+        return FitnessPostSummaryView.SaveRetry(
+            lifecycle: recorder.lifecycle,
+            retry: { recorder.session.retryUnsavedWorkouts() },
+            save: { recorder.session.saveNotArchived() }
+        )
     }
 
     private func dismissSummary(_ item: WorkoutSummaryItem) {
@@ -265,7 +268,7 @@ struct FitnessTabView: View {
                 workoutDeleteFailed = true
                 return
             }
-            if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
+            if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished(of: item.session.id) }
         }
     }
 
@@ -787,11 +790,15 @@ struct FitnessTabView: View {
     /// Listener for Watch → iOS Save & Done confirmations. The app-level
     /// listener acknowledges the recorder; this one dismisses the iPhone
     /// summary sheet so the workout lifecycle fully closes no matter which
-    /// screen the user completed it on.
+    /// screen the user completed it on. A Done tapped before the summary's
+    /// workout ended was meant for an earlier one and leaves it
+    /// (`WorkoutRecorder.controlIsCurrent`).
     @MainActor
     func listenForWatchAcknowledge() async {
         let stream = NotificationCenter.default.notifications(named: .watchAcknowledgedFinished)
-        for await _ in stream {
+        for await note in stream {
+            let tappedAt = note.userInfo?[WatchConnectivityBridge.stopTappedAtKey] as? Date
+            guard WorkoutRecorder.controlIsCurrent(tappedAt: tappedAt, lastChange: lastCompletedSession?.endDate) else { continue }
             lastCompletedSession = nil
         }
     }

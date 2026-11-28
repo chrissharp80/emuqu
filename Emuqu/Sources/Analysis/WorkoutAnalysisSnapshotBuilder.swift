@@ -25,7 +25,9 @@ enum WorkoutAnalysisSnapshotBuilder {
         let bodyWeightKg: Double
         let samples: [WorkoutSample]
         let splits: [Split]
-        let trimp: Double?
+        /// The workout's load on the TSS scale (`preferredTrainingLoad`), the
+        /// figure its LOAD tile shows.
+        let load: Double?
         let decouplingPercent: Double?
     }
 
@@ -39,8 +41,6 @@ enum WorkoutAnalysisSnapshotBuilder {
         var alphaMin = Double.infinity
         var alphaMax = -Double.infinity
         var zoneSecs = [0, 0, 0, 0, 0]
-        var metsSum = 0.0
-        var metsCount = 0
         /// Steps taken: each sample's cadence over the seconds it stands for,
         /// so stationary seconds (no cadence) add none.
         var stepCount = 0.0
@@ -103,10 +103,6 @@ enum WorkoutAnalysisSnapshotBuilder {
         // HR zone buckets (50-60 / 60-70 / 70-80 / 80-90 / 90+)
         if let hr = s.heartRate {
             pass.addZoneTime(dt, heartRate: hr, maxHR: maxHR)
-        }
-        if let m = s.mets {
-            pass.metsSum += m
-            pass.metsCount += 1
         }
         if let c = s.cadenceStepsPerMin, c > 0 {
             pass.stepCount += c * Double(dt) / 60.0
@@ -234,8 +230,7 @@ enum WorkoutAnalysisSnapshotBuilder {
                 below: below, between: btwn, above: above, alphaTotal: alphaTotal
             ),
             decouplingPercent: inputs.decouplingPercent,
-            durationSec: inputs.durationSec,
-            trimp: inputs.trimp,
+            load: inputs.load,
             elevationGain: inputs.elevationGainMeters
         )
         return (heroNarrative, howYouDid)
@@ -246,7 +241,7 @@ enum WorkoutAnalysisSnapshotBuilder {
         guard zoneTotal > 0,
               let (maxIdx, _) = zoneSecs.enumerated().max(by: { $0.element < $1.element })
         else { return (nil, nil) }
-        return (maxIdx + 1, Int(Double(zoneSecs[maxIdx]) / Double(zoneTotal) * 100))
+        return (maxIdx + 1, Int((Double(zoneSecs[maxIdx]) / Double(zoneTotal) * 100).rounded()))
     }
 
     /// Splits that recorded a pace, ranked. Splits without one can't be
@@ -274,12 +269,11 @@ enum WorkoutAnalysisSnapshotBuilder {
     }
 
     private static func energyAndEconomy(_ inputs: Inputs, pass: SamplePass) -> EnergyEconomy {
-        let avgMETs: Double? = pass.metsCount > 0 ? pass.metsSum / Double(pass.metsCount) : nil
         let durationHours = inputs.durationSec / 3_600.0
-        let caloriePerHour: Double? = avgMETs.map { $0 * inputs.bodyWeightKg }
+        let totalCalories = WorkoutEnergy.activeKilocalories(samples: inputs.samples, bodyWeightKg: inputs.bodyWeightKg)
         return EnergyEconomy(
-            caloriePerHour: caloriePerHour,
-            totalCalories: caloriePerHour.map { $0 * durationHours },
+            caloriePerHour: durationHours > 0 ? totalCalories.map { $0 / durationHours } : nil,
+            totalCalories: totalCalories,
             movingPercent: movingPercent(inputs, pass: pass),
             vam: vam(inputs, durationHours: durationHours),
             strideLen: strideLength(
@@ -299,7 +293,7 @@ enum WorkoutAnalysisSnapshotBuilder {
     private static func movingPercent(_ inputs: Inputs, pass: SamplePass) -> Int? {
         guard inputs.durationSec > 10 else { return nil }
         let pct = Double(pass.movingSec) / inputs.durationSec * 100.0
-        return Int(min(100, max(0, pct)))
+        return Int(min(100, max(0, pct)).rounded())
     }
 
     /// Vertical ascent metres per hour. Needs a real climb over a real
@@ -419,8 +413,7 @@ enum WorkoutAnalysisSnapshotBuilder {
     private static func buildHowYouDidNarrative(
         bands: Alpha1BandMinutes,
         decouplingPercent: Double?,
-        durationSec: TimeInterval,
-        trimp: Double?,
+        load: Double?,
         elevationGain: Double?
     ) -> String {
         var parts: [String] = []
@@ -429,10 +422,12 @@ enum WorkoutAnalysisSnapshotBuilder {
                 totalMin: bands.total, below: bands.below, btwn: bands.between, above: bands.above
             ))
         }
-        if let decoupling = decouplingPercent, durationSec >= 600 {
+        // `decouplingPercent` is already nil below the decoupling minimums
+        // (`WorkoutAnalyzer.isLongEnoughForDecoupling`), which read moving time.
+        if let decoupling = decouplingPercent {
             parts.append(decouplingSentence(decoupling))
         }
-        if let trimp { parts.append(loadSentence(trimp)) }
+        if let load { parts.append(loadSentence(load)) }
         if let gain = elevationGain, gain >= 30 {
             let climbed = UnitsPreferenceStore.current.formatElevation(meters: gain)
             parts.append(String(localized: "Climbed \(climbed).", bundle: LanguageManager.appBundle))
@@ -441,10 +436,10 @@ enum WorkoutAnalysisSnapshotBuilder {
     }
 
     /// The app calls this number "load" everywhere else, so the sentence does too.
-    private static func loadSentence(_ trimp: Double) -> String {
-        let load = Int(trimp)
-        if trimp >= 150 { return String(localized: "Training load \(load) — heavy session.", bundle: LanguageManager.appBundle) }
-        if trimp >= 80 { return String(localized: "Training load \(load) — moderate session.", bundle: LanguageManager.appBundle) }
+    private static func loadSentence(_ value: Double) -> String {
+        let load = Int(value.rounded())
+        if value >= 150 { return String(localized: "Training load \(load) — heavy session.", bundle: LanguageManager.appBundle) }
+        if value >= 80 { return String(localized: "Training load \(load) — moderate session.", bundle: LanguageManager.appBundle) }
         return String(localized: "Training load \(load) — light session.", bundle: LanguageManager.appBundle)
     }
 

@@ -259,7 +259,7 @@ final class RouteNavigationEnginesTests: XCTestCase {
             "leg distance = 250 - 0")
         // HR avg over (130 + 140 + 145) / 3 = 138.333... → 138
         XCTAssertEqual(r2.payload?.legAvgHR, 138,
-            "avg HR over 3 samples = 138 (truncated)")
+            "avg HR over 3 samples = 138 (rounded)")
         XCTAssertEqual(r2.payload?.legElevationGainMeters, 12,
             "12m ≥ 10m threshold so surfaced")
     }

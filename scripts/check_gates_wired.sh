@@ -72,7 +72,9 @@ NOT_ON_PUSH = {
 STEP_IF_OK = re.compile(r"^\s*if:\s*(?:\$\{\{\s*)?(?:always|success)\(\)(?:\s*\}\})?\s*$")
 JOB_IF_OK = re.compile(r"^\s*if:\s*inputs\.scope\s*!=\s*'gates'\s*$")
 CONTINUE = re.compile(r"^\s*continue-on-error:\s*(?!false\s*$)\S")
-SWALLOWED = re.compile(r"\|\|\s*(?:true|:|exit\s+0)\b")
+# Any `||` fallback that does not itself exit non-zero turns the gate's
+# failure into success (`|| true`, `|| echo "::warning::..."`).
+SWALLOWED = re.compile(r"\|\|(?![^\n]*\bexit\s+(?:[1-9]|\$\?|\$status|\$rc))")
 
 # Gates that are not check_*/enforce_* scripts: the text a run must contain,
 # and which workflows must run it.
@@ -162,7 +164,10 @@ def make_targets(path):
             targets[current] = (m.group(2).split(), [])
             continue
         if line.startswith("\t") and current:
-            targets[current][1].append(strip_comment(line))
+            # make's `-` prefix ignores the command's failure, and a
+            # swallowing fallback does the same; neither line can fail the run.
+            if not re.match(r"^\t[@+]*-", line) and not SWALLOWED.search(line):
+                targets[current][1].append(strip_comment(line))
         elif line.strip() and not line.startswith("\t"):
             current = None
     return targets

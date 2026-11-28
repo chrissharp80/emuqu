@@ -50,7 +50,10 @@ extension SessionDataMigrations {
         let sessions = archivedSessions
         var tally = (candidates: 0, touched: 0, unanswered: 0)
         for index in 0 ..< sessions.count {
-            guard let session = await sessions.session(at: index), Self.isRecalibrationCandidate(session) else { continue }
+            // An unread night is not known to be correct: retried like an
+            // unanswered one.
+            guard let session = await sessions.session(at: index) else { tally.unanswered += 1; continue }
+            guard Self.isRecalibrationCandidate(session) else { continue }
             tally.candidates += 1
             switch await recalibrate(session) {
             case .rewritten: tally.touched += 1
@@ -70,9 +73,10 @@ extension SessionDataMigrations {
     /// What one night's recalibration did.
     enum RecalibrationOutcome {
         case rewritten
-        /// Nothing to correct, no load for that date, or the write failed.
+        /// Nothing to correct, or no load for that date.
         case leftAsStored
-        /// HealthKit did not answer the workout query; the night is retried.
+        /// HealthKit did not answer the workout query, or the correction
+        /// could not be written; the night is retried.
         case unanswered
     }
 
@@ -107,7 +111,7 @@ extension SessionDataMigrations {
             return .rewritten
         } catch {
             debugLog("[TrainingRecalibration] Failed to archive \(session.id.uuidString.prefix(8)): \(error)")
-            return .leftAsStored
+            return .unanswered
         }
     }
 

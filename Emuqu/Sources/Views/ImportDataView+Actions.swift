@@ -134,7 +134,7 @@ extension ImportDataView {
         guard let result = importResult, let startDate = result.recordingDate ?? importRecordingDate else { return }
         isAnalyzing = true
         updateStatus(String(localized: "Creating session from imported data...", bundle: LanguageManager.appBundle))
-        log("Source file: \(result.originalFileName), RR intervals: \(result.beatCount)")
+        log("Source file type: .\((result.originalFileName as NSString).pathExtension), RR intervals: \(result.beatCount)")
         guard var session = await makeImportedSession(from: result, startingAt: startDate) else { return }
         updateStatus(String(localized: "Running HRV analysis...", bundle: LanguageManager.appBundle))
         guard let analysisResult = await pipelineAnalysis(of: session, sleep: ImportSleepWindow.Offsets()) else {
@@ -367,7 +367,7 @@ extension ImportDataView {
         _ summaries: [RRDataImporter.EliteHRVSummaryResult.SessionSummary],
         originalFileName: String
     ) async -> [HRVSession] {
-        log("Source: \(originalFileName)")
+        log("Source file type: .\((originalFileName as NSString).pathExtension)")
         var sessions: [HRVSession] = []
         for (index, summary) in summaries.enumerated() {
             await MainActor.run { batchImportProgress = (index + 1, summaries.count) }

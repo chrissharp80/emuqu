@@ -68,6 +68,10 @@ enum TurnRouter {
         /// `AssistantTurnRouter.messageNeedsWebSearch` over the latest
         /// user message; false when the conversation has none.
         let messageNeedsWebSearch: Bool
+        /// Whether the turn may reach the web at all. Off unless the shell
+        /// says otherwise, so a web-search question moves nowhere while
+        /// Settings → Flo → Web search is off.
+        var webSearch = WebSearchAccess(isEnabled: false, hasTavilyKey: false)
     }
 
     struct Inputs: Equatable {
@@ -246,7 +250,10 @@ enum TurnRouter {
     ///
     /// Consented clouds only (same rationale as the voice-mode bypass): this
     /// override runs when the active provider is Apple, so an unconsented
-    /// vendor would never have shown its disclosure sheet.
+    /// vendor would never have shown its disclosure sheet. The cloud must be
+    /// able to run the search, with web search on (`searchCapableCloud`):
+    /// otherwise the turn's context would leave the phone for a search that
+    /// cannot happen.
     private static func webSearchOverride(
         inputs: Inputs,
         stage: TierStage,
@@ -255,7 +262,7 @@ enum TurnRouter {
     ) -> (id: ProviderID, model: ModelOption)? {
         let mappingCanSearchWeb = inputs.providers[mapping.providerID]?.canSearchWeb ?? true
         guard !mappingCanSearchWeb, stage.messageNeedsWebSearch,
-              let fallbackID = firstConsentedCloud(inputs: inputs),
+              let fallbackID = searchCapableCloud(inputs: inputs, access: stage.webSearch),
               let fallbackModel = inputs.providers[fallbackID]?.defaultOrFirstModel
         else { return nil }
         logLines.append("[SmartRouter] web search: \(mapping.providerID.rawValue) can't search the web; overriding to \(fallbackID.rawValue):\(fallbackModel.apiID)")
@@ -265,8 +272,7 @@ enum TurnRouter {
     // MARK: Shared helpers
 
     /// First available, consented, non-Apple cloud in registry
-    /// enumeration order: the shared predicate of the voice-mode
-    /// bypass fallback and the web-search override.
+    /// enumeration order: the voice-mode bypass fallback.
     private static func firstConsentedCloud(inputs: Inputs) -> ProviderID? {
         inputs.providerOrder.first { id in
             guard id != .apple, let state = inputs.providers[id] else { return false }
@@ -342,14 +348,21 @@ extension TurnRouter {
     /// able to search: web search is on, and a Tavily key is saved or the
     /// cloud is Anthropic.
     static func webSearchEscalation(inputs: Inputs, access: WebSearchAccess) -> (id: ProviderID, model: ModelOption)? {
-        guard access.isEnabled, inputs.selectedProviderID == .apple, inputs.routingMode != .manual else { return nil }
-        let target = inputs.providerOrder.first { id in
+        guard inputs.selectedProviderID == .apple, inputs.routingMode != .manual else { return nil }
+        guard let target = searchCapableCloud(inputs: inputs, access: access), let model = inputs.providers[target]?.defaultOrFirstModel else { return nil }
+        return (target, model)
+    }
+
+    /// The first available, consented cloud in registry order that can run
+    /// a web search now, or nil while web search is off: the one rule of the
+    /// web-search override and the escalation.
+    static func searchCapableCloud(inputs: Inputs, access: WebSearchAccess) -> ProviderID? {
+        guard access.isEnabled else { return nil }
+        return inputs.providerOrder.first { id in
             guard id != .apple, let state = inputs.providers[id] else { return false }
             return state.isAvailable && state.isConsented && state.canSearchWeb
                 && (access.hasTavilyKey || id == .anthropic)
         }
-        guard let target, let model = inputs.providers[target]?.defaultOrFirstModel else { return nil }
-        return (target, model)
     }
 }
 

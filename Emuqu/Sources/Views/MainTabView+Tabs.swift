@@ -243,12 +243,19 @@ extension MainTabView {
     /// so the report reflects archive writes since the last cache refresh
     /// (plain `live()` could freeze a stale TSB/ACWR). See
     /// `TrainingLoadRegistry.liveRefreshed(from:)`.
+    ///
+    /// A recovery or daily report reads its baseline nights from the
+    /// archive's index, so it is refused while that index did not load
+    /// (`HistoryExportGate`); a workout report reads only its workout.
     func prepareAndSendReport(_ kind: SendReportKind) {
         guard preparingReportKind == nil else { return }
         preparingReportKind = kind
         reportPrepError = nil
         let (inputs, metrics) = (sendReportInputs(for: kind), dependencies.analysis.trainingMetricsCache)
         let archive = dependencies.storage.sessionArchive
+        if kind != .workout, let refusal = HistoryExportGate.refusal(indexComplete: archive.hasCompleteIndex) {
+            return finishReportPreparation(.failed(refusal))
+        }
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,

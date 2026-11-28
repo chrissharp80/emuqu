@@ -172,7 +172,7 @@ extension DashboardV2View {
             return "\(String(localized: "Temp", bundle: bundle)) \(Self.signedOneDecimal(unit.convert(t)))\(unit.symbol)"
         }
         if v.isSpO2Concerning, let spo2 = v.oxygenSaturation {
-            return "\(String(localized: "SpO₂", bundle: bundle)) \(Int(spo2))%"
+            return "\(String(localized: "SpO₂", bundle: bundle)) \(Int(spo2.rounded()))%"
         }
         return nil
     }

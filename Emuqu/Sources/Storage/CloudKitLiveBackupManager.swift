@@ -53,6 +53,11 @@ final class CloudKitLiveBackupManager {
         set { UserDefaults.standard.set(Array(newValue), forKey: Self.backedUpKey) }
     }
 
+    /// Uploads saved this launch, per session. A delete compares the count
+    /// from before it suspended with the count after: an upload that landed
+    /// meanwhile may have put the record back.
+    private var uploadsSaved: [String: Int] = [:]
+
     /// Sessions whose live backup in iCloud this device uploaded. Another
     /// device's backup pulled here for recovery is never among them.
     var uploadedHereIds: Set<UUID> {
@@ -101,14 +106,19 @@ final class CloudKitLiveBackupManager {
     /// Same gate as session uploads (`CloudKitSyncManager.cloudUploadsAllowed`):
     /// nothing goes up before onboarding has asked about iCloud, and nothing
     /// to an iCloud account other than the one sync is enabled for.
-    func upload(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
+    ///
+    /// `recordingStart` is when the session began, the moment the beats'
+    /// `t_ms` count from. It goes up sealed with the beats
+    /// (`LiveBackupPayload`), and a device that restores the backup dates the
+    /// night by it.
+    func upload(sessionId: UUID, points: [RRPoint], recordingStart: Date, deviceId: String?, force: Bool = false) async {
         guard isUploadDue(pointCount: points.count, force: force), !ForgottenSessions.ids.contains(sessionId) else { return }
         lastUpload = Date()
         guard await confirmAccount() else { return }
         do {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
-            let assetURL = try Self.attachUpload(of: points, sessionId: sessionId, to: record)
+            let assetURL = try Self.attachUpload(of: points, recordingStart: recordingStart, sessionId: sessionId, to: record)
             try await saveWithAsset(record, at: assetURL)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud")
             await noteUploaded(sessionId)
@@ -124,14 +134,16 @@ final class CloudKitLiveBackupManager {
     /// over. A session discarded while the upload ran is deleted again: its
     /// delete may have landed first, and this save would bring it back.
     private func noteUploaded(_ sessionId: UUID) async {
+        uploadsSaved[sessionId.uuidString, default: 0] += 1
         backedUpIds.insert(sessionId.uuidString)
         failureEpisode.noteSuccess()
         if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
     }
 
-    /// The record's only plain field is the first upload's time, kept: a
-    /// pulling device dates the night by it, and the recovery query selects on
-    /// it. The beat count travels inside the encrypted asset (recovery counts
+    /// The record's only plain field is the first upload's time, kept: the
+    /// recovery query selects and orders on it, and a pulling device dates a
+    /// backup from an older build, whose payload carries no recording start,
+    /// by it. The beat count travels inside the encrypted asset (recovery counts
     /// the decoded points) and the strap ID was never read back by any build;
     /// older builds wrote both in the clear, so both are cleared. (`deviceId`
     /// stays in `upload`'s signature: the callers pass it, and the local backup
@@ -178,11 +190,9 @@ final class CloudKitLiveBackupManager {
     /// the night and encodes the whole accumulated buffer (25k+ points by
     /// morning), so the transient JSONEncoder tree is freed at once instead of
     /// growing all night.
-    private static func compressedPoints(_ points: [RRPoint]) throws -> Data {
+    private static func compressedPoints(_ points: [RRPoint], recordingStart: Date) throws -> Data {
         try autoreleasepool {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let compressed = try DataCompression.compress(try encoder.encode(points))
+            let compressed = try DataCompression.compress(try LiveBackupPayload.encode(points, recordingStart: recordingStart))
             return try CloudPayloadCodec.sealForUpload(compressed)
         }
     }
@@ -192,9 +202,9 @@ final class CloudKitLiveBackupManager {
     /// the caller to remove once the save has read it. The one place the
     /// uploaded record's contents are decided, so a test can read exactly what
     /// goes to iCloud.
-    static func attachUpload(of points: [RRPoint], sessionId: UUID, to record: CKRecord) throws -> URL {
+    static func attachUpload(of points: [RRPoint], recordingStart: Date, sessionId: UUID, to record: CKRecord) throws -> URL {
         setPlainFields(of: record)
-        let sealed = try compressedPoints(points)
+        let sealed = try compressedPoints(points, recordingStart: recordingStart)
         // A unique filename avoids collisions between overlapping uploads.
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("live_\(sessionId.uuidString)_\(UUID().uuidString.prefix(8))")
@@ -243,21 +253,42 @@ final class CloudKitLiveBackupManager {
 
     /// Delete the live backup record after a session is completed and archived.
     ///
-    /// With iCloud Sync on, or for a backup this device uploaded whatever the
-    /// setting is now: removing the user's own data from iCloud is not an
-    /// upload. No zone is created for it; a missing zone means there is
+    /// Only with iCloud Sync on: while it is off nothing goes to iCloud, and a
+    /// backup this device uploaded stays awaiting deletion (`backedUpIds`,
+    /// persisted) for the full sync after sync is turned on again, as session
+    /// deletions do. No zone is created for it; a missing zone means there is
     /// nothing to delete. A delete that fails leaves the session awaiting
     /// deletion (`backedUpIds`, persisted), and the full sync deletes it
     /// again once its session is deleted (`retryAwaitingDeletion`). While the
     /// signed-in account is not confirmed as the one the backup went to
     /// (`CloudAccountIdentity.isConfirmed`), nothing is deleted and the
-    /// session stays awaiting deletion.
+    /// session stays awaiting deletion. So does one an upload landed during
+    /// the delete for (`keepsAwaitingDeletion`): that save may have put the
+    /// record back after the delete removed it.
     func delete(sessionId: UUID) async {
-        guard settings.iCloudSyncEnabled || backedUpIds.contains(sessionId.uuidString) else { return }
+        guard Self.deletesNow(syncEnabled: settings.iCloudSyncEnabled) else { return }
         guard CloudAccountIdentity.isConfirmed else {
             backedUpIds.insert(sessionId.uuidString)
             return
         }
+        let savedBefore = uploadsSaved[sessionId.uuidString, default: 0]
+        guard await deleteRecord(of: sessionId) else {
+            backedUpIds.insert(sessionId.uuidString)
+            return
+        }
+        guard !Self.keepsAwaitingDeletion(savedBefore: savedBefore, savedNow: uploadsSaved[sessionId.uuidString, default: 0]) else {
+            debugLog("[CloudKit] A live backup upload for \(sessionId.uuidString.prefix(8)) landed during its delete — kept for the next full sync")
+            return
+        }
+        backedUpIds.remove(sessionId.uuidString)
+    }
+
+    /// Whether a live-backup delete may reach iCloud now: only while sync is
+    /// on. One held back keeps its place in `backedUpIds`.
+    nonisolated static func deletesNow(syncEnabled: Bool) -> Bool { syncEnabled }
+
+    /// Deletes the session's live backup record; true once iCloud holds none.
+    private func deleteRecord(of sessionId: UUID) async -> Bool {
         do {
             let recordID = CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID)
             try await privateDB.deleteRecord(withID: recordID)
@@ -266,10 +297,15 @@ final class CloudKitLiveBackupManager {
             debugLog("[CloudKit] No live backup in iCloud for \(sessionId.uuidString.prefix(8))")
         } catch {
             debugLog("[CloudKit] Failed to clean up live backup, kept for the next full sync: \(error.localizedDescription)", level: .warning)
-            backedUpIds.insert(sessionId.uuidString)
-            return
+            return false
         }
-        backedUpIds.remove(sessionId.uuidString)
+        return true
+    }
+
+    /// Whether a delete keeps the session awaiting deletion because an
+    /// upload was saved while it ran.
+    nonisolated static func keepsAwaitingDeletion(savedBefore: Int, savedNow: Int) -> Bool {
+        savedNow != savedBefore
     }
 
     /// Delete again every backup awaiting deletion whose session is in
@@ -348,7 +384,8 @@ final class CloudKitLiveBackupManager {
     /// Decode one queried record into a summary. Nil when the record is
     /// missing a required field, its asset can't be unsealed, decompressed
     /// or decoded, or it holds no beats. The beat count is the decoded
-    /// points' count. A record that failed to fetch, or lacks a field, is
+    /// points' count, and the recording's start is the payload's, nil for a
+    /// payload from an older build. A record that failed to fetch, or lacks a field, is
     /// logged too, so a backup that exists but cannot be offered leaves a
     /// trace; one that cannot be read is logged at error level. Either is
     /// still left out of the recovery list: there are no beats to recover
@@ -364,9 +401,9 @@ final class CloudKitLiveBackupManager {
             return nil
         }
         do {
-            let points = try Self.decodePoints(at: fileURL, archiveKey: archiveKey)
+            let (points, start) = try Self.decodePayload(at: fileURL, archiveKey: archiveKey)
             guard !points.isEmpty else { return nil }
-            return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points)
+            return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points, recordingStart: start)
         } catch {
             debugLog("[CloudKit] Live backup \(sessionIdStr.prefix(8)) is present but unreadable: \(error)",
                      level: .error)
@@ -388,12 +425,10 @@ final class CloudKitLiveBackupManager {
     ///
     /// The exact inverse of `compressedPoints`, in that order. The live-backup
     /// defect in `CloudPayloadCodec`'s header was these two halves disagreeing.
-    private static func decodePoints(at fileURL: URL, archiveKey: EncryptionManager) throws -> [RRPoint] {
+    static func decodePayload(at fileURL: URL, archiveKey: EncryptionManager) throws -> (points: [RRPoint], recordingStart: Date?) {
         let raw = try Data(contentsOf: fileURL)
         let jsonData = try DataCompression.decompress(CloudPayloadCodec.decode(raw, archiveKey: archiveKey))
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([RRPoint].self, from: jsonData)
+        return try LiveBackupPayload.decode(jsonData)
     }
 }
 

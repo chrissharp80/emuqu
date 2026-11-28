@@ -10,9 +10,11 @@ import Foundation
 /// meaningful — the AI context surfaces nil and the voice coach skips
 /// the trend line rather than speaking a confident wrong number.
 enum WorkoutLiveTrends {
-    /// Minimum total elapsed seconds before any half-vs-half metric
-    /// (reverse split, decoupling) starts emitting. Below this the
-    /// "first half" is too short to be a baseline.
+    /// Minimum active seconds before the reverse split starts emitting.
+    /// Below this the "first half" is too short to be a baseline.
+    /// Decoupling uses the finished workout's own minimum instead
+    /// (`WorkoutAnalyzer.decouplingMinimumMovingSeconds`), so the live
+    /// estimate and the saved figure appear from the same point.
     static let halfMetricsMinSeconds: Int = 600 // 10 minutes
 
     /// Minimum elapsed seconds before HR drift / cadence drift become
@@ -70,7 +72,7 @@ enum WorkoutLiveTrends {
     /// track's moving distance/time and RR-derived HR, so the two can differ
     /// for the same run.
     static func aerobicDecouplingPercent(samples: [WorkoutSample]) -> Double? {
-        guard let last = samples.last, last.offsetSec >= halfMetricsMinSeconds else { return nil }
+        guard let last = samples.last, last.offsetSec >= WorkoutAnalyzer.decouplingMinimumMovingSeconds else { return nil }
         let mid = last.offsetSec / 2
 
         func efficiency(in slice: [WorkoutSample]) -> Double? {
@@ -412,7 +414,9 @@ extension WorkoutLiveTrends {
         /// `WorkoutLiveTrends.aerobicDecouplingPercent(samples:)`.
         var aerobicDecouplingPercent: Double? {
             if let unordered { return WorkoutLiveTrends.aerobicDecouplingPercent(samples: unordered) }
-            guard let last, last.offsetSec >= WorkoutLiveTrends.halfMetricsMinSeconds else { return nil }
+            // The finished workout's minimum, as the stateless estimate reads it.
+            let minimum = WorkoutAnalyzer.decouplingMinimumMovingSeconds
+            guard let last, last.offsetSec >= minimum else { return nil }
             let mid = position(atOrAfter: last.offsetSec / 2)
             func efficiency(_ positions: Range<Int>) -> Double? {
                 guard let speed = pairedSpeed.mean(positions, minimum: 30),

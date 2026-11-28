@@ -82,7 +82,7 @@ enum TCXExporter {
         let durationSec = session.activeWorkoutSeconds ?? 0
         let distance = metadata?.distanceMeters ?? 0
         var xml = ""
-        let meanHR = session.meanHR.map { Int($0) } ?? 0
+        let meanHR = session.meanHR.map { Int($0.rounded()) } ?? 0
 
         xml += "      <Lap StartTime=\"\(iso.string(from: session.startDate))\">\n"
         xml += "        <TotalTimeSeconds>\(durationSec)</TotalTimeSeconds>\n"
@@ -98,14 +98,18 @@ enum TCXExporter {
         return xml
     }
 
+    /// The fixes as trackpoints, a new `<Track>` at each join between
+    /// recorded segments (`WorkoutMetadata.gpsSegmentStarts`), and no
+    /// distance added across one.
     private static func trackpoints(session: HRVSession, track: [CLLocation], iso: ISO8601DateFormatter) -> String {
         var hrTrack = HRTrack(session: session)
+        let starts = session.workoutMetadata?.gpsSegmentStarts(count: track.count) ?? []
+        let along = TrackSegments.cumulativeMeters(track, starts: starts)
         var xml = ""
-        var cumulative = 0.0
         for (idx, fix) in track.enumerated() {
-            if idx > 0 { cumulative += fix.distance(from: track[idx - 1]) }
+            if starts.contains(idx) { xml += "        </Track>\n        <Track>\n" }
             let hr = hrTrack.median(near: fix.timestamp.timeIntervalSince(session.startDate))
-            xml += trackpoint(fix, cumulative: cumulative, heartRate: hr, iso: iso)
+            xml += trackpoint(fix, cumulative: along[idx], heartRate: hr, iso: iso)
         }
         return xml
     }

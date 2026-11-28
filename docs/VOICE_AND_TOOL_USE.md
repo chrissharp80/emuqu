@@ -404,7 +404,7 @@ GetMeBackView UI:
 **Score-architecture facts** — let the AI answer
 questions about the v3.oct2026 score change without inferring from
 indirect signals. Live-evaluated, no caching:
-- `score.algorithm.version` — `"v3.5.nov2026"`. Carries the description
+- `score.algorithm.version` — `"v3.6.nov2026"`. Carries the description
   of what changed and the citation behind it (Impellizzeri 2020/2021)
   so the AI has full context when the user asks.
 - `score.history.recomputed_under_v2` — Bool. False when an upgrading
@@ -730,7 +730,12 @@ speaking:
 4. **Echo rejection**: if the "new words" overlap what the AI has
    streamed so far by 0.65 or more
    (`VoiceEchoHeuristics.isEchoOfInFlightResponse`), we treat them as
-   mic leakage and ignore them.
+   mic leakage and ignore them. The exception is a message the input
+   guard answers with the crisis, symptom or injury reply
+   (`VoiceEchoHeuristics.mustReachGuard`): it skips this gate unless the
+   reply being spoken is that same reply, interrupts, and is sent to the
+   guard as the user's turn (`interrupt(answering:)`), so it is answered
+   instead of dropped.
 
 Push-to-talk fallback: there's a **Send now** button in the voice
 status pill (visible whenever the controller is listening). Tap it

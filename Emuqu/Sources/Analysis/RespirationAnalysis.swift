@@ -19,8 +19,9 @@ enum RespirationAnalyzer {
     }
 
     /// Estimate respiration rate from RR intervals at their own beat times
-    /// (seconds, ascending, parallel to `rr`). Beats left out of `rr`
-    /// (artifacts) leave their time in the axis, and the resampling
+    /// (seconds, ascending, parallel to `rr`), on the real clock
+    /// (`BeatTimeline`). Beats left out of `rr` (artifacts, and intervals a
+    /// Verity Sense rejected) leave their time in the axis, and the resampling
     /// interpolates across it: timed by the sum of the kept intervals
     /// instead, the series is shorter than the time it covers, and every
     /// frequency, the breathing rate with it, reads high by the share of

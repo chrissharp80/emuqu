@@ -227,14 +227,14 @@ extension AssistantContext {
     private static func motionBits(_ loc: AmbientLocationSnapshot) -> [String] {
         var bits: [String] = []
         if let cardinal = loc.headingCardinal {
-            let degrees = loc.headingDegrees.map { " (\(Int($0))°)" } ?? ""
+            let degrees = loc.headingDegrees.map { " (\(Int($0.rounded()))°)" } ?? ""
             bits.append("heading \(cardinal)\(degrees)")
         }
         if let speed = loc.speedMS, speed >= 0 {
             bits.append(String(format: "speed %.1f m/s (%.1f km/h)", speed, speed * 3.6))
         }
-        if let alt = loc.altitudeMeters { bits.append("alt \(Int(alt))m") }
-        if let acc = loc.accuracyMeters, acc > 0 { bits.append("GPS ±\(Int(acc))m") }
+        if let alt = loc.altitudeMeters { bits.append("alt \(Int(alt.rounded()))m") }
+        if let acc = loc.accuracyMeters, acc > 0 { bits.append("GPS ±\(Int(acc.rounded()))m") }
         if let age = loc.ageSeconds { bits.append("(\(age)s old)") }
         return bits
     }
@@ -258,13 +258,13 @@ extension AssistantContext {
         }
         if let locality = live.currentLocality { locBits.append("in \(locality)") }
         if let cardinal = live.currentHeadingCardinal {
-            let degrees = live.currentHeadingDegrees.map { " (\(Int($0))°)" } ?? ""
+            let degrees = live.currentHeadingDegrees.map { " (\(Int($0.rounded()))°)" } ?? ""
             locBits.append("heading \(cardinal)\(degrees)")
         }
         if let speed = live.currentSpeedMS {
             locBits.append("speed \(formatNum(speed, 1)) m/s (\(formatNum(speed * 3.6, 1)) km/h)")
         }
-        if let acc = live.gpsAccuracyMeters { locBits.append("GPS ±\(Int(acc))m") }
+        if let acc = live.gpsAccuracyMeters { locBits.append("GPS ±\(Int(acc.rounded()))m") }
         guard !locBits.isEmpty else { return [] }
         return ["📍 LIVE LOCATION: " + locBits.joined(separator: ", ")]
     }
@@ -346,7 +346,7 @@ extension AssistantContext {
             "snapshot_age_sec=\(max(0, Int(generatedAt.timeIntervalSince(live.snapshotAt))))"
         ]
         if let hr = live.heartRate {
-            let pct = live.userMaxHR > 0 ? Int((Double(hr) / Double(live.userMaxHR)) * 100) : nil
+            let pct = live.userMaxHR > 0 ? Int((Double(hr) / Double(live.userMaxHR) * 100).rounded()) : nil
             bits.append(pct.map { "HR \(hr) (\($0)% of max \(live.userMaxHR))" } ?? "HR \(hr)")
         }
         if live.peakHR > 0 { bits.append("peak HR \(live.peakHR)") }
@@ -402,6 +402,16 @@ extension AssistantContext {
     /// ProviderConsentSheet names ambient location as reaching a cloud provider
     /// during an active workout, not at any time. "Always-on" therefore means
     /// always on DEVICE (see the doc comment on `compactRender`).
+    /// What a render that includes the ambient location carries that not
+    /// every provider may see: the location line outside a workout
+    /// (`TurnSensitivity.ambientLocation`). Nil when the render has no such
+    /// line or a workout is recording, when every consented provider may see
+    /// it. A reply produced from that render is marked with it.
+    func sensitivity(ofRenderIncludingAmbientLocation included: Bool) -> TurnSensitivity? {
+        guard included, liveWorkout == nil, !ambientLocationLines(includeAmbientLocation: true).isEmpty else { return nil }
+        return .ambientLocation
+    }
+
     private func ambientLocationLines(includeAmbientLocation: Bool) -> [String] {
         guard includeAmbientLocation, let loc = ambientLocation else { return [] }
         let locBits = Self.ambientLocationBits(loc)
@@ -601,9 +611,11 @@ extension AssistantContext {
         return line + ", range \(formatNum(oh.minBPM, 0))–\(formatNum(oh.maxBPM, 0))"
     }
 
-    /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54, prior-day TRIMP 88".
+    /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54, prior-day load 88".
+    /// The prior-day figure is the day's load on the TSS scale ATL and CTL
+    /// are on, so it is named load, not TRIMP.
     private func trainingLoadLine(_ training: TrainingSnapshot) -> String {
-        trainingLoadCore(training) + ", prior-day TRIMP \(formatNum(training.yesterdayTrimp, 0))"
+        trainingLoadCore(training) + ", prior-day load \(formatNum(training.yesterdayTrimp, 0))"
     }
 
     /// "Training: ATL 44, CTL 29, TSB -15.5, ACWR 1.54" — today's line, and
@@ -645,7 +657,7 @@ extension AssistantContext {
         if let dip = s.nocturnalDipPercent { line += " dip \(formatNum(dip, 1))%" }
         if let tsb = s.tsb { line += " TSB \(formatNum(tsb, 1))" }
         if let acwr = s.acwr { line += " ACWR \(formatNum(acwr, 2))" }
-        if let yt = s.yesterdayTrimp, yt > 0 { line += " trimp \(formatNum(yt, 0))" }
+        if let yt = s.yesterdayTrimp, yt > 0 { line += " prior-day load \(formatNum(yt, 0))" }
         if let f = s.morningFeeling { line += " feel \(f)/5" }
         return line
     }
@@ -738,7 +750,7 @@ extension AssistantContext {
         }
         if let dist = w.distanceMeters, dist >= 100 { bits.append("\(formatNum(dist / 1000.0, 2))km") }
         if let pace = w.averagePaceSecPerKm {
-            bits.append(String(format: "%d:%02d/km", Int(pace) / 60, Int(pace) % 60))
+            bits.append(String(format: "%d:%02d/km", Int(pace.rounded()) / 60, Int(pace.rounded()) % 60))
         }
         if let avg = w.averageHR { bits.append("avgHR \(formatNum(avg, 0))") }
         if let mx = w.maxHRInSession { bits.append("maxHR \(mx)") }

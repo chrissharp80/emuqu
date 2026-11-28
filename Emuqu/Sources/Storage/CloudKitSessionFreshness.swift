@@ -39,6 +39,12 @@ import os
 /// on an iCloud copy (`stamp`, `noteSeen`): an edit made after seeing another
 /// device's edit wins over it, whichever clock runs behind. Edits made without
 /// either device seeing the other's are ordered by their clocks.
+///
+/// The stamp picks whose edits win, never whose beats: the beats of either
+/// copy are kept by what each holds (`FullerCopy`). A newer copy replacing
+/// this one keeps the beats only this one holds (`keepingBeatsOnlyHere`), and
+/// an older copy in a version this device has not seen (`isUnseen`) is read
+/// for the beats only it holds before this device's copy goes over it.
 enum CloudKitSessionFreshness {
     /// The plain CKRecord field carrying `HRVSession.modifiedAt`.
     static let modifiedAtField = "modifiedAt"
@@ -62,6 +68,15 @@ enum CloudKitSessionFreshness {
         return remote > local ? .importRemote : .keepLocal
     }
 
+    /// Whether this device's copy carries an edit stamped after the iCloud
+    /// copy's: a change that has not gone up. Unknown when either copy has
+    /// no stamp (never edited, or uploaded while the schema refused the
+    /// field), which is not counted as one.
+    static func holdsUnsentEdit(localModifiedAt: Date?, remoteModifiedAt: Date?) -> Bool {
+        guard let local = localModifiedAt, let remote = remoteModifiedAt else { return false }
+        return wholeSeconds(local) > wholeSeconds(remote)
+    }
+
     /// The same-second rule: the server's copy wins when it is a version other
     /// than the one this device's copy matches. Equal versions are the same
     /// copy; with no version remembered (or none on the record) the local copy
@@ -69,6 +84,28 @@ enum CloudKitSessionFreshness {
     static func onTie(serverVersion: String?, heldVersion: String?) -> Decision {
         guard let serverVersion, let heldVersion, serverVersion != heldVersion else { return .keepLocal }
         return .importRemote
+    }
+
+    /// Whether the server holds a version of the record this device has not
+    /// seen. The edit stamp says which copy the user changed last, not which
+    /// holds the night: an unseen version can carry beats this copy lacks (a
+    /// fold, the recording device's full night over a fragment recovered
+    /// here). So this device's copy does not go over it until the pull has
+    /// read it and kept its beats (`CloudPullCoordinator.keepRemoteBeats`),
+    /// which marks the version seen.
+    static func isUnseen(serverVersion: String?, heldVersion: String?) -> Bool {
+        guard let serverVersion else { return false }
+        return serverVersion != heldVersion
+    }
+
+    /// Whether the pull downloads an older-stamped iCloud copy to keep the
+    /// beats only it holds: a version this device has not seen, of a record
+    /// it has read before or is uploading over (`pendingUpload`). A record
+    /// it never read and is not uploading over is left alone, so the first
+    /// pull after versions were kept does not download the whole archive.
+    static func readsOlderCopy(serverVersion: String?, heldVersion: String?, pendingUpload: Bool) -> Bool {
+        guard isUnseen(serverVersion: serverVersion, heldVersion: heldVersion) else { return false }
+        return heldVersion != nil || pendingUpload
     }
 
     /// The stamp for an edit made now, already at the precision it is
@@ -196,15 +233,31 @@ enum CloudKitSessionFreshness {
             debugLog("[CloudKit] \(server.recordID.recordName.prefix(8)) was edited more recently (or in the same second) on another device — not overwritten; the pull imports it")
             return false
         }
+        guard restoring || !waitsForUnseenVersion(server, held: sessionId.flatMap { state.recordVersions[$0] }) else { return false }
+        copyFields(of: local, onto: server)
+        TrashRestoreCoordinator.carryRestore(
+            onto: server, serverDeleted: serverDeleted, restoredAt: serverRestoredAt, modifiedAt: server.modificationDate
+        )
+        return true
+    }
+
+    /// Puts every field of `local` on `server`, and clears the server's
+    /// fields `local` does not carry.
+    private static func copyFields(of local: CKRecord, onto server: CKRecord) {
         for key in server.allKeys() where local[key] == nil {
             server[key] = nil
         }
         for key in local.allKeys() {
             server[key] = local[key]
         }
-        TrashRestoreCoordinator.carryRestore(
-            onto: server, serverDeleted: serverDeleted, restoredAt: serverRestoredAt, modifiedAt: server.modificationDate
-        )
+    }
+
+    /// An older-stamped server copy in a version this device has not seen
+    /// (`isUnseen`) is not overwritten yet: the session stays queued, and the
+    /// pull keeps the beats only that copy holds before the next upload.
+    private static func waitsForUnseenVersion(_ server: CKRecord, held: String?) -> Bool {
+        guard isUnseen(serverVersion: server.recordChangeTag, heldVersion: held) else { return false }
+        debugLog("[CloudKit] \(server.recordID.recordName.prefix(8)) is a version this device has not read; the upload waits for the pull to keep its beats")
         return true
     }
 
@@ -260,11 +313,17 @@ enum CloudKitSessionFreshness {
             guard decision == .importRemote else { return }
             var merged = replacing(session, with: remote)
             let kept = keepingBeatsOnlyHere(session, in: &merged)
-            if kept { merged.modifiedAt = stamp() }
+            if kept {
+                merged.modifiedAt = stamp()
+                archive.noteReuploadIntent([sessionId])
+            }
             session = merged
             replacement = (merged, kept)
         }
-        if replacement?.keptLocalBeats == true { archive.postReuploadRequest(for: sessionId) }
+        if let replacement, replacement.keptLocalBeats {
+            archive.postReuploadRequest(for: sessionId)
+            NightBeatsEdit.requestReanalysis(of: replacement.session, detail: "beats only this device held were kept")
+        }
         return replacement
     }
 
@@ -284,14 +343,36 @@ enum CloudKitSessionFreshness {
     /// segment's beats on purpose and drops it from `linkedSessionIds`, while
     /// a fold never touches them.
     static func keepingBeatsOnlyHere(_ local: HRVSession, in merged: inout HRVSession) -> Bool {
-        guard (local.rrSeries?.points.count ?? 0) > (merged.rrSeries?.points.count ?? 0),
+        guard !FullerCopy.covers(merged.rrSeries?.points.count ?? 0, local.rrSeries?.points.count ?? 0),
               Set(local.linkedSessionIds ?? []).isSubset(of: Set(merged.linkedSessionIds ?? []))
         else { return false }
         let edits = merged
         guard SessionMerger.mergeSessionData(from: local, into: &merged) else { return false }
         keepUserContent(of: edits, in: &merged)
-        debugLog("[CloudKit] Pull: kept the beats only this device holds in the newer iCloud copy", level: .info)
+        debugLog("[CloudKit] Pull: kept the beats only one copy held", level: .info)
         return true
+    }
+
+    /// The beats only `remote`, an older-stamped iCloud copy in a version
+    /// this device had not seen, holds, put into the archived copy, which
+    /// keeps its own edits (`keepingBeatsOnlyHere` the other way round).
+    /// Read and written under the archive's lock; the result is stamped and
+    /// queued to upload again. True when beats were put in.
+    static func keepBeatsOnlyThere(_ remote: HRVSession, in sessionId: UUID, archive: SessionArchive) throws -> Bool {
+        var kept = false
+        try archive.update(sessionId, requestingReupload: false) { session in
+            var merged = session
+            guard keepingBeatsOnlyHere(remote, in: &merged) else { return }
+            merged.modifiedAt = stamp()
+            archive.noteReuploadIntent([sessionId])
+            session = merged
+            kept = true
+        }
+        if kept {
+            archive.postReuploadRequest(for: sessionId)
+            NightBeatsEdit.requestReanalysis(of: remote, detail: "beats only the iCloud copy held were put in")
+        }
+        return kept
     }
 
     /// The user's content and imported metrics as `edited` has them.
@@ -342,9 +423,38 @@ extension CloudPullCoordinator {
             serverVersion: record.recordChangeTag, heldVersion: manager.state.recordVersions[sessionId]
         )
         let decision = CloudKitSessionFreshness.decide(localModifiedAt: localModifiedAt, remoteModifiedAt: remoteModifiedAt, onTie: tie)
-        guard decision == .importRemote, manager.archive.store.exists(sessionId),
+        guard manager.archive.store.exists(sessionId), decision == .importRemote || readsUnseenVersion(record, sessionId: sessionId),
               let fetched = await assetFile(for: record) else { return RecordOutcome() }
+        guard decision == .importRemote else { return await keepRemoteBeats(from: fetched, sessionId: sessionId) }
         return await replaceLocalCopy(from: fetched.url, sessionId: sessionId, remote: remoteCopy(of: fetched.record, sessionId: sessionId))
+    }
+
+    /// An older-stamped iCloud copy is still read when it may hold beats this
+    /// copy lacks (`CloudKitSessionFreshness.readsOlderCopy`).
+    private func readsUnseenVersion(_ record: CKRecord, sessionId: UUID) -> Bool {
+        CloudKitSessionFreshness.readsOlderCopy(
+            serverVersion: record.recordChangeTag, heldVersion: manager.state.recordVersions[sessionId],
+            pendingUpload: manager.state.pendingUploadIds.contains(sessionId)
+        )
+    }
+
+    /// Keeps this device's copy and its edits, with the beats only the
+    /// downloaded iCloud copy held put in (`keepBeatsOnlyThere`). Its version
+    /// then counts as seen, so a waiting upload goes over it. When the stall
+    /// watchdog fired, or the account changed, while it downloaded, nothing
+    /// is changed or marked.
+    private func keepRemoteBeats(from fetched: (url: URL, record: CKRecord), sessionId: UUID) async -> RecordOutcome {
+        do {
+            let remote = try await Task.detached(priority: .utility) { [archiveKey = manager.archive.encryption, url = fetched.url] in try Self.decodeSessionAsset(at: url, archiveKey: archiveKey) }.value
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
+            let kept = try CloudKitSessionFreshness.keepBeatsOnlyThere(remote, in: sessionId, archive: manager.archive)
+            manager.state.noteRecordVersion(fetched.record.recordChangeTag, of: sessionId)
+            return RecordOutcome(refreshed: kept ? 1 : 0)
+        } catch SessionArchive.ArchiveError.fileNotFound {
+            return RecordOutcome()
+        } catch {
+            return importFailure(error, sessionIdString: sessionId.uuidString)
+        }
     }
 
     /// The date and change tag of the revision that was downloaded, which

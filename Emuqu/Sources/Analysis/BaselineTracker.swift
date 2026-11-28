@@ -477,11 +477,8 @@ final class BaselineTracker: @unchecked Sendable {
     /// had none — must reach `forReliableWindowMs`, and a session without
     /// organized recovery must reach overnight length.
     static func isStructurallySound(result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Bool {
-        let windowSeconds = result.windowStartMs.flatMap { start in
-            result.windowEndMs.map { Double($0 - start) / 1000 }
-        }
-        let minimumSpanSeconds = Double(HRVConstants.MinimumDuration.forReliableWindowMs) / 1000
-        guard (windowSeconds ?? sessionDuration) >= minimumSpanSeconds else { return false }
+        let spanMs = SessionAcceptanceService.analysedSpanMs(of: result, sessionDuration: sessionDuration)
+        guard spanMs >= HRVConstants.MinimumDuration.forReliableWindowMs else { return false }
         return result.isOrganizedRecovery == true
             || sessionDuration >= HRVConstants.MinimumDuration.forOvernightSessionSeconds
     }
