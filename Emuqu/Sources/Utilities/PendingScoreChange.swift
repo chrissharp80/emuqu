@@ -61,6 +61,19 @@ enum PendingScoreChange {
         return entry
     }
 
+    /// The notice for the overnight a screen shows, if it is still current.
+    /// A screen showing no overnight shows no notice: a stored notice always
+    /// names a session, and one the user cannot see is not theirs to read.
+    static func shown(forSession shownSessionId: UUID?, now: Date = Date()) -> Entry? {
+        guard let shownSessionId else { return nil }
+        return read(currentSessionId: shownSessionId, now: now)
+    }
+
+    /// Whether a notice just written belongs to the overnight on screen.
+    static func applies(_ entry: Entry, toShownSession shownSessionId: UUID?) -> Bool {
+        shownSessionId == entry.sessionId
+    }
+
     static func clear() {
         UserDefaults.standard.removeObject(forKey: key)
     }

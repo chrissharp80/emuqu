@@ -281,7 +281,7 @@ struct DashboardV2View: View {
         // Load any pending "score changed while you were away" notice written
         // by the auto-rescore listener, if it is recent and for the overnight
         // the hero shows.
-        pendingScoreChange = PendingScoreChange.read(currentSessionId: latestOvernightComplete?.id)
+        pendingScoreChange = PendingScoreChange.shown(forSession: latestOvernightComplete?.id)
         scheduleCascadeReveal()
         celebrateDay14IfNeeded()
     }
@@ -329,7 +329,7 @@ struct DashboardV2View: View {
     /// other than the overnight the hero shows is not shown.
     private func applyPendingScoreChange(_ note: Notification) {
         guard let entry = note.object as? PendingScoreChange.Entry else { return }
-        guard latestOvernightComplete.map({ $0.id == entry.sessionId }) ?? true else { return }
+        guard PendingScoreChange.applies(entry, toShownSession: latestOvernightComplete?.id) else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8)) {
             pendingScoreChange = entry
         }

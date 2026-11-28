@@ -122,8 +122,8 @@ final class RecoveryCompletenessTests: XCTestCase {
             if let row = backup.index.firstIndex(where: { $0.id == id }) { backup.index[row].lastBackupTime = .distantPast }
         }
         XCTAssertEqual(try backup.retrieve(id)?.points.count, 300, "the fixture expects both parts read")
-        try FileManager.default.removeItem(at: setAside)
-        try FileManager.default.createDirectory(at: setAside, withIntermediateDirectories: false)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: setAside.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: setAside.path) }
 
         XCTAssertThrowsError(try backup.retrieve(id), "part of the backup was returned as all of it")
         let row = backup.indexLock.withLock { backup.index.first { $0.id == id } }
