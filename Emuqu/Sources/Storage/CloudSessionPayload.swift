@@ -32,11 +32,17 @@ import Foundation
 ///     flag, which say that SpO₂ was below 95% (the sub-scores and the
 ///     composite stay);
 ///   • heart-rate-recovery samples computed from Apple Watch heart rate or
-///     read from HealthKit;
-///   • the heart rate on each per-second workout row filled from Apple Health
-///     (`healthKitHROffsets`); for a workout recorded with Apple Watch heart
-///     rate, also the per-split and per-lap heart rate and the AI snapshot's
-///     current and peak heart rate, which are that wrist heart rate.
+///     read from HealthKit, including a strap's recovery measured from a
+///     wrist heart rate at Stop (`[HRRSample].measuredFromWatchStop`);
+///   • Apple Watch heart rate, decided per value rather than per workout,
+///     since a strap workout falls back to the Watch's wrist HR while the
+///     strap is silent (`appleHealthHROffsets`): the heart rate on each
+///     per-second row filled from Apple Health, the α1 crossing's heart rate
+///     and the narrative quoting it when its row is one of those, the heart
+///     rate of a lap that spans one, the AI snapshot's current and peak heart
+///     rate unless a strap measured them (`contextWithoutWatchHeartRate`), and
+///     for a workout recorded with Apple Watch heart rate every row's and
+///     split's heart rate.
 /// Load figures (ATL, CTL, TSB, TRIMP), zone times and the other scores
 /// computed from these readings travel.
 /// A device that pulls the session re-derives the sleep and vitals snapshots
@@ -54,8 +60,17 @@ enum CloudSessionPayload {
     static let appleWatchDeviceId = "apple-watch"
 
     /// Keys of a workout's AI snapshot (`HRVSession.aiContext`) that hold a
-    /// heart-rate reading.
-    static let heartRateContextKeys: Set<String> = ["hr", "peak_hr"]
+    /// heart-rate reading, each with the key that records where it came from
+    /// (`WorkoutSessionLifecycle.buildAiContextSnapshot`).
+    static let heartRateSourceKeys: [String: String] = ["hr": "hr_source", "peak_hr": "peak_hr_source"]
+    static var heartRateContextKeys: Set<String> { Set(heartRateSourceKeys.keys) }
+    static let strapHeartRateSource = "strap"
+    static let watchHeartRateSource = "apple_watch"
+
+    /// The source value an AI snapshot records for a heart-rate reading.
+    static func heartRateSource(_ fromWatch: Bool) -> String {
+        fromWatch ? watchHeartRateSource : strapHeartRateSource
+    }
 
     /// Score-breakdown rows whose explanatory text quotes HealthKit readings.
     static let healthKitFactorLabels: Set<String> = ["Sleep", "Vitals"]
@@ -73,11 +88,38 @@ enum CloudSessionPayload {
         session.deviceProvenance?.deviceId == appleWatchDeviceId
     }
 
+    /// The `offsetSec` of every per-second row whose heart rate came from
+    /// Apple Health: the rows `healthKitHROffsets` lists (the HealthKit
+    /// backfill, and the Watch's wrist HR shown while a strap was silent), and
+    /// for a workout recorded with Apple Watch heart rate every row with one,
+    /// since a workout stored before the list existed carries none.
+    static func appleHealthHROffsets(_ session: HRVSession) -> Set<Int> {
+        let metadata = session.workoutMetadata
+        var offsets = Set(metadata?.healthKitHROffsets ?? [])
+        if hasAppleWatchHeartRate(session) {
+            offsets.formUnion((metadata?.samples ?? []).lazy.filter { $0.heartRate != nil }.map(\.offsetSec))
+        }
+        return offsets
+    }
+
+    /// The AI snapshot with each heart-rate reading left out unless its
+    /// source key says a strap measured it. A wrist reading stays on this
+    /// device, and so does one stored before the source was recorded: it may
+    /// be the wrist HR the display fell back to.
+    static func contextWithoutWatchHeartRate(_ context: [String: String]?) -> [String: String]? {
+        guard let context else { return nil }
+        return context.filter { key, _ in
+            guard let sourceKey = heartRateSourceKeys[key] else { return true }
+            return context[sourceKey] == strapHeartRateSource
+        }
+    }
+
     /// The session as it may be uploaded: every HealthKit reading removed,
     /// and the auto-window comparison, which only means something on the
     /// device where the window was picked.
     static func uploadable(_ session: HRVSession) -> HRVSession {
         let watchHR = hasAppleWatchHeartRate(session)
+        let healthOffsets = appleHealthHROffsets(session)
         var payload = session
         payload.sleepSnapshot = nil
         payload.vitalsSnapshot = nil
@@ -88,8 +130,10 @@ enum CloudSessionPayload {
         payload.trainingSnapshot = session.trainingSnapshot.map(trainingWithoutHealthKitReadings)
         payload.analysisResult = session.analysisResult.map(analysisWithoutHealthKitReadings)
         payload.scoreBreakdown = session.scoreBreakdown.map(breakdownWithoutHealthKitReadings)
-        payload.workoutMetadata = session.workoutMetadata.map { workoutWithoutHealthKitReadings($0, watchHR: watchHR) }
-        if watchHR { payload.aiContext = session.aiContext?.filter { !heartRateContextKeys.contains($0.key) } }
+        payload.workoutMetadata = session.workoutMetadata.map {
+            workoutWithoutHealthKitReadings($0, healthOffsets: healthOffsets, watchHR: watchHR)
+        }
+        payload.aiContext = contextWithoutWatchHeartRate(session.aiContext)
         payload.autoWindowResult = nil
         payload.autoWindowScore = nil
         return payload
@@ -161,13 +205,23 @@ enum CloudSessionPayload {
         return lines
     }
 
-    private static func workoutWithoutHealthKitReadings(_ metadata: WorkoutMetadata, watchHR: Bool) -> WorkoutMetadata {
+    /// `healthOffsets` lists the rows whose heart rate came from Apple Health
+    /// (`appleHealthHROffsets`); the copy carries that list, so a device that
+    /// receives it can put this device's heart rate back and keeps it out of
+    /// its own Apple Health export.
+    private static func workoutWithoutHealthKitReadings(
+        _ metadata: WorkoutMetadata, healthOffsets: Set<Int>, watchHR: Bool
+    ) -> WorkoutMetadata {
         var stripped = metadata
         stripped.hrrSamples = strapMeasured(metadata.hrrSamples)
-        stripped.samples = withoutHealthKitHR(metadata)
+        stripped.healthKitHROffsets = healthOffsets.isEmpty ? nil : healthOffsets.sorted()
+        stripped.samples = metadata.samples.map { withoutHR(on: healthOffsets, in: $0) }
+        stripped.analysisSnapshot = metadata.analysisSnapshot.map { withoutHealthCrossingHR($0, healthOffsets: healthOffsets) }
+        stripped.laps = metadata.laps?.map { lap in
+            watchHR || lap.spans(healthOffsets) ? lap.withHeartRate(average: nil, max: nil) : lap
+        }
         guard watchHR else { return stripped }
         stripped.splits = metadata.splits?.map { $0.withAverageHR(nil) }
-        stripped.laps = metadata.laps?.map { $0.withHeartRate(average: nil, max: nil) }
         return stripped
     }
 
@@ -177,13 +231,29 @@ enum CloudSessionPayload {
         return strap.isEmpty ? nil : strap
     }
 
-    /// The per-second samples with the heart rate cleared on each row
-    /// `healthKitHROffsets` lists: Apple Watch wrist HR read from Apple Health.
-    private static func withoutHealthKitHR(_ metadata: WorkoutMetadata?) -> [WorkoutSample]? {
-        guard let samples = metadata?.samples else { return nil }
-        let offsets = Set(metadata?.healthKitHROffsets ?? [])
+    /// The per-second samples with the heart rate cleared on each row at
+    /// `offsets`: Apple Watch wrist HR read from Apple Health.
+    private static func withoutHR(on offsets: Set<Int>, in samples: [WorkoutSample]) -> [WorkoutSample] {
         guard !offsets.isEmpty else { return samples }
         return samples.map { offsets.contains($0.offsetSec) ? $0.withHeartRate(nil) : $0 }
+    }
+
+    /// The analysis snapshot without the α1 crossing's heart rate when it was
+    /// read off a row at `healthOffsets`, and without the hero narrative that
+    /// quotes it. The narratives are marked for a rebuild
+    /// (`WorkoutAnalysisSnapshot.needsRebuild`), so each device writes them
+    /// again from the heart rate it holds.
+    private static func withoutHealthCrossingHR(
+        _ snapshot: WorkoutAnalysisSnapshot, healthOffsets: Set<Int>
+    ) -> WorkoutAnalysisSnapshot {
+        guard let offset = snapshot.firstAT1CrossingOffsetSec, healthOffsets.contains(offset),
+              snapshot.firstAT1CrossingHR != nil
+        else { return snapshot }
+        var stripped = snapshot
+        stripped.firstAT1CrossingHR = nil
+        stripped.heroNarrative = nil
+        stripped.narrativeLanguage = nil
+        return stripped
     }
 
     /// The factor with its line and the numbers the line quotes replaced.
@@ -263,7 +333,24 @@ enum CloudSessionPayload {
         metadata.samples = restoringHealthKitHR(metadata, from: local)
         metadata.splits = restoringHR(remote.splits, from: local?.splits)
         metadata.laps = restoringHR(remote.laps, from: local?.laps)
+        metadata.analysisSnapshot = remote.analysisSnapshot.map { restoringCrossingHR($0, from: local?.analysisSnapshot) }
         return metadata
+    }
+
+    /// The iCloud copy's analysis snapshot with this device's α1 crossing
+    /// heart rate and the narrative quoting it, when the upload left them out
+    /// of the same crossing.
+    private static func restoringCrossingHR(
+        _ remote: WorkoutAnalysisSnapshot, from local: WorkoutAnalysisSnapshot?
+    ) -> WorkoutAnalysisSnapshot {
+        guard let local, remote.firstAT1CrossingHR == nil, let held = local.firstAT1CrossingHR,
+              remote.firstAT1CrossingOffsetSec == local.firstAT1CrossingOffsetSec
+        else { return remote }
+        var merged = remote
+        merged.firstAT1CrossingHR = held
+        merged.heroNarrative = local.heroNarrative
+        merged.narrativeLanguage = local.narrativeLanguage
+        return merged
     }
 
     /// The iCloud copy's per-second samples with this device's heart rate put
@@ -359,6 +446,11 @@ extension Split {
 }
 
 extension Lap {
+    /// Whether the lap's span holds one of the per-second rows at `offsets`.
+    func spans(_ offsets: Set<Int>) -> Bool {
+        offsets.contains { Double($0) >= startOffsetSec && Double($0) <= endOffsetSec }
+    }
+
     func withHeartRate(average: Double?, max: Double?) -> Lap {
         Lap(
             index: index, startOffsetSec: startOffsetSec, endOffsetSec: endOffsetSec, distanceMeters: distanceMeters,

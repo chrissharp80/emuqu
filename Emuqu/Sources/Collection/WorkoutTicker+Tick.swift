@@ -184,8 +184,8 @@ extension WorkoutTicker {
     private func mirrorStrapHeartRate(_ newHR: Int?) {
         workoutHR.currentHR = newHR
         signals.hrFromWrist = false
-        guard let newHR, newHR > workoutHR.peakHR else { return }
-        workoutHR.peakHR = newHR
+        guard let newHR else { return }
+        workoutHR.raisePeak(to: newHR, fromWrist: false)
     }
 
     /// Feed any newly-arrived RR points into the live DFA analyzer. The
@@ -386,7 +386,7 @@ extension WorkoutTicker {
         if let derivedHR = Array(buffer.suffix(8)).medianHeartRateBPM {
             workoutHR.currentHR = derivedHR
             signals.hrFromWrist = false
-            if derivedHR > workoutHR.peakHR { workoutHR.peakHR = derivedHR }
+            workoutHR.raisePeak(to: derivedHR, fromWrist: false)
             signals.lastStrapHRAt = Date()  // strap is alive
         }
         capture.lastIngestedPointCount = buffer.count
@@ -413,7 +413,7 @@ extension WorkoutTicker {
         signals.lastStrapHRAt = reading.at
         workoutHR.currentHR = reading.hr
         signals.hrFromWrist = false
-        if reading.hr > workoutHR.peakHR { workoutHR.peakHR = reading.hr }
+        workoutHR.raisePeak(to: reading.hr, fromWrist: false)
     }
 
     /// The strap's reading when it is newer than the last strap heart rate
@@ -525,7 +525,7 @@ extension WorkoutTicker {
         if let strapHR = WatchPayloadBounds.plausibleHeartRate(watchBridge.latestWatchStrapHR) {
             workoutHR.currentHR = strapHR
             signals.hrFromWrist = false
-            if strapHR > workoutHR.peakHR { workoutHR.peakHR = strapHR }
+            workoutHR.raisePeak(to: strapHR, fromWrist: false)
         }
         capture.watchRouted.lastAt = Date()
     }
@@ -562,7 +562,7 @@ extension WorkoutTicker {
     private func applyDisplayHR(_ arbitration: HRArbitration.Decision) {
         if let watchHR = arbitration.displayHRUpdate {
             workoutHR.currentHR = watchHR
-            if watchHR > workoutHR.peakHR { workoutHR.peakHR = watchHR }
+            workoutHR.raisePeak(to: watchHR, fromWrist: true)
         } else if arbitration.clearDisplayHR {
             workoutHR.currentHR = nil
         }
@@ -711,11 +711,14 @@ extension WorkoutTicker {
     /// oldest so memory stays bounded. Each sample carries an absolute
     /// `offsetSec`, so dropping the head doesn't corrupt the rest, and the
     /// crash-recovery backup finds the rows it has not written by that key,
-    /// so it keeps every row, the dropped ones included.
+    /// so it keeps every row, the dropped ones included. The drop is marked
+    /// (`WorkoutCapture.sampleHeadTrimmed`), so finalize reads the dropped
+    /// rows back from that backup before the archive write.
     private func capWorkoutSampleMemory() {
         let maxWorkoutSamples = 60 * 60 * 12 // 12h at 1 sample/sec
         guard capture.workoutSamples.count > maxWorkoutSamples else { return }
         capture.workoutSamples.removeFirst(capture.workoutSamples.count - maxWorkoutSamples)
+        capture.sampleHeadTrimmed = true
         capture.wristHROffsets = Self.offsets(capture.wristHROffsets, keptFrom: capture.workoutSamples.first?.offsetSec)
     }
 
@@ -796,7 +799,7 @@ extension WorkoutTicker {
         liveZoneBreakdown: WorkoutZoneBreakdown
     ) -> AssistantContext.LiveWorkoutSnapshot {
         let (road, trends) = (services.roadGeocodingService.current, capture.syncedLiveTrends())
-        return withGroundAhead(AssistantContext.LiveWorkoutSnapshot(
+        return withHeartRateSource(withGroundAhead(AssistantContext.LiveWorkoutSnapshot(
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: lifecycle.sessionStartDate ?? Date(), elapsedSeconds: lifecycle.elapsedSeconds, heartRate: workoutHR.currentHR, peakHR: workoutHR.peakHR, userMaxHR: settingsProvider().effectiveMaxHR,
             beatCount: workoutHR.beatCount, distanceMeters: motion.distanceMeters, stepCount: motion.stepCount, cadenceStepsPerMin: motion.cadenceStepsPerMin, elevationGainMeters: motion.elevationGainMeters, alpha1: dfa.currentAlpha1,
             alpha1Band: dfa.currentBand.label, alpha1Status: dfa.status.label, alpha1FitQualityR2: dfa.fitQuality, strapConnected: core.strapLink.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: motion.liveTrack.count,
@@ -814,7 +817,17 @@ extension WorkoutTicker {
             recoveryHoursNeeded: coaching.startContext.recoveryHoursNeeded, zone1Sec: liveZoneBreakdown.z1Sec, zone2Sec: liveZoneBreakdown.z2Sec, zone3Sec: liveZoneBreakdown.z3Sec, zone4Sec: liveZoneBreakdown.z4Sec, zone5Sec: liveZoneBreakdown.z5Sec, dominantZone: liveZoneBreakdown.dominantZone,
             predictedRaceTime5KSec: coaching.startContext.racePredictionsByDistance[5_000], predictedRaceTime10KSec: coaching.startContext.racePredictionsByDistance[10_000], predictedRaceTimeHalfSec: coaching.startContext.racePredictionsByDistance[21_097.5],
             predictedRaceTimeMarathonSec: coaching.startContext.racePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: intervalController.liveProgressSnapshot()
-        ))
+        )))
+    }
+
+    /// Whether the snapshot's current and peak heart rate are the Watch's
+    /// wrist HR, so the workout's stored AI snapshot can keep a wrist reading
+    /// out of iCloud (`CloudSessionPayload.uploadable`).
+    private func withHeartRateSource(_ snapshot: AssistantContext.LiveWorkoutSnapshot) -> AssistantContext.LiveWorkoutSnapshot {
+        var snapshot = snapshot
+        snapshot.heartRateFromWatch = snapshot.heartRate == nil ? nil : signals.hrFromWrist
+        snapshot.peakHRFromWatch = workoutHR.peakHRFromWrist
+        return snapshot
     }
 
     /// What past workouts say about the ground ahead and this spot, and the

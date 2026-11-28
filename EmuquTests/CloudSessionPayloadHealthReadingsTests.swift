@@ -166,16 +166,126 @@ final class CloudSessionPayloadHealthReadingsTests: XCTestCase {
         var workout = makeWatchWorkout()
         workout.deviceProvenance = provenance("H10-1234")
         workout.workoutMetadata?.healthKitHROffsets = [1]
+        workout.aiContext = ["sport": "run", "hr": "150", "hr_source": "strap", "peak_hr": "158", "peak_hr_source": "strap"]
 
         let payload = CloudSessionPayload.uploadable(workout)
 
         XCTAssertEqual(payload.workoutMetadata?.samples?.map(\.heartRate), [140, nil])
         XCTAssertEqual(payload.workoutMetadata?.splits?.first?.averageHR, 145)
+        XCTAssertEqual(payload.aiContext?["hr"], "150")
         XCTAssertEqual(payload.aiContext?["peak_hr"], "158")
     }
 
-    func testAppleWatchDeviceIdIsTheOneTheRecorderStamps() {
-        XCTAssertEqual(CloudSessionPayload.appleWatchDeviceId, "apple-watch")
+    // MARK: - Strap workout that fell back to the Watch
+
+    /// A Polar workout whose strap went silent shows the Watch's wrist HR for
+    /// a stretch: every value taken from it stays on the device, and every
+    /// value the strap measured travels.
+    func testMixedSourceWorkoutUploadsNoWatchValueAndKeepsStrapValues() throws {
+        let payload = CloudSessionPayload.uploadable(makeMixedWorkout())
+        let workout = try XCTUnwrap(payload.workoutMetadata)
+
+        XCTAssertEqual(workout.samples?.map(\.heartRate), [140, nil, nil, 150])
+        XCTAssertEqual(workout.healthKitHROffsets, [1, 2])
+        XCTAssertNil(payload.aiContext?["peak_hr"], "the peak was the wrist HR")
+        XCTAssertEqual(payload.aiContext?["hr"], "150", "the strap measured the last reading")
+        XCTAssertNil(workout.analysisSnapshot?.firstAT1CrossingHR)
+        XCTAssertNil(workout.analysisSnapshot?.heroNarrative)
+        XCTAssertEqual(workout.analysisSnapshot?.needsRebuild, true, "each device writes the narrative from its own heart rate")
+        XCTAssertEqual(workout.laps?.map(\.averageHR), [nil, 148])
+        XCTAssertEqual(workout.splits?.first?.averageHR, 145, "splits average the strap's own beats")
+        XCTAssertEqual(workout.hrrSamples?.map(\.provenance), [.strap])
+        XCTAssertEqual(workout.luciaTRIMP, 85)
+    }
+
+    /// Each heart-rate field of a workout, for a strap-only, a mixed-source
+    /// and a Watch workout: whether the upload keeps the value.
+    func testHeartRateFieldsTravelOnlyWhenTheStrapMeasuredThem() throws {
+        typealias Field = (name: String, read: (HRVSession) -> Bool)
+        let fields: [Field] = [
+            ("row 1 HR", { $0.workoutMetadata?.samples?[1].heartRate != nil }),
+            ("ai hr", { $0.aiContext?["hr"] != nil }),
+            ("ai peak_hr", { $0.aiContext?["peak_hr"] != nil }),
+            ("crossing HR", { $0.workoutMetadata?.analysisSnapshot?.firstAT1CrossingHR != nil }),
+            ("lap 1 HR", { $0.workoutMetadata?.laps?.first?.averageHR != nil }),
+            ("split HR", { $0.workoutMetadata?.splits?.first?.averageHR != nil })
+        ]
+        let rows: [(name: String, session: HRVSession, kept: [Bool])] = [
+            ("strap only", makeStrapOnlyWorkout(), [true, true, true, true, true, true]),
+            ("mixed", makeMixedWorkout(), [false, true, false, false, false, true]),
+            ("watch", makeWatchSourcedMixedShape(), [false, false, false, false, false, false])
+        ]
+        for row in rows {
+            let payload = CloudSessionPayload.uploadable(row.session)
+            for (field, kept) in zip(fields, row.kept) {
+                XCTAssertEqual(field.read(payload), kept, "\(row.name): \(field.name)")
+            }
+        }
+    }
+
+    /// A workout's AI snapshot stored before the heart rate's source was
+    /// recorded may hold the wrist HR the display fell back to: its heart
+    /// rate stays on the device.
+    func testUnmarkedHeartRateInTheAISnapshotStaysOnTheDevice() {
+        var workout = makeStrapOnlyWorkout()
+        workout.aiContext = ["sport": "run", "hr": "150", "peak_hr": "158"]
+
+        let payload = CloudSessionPayload.uploadable(workout)
+
+        XCTAssertNil(payload.aiContext?["hr"])
+        XCTAssertNil(payload.aiContext?["peak_hr"])
+        XCTAssertEqual(payload.aiContext?["sport"], "run")
+    }
+
+    /// A Watch workout stored before its rows were listed: every row's heart
+    /// rate is the Watch's, and the copy lists them so the replacement puts
+    /// this device's heart rate back.
+    func testWatchWorkoutWithoutARowListUploadsNoRowHeartRate() {
+        var local = makeWatchWorkout()
+        local.workoutMetadata?.healthKitHROffsets = nil
+
+        let remote = CloudSessionPayload.uploadable(local)
+        let merged = CloudKitSessionFreshness.replacing(local, with: remote)
+
+        XCTAssertEqual(remote.workoutMetadata?.samples?.compactMap(\.heartRate), [])
+        XCTAssertEqual(remote.workoutMetadata?.healthKitHROffsets, [0, 1])
+        XCTAssertEqual(merged.workoutMetadata?.samples?.compactMap(\.heartRate), [140, 150])
+    }
+
+    /// The replacement puts back this device's wrist values the upload left out.
+    func testReplacementRestoresTheMixedWorkoutsWatchValues() {
+        let local = makeMixedWorkout()
+        var remote = CloudSessionPayload.uploadable(local)
+        remote.notes = "edited elsewhere"
+
+        let merged = CloudKitSessionFreshness.replacing(local, with: remote)
+
+        XCTAssertEqual(merged.workoutMetadata?.samples?.map(\.heartRate), [140, 171, 172, 150])
+        XCTAssertEqual(merged.aiContext?["peak_hr"], "172")
+        XCTAssertEqual(merged.workoutMetadata?.analysisSnapshot?.firstAT1CrossingHR, 171)
+        XCTAssertEqual(merged.workoutMetadata?.analysisSnapshot?.heroNarrative, "Crossed at 171 bpm")
+        XCTAssertEqual(merged.workoutMetadata?.laps?.first?.averageHR, 160)
+    }
+
+    /// The health scrub's list: without the previous list's progress or the archive's index, every
+    /// uploaded id is rewritten.
+    func testHealthScrubIdsToRewriteTable() {
+        let (workout, night, pending) = (UUID(), UUID(), UUID())
+        let uploaded: Set<UUID> = [workout, night, pending]
+        let all = uploaded.map(\.uuidString).sorted()
+        let rows: [(previous: Set<String>?, workouts: Set<UUID>?, expected: [String])] = [
+            (nil, [workout], all),
+            ([pending.uuidString], nil, all),
+            ([pending.uuidString], [workout], [workout, pending].map(\.uuidString).sorted()),
+            ([], [workout], [workout.uuidString]),
+            ([], [], [])
+        ]
+        for row in rows {
+            XCTAssertEqual(
+                CloudHealthScrubCoordinator.idsToRewrite(uploaded: uploaded, previousRemaining: row.previous, workoutIds: row.workouts),
+                row.expected
+            )
+        }
     }
 
     // MARK: - Copies keep every field
@@ -309,6 +419,55 @@ final class CloudSessionPayloadHealthReadingsTests: XCTestCase {
         workout.hrrSamples = [HRRSample(offsetSec: 60, hr: 130, drop: 28, peakHR: 158, provenance: .watchSamples)]
         workout.luciaTRIMP = 85
         session.workoutMetadata = workout
+        return session
+    }
+
+    /// A Polar workout with the strap silent over rows 1 and 2, where the
+    /// display showed the Watch's wrist HR, which set the peak.
+    private func makeMixedWorkout() -> HRVSession {
+        var session = makeStrapOnlyWorkout()
+        session.aiContext = ["sport": "run", "hr": "150", "hr_source": "strap", "peak_hr": "172", "peak_hr_source": "apple_watch"]
+        session.workoutMetadata?.samples = [
+            WorkoutSample(offsetSec: 0, heartRate: 140), WorkoutSample(offsetSec: 1, heartRate: 171),
+            WorkoutSample(offsetSec: 2, heartRate: 172), WorkoutSample(offsetSec: 3, heartRate: 150)
+        ]
+        session.workoutMetadata?.healthKitHROffsets = [1, 2]
+        session.workoutMetadata?.analysisSnapshot = WorkoutAnalysisSnapshot(
+            firstAT1CrossingOffsetSec: 1, firstAT1CrossingHR: 171, heroNarrative: "Crossed at 171 bpm"
+        )
+        session.workoutMetadata?.hrrSamples = [
+            HRRSample(offsetSec: 60, hr: 130, drop: 28, peakHR: 158, provenance: .strap),
+            HRRSample(offsetSec: 120, hr: 120, drop: 38, peakHR: 158, provenance: .watchSamples)
+        ]
+        return session
+    }
+
+    /// A Polar workout the strap measured throughout.
+    private func makeStrapOnlyWorkout() -> HRVSession {
+        var session = makeWatchWorkout()
+        session.deviceProvenance = provenance("H10-1234")
+        session.aiContext = ["sport": "run", "hr": "150", "hr_source": "strap", "peak_hr": "158", "peak_hr_source": "strap"]
+        session.workoutMetadata?.samples = [
+            WorkoutSample(offsetSec: 0, heartRate: 140), WorkoutSample(offsetSec: 1, heartRate: 150),
+            WorkoutSample(offsetSec: 2, heartRate: 152), WorkoutSample(offsetSec: 3, heartRate: 150)
+        ]
+        session.workoutMetadata?.healthKitHROffsets = nil
+        session.workoutMetadata?.analysisSnapshot = WorkoutAnalysisSnapshot(
+            firstAT1CrossingOffsetSec: 1, firstAT1CrossingHR: 150, heroNarrative: "Crossed at 150 bpm"
+        )
+        session.workoutMetadata?.laps = [
+            Lap(index: 1, startOffsetSec: 0, endOffsetSec: 2, distanceMeters: 10, averageHR: 160, maxHR: 172, averagePaceSecPerKm: 300),
+            Lap(index: 2, startOffsetSec: 3, endOffsetSec: 3, distanceMeters: 5, averageHR: 148, maxHR: 150, averagePaceSecPerKm: 300)
+        ]
+        session.workoutMetadata?.hrrSamples = [HRRSample(offsetSec: 60, hr: 130, drop: 28, peakHR: 158, provenance: .strap)]
+        return session
+    }
+
+    /// The mixed workout's shape recorded with Apple Watch heart rate.
+    private func makeWatchSourcedMixedShape() -> HRVSession {
+        var session = makeMixedWorkout()
+        session.deviceProvenance = provenance(CloudSessionPayload.appleWatchDeviceId)
+        session.aiContext = ["sport": "run", "hr": "150", "hr_source": "apple_watch", "peak_hr": "172", "peak_hr_source": "apple_watch"]
         return session
     }
 

@@ -16,24 +16,32 @@ import Foundation
 ///     of Apple Health whole has its record deleted (`scrubInPlace`). No local
 ///     session and no record that is not already in iCloud is written.
 ///
-/// Version 4 of the list covers the analysis result's training context,
-/// Apple Health's daytime resting heart rate, the sleep-segment label, the
-/// SpO₂ penalty, and Apple Watch heart rate in splits, laps and the AI
-/// snapshot, which version 3 left in.
+/// Version 5 of the list covers the Apple Watch heart rate a strap workout
+/// fell back to while its strap was silent (the AI snapshot's current and
+/// peak heart rate, the α1 crossing's heart rate, a lap spanning a wrist row,
+/// a strap recovery measured from a wrist heart rate at Stop), and the
+/// per-second heart rate of a Watch workout stored before its rows were
+/// listed, which version 4 left in. It holds what version 4 had still to
+/// rewrite and every uploaded workout (`idsToRewrite`).
 ///
 /// A strong reference: the manager builds a fresh coordinator for each use.
 @MainActor
 struct CloudHealthScrubCoordinator {
     let manager: CloudKitSyncManager
 
-    static let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
-    static let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized"
-    /// Earlier lists' keys, removed when version 4 starts and by a remote wipe.
+    static let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v5.remaining"
+    static let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v5.initialized"
+    /// The previous list's keys, read once when version 5 starts.
+    static let previousRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
+    static let previousInitializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized"
+    /// Earlier lists' keys, removed when version 5 starts and by a remote wipe.
     static let legacyKeys = [
         "FlowRecovery.cloudkit.hkSanitizeReupload.v2.remaining",
         "FlowRecovery.cloudkit.hkSanitizeReupload.v2.initialized",
         "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining",
-        "FlowRecovery.cloudkit.hkSanitizeReupload.v3.initialized"
+        "FlowRecovery.cloudkit.hkSanitizeReupload.v3.initialized",
+        previousRemainingKey,
+        previousInitializedKey
     ]
     /// Records handled per sync.
     static let batchSize = 10
@@ -66,14 +74,32 @@ struct CloudHealthScrubCoordinator {
         Self.legacyKeys.forEach(defaults.removeObject(forKey:))
     }
 
-    /// Snapshot the uploaded set as the list. Async for its callers' sake;
+    /// Snapshot the ids to rewrite as the list. Async for its callers' sake;
     /// it reads and writes only `UserDefaults` and the in-memory state.
     private func initialize() async {
-        let snapshot = manager.state.uploadedSessionIds.map(\.uuidString)
+        let previous = defaults.bool(forKey: Self.previousInitializedKey)
+            ? Set(defaults.stringArray(forKey: Self.previousRemainingKey) ?? []) : nil
+        let workouts = manager.archive.hasCompleteIndex
+            ? Set(manager.archive.store.entries.filter { $0.sessionType == .workout }.map(\.sessionId)) : nil
+        let snapshot = Self.idsToRewrite(
+            uploaded: manager.state.uploadedSessionIds, previousRemaining: previous, workoutIds: workouts
+        )
         defaults.set(snapshot, forKey: Self.remainingKey)
         defaults.set(true, forKey: Self.initializedKey)
         Self.legacyKeys.forEach(defaults.removeObject(forKey:))
         debugLog("[CloudKit] Health scrub list initialized — \(snapshot.count) records to rewrite")
+    }
+
+    /// The uploaded ids this version rewrites: what the previous list had
+    /// still to rewrite, and every workout, the only sessions this version's
+    /// rule changes. Every uploaded id when either is unknown: the previous
+    /// list never started (`previousRemaining` nil, so none of its rewrites
+    /// ran), or the archive's index is not loaded (`workoutIds` nil).
+    static func idsToRewrite(uploaded: Set<UUID>, previousRemaining: Set<String>?, workoutIds: Set<UUID>?) -> [String] {
+        guard let previousRemaining, let workoutIds else { return uploaded.map(\.uuidString).sorted() }
+        return uploaded
+            .filter { workoutIds.contains($0) || previousRemaining.contains($0.uuidString) }
+            .map(\.uuidString).sorted()
     }
 
     // MARK: - iCloud Sync on

@@ -267,8 +267,14 @@ final class BreadcrumbStore: @unchecked Sendable {
     /// The AI can still say where it started. The active file is removed
     /// only once the archive write succeeded; when the archive could not be
     /// read or written, the trail stays where it is rather than being lost.
-    func archiveActive() {
-        guard let active = load() else { return }
+    ///
+    /// The trail archived is the fuller of the one on disk and `live`, the
+    /// recorder's own copy of the same trail: a save that failed (no key
+    /// reachable, a full disk) leaves the file behind the recorder, and the
+    /// recorder drops its copy once the file is gone, so archiving the file
+    /// alone lost the fixes after that save.
+    func archiveActive(live: BreadcrumbTrail? = nil) {
+        guard let active = Self.fuller(load(), live) else { return }
         queue.async { [archiveURL, activeURL] in
             guard Self.appendToArchive(active, at: archiveURL) else {
                 debugLog("[BreadcrumbStore] archiving the active trail failed; keeping it as the active trail", level: .error)
@@ -340,6 +346,14 @@ final class BreadcrumbStore: @unchecked Sendable {
             debugLog("[BreadcrumbStore] archive present but failed to open or decode — refusing to overwrite it: \(error)", level: .error)
             return nil
         }
+    }
+
+    /// `live` when it is the same trail as `stored` (same start) with more
+    /// fixes, or there is no stored one; `stored` otherwise. A `live` trail
+    /// of another start is not the one on disk and is not archived here.
+    static func fuller(_ stored: BreadcrumbTrail?, _ live: BreadcrumbTrail?) -> BreadcrumbTrail? {
+        guard let live, live.startedAt == stored?.startedAt ?? live.startedAt else { return stored }
+        return live.fixes.count > (stored?.fixes.count ?? -1) ? live : stored
     }
 
     func archive(_ trail: BreadcrumbTrail) {

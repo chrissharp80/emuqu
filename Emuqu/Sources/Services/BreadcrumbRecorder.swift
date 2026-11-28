@@ -174,13 +174,15 @@ final class BreadcrumbRecorder: NSObject {
         }
     }
 
-    /// "End and save": file the trail in the archive and stop recording.
+    /// "End and save": file the trail in the archive and stop recording. The
+    /// trail held here is handed over too, so fixes a failed save left off
+    /// disk are archived rather than dropped with it.
     /// `disengage` runs behind the store's archive write, so it drops the
     /// in-memory trail only once the active file is gone. True when it was
     /// dropped; false when the archive could not be read or written and the
     /// trail is still on disk, where it stays loaded.
     func endAndArchive() -> Bool {
-        services.breadcrumbStore.archiveActive()
+        services.breadcrumbStore.archiveActive(live: activeTrail)
         disengage()
         return activeTrail == nil
     }

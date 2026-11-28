@@ -82,15 +82,30 @@ extension WorkoutRecorder {
     /// maximal test, which is where that test ends; after intervals and a
     /// cool-down the session maximum was minutes earlier, and recovery from
     /// it read as an 80 bpm drop when the last minute fell 15.
-    private func heartRateAtStop(stopDate: Date, now: Date) -> Int {
+    ///
+    /// With the rate comes whether it is the Watch's wrist HR
+    /// (`stopHeartRateIsWrist`), which the recovery measured from it carries.
+    private func heartRateAtStop(stopDate: Date, now: Date) -> (hr: Int, fromWatch: Bool) {
         let readingTimes = [signals.lastStrapHRAt, capture.watchRouted.lastAt, watchBridge.latestWatchHRAt]
-        return Self.heartRateAtStop(
-            live: workoutHR.currentHR,
-            lastSampled: capture.workoutSamples.last(where: { $0.heartRate != nil })?.heartRate,
-            lastReadingAt: readingTimes.compactMap { $0 }.max(),
-            stopDate: stopDate,
-            now: now
+        let lastRow = capture.workoutSamples.last(where: { $0.heartRate != nil })
+        let hr = Self.heartRateAtStop(
+            live: workoutHR.currentHR, lastSampled: lastRow?.heartRate,
+            lastReadingAt: readingTimes.compactMap { $0 }.max(), stopDate: stopDate, now: now
         )
+        let fromWatch = Self.stopHeartRateIsWrist(
+            live: workoutHR.currentHR, liveFromWrist: signals.hrFromWrist,
+            lastSampledOffset: lastRow?.offsetSec, wristOffsets: capture.wristHROffsets
+        )
+        return (hr, fromWatch)
+    }
+
+    /// Whether the rate at Stop is the Watch's wrist HR: the live reading's
+    /// source when there is one, else whether the last sampled row's heart
+    /// rate was wrist HR (`capture.wristHROffsets`).
+    nonisolated static func stopHeartRateIsWrist(live: Int?, liveFromWrist: Bool, lastSampledOffset: Int?, wristOffsets: [Int]) -> Bool {
+        if let live, live > 0 { return liveFromWrist }
+        guard let lastSampledOffset else { return false }
+        return wristOffsets.contains(lastSampledOffset)
     }
 
     /// How old the newest heart-rate reading may be at Stop and still count
@@ -347,7 +362,10 @@ extension WorkoutRecorder {
     /// recorded, `ownedStrapStreamStart`): a Watch workout has none, and a
     /// stream started since (the next workout, a quick reading) is another
     /// session's heart rate, not this one's recovery.
-    func launchHRRCaptureAndRearchive(stopDate: Date, endHR: Int, finished: HRVSession) {
+    ///
+    /// `endHR` is the rate at Stop and whether it was the Watch's wrist HR
+    /// (`[HRRSample].measuredFromWatchStop`).
+    func launchHRRCaptureAndRearchive(stopDate: Date, endHR: (hr: Int, fromWatch: Bool), finished: HRVSession) {
         let ownStreamStart = lifecycle.activeHRSource == .strap ? lifecycle.ownedStrapStreamStart : nil
         let captureService = HRRCaptureService(
             strapLink: core.strapLink, strapStream: core.strapStream,
@@ -383,14 +401,14 @@ extension WorkoutRecorder {
     nonisolated private func captureHRRAndRearchive(
         captureService: HRRCaptureService,
         stopDate: Date,
-        endHR: Int,
+        endHR: (hr: Int, fromWatch: Bool),
         strap: StrapAfterHRR?,
         archive: SessionArchive,
         sessionId: UUID
     ) async {
-        let captured = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR)
+        let captured = await captureService.captureHRR(stopDate: stopDate, stopHR: endHR.hr)
         let nextStart = await MainActor.run { self.startOfWorkout(after: sessionId) }
-        let samples = Self.hrrSamples(captured, stopDate: stopDate, before: nextStart)
+        let samples = Self.hrrSamples(captured, stopDate: stopDate, before: nextStart).measuredFromWatchStop(endHR.fromWatch)
         if let strap {
             await releaseStrapAfterHRR(strap)
         }

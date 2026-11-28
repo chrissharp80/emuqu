@@ -511,9 +511,9 @@ final class CloudKitSyncManagerTests: XCTestCase {
         // Raw key strings intentionally duplicated here — they pin the
         // persisted format (renaming the constants must not orphan
         // existing users' drip state).
-        let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
-        let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized"
-        let legacyRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining"
+        let remainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v5.remaining"
+        let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v5.initialized"
+        let legacyRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"
         let defaults = UserDefaults.standard
         // The host's values of all three, the legacy one included, go back
         // afterwards, and a key the host did not have is removed again.
@@ -527,7 +527,7 @@ final class CloudKitSyncManagerTests: XCTestCase {
         manager.deletion.clearSanitizeDripState()
 
         XCTAssertNil(defaults.stringArray(forKey: legacyRemainingKey),
-                     "The v3 drip's list must go too")
+                     "The v4 drip's list must go too")
 
         XCTAssertNil(defaults.stringArray(forKey: remainingKey),
                      "Remote deletion must clear the drip's remaining-id list — those records no longer exist")
@@ -569,6 +569,25 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
         XCTAssertEqual(listed, [uploaded.uuidString], "the list is this manager's uploaded set")
         XCTAssertTrue(defaults.bool(forKey: CloudHealthScrubCoordinator.initializedKey))
+    }
+
+    /// Version 5 starts from what version 4 had still to rewrite and every
+    /// uploaded workout, read from the v4 keys; the v4 keys then go.
+    func testHealthScrubListCarriesTheV4RemainderAndEveryWorkout() async throws {
+        let (defaults, night, pendingNight) = (UserDefaults.standard, UUID(), UUID())
+        manager.healthScrub.clear()
+        var session = HRVSession(sessionType: .workout)
+        session.workoutMetadata = WorkoutMetadata(sport: .run)
+        let workout = try archive.archive(session).sessionId
+        for id in [night, pendingNight, workout] { manager.state.markUploaded(id) }
+        defaults.set(true, forKey: "FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized")
+        defaults.set([pendingNight.uuidString], forKey: "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining")
+
+        let listed = await manager.healthScrub.remainingIds()
+
+        XCTAssertEqual(Set(listed), [pendingNight.uuidString, workout.uuidString])
+        XCTAssertFalse(listed.contains(night.uuidString), "a night version 4 already rewrote is not uploaded again")
+        XCTAssertNil(defaults.stringArray(forKey: "FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining"))
     }
 
     func testMissingRecordOrZoneNeedsNoScrub() {
