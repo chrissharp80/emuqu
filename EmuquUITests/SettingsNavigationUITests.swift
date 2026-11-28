@@ -86,6 +86,22 @@ final class SettingsNavigationUITests: XCTestCase {
     /// the row isn't found, pass anyway" — so every one of them passed without
     /// visiting the page it is named after. Every Settings root row now carries
     /// an identifier, so the permissive form is gone and the assertion is real.
+    /// Taps once the element is safely hittable. An element scrolled into
+    /// view can still be settling under the navigation bar, and tapping it
+    /// then throws instead of failing an assertion.
+    @discardableResult
+    private func tapWhenHittable(
+        _ element: XCUIElement,
+        named name: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Bool {
+        let hittable = waitUntil(UITestTiming.s(5)) { UITestFind.isSafelyHittable(element, in: app) }
+        XCTAssertTrue(hittable, "'\(name)' never became tappable — \(UITestFind.onScreen(app))", file: file, line: line)
+        if hittable { element.tap() }
+        return hittable
+    }
+
     private func walkSubPage(
         identified identifier: String,
         label: String,
@@ -98,8 +114,7 @@ final class SettingsNavigationUITests: XCTestCase {
             "Settings row '\(identifier)' should exist — \(UITestFind.onScreen(app))",
             file: file, line: line
         )
-        guard row.exists else { return }
-        row.tap()
+        guard row.exists, tapWhenHittable(row, named: identifier, file: file, line: line) else { return }
 
         // The Settings root already has a navigation bar and text, so neither
         // proves anything moved. The tapped row leaving the screen does: it
@@ -283,8 +298,7 @@ final class SettingsNavigationUITests: XCTestCase {
         let target = scrolledIntoView(identifier: UITestID.settingsAcknowledgements, label: "Open Source")
         XCTAssertTrue(target.exists,
                       "Open Source Licenses must be reachable — \(UITestFind.onScreen(app))")
-        guard target.exists else { return }
-        target.tap()
+        guard target.exists, tapWhenHittable(target, named: "Open Source") else { return }
         // Zip is the last entry in the list, so it is below
         // the fold on every device; waiting for it in place reports it missing.
         //
@@ -333,13 +347,13 @@ final class SettingsNavigationUITests: XCTestCase {
             .firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: UITestTiming.s(5)),
                       "Search must list Advanced Data Controls — \(UITestFind.onScreen(app))")
-        result.tap()
+        guard tapWhenHittable(result, named: "Advanced Data Controls") else { return }
 
         let deleteRow = UITestFind.row(in: app, identifier: UITestID.settingsDeleteAllData,
                                        label: "Delete All My Data")
         XCTAssertTrue(deleteRow.waitForExistence(timeout: UITestTiming.s(5)),
                       "Advanced Data Controls from search must list the delete route — \(UITestFind.onScreen(app))")
-        deleteRow.tap()
+        guard tapWhenHittable(deleteRow, named: "Delete All My Data") else { return }
         XCTAssertTrue(app.navigationBars["Delete All My Data"].waitForExistence(timeout: UITestTiming.s(5)),
                       "Delete All My Data must open from the search route — \(UITestFind.onScreen(app))")
     }
