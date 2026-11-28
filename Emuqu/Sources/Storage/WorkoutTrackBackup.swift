@@ -694,9 +694,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     // MARK: - Cleanup
 
-    /// Remove every file for a session. Called once the recorder has
-    /// successfully archived the finalized session — the backup has done
-    /// its job and the archive is the source of truth.
+    /// Remove every file for a session. A saved workout's backup goes through
+    /// `discard(_:ifCoveredBy:trackReplaced:)`, which checks the archive holds
+    /// it first; this one is for a workout the user chose not to keep.
     ///
     /// On `appendQueue`, so an append in flight cannot recreate a stream or
     /// its cursor after the files are gone.
@@ -704,6 +704,26 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     @discardableResult
     func discard(_ sessionId: UUID) -> Bool {
         appendQueue.sync { discardSerialized(sessionId) }
+    }
+
+    /// `discard`, once `archived` is shown to hold every row the backup holds
+    /// (`WorkoutBackupCoverage`): a backup with a row the archive lacks is
+    /// the only copy of it and stays on disk, logged. The check and the
+    /// removal run together on `appendQueue`, so no append lands between
+    /// them. `trackReplaced` when the archived route was put in place of the
+    /// recorded one on purpose. True when the backup went.
+    @discardableResult
+    func discard(_ sessionId: UUID, ifCoveredBy archived: HRVSession, trackReplaced: Bool = false) -> Bool {
+        appendQueue.sync {
+            let missing = retrieveSerialized(sessionId).map {
+                WorkoutBackupCoverage.missingStreams(of: $0, in: archived, trackReplaced: trackReplaced)
+            } ?? []
+            guard missing.isEmpty else {
+                debugLog("[WorkoutTrackBackup] \(sessionId.uuidString.prefix(8)) kept: the archived workout lacks rows of its \(missing.joined(separator: ", "))", level: .error)
+                return false
+            }
+            return discardSerialized(sessionId)
+        }
     }
 
     /// The header goes first: it is what makes a workout recoverable, so a
@@ -738,8 +758,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// Erase EVERY workout backup (all sessions, every file kind) and reset
     /// the in-memory cursors. Used by "Delete All My Data" — these files hold
     /// raw GPS tracks (precise location), so right-to-erasure requires them to
-    /// go. Outside this, a backup is removed only by `discard` once its
-    /// workout is archived; nothing removes them by age.
+    /// go. Outside this, a backup is removed only by `discard`, once its
+    /// archived workout holds every row or the user let it go; nothing
+    /// removes them by age.
     ///
     /// The caller's sweep may already have removed the folder, so there is
     /// nothing left to list: every cursor and header flag is cleared anyway,
