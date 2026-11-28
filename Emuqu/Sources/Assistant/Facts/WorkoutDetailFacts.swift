@@ -406,11 +406,12 @@ extension WorkoutNamespace {
         .parameterized(
             pattern: "workout.feeling.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Subjective workout feeling rating (1-5: terrible to great) for a workout on a given date.",
+            description: "Subjective workout feeling rating (1-5: terrible to great) for a workout on a given date. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return .from(session.workoutMetadata?.workoutFeeling, detail: "user has not rated this workout")
+                self.withWorkout(param) { session in
+                    return .from(session.workoutMetadata?.workoutFeeling, detail: "user has not rated this workout")
+                }
             }
         )
     }
@@ -419,11 +420,12 @@ extension WorkoutNamespace {
         .parameterized(
             pattern: "workout.feeling_note.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Free-text note attached to the subjective workout-feeling rating for a workout on a given date.",
+            description: "Free-text note attached to the subjective workout-feeling rating for a workout on a given date. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return .from(session.workoutMetadata?.workoutFeelingNote, detail: "user has not attached a note")
+                self.withWorkout(param) { session in
+                    return .from(session.workoutMetadata?.workoutFeelingNote, detail: "user has not attached a note")
+                }
             }
         )
     }
@@ -434,9 +436,10 @@ extension WorkoutNamespace {
     // match drives the comparison (NOT total distance) — a 1-loop day and a 2-loop day on
     // the same route are comparable on the shared segment.
     //
-    // Param format: "lat,lon" or "lat,lon,radius_m". Default
-    // radius 50 m, accepted from 5 to 5,000 m. Capped at 30 most-recent GPS-bearing
-    // workouts to keep the tool fast.
+    // Param format: `SegmentQuery`. Default radius 50 m, accepted from 5 to
+    // 5,000 m. Reads at most the 30 newest GPS-bearing workouts inside the
+    // optional date or period bound, so older workouts are reachable while
+    // each call stays fast.
     private var workoutSegmentCompareParamsEntry: FactEntry {
         .parameterized(
             pattern: "workout.segment_compare($params)",
@@ -447,34 +450,29 @@ extension WorkoutNamespace {
     }
 
     private func resolveWorkoutSegmentCompareParams(_ rawParams: String) -> FactValue {
-        let lat: Double
-        let lon: Double
-        let radius: Double
+        let query: SegmentQuery
         do throws(FactArgumentError) {
-            let parts = try FactNumericArgument.fields(rawParams, counts: [2, 3], format: "'lat,lon' or 'lat,lon,radius_m'")
-            lat = try FactNumericArgument.latitude.value(parts[0])
-            lon = try FactNumericArgument.longitude.value(parts[1])
-            radius = try parts.count == 3 ? FactNumericArgument.segmentRadiusMeters.value(parts[2]) : 50
+            query = try SegmentQuery.parseSegmentQuery(rawParams)
         } catch {
             return error.factValue
         }
-        let matches = segmentMatches(near: CLLocation(latitude: lat, longitude: lon), radius: radius)
+        let matches = SegmentPointSampler.matches(in: archive, near: query.targetLocation, radius: query.radius, within: query.bound)
         guard !matches.isEmpty else {
-            let meters = String(format: "%.0f", radius)
-            return .missing(reason: .notRecorded, detail: "no past workouts passed within \(meters)m of (\(lat), \(lon))")
+            let meters = String(format: "%.0f", query.radius)
+            let when = query.boundLabel.map { " in \($0)" } ?? ""
+            return .missing(reason: .notRecorded, detail: "no past workouts passed within \(meters)m of (\(query.targetLatitude), \(query.targetLongitude))\(when)")
         }
         return .list(matches)
     }
 
-    private func segmentMatches(near target: CLLocation, radius: Double) -> [FactValue] {
-        SegmentPointSampler.matches(in: archive, near: target, radius: radius)
-    }
-
     private static let workoutSegmentCompareParamsDescription = """
     Segment-by-coordinate comparison: given a GPS coordinate (lat,lon) and optional radius (default 50 m, 5–5000 m), returns past workouts that passed near that point with the user's pace, HR, power, cadence and altitude at THAT exact \
-    point. Single-call answer to 'how am I doing at this point vs last time'. Param format: 'lat,lon' or 'lat,lon,radius_m'. Returns a list of records: { date, sport, offset_sec_at_point, distance_to_point_m, pace_sec_per_km_at_point?, \
-    hr_bpm_at_point?, power_watts_at_point?, cadence_spm_at_point?, altitude_m_at_point?, alpha1_at_point? }. The HR / power / cadence / altitude / alpha1 fields are sampled from the per-second WorkoutMetadata.samples nearest \
-    to the matching offset (within ±10 sec). Coordinate match drives the comparison NOT total distance — a 1-loop day and a 2-loop day match on the shared segment. Returns notRecorded when no past workout passes within radius.
+    point. Single-call answer to 'how am I doing at this point vs last time' and 'compare this run with the one on February 20 on that hill'. Param format: 'lat,lon', 'lat,lon,radius_m', 'lat,lon,date_or_period' or \
+    'lat,lon,radius_m,date_or_period'. Without a bound it reads the 30 newest GPS workouts; a yyyy-MM-dd bound reads that day's workouts, and a period (last_year, 2026-02, 2026-02-01..2026-02-28) the 30 newest GPS workouts in it, \
+    so older workouts are reachable. Returns a list of records: { id, date, sport, offset_sec_at_point, distance_to_point_m, pace_sec_per_km_at_point?, \
+    hr_bpm_at_point?, power_watts_at_point?, cadence_spm_at_point?, altitude_m_at_point?, alpha1_at_point? }; id reads the whole workout through workout.by_id. The HR / power / cadence / altitude / alpha1 fields are sampled from the \
+    per-second WorkoutMetadata.samples nearest to the matching offset (within ±10 sec). Coordinate match drives the comparison NOT total distance — a 1-loop day and a 2-loop day match on the shared segment. Returns notRecorded when \
+    no past workout passes within radius.
     """
 
     // The most recent workout's analysis snapshot, bundled into
@@ -486,7 +484,8 @@ extension WorkoutNamespace {
             description: """
             All-in-one snapshot of the user's most recent workout: TRIMP, hrTSS, decoupling, efficiency factor, intensity factor, variability index, time-in-α1-regime per zone (easy/threshold/hard, in seconds), first AT1 crossing offset \
             + HR (validated aerobic-threshold proxy), grade-adjusted pace, VAM, estimated calories, calorie rate, dominant α1 band, dominant HR zone, recognized route name, partial-data reason if recovered, and the relative-effort label. \
-            Use for 'how was my workout' / 'how hard did I push' / 'what was the effort quality'. Single call replaces ~12 individual lookups. Returns notRecorded when no workouts exist.
+            Use for 'how was my workout' / 'how hard did I push' / 'what was the effort quality'. Single call replaces ~12 individual lookups. Returns notRecorded when no workouts exist. \
+            \(RecordFields.sentence(WorkoutRecordFields.deepDiveNames))
             """,
             valueType: "Record",
             availability: { self.workoutAvailability() },
@@ -497,7 +496,7 @@ extension WorkoutNamespace {
                 guard let session = self.archive.retrieveLightweightOrLog(entry.sessionId) else {
                     return .missing(reason: .internalError, detail: "the most recent workout is in the archive index but couldn't be read")
                 }
-                return Self.deepDiveRecord(for: session)
+                return self.withSameDay(Self.deepDiveRecord(for: session), for: session)
             }
         )
     }
@@ -514,12 +513,12 @@ extension WorkoutNamespace {
             description: """
             All-in-one composite snapshot for a workout on a specific date (yyyy-MM-dd, local) — same shape as `workout.most_recent.snapshot`. TRIMP, hrTSS, decoupling, efficiency factor, intensity factor, variability index, time-in-α1-regime \
             per zone (easy/threshold/hard, in seconds), first AT1 crossing, dominant α1 band, dominant HR zone, calories, calorie rate, VAM, grade-adjusted pace, relative-effort label, recognized route name, elevation loss. Single call \
-            replaces ~12 individual `*.by_date($date)` lookups. Returns notRecorded when no workout is recorded for that date.
+            replaces ~12 individual `*.by_date($date)` lookups. Returns notRecorded when no workout is recorded for that date. \(Self.selectorSentence) \
+            \(RecordFields.sentence(WorkoutRecordFields.deepDiveNames))
             """,
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return Self.deepDiveRecord(for: session)
+                self.withWorkout(param) { self.withSameDay(Self.deepDiveRecord(for: $0), for: $0) }
             }
         )
     }
@@ -600,14 +599,15 @@ extension WorkoutNamespace {
             paramExample: "2026-04-21",
             description: Self.workoutTimelineByDateDateDescription,
             availability: { self.workoutAvailability() },
-            resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                guard let samples = session.workoutMetadata?.samples, !samples.isEmpty else {
-                    return .missing(reason: .notRecorded, detail: "no per-second sample stream on this workout (older session, or sport that didn't capture samples)")
-                }
-                return WorkoutNamespace.timelineRecord(for: session, samples: samples)
-            }
+            resolve: { param, _ in self.withWorkout(param, self.timeline) }
         )
+    }
+
+    private func timeline(of session: HRVSession) -> FactValue {
+        guard let samples = session.workoutMetadata?.samples, !samples.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "no per-second sample stream on this workout (older session, or sport that didn't capture samples)")
+        }
+        return withSameDay(WorkoutNamespace.timelineRecord(for: session, samples: samples), for: session)
     }
 
     private static let workoutTimelineByDateDateDescription = """
@@ -616,7 +616,8 @@ extension WorkoutNamespace {
     Use this for ANY analytical question that needs the time-series shape (not just aggregates): 'did my HR spike when I was flat or going downhill', 'where did pace drop on the climb', 'was α1 still healthy in the second half', \
     'where did cadence fall off as I tired', 'were there moments where power dropped but HR didn't'. The bucket_sec field in the response tells you the time span per bucket (varies by workout length so the cap stays at ~200 \
     records). Walk the array yourself — you have the resolution to find spikes, correlations, and segments without us pre-computing them. Returns notRecorded when the workout has no per-second stream (older sessions before late-April \
-    2026 only have aggregates).
+    2026 only have aggregates). \(selectorSentence) \(RecordFields.sentence(WorkoutRecordFields.timelineNames)) Each bucket: offset_sec, hr, pace_sec_per_km, \
+    cadence_spm, altitude_m, alpha1, power_w, grade_pct, lat, lon.
     """
 
     // MARK: - Timeline downsampler
@@ -640,7 +641,7 @@ extension WorkoutNamespace {
             withPosition($0, bucketSec: bucketSec, track: track, offsets: offsets)
         }
         var envelope: [String: FactValue] = [
-            "date": .date(session.startDate), "duration_sec": .integer(durationSec),
+            "id": .string(session.id.uuidString), "date": .date(session.startDate), "duration_sec": .integer(durationSec),
             "bucket_sec": .integer(bucketSec), "bucket_count": .integer(bucketRecords.count),
             "buckets": .list(bucketRecords)
         ]
@@ -722,14 +723,17 @@ enum SegmentPointSampler {
     static let lookbackScanLimit = 120
 
     /// Past workouts that passed within `radius` of `target`: the 30 newest
-    /// workouts with a GPS track among the 120 newest workouts `include`
-    /// accepts (the live lookup leaves out the in-flight session). The index
-    /// has no GPS flag, so sessions load newest first until 30 tracks are read.
+    /// workouts with a GPS track among the 120 newest workouts inside
+    /// `bound` (all time when nil) that `include` accepts (the live lookup
+    /// leaves out the in-flight session). The index has no GPS flag, so
+    /// sessions load newest first until 30 tracks are read.
     static func matches(
-        in archive: SessionArchive, near target: CLLocation, radius: Double,
+        in archive: SessionArchive, near target: CLLocation, radius: Double, within bound: DateInterval? = nil,
         include: (SessionArchiveEntry) -> Bool = { _ in true }
     ) -> [FactValue] {
-        let entries = archive.store.entries.filter { $0.sessionType == .workout && include($0) }.sorted { $0.date > $1.date }
+        let entries = archive.store.entries
+            .filter { $0.sessionType == .workout && (bound?.containsBeforeEnd($0.date) ?? true) && include($0) }
+            .sorted { $0.date > $1.date }
         var tracksRead = 0
         var out: [FactValue] = []
         for entry in entries.prefix(lookbackScanLimit) where tracksRead < lookbackGPSWorkouts {
@@ -751,6 +755,7 @@ enum SegmentPointSampler {
         let (closestIdx, closestDist) = WorkoutGeometry.nearestFix(in: track, to: target)
         guard closestDist <= radius else { return nil }
         var rec: [String: FactValue] = [
+            "id": .string(session.id.uuidString),
             "date": .string(FactValue.localISO8601(session.startDate)),
             "sport": .string(metadata.sport.rawValue),
             "distance_to_point_m": .double(closestDist)

@@ -171,6 +171,10 @@ struct HRVLiveNamespace: FactNamespaceResolver {
 // and recovery scores are all mirrored on the lightweight
 // `SessionArchiveEntry` index, so every query here is an in-memory scan with
 // no session file read or decrypted.
+//
+// A session belongs to the local day its midpoint falls in, the rule
+// `session.by_date` and the other overnight lookups use: a night that
+// starts at 23:00 on the 5th is the 6th's night, here as there.
 
 struct TagsNamespace: FactNamespaceResolver {
     let namespace = "tags"
@@ -207,11 +211,24 @@ struct TagsNamespace: FactNamespaceResolver {
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
 
-    /// Sessions on that local day; nil when `iso` is not a yyyy-MM-dd date.
+    /// The instant that files a session under a day or period: its midpoint.
+    private static func anchor(of entry: SessionArchiveEntry) -> Date {
+        OvernightArchive.midpoint(of: entry)
+    }
+
+    /// Sessions on that local day (midpoint rule); nil when `iso` is not a
+    /// yyyy-MM-dd date.
     private func sessionsOn(_ iso: String) -> [SessionArchiveEntry]? {
         guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
         let cal = Calendar.current
-        return archive.store.entries.filter { cal.isDate($0.date, inSameDayAs: target) }
+        return archive.store.entries.filter { cal.isDate(Self.anchor(of: $0), inSameDayAs: target) }
+    }
+
+    /// Tagged sessions filed in the interval (midpoint rule), newest first.
+    private func taggedSessions(in interval: DateInterval) -> [SessionArchiveEntry] {
+        archive.store.entries
+            .filter { !$0.tags.isEmpty && interval.containsBeforeEnd(Self.anchor(of: $0)) }
+            .sorted { $0.date > $1.date }
     }
 
     var entries: [FactEntry] {
@@ -219,6 +236,8 @@ struct TagsNamespace: FactNamespaceResolver {
             tagsCountTagEntry,
             tagsCountInPeriodEntry,
             tagsRecentTaggedTagEntry,
+            tagsTaggedInPeriodEntry,
+            tagsListPeriodEntry,
             tagsListActiveDateEntry,
             tagsCorrelationTagEntry
         ]
@@ -240,31 +259,42 @@ struct TagsNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "tags.count_in_period($params)",
             paramExample: "Caffeine,30d",
-            description: "Number of sessions tagged with the named tag within a period. Param format: 'tag,period' — e.g. 'Caffeine,30d'. Periods: 7d / 14d / 30d / 90d / 180d / 365d / yesterday / last_week / last_month / last_year / all_time.",
+            description: """
+            Number of sessions tagged with the named tag within a period ('how many nights did I tag alcohol in March'). Param format: 'tag,period' — e.g. 'Caffeine,30d' or 'Alcohol,2026-03'. Periods: 7d / 14d / 30d / 90d / \
+            180d / 365d / yesterday / last_week / last_month / last_year / all_time, or dated: 2026-02 (a month), 2026 (a year), 2026-02-01..2026-02-28 (days inclusive), since_2026-02-01. \
+            A session counts on the day its midpoint falls in.
+            """,
             availability: { self.tagsAvailability() },
             resolve: { param, _ in self.resolveTagsCountInPeriod(param) }
         )
     }
 
-    /// The tag is everything before the LAST comma, so a tag name that
-    /// contains one still resolves.
     private func resolveTagsCountInPeriod(_ raw: String) -> FactValue {
-        guard let comma = raw.lastIndex(of: ",") else {
-            return .missing(reason: .invalidParameter, detail: "expected 'tag,period', got '\(raw)'")
-        }
+        guard let (tag, interval) = Self.tagAndPeriod(raw) else { return Self.invalidTagAndPeriod(raw) }
+        return .integer(sessionsWithTag(tag).filter { interval.containsBeforeEnd(Self.anchor(of: $0)) }.count)
+    }
+
+    /// The tag and period of a `tag,period` argument, or nil when it has no
+    /// comma, no tag or a period `PeriodParser` does not read. The tag is
+    /// everything before the LAST comma, so a tag name that contains one
+    /// still resolves.
+    private static func tagAndPeriod(_ raw: String) -> (String, DateInterval)? {
+        guard let comma = raw.lastIndex(of: ",") else { return nil }
         let tag = raw[..<comma].trimmingCharacters(in: .whitespaces)
         let period = raw[raw.index(after: comma)...].trimmingCharacters(in: .whitespaces)
-        guard !tag.isEmpty, let interval = PeriodParser.interval(for: period) else {
-            return .missing(reason: .invalidParameter, detail: "unknown tag or period in '\(raw)'")
-        }
-        return .integer(sessionsWithTag(tag).filter { interval.containsBeforeEnd($0.date) }.count)
+        guard !tag.isEmpty, let interval = PeriodParser.interval(for: period) else { return nil }
+        return (tag, interval)
+    }
+
+    private static func invalidTagAndPeriod(_ raw: String) -> FactValue {
+        .missing(reason: .invalidParameter, detail: "expected 'tag,period' with a tag and a known period (e.g. 'Caffeine,30d' or 'Alcohol,2026-03'), got '\(raw)'")
     }
 
     private var tagsRecentTaggedTagEntry: FactEntry {
         .parameterized(
             pattern: "tags.recent_tagged($tag)",
             paramExample: "Caffeine",
-            description: "Up to the last 10 sessions carrying the named tag, each with date, session_type and recovery_score (0–100) if available. Most recent first.",
+            description: "Up to the last 10 sessions carrying the named tag, each with date, session_id, session_type and recovery_score (0–100) if available. Most recent first. For a period, or more than 10, use tags.tagged_in_period.",
             availability: { self.tagsAvailability() },
             resolve: { param, _ in self.resolveTagsRecentTaggedTag(param) }
         )
@@ -286,11 +316,73 @@ struct TagsNamespace: FactNamespaceResolver {
         })
     }
 
+    private var tagsTaggedInPeriodEntry: FactEntry {
+        .parameterized(
+            pattern: "tags.tagged_in_period($params)",
+            paramExample: "Alcohol,2026-03",
+            description: """
+            Every session carrying the named tag within a period, newest first, with no count cap: 'how did I feel on nights I tagged alcohol in March', 'which nights did I tag caffeine last month'. Param format: 'tag,period', e.g. \
+            'Alcohol,2026-03' or 'Caffeine,30d'; periods as tags.count_in_period. Each item: date (the local yyyy-MM-dd day the session is filed under, its midpoint's day, the same day session.by_date takes), started_at, \
+            session_id (pass to session.by_id for that night's HRV, sleep and how the user felt), session_type, tags (every tag on that session) and recovery_score (0–100) when scored.
+            """,
+            availability: { self.tagsAvailability() },
+            resolve: { param, _ in self.resolveTaggedInPeriod(param) }
+        )
+    }
+
+    private func resolveTaggedInPeriod(_ raw: String) -> FactValue {
+        guard let (tag, interval) = Self.tagAndPeriod(raw) else { return Self.invalidTagAndPeriod(raw) }
+        let sessions = taggedSessions(in: interval).filter { entry in entry.tags.contains { Self.nameMatches(tag, tag: $0) } }
+        guard !sessions.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "no sessions tagged '\(tag)' in that period")
+        }
+        return .list(sessions.map(Self.taggedSessionRecord))
+    }
+
+    private var tagsListPeriodEntry: FactEntry {
+        .parameterized(
+            pattern: "tags.list($period)",
+            paramExample: "2026-02",
+            description: """
+            Every tagged session in a period with its tags, newest first: 'what did I tag last February', 'my tags this week', 'which nights had tags in March'. Period: 7d / 30d / last_month / all_time and the rest of the \
+            period vocabulary, or dated: 2026-02 (a month), 2026 (a year), 2026-02-01..2026-02-28 (days inclusive), since_2026-02-01. Each item: date (the local yyyy-MM-dd day the session is filed under, its midpoint's day, \
+            the same day session.by_date takes), started_at, session_id, session_type, tags (tag names) and recovery_score (0–100) when scored. Untagged sessions are left out.
+            """,
+            availability: { self.tagsAvailability() },
+            resolve: { param, _ in self.resolveTagsList(param) }
+        )
+    }
+
+    private func resolveTagsList(_ period: String) -> FactValue {
+        guard let interval = PeriodParser.interval(for: period) else { return PeriodParser.unknownPeriod(period) }
+        let sessions = taggedSessions(in: interval)
+        guard !sessions.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "no tagged sessions in that period")
+        }
+        return .list(sessions.map(Self.taggedSessionRecord))
+    }
+
+    /// One tagged session as `tags.list` and `tags.tagged_in_period` return it.
+    private static func taggedSessionRecord(_ entry: SessionArchiveEntry) -> FactValue {
+        var record: [String: FactValue] = [
+            "date": .string(FactLocalDay.formatter().string(from: anchor(of: entry))),
+            "started_at": .date(entry.date),
+            "session_id": .string(entry.sessionId.uuidString),
+            "session_type": .string(entry.sessionType.rawValue),
+            "tags": .list(entry.tags.map { .string($0.name) })
+        ]
+        if let score = entry.recoveryScore { record["recovery_score"] = .integer(displayScore(score)) }
+        return .record(record)
+    }
+
     private var tagsListActiveDateEntry: FactEntry {
         .parameterized(
             pattern: "tags.list_active($date)",
             paramExample: "2026-04-21",
-            description: "List of tags attached to sessions on a specific local date (yyyy-MM-dd). Returns names of every tag present across all sessions that day.",
+            description: """
+            List of tags attached to sessions on a specific local date (yyyy-MM-dd). Returns names of every tag present across all sessions that day. A session is on the day its midpoint falls in, \
+            so a night that starts before midnight is the next day's, as in session.by_date. For a period use tags.list.
+            """,
             availability: { self.tagsAvailability() },
             resolve: { param, _ in self.resolveTagsListActive(param) }
         )
@@ -537,7 +629,8 @@ struct CompositesNamespace: FactNamespaceResolver {
     private var trainingLoadSnapshotEntry: FactEntry {
         .composite(
             key: "training.load.snapshot",
-            description: "Complete training-load snapshot: ctl (chronic load, fitness proxy), atl (acute load, fatigue proxy), tsb (training-load balance, form), acwr (acute:chronic ratio). Use for 'am I ready to train?' / 'am I carrying too much accumulated load?'.",
+            description: "Complete training-load snapshot: ctl (chronic load, fitness proxy), atl (acute load, fatigue proxy), tsb (training-load balance, form), acwr (acute:chronic ratio). Use for 'am I ready to train?' / 'am I carrying too much accumulated load?'. "
+                + CompositeResult.bundleShapeSentence,
             valueType: "Record",
             dependencies: [
                 "training.load.ctl",
@@ -563,7 +656,8 @@ struct CompositesNamespace: FactNamespaceResolver {
     private var walksSummaryPeriodEntry: FactEntry {
         .composite(
             key: "walks.summary($period)",
-            description: "Walks-and-hikes summary for a period: count, total_distance_m, total_trimp (heart-rate TRIMP), hardest walk record. Period: last_7d / last_14d / last_30d / last_90d / all_time. Use for 'how much did I walk this week?'; for training across every sport use workout.recent.",
+            description: "Walks-and-hikes summary for a period: count, total_distance_m, total_trimp (heart-rate TRIMP), hardest walk record. Period: last_7d / last_14d / last_30d / last_90d / all_time. Use for 'how much did I walk this week?'; for training across every sport use workout.recent. "
+                + CompositeResult.bundleShapeSentence,
             valueType: "Record",
             dependencies: [
                 "walks.count($period)",
@@ -592,7 +686,8 @@ struct CompositesNamespace: FactNamespaceResolver {
     private var recoveryTodayFullEntry: FactEntry {
         .composite(
             key: "recovery.today.full",
-            description: "Everything about today's recovery in one call: recovery score, last night's sleep record, last night's HRV record, last night's vitals. Use this at the start of any 'how am I today?' / 'should I train hard?' / 'what's my recovery?' conversation.",
+            description: "Everything about today's recovery in one call: recovery score, last night's sleep record, last night's HRV record, last night's vitals. Use this at the start of any 'how am I today?' / 'should I train hard?' / 'what's my recovery?' conversation. "
+                + CompositeResult.bundleShapeSentence,
             valueType: "Record",
             dependencies: [
                 "recovery.score.latest",
@@ -618,7 +713,7 @@ struct CompositesNamespace: FactNamespaceResolver {
     private var recoveryWeekSummaryEntry: FactEntry {
         .composite(
             key: "recovery.week.summary",
-            description: "Last 7 days of recovery: daily recovery scores + sleep records + HRV records. Use for 'how's my week been?' / 'have I been recovering?' / 'is there a trend?'.",
+            description: "Last 7 days of recovery: daily recovery scores + sleep records + HRV records. Use for 'how's my week been?' / 'have I been recovering?' / 'is there a trend?'. " + CompositeResult.bundleShapeSentence,
             valueType: "Record",
             dependencies: [
                 "recovery.score.recent(last_7d)",

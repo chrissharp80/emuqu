@@ -19,7 +19,9 @@ import Foundation
 // location.* actions. The cloud consent sheet (ProviderConsentSheet)
 // discloses exactly what they release: the Get Me Back trail while it
 // runs (active / current_fix / recent_track) and the start points of
-// recent trails and GPS workouts (recent).
+// recent trails and GPS workouts (recent, list, by_date). The archive
+// lookups give each trail's start and no end point, which the sheet does
+// not disclose.
 struct BreadcrumbNamespace: FactNamespaceResolver {
     let namespace = "breadcrumb"
     let services: FactServices
@@ -53,6 +55,8 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
         [
             breadcrumbActiveEntry,
             breadcrumbRecentEntry,
+            breadcrumbListPeriodEntry,
+            breadcrumbByDateEntry,
             breadcrumbCountEntry,
             // What the recurrence classifier has to work with.
             breadcrumbArchiveSummaryEntry,
@@ -102,8 +106,88 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
     private static let breadcrumbRecentDescription = """
     Newest archived trails (up to 10). Each entry has the same fields as `breadcrumb.active` plus a synthetic `id` (the started_at ISO string) so the AI can disambiguate. Includes auto-archived workout tracks (labelled 'Run \
     on Apr 29, 2026 at 8:13 AM' etc.) so you can tell the user where any recent workout started (where they parked), even without having explicitly engaged Get Me Back. Directions can only lead back to the ACTIVE trail's start, not to an archived one. Use this for 'where did I park yesterday' / 'list my recent trails' / \
-    'show me my hikes'. Empty list when nothing's been recorded.
+    'show me my hikes'. Empty list when nothing's been recorded. \
+    For older trails use breadcrumb.list($period) or breadcrumb.by_date($date).
     """
+
+    private var breadcrumbListPeriodEntry: FactEntry {
+        .parameterized(
+            pattern: "breadcrumb.list($period)",
+            paramExample: "2026-02",
+            description: """
+            Every archived trail in a period across the whole archive (up to \(BreadcrumbStore.archiveRetentionLimit) trails are kept), newest first: 'my walks last February', 'where did I go in March', 'trails this week'. Period: \
+            7d / 30d / last_month / all_time and the rest of the period vocabulary, or dated: 2026-02 (a month), 2026 (a year), 2026-02-01..2026-02-28 (days inclusive), since_2026-02-01. \(Self.trailSummaryFields)
+            """,
+            resolve: { param, _ in self.resolveTrailList(param) }
+        )
+    }
+
+    private var breadcrumbByDateEntry: FactEntry {
+        .parameterized(
+            pattern: "breadcrumb.by_date($date)",
+            paramExample: "2026-02-20",
+            description: """
+            The archived trails that started on one local day (yyyy-MM-dd), newest first: 'where did I park on Feb 20', 'how far did I walk that day', 'where did my run start yesterday'. \(Self.trailSummaryFields)
+            """,
+            resolve: { param, _ in self.resolveTrailsOn(param) }
+        )
+    }
+
+    private static let trailSummaryFields = """
+    Each item: date (local yyyy-MM-dd day it started), id (its started_at ISO string, as breadcrumb.recent gives), started_at, ended_at (last fix), duration_seconds, walked_meters, fix_count, label, resolved_origin_label \
+    (the start's street and locality when it was looked up), start_lat, start_lon, is_workout_track (true for a finished workout's track). Fields a trail does not have are left out.
+    """
+
+    private func resolveTrailList(_ period: String) -> FactValue {
+        guard let interval = PeriodParser.interval(for: period) else { return PeriodParser.unknownPeriod(period) }
+        let trails = services.breadcrumbStore.loadArchive().filter { interval.containsBeforeEnd($0.startedAt) }
+        guard !trails.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "no archived trails started in that period")
+        }
+        return .list(trails.map(Self.trailSummary))
+    }
+
+    private func resolveTrailsOn(_ iso: String) -> FactValue {
+        guard let day = FactLocalDay.formatter().date(from: iso) else {
+            return .missing(reason: .invalidParameter, detail: "'\(iso)' is not a date — pass a local date as yyyy-MM-dd")
+        }
+        let trails = services.breadcrumbStore.loadArchive().filter { Calendar.current.isDate($0.startedAt, inSameDayAs: day) }
+        guard !trails.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "no archived trails started on \(iso)")
+        }
+        return .list(trails.map(Self.trailSummary))
+    }
+
+    /// A small record of one archived trail: when, how far, how long and
+    /// where it started. No fix list.
+    private static func trailSummary(_ trail: BreadcrumbTrail) -> FactValue {
+        var rec: [String: FactValue] = [
+            "date": .string(FactLocalDay.formatter().string(from: trail.startedAt)),
+            "id": .string(FactValue.localISO8601(trail.startedAt)),
+            "started_at": .date(trail.startedAt),
+            "walked_meters": .double(trail.walkedTrailLengthMeters()),
+            "fix_count": .integer(trail.fixes.count),
+            "is_workout_track": .boolean(trail.isWorkoutTrack ?? false)
+        ]
+        rec.merge(trailPlaces(trail)) { current, _ in current }
+        if let label = trail.label { rec["label"] = .string(label) }
+        if let resolved = trail.resolvedOriginLabel { rec["resolved_origin_label"] = .string(resolved) }
+        return .record(rec)
+    }
+
+    /// Start coordinate, end time and duration, where the trail has them.
+    private static func trailPlaces(_ trail: BreadcrumbTrail) -> [String: FactValue] {
+        var rec: [String: FactValue] = [:]
+        if let origin = trail.origin ?? trail.fixes.first {
+            rec["start_lat"] = .double(origin.latitude)
+            rec["start_lon"] = .double(origin.longitude)
+        }
+        if let last = trail.fixes.last {
+            rec["ended_at"] = .date(last.timestamp)
+            rec["duration_seconds"] = .integer(Int(max(0, last.timestamp.timeIntervalSince(trail.startedAt))))
+        }
+        return rec
+    }
 
     private var breadcrumbCountEntry: FactEntry {
         .fixed(

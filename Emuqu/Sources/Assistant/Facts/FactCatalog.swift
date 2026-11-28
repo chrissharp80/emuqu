@@ -191,6 +191,15 @@ enum FactEntry: Sendable {
         }
     }
 
+    /// The key as the catalog declares it, its `$placeholder` kept:
+    /// "hrv.by_date($date)" where `display` shows the example in its place.
+    var keyPattern: String {
+        switch self {
+        case .parameterized(let pattern, _, _, _, _): pattern
+        default: display
+        }
+    }
+
     /// What the entry tells the model it is for.
     var entryDescription: String {
         switch self {

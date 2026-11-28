@@ -181,7 +181,7 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
             settings: { [services] in services.settingsManager.settingsSnapshot },
             services: services.facts
         )
-        // CompactToolRouter exposes 22 read tools + up to 20 action
+        // CompactToolRouter exposes 24 read tools + up to 20 action
         // tools instead of one tool per fact-catalog entry (~212).
         // The model picks fewer, well-described tools; the underlying
         // resolvers stay granular. See CompactToolRouter.swift.
@@ -203,7 +203,7 @@ final class AssistantViewModel: ToolRunnerHost, TurnRouterHost {
     /// keeping the first `cap` entries, in `ToolRetriever`'s order (ranked by
     /// relevance once the schema outgrows the retriever's target). When `cap`
     /// is nil or `tools.count <= cap`, returns the input unchanged — the
-    /// compact schema (22 read tools plus up to 20 action tools) is under
+    /// compact schema (24 read tools plus up to 20 action tools) is under
     /// every provider's cap.
     static func trimTools(_ tools: [ToolSpec], to cap: Int?) -> [ToolSpec] {
         guard let cap, tools.count > cap, cap > 0 else { return tools }

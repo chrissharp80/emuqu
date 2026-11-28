@@ -39,19 +39,22 @@ final class FactResolverRegistry: Sendable {
 
     /// Conservative per-response byte cap. OpenAI / Anthropic tool output
     /// limits are ~1 MB, but billing scales with size and the model has a
-    /// harder time summarising huge payloads than narrow ones. Refuse
-    /// ahead of the provider limit so the model gets a clean
-    /// `.tooMuchData` signal and can narrow its query.
-    private static let outputSizeCapBytes = 80_000
+    /// harder time summarising huge payloads than narrow ones. A list over
+    /// it is cut to the newest items that fit, with `truncated` and
+    /// `omitted_count` markers (`FactListShaping.truncatedToFit`); anything
+    /// else over it is a `.tooMuchData` signal so the model can narrow its
+    /// query.
+    static let outputSizeCapBytes = 80_000
 
     /// Final gate before handing a resolver result back to the dispatch
     /// loop. Enforces:
     ///   1. Rate limiting — stop loops on repeat missing-result calls.
-    ///   2. Output-size cap — refuse oversized composites with a signal
-    ///      the model can act on.
+    ///   2. Output-size cap — cut an oversized list to its newest items that
+    ///      fit, else refuse with a signal the model can act on.
     ///
     /// Runs for every tool call (atomic AND composite) so the safety
-    /// contract is uniform.
+    /// contract is uniform. The cap measures `value` exactly as passed, so
+    /// any projection of the result has to happen before this gate.
     private func postResolveGates(toolName: String, argsJSON: String, value: FactValue) -> FactValue {
         guard !value.isMissing else {
             return rateLimited(signature: "\(toolName)::\(argsJSON)") ?? value
@@ -59,6 +62,7 @@ final class FactResolverRegistry: Sendable {
         // The size cap applies to non-missing values only.
         let payloadSize = value.toolResultJSON.utf8.count
         guard payloadSize > Self.outputSizeCapBytes else { return value }
+        if let fitted = FactListShaping.truncatedToFit(value, capBytes: Self.outputSizeCapBytes) { return fitted }
         return .missing(
             reason: .tooMuchData,
             detail: "Response ~\(payloadSize) bytes exceeds \(Self.outputSizeCapBytes)-byte per-call cap. Ask a narrower query (shorter period, specific date)."
@@ -128,21 +132,37 @@ final class FactResolverRegistry: Sendable {
         return value.accountingFor(unreadSessions: failures.count)
     }
 
+    /// A key with plain tokens after a list lookup is a field projection
+    /// (`FactListShaping`): the lookup's list is cut to those fields,
+    /// whether the lookup ignored the tail or no lookup matched the key
+    /// with it.
     private func resolveKey(_ rawKey: String) -> FactValue {
         if let prefetched = prefetchedChildren.withLock({ $0[rawKey] }) { return prefetched }
-        guard let key = FactKey.parse(rawKey) else {
+        guard let key = FactKey.parse(rawKey), !key.tokens.isEmpty else {
             return .missing(reason: .invalidParameter, detail: "malformed key")
         }
-        guard let head = key.tokens.first else {
-            return .missing(reason: .invalidParameter, detail: "empty key")
-        }
-        for ns in namespaces where ns.namespace == head.name {
+        let full = dispatch(key)
+        guard let split = FactListShaping.projectionSplit(key) else { return full ?? Self.noSuchKey(rawKey) }
+        if let full { return FactListShaping.projected(full, tail: split.tail) ?? full }
+        return FactListShaping.projectedFromBase(dispatch(split.base), tail: split.tail) ?? Self.noSuchKey(rawKey)
+    }
+
+    /// The first namespace answer for `key`: those registered under its head
+    /// first, then the rest (composites whose keys read as another
+    /// namespace's). Nil when none matches.
+    private func dispatch(_ key: FactKey) -> FactValue? {
+        let head = key.tokens.first?.name
+        for ns in namespaces where ns.namespace == head {
             if let value = ns.resolve(key, registry: self) { return value }
         }
-        for ns in namespaces where ns.namespace != head.name {
+        for ns in namespaces where ns.namespace != head {
             if let value = ns.resolve(key, registry: self) { return value }
         }
-        return .missing(reason: .notRecorded, detail: "no such key '\(rawKey)'")
+        return nil
+    }
+
+    private static func noSuchKey(_ rawKey: String) -> FactValue {
+        .missing(reason: .notRecorded, detail: "no such key '\(rawKey)'")
     }
 
     /// Async twin of `resolve(_:)`, used by the tool-dispatch path.
@@ -162,26 +182,27 @@ final class FactResolverRegistry: Sendable {
 
     @MainActor
     private func resolveKeyAsync(_ rawKey: String) async -> FactValue {
-        guard let key = FactKey.parse(rawKey) else {
+        guard let key = FactKey.parse(rawKey), !key.tokens.isEmpty else {
             return .missing(reason: .invalidParameter, detail: "malformed key")
         }
-        guard let head = key.tokens.first else {
-            return .missing(reason: .invalidParameter, detail: "empty key")
-        }
+        let full = await dispatchAsync(key)
+        guard let split = FactListShaping.projectionSplit(key) else { return full ?? Self.noSuchKey(rawKey) }
+        if let full { return FactListShaping.projected(full, tail: split.tail) ?? full }
+        return FactListShaping.projectedFromBase(await dispatchAsync(split.base), tail: split.tail) ?? Self.noSuchKey(rawKey)
+    }
 
-        // Primary path — same head-token scan (and same shared-head
-        // rationale) as `resolve(_:)`: try EVERY namespace registered
-        // under the head, in registration order.
-        for ns in namespaces where ns.namespace == head.name {
+    /// Async twin of `dispatch(_:)`: the same head-first scan, awaiting
+    /// `.awaitable` bodies.
+    @MainActor
+    private func dispatchAsync(_ key: FactKey) async -> FactValue? {
+        let head = key.tokens.first?.name
+        for ns in namespaces where ns.namespace == head {
             if let value = await ns.resolveAsync(key, registry: self) { return value }
         }
-
-        // Fallback path — same scan (and same caveats) as `resolve(_:)`.
-        for ns in namespaces where ns.namespace != head.name {
+        for ns in namespaces where ns.namespace != head {
             if let value = await ns.resolveAsync(key, registry: self) { return value }
         }
-
-        return .missing(reason: .notRecorded, detail: "no such key '\(rawKey)'")
+        return nil
     }
 
     // MARK: - Composite children
@@ -738,6 +759,10 @@ enum CompositeResult {
     /// one as `{key, reason, detail?}`. When any child is missing the
     /// record also carries `status: "partialData"`, so the model sees both
     /// what resolved and what didn't.
+    /// How a bundle built by `recordFromChildren` reads, for the descriptions
+    /// of the lookups that return one.
+    static let bundleShapeSentence = "Returned as present (each part's key and value), missing (each absent part's key, reason and detail) and status 'partialData' when a part is missing."
+
     static func recordFromChildren(
         _ children: [(key: String, value: FactValue)]
     ) -> FactValue {

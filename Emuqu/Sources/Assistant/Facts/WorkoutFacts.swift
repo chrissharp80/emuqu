@@ -28,28 +28,13 @@ struct WorkoutNamespace: FactNamespaceResolver {
             .sorted { $0.date > $1.date }
     }
 
-    /// The latest workout started on that local day (entries are newest first).
-    func sessionByDate(_ iso: String) -> HRVSession? {
-        guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
-        let cal = Calendar.current
-        let entry = workoutEntries().first { cal.isDate($0.date, inSameDayAs: target) }
-        return entry.flatMap { archive.retrieveLightweightOrLog($0.sessionId) }
-    }
-
-    /// The answer when `sessionByDate(iso)` finds nothing: a malformed
-    /// date is the caller's error, a workout that is indexed for the day
-    /// but cannot be read is a read failure, and only otherwise did the
-    /// user not work out that day.
-    func noWorkout(on iso: String) -> FactValue {
-        guard let target = FactLocalDay.formatter().date(from: iso) else {
-            return .missing(reason: .invalidParameter, detail: "expected yyyy-MM-dd, got '\(iso)'")
-        }
-        let cal = Calendar.current
-        guard workoutEntries().contains(where: { cal.isDate($0.date, inSameDayAs: target) }) else {
-            return .missing(reason: .notRecorded, detail: "no workout on \(iso)")
-        }
-        return .missing(reason: .internalError, detail: "the workout on \(iso) is in the archive index but couldn't be read")
-    }
+    /// How every single-workout lookup's argument picks its workout
+    /// (`WorkoutSelector`), stated once for all their descriptions.
+    static let selectorSentence = """
+        The argument picks the workout: yyyy-MM-dd (the latest started that local day), yyyy-MM-dd,sport such as 2026-03-03,run \
+        (that day's run, not the evening walk), yyyy-MM-dd,N or yyyy-MM-dd,sport,N (the Nth started that day, 1 = the first), \
+        or a workout id (workout.by_id, other_workout_ids_that_day).
+        """
 
     func sessionByOrdinal(_ n: Int) -> HRVSession? {
         let entries = workoutEntries()
@@ -156,6 +141,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
     private var lookupEntries: [FactEntry] {
         return [
             workoutByDateDateEntry,
+            workoutByIdIdEntry,
             // Workout history: answers "what workouts did I do this week?" and
             // "how many last month?" without one call per day.
             workoutListPeriodEntry,
@@ -178,15 +164,33 @@ struct WorkoutNamespace: FactNamespaceResolver {
             pattern: "workout.by_date($date)",
             paramExample: "2026-04-21",
             description: """
-                Full workout record for a given date (yyyy-MM-dd, local); the latest workout started that day when there are several. \
-                Includes sport, duration (duration_sec: active time with pauses left out, as the workout card shows it; elapsed_sec: \
-                start to stop), mean/max HR, load and TRIMP, distance, estimated calories (when the workout's \
-                analysis computed them), HRR, power, recognized route, feeling.
+                Full workout record for a date: 'my run on March 3', 'the second workout that day', 'what did I do on Tuesday'. \(Self.selectorSentence) \
+                When workouts_that_day is above 1, the day had others: name the sport or position, or read one by its id. duration_sec is active \
+                time with pauses left out, as the workout card shows it; elapsed_sec is start to stop. \(SessionNamespace.workoutRecordFieldsSentence) \(RecordFields.sentence(WorkoutRecordFields.sameDayNames))
                 """,
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return SessionNamespace.resolveSessionField(session, tail: tail, ftp: self.loadAnchors)
+                self.withWorkout(param) { SessionNamespace.field(of: self.workoutRecord(for: $0), tail: tail) }
+            }
+        )
+    }
+
+    private var workoutByIdIdEntry: FactEntry {
+        .parameterized(
+            pattern: "workout.by_id($id)",
+            paramExample: "A43B2C4F-0000-4000-8000-000000000000",
+            description: """
+                Full workout record for a workout id (UUID): one specific workout when a day had several, or one named by another \
+                record's id, other_workout_ids_that_day or a segment comparison. Every other single-workout lookup (timeline, deep_dive, \
+                feeling, feeling_note, hrr, power) takes the same id in place of its date. Tail tokens reach any field. \
+                \(SessionNamespace.workoutRecordFieldsSentence) \(RecordFields.sentence(WorkoutRecordFields.sameDayNames))
+                """,
+            availability: { self.workoutAvailability() },
+            resolve: { param, tail in
+                guard UUID(uuidString: param) != nil else {
+                    return .missing(reason: .invalidParameter, detail: "expected a workout UUID, got '\(param.prefix(40))'")
+                }
+                return self.withWorkout(param) { SessionNamespace.field(of: self.workoutRecord(for: $0), tail: tail) }
             }
         )
     }
@@ -196,31 +200,37 @@ struct WorkoutNamespace: FactNamespaceResolver {
             pattern: "workout.list($period)",
             paramExample: "last_7d",
             description: """
-            List of ALL workouts in the period (any sport — walk, run, hike, bike, row, etc.). Each item is a session summary record with date, sport, duration, distance, load, TRIMP, hrTSS, mean/max HR, HRR drops if captured, route name if \
-            recognized, feeling rating if logged. Period vocabulary: today / yesterday / last_7d / last_week / last_14d / last_30d / last_month / last_90d / last_year / all_time. Use this for 'what workouts did I do this week?' / 'show \
-            me my recent activity' / 'list workouts since X'. Compare to walks.list which is walk-only.
+            List of ALL workouts in the period (any sport: walk, run, hike, bike, row, etc.), or of one sport with 'period,sport' (last_30d,run: \
+            'my runs this month'). Each item is the workout record without splits and laps (split_count and lap_count say how many; read them with \
+            workout.by_id or workout.by_date). Period vocabulary: \(Self.periodVocabulary). Use this for 'what workouts \
+            did I do this week?' / 'show me my recent activity' / 'list workouts since X'. Compare to walks.list which is walk-only. \
+            \(SessionNamespace.workoutRecordFieldsSentence) \(RecordFields.sentence(WorkoutRecordFields.sameDayNames))
             """,
             availability: { self.workoutAvailability() },
-            resolve: { param, _ in
-                if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
-                let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-                if sessions.isEmpty {
-                    return .missing(reason: .notRecorded, detail: "no workouts in \(param)")
-                }
-                return .list(sessions.map { SessionNamespace.fullRecord(for: $0, ftp: self.loadAnchors) })
-            }
+            resolve: { param, _ in self.resolveWorkoutList(param) }
         )
     }
+
+    private func resolveWorkoutList(_ param: String) -> FactValue {
+        withWorkoutsInPeriod(param) { _, sessions in
+            let days = workoutsByDay()
+            return .list(sessions.map { workoutListItem(for: $0, days: days) })
+        }
+    }
+
+    /// The period forms `PeriodParser` reads, for the period lookups' descriptions.
+    static let periodVocabulary = "today / yesterday / this_week / last_7d / last_week / last_14d / last_30d / last_month / last_90d / last_year / all_time / 2026 (a year) / 2026-02 (a month) / 2026-02-20 (a day) / 2026-02-01..2026-02-28 (a range) / since_2026-02-01"
 
     private var workoutCountPeriodEntry: FactEntry {
         .parameterized(
             pattern: "workout.count($period)",
             paramExample: "last_7d",
-            description: "How many workouts the user did in the period. Cheap; call this first when you only need a count or to gate a list call. Period vocabulary same as workout.list.",
+            description: """
+            How many workouts the user did in the period, or of one sport with 'period,sport' (last_30d,run: 'how many runs this month'). \
+            Cheap; call this first when you only need a count or to gate a list call. Period vocabulary same as workout.list.
+            """,
             availability: { self.workoutAvailability() },
-            resolve: { param, _ in
-                PeriodParser.invalidPeriod(param) ?? FactValue.integer(self.entriesInPeriod(param).count)
-            }
+            resolve: { param, _ in self.workoutCount(param) }
         )
     }
 
@@ -235,16 +245,14 @@ struct WorkoutNamespace: FactNamespaceResolver {
     }
 
     private func resolveWorkoutRecentPeriod(_ param: String) -> FactValue {
-        if let invalid = PeriodParser.invalidPeriod(param) { return invalid }
-        let sessions = self.entriesInPeriod(param).compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
-        if sessions.isEmpty {
-            return .missing(reason: .notRecorded, detail: "no workouts in \(param)")
+        withWorkoutsInPeriod(param) { filter, sessions in
+            var record = periodTotals(filter.period, sessions: sessions)
+            record.merge(periodPowerTotals(sessions, period: filter.period)) { _, new in new }
+            record["sport_breakdown"] = .list(sportBreakdown(sessions))
+            if let sport = filter.sport { record["sport"] = .string(sport.displayName) }
+            addHardestWorkout(&record, sessions: sessions)
+            return .record(record)
         }
-        var record = periodTotals(param, sessions: sessions)
-        record.merge(periodPowerTotals(sessions, period: param)) { _, new in new }
-        record["sport_breakdown"] = .list(sportBreakdown(sessions))
-        addHardestWorkout(&record, sessions: sessions)
-        return .record(record)
     }
 
     private func periodTotals(_ param: String, sessions: [HRVSession]) -> [String: FactValue] {
@@ -320,38 +328,39 @@ struct WorkoutNamespace: FactNamespaceResolver {
     Aggregate summary across the period: total workouts, total distance (m), total TRIMP (heart-rate TRIMP from the app's own recordings — CTL/ATL and training.load.trimp.by_date use the power-aware load and include \
     HealthKit-only workouts, so the totals differ), total hrTSS, total power-TSS, average normalized power (W), max intensity factor, max peak power (W), count of power-capable workouts, \
     sport breakdown (count per sport), hardest workout (highest heart-rate TRIMP) with date + sport + power. Use this for 'how have I been training?' / 'show me my last month's training summary' / 'how does my power this week compare to \
-    last week' — one tool call answers most weekly/monthly review questions including power.
+    last week' — one tool call answers most weekly/monthly review questions including power. 'period,sport' (last_30d,run) sums one sport only. \
+    Fields: period, sport (when one is named), workout_count, total_distance_m, total_trimp, total_hr_tss, power_capable_workout_count, total_power_tss, \
+    avg_normalized_power_w, max_intensity_factor, max_peak_power_w, sport_breakdown, hardest_workout.
     """
 
     private var workoutByOrdinalOrdinalEntry: FactEntry {
         .parameterized(
             pattern: "workout.by_ordinal($ordinal)",
             paramExample: "0",
-            description: "Workout by recency index from the archive (0 = most recent, 1 = previous, …).",
+            description: "Workout by recency index from the archive (0 = most recent, 1 = previous, …). \(SessionNamespace.workoutRecordFieldsSentence) \(RecordFields.sentence(WorkoutRecordFields.sameDayNames))",
             availability: { self.workoutAvailability() },
-            resolve: { param, tail in
-                do throws(FactArgumentError) {
-                    let n = try FactNumericArgument.ordinal.integer(param)
-                    return SessionNamespace.resolveSessionField(self.sessionByOrdinal(n), tail: tail, ftp: self.loadAnchors)
-                } catch {
-                    return error.factValue
-                }
-            }
+            resolve: { param, tail in self.resolveByOrdinal(param, tail: tail) }
         )
+    }
+
+    private func resolveByOrdinal(_ param: String, tail: FactKey?) -> FactValue {
+        do throws(FactArgumentError) {
+            let n = try FactNumericArgument.ordinal.integer(param)
+            guard let session = sessionByOrdinal(n) else { return .missing(reason: .notRecorded, detail: "session not found") }
+            return SessionNamespace.field(of: workoutRecord(for: session), tail: tail)
+        } catch {
+            return error.factValue
+        }
     }
 
     private var workoutHrr1minDropByDateDateEntry: FactEntry {
         .parameterized(
             pattern: "workout.hrr_1min_drop.by_date($date)",
             paramExample: "2026-04-21",
-            description: "1-minute heart rate recovery drop (bpm) for a workout on a given date. Best-of-provenance (strap > Watch > HealthKit).",
+            description: "1-minute heart rate recovery drop (bpm) for a workout on a given date. Best-of-provenance (strap > Watch > HealthKit). \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                guard let drop = session.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop else {
-                    return .missing(reason: .notRecorded, detail: "no 1-min HRR sample captured")
-                }
-                return .integer(drop)
+                self.withWorkout(param) { .from(Self.oneMinuteDrop($0.workoutMetadata?.hrrSamples), detail: "no 1-min HRR sample captured") }
             }
         )
     }
@@ -360,14 +369,10 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.hrr_2min_drop.by_date($date)",
             paramExample: "2026-04-21",
-            description: "2-minute heart rate recovery drop (bpm) for a workout on a given date.",
+            description: "2-minute heart rate recovery drop (bpm) for a workout on a given date. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                guard let drop = session.workoutMetadata?.hrrSamples?.bestAtTwoMinutes?.drop else {
-                    return .missing(reason: .notRecorded, detail: "no 2-min HRR sample captured")
-                }
-                return .integer(drop)
+                self.withWorkout(param) { .from(Self.twoMinuteDrop($0.workoutMetadata?.hrrSamples), detail: "no 2-min HRR sample captured") }
             }
         )
     }
@@ -376,11 +381,12 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.avg.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Average power (watts) for a workout on a given date. Recorded when a power source was connected: a power-capable foot pod, a Concept2 PM5 rower or an FTMS bike trainer.",
+            description: "Average power (watts) for a workout on a given date. Recorded when a power source was connected: a power-capable foot pod, a Concept2 PM5 rower or an FTMS bike trainer. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return .from(session.workoutMetadata?.averagePowerWatts, detail: "no power data captured")
+                self.withWorkout(param) { session in
+                    return .from(session.workoutMetadata?.averagePowerWatts, detail: "no power data captured")
+                }
             }
         )
     }
@@ -389,11 +395,12 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.normalized.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Normalized power (watts) for a workout on a given date — 4th-root-mean-4th-power smoothing, TrainingPeaks convention.",
+            description: "Normalized power (watts) for a workout on a given date — 4th-root-mean-4th-power smoothing, TrainingPeaks convention. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return .from(session.workoutMetadata?.normalizedPowerWatts, detail: "no power data captured")
+                self.withWorkout(param) { session in
+                    return .from(session.workoutMetadata?.normalizedPowerWatts, detail: "no power data captured")
+                }
             }
         )
     }
@@ -402,11 +409,12 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.peak.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Peak instantaneous power (watts) observed during a workout on a given date.",
+            description: "Peak instantaneous power (watts) observed during a workout on a given date. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return .from(session.workoutMetadata?.peakPowerWatts, detail: "no power data captured")
+                self.withWorkout(param) { session in
+                    return .from(session.workoutMetadata?.peakPowerWatts, detail: "no power data captured")
+                }
             }
         )
     }
@@ -415,12 +423,13 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.tss.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Power-based training load for a workout on a given date: (NP/FTP)² × duration_hours × 100, Coggan's power model. 100 = 1 hour at FTP. Requires the user to have set their FTP for the workout's sport.",
+            description: "Power-based training load for a workout on a given date: (NP/FTP)² × duration_hours × 100, Coggan's power model. 100 = 1 hour at FTP. Requires the user to have set their FTP for the workout's sport. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return session.workoutMetadata?.powerTSS.map(FactValue.double)
-                    ?? Self.ftpMetricMissing(session.workoutMetadata, skipped: "power-based training load")
+                self.withWorkout(param) { session in
+                    return session.workoutMetadata?.powerTSS.map(FactValue.double)
+                        ?? Self.ftpMetricMissing(session.workoutMetadata, skipped: "power-based training load")
+                }
             }
         )
     }
@@ -429,15 +438,19 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.intensity_factor.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Intensity Factor (IF) for a workout on a given date. NP / FTP. 1.00 = at-threshold for the duration; > 1.05 sustained is unsustainable; < 0.75 is recovery / endurance pace.",
+            description: "Intensity Factor (IF) for a workout on a given date. NP / FTP. 1.00 = at-threshold for the duration; > 1.05 sustained is unsustainable; < 0.75 is recovery / endurance pace. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return session.workoutMetadata?.intensityFactor.map(FactValue.double)
-                    ?? Self.ftpMetricMissing(session.workoutMetadata, skipped: "intensity factor")
+                self.withWorkout(param) { session in
+                    return session.workoutMetadata?.intensityFactor.map(FactValue.double)
+                        ?? Self.ftpMetricMissing(session.workoutMetadata, skipped: "intensity factor")
+                }
             }
         )
     }
+
+    private static func oneMinuteDrop(_ samples: [HRRSample]?) -> Int? { samples?.bestAtOneMinute?.drop }
+    private static func twoMinuteDrop(_ samples: [HRRSample]?) -> Int? { samples?.bestAtTwoMinutes?.drop }
 
     /// Why an FTP-based figure is absent: no power was recorded, or the
     /// workout's sport has no FTP (not set, or a sport without one).
@@ -452,11 +465,12 @@ struct WorkoutNamespace: FactNamespaceResolver {
         .parameterized(
             pattern: "workout.power.variability.by_date($date)",
             paramExample: "2026-04-21",
-            description: "Variability Index (VI) for a workout on a given date. NP / Avg Power. ~1.00 = perfectly steady (TT, flat course); > 1.10 = real surges (intervals, rolling terrain). Tells the user whether their NP came from a steady push or from spikes.",
+            description: "Variability Index (VI) for a workout on a given date. NP / Avg Power. ~1.00 = perfectly steady (TT, flat course); > 1.10 = real surges (intervals, rolling terrain). Tells the user whether their NP came from a steady push or from spikes. \(Self.selectorSentence)",
             availability: { self.workoutAvailability() },
             resolve: { param, _ in
-                guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return .from(session.workoutMetadata?.variabilityIndex, detail: "no power data captured")
+                self.withWorkout(param) { session in
+                    return .from(session.workoutMetadata?.variabilityIndex, detail: "no power data captured")
+                }
             }
         )
     }

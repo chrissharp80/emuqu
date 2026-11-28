@@ -660,11 +660,20 @@ final class StreamTextBuffer {
         }
         guard let publishable = takePublishableText(force: force) else { return }
         owner.turns[index].text.append(publishable)
-        if thisRoundIsEmpty, publishable.contains(where: { CoachVoiceGuard.sentenceTerminators.contains($0) }) {
+        if thisRoundIsEmpty, publishable.contains(where: { CoachVoiceGuard.sentenceTerminators.contains($0) }),
+           !holdsANumberForTheTurnCheck(owner.turns[index].text) {
             owner.speakableTextCursor[turnID] = owner.turns[index].text.count
         }
         lastPublishAt = Date()
         owner.store.save(owner.turns)
+    }
+
+    /// Whether the text not yet released to voice states a number: it waits
+    /// for the end-of-round check against the turn's data
+    /// (`ReplyNumberGrounding`) before it may be spoken.
+    private func holdsANumberForTheTurnCheck(_ text: String) -> Bool {
+        let released = min(max(owner.speakableTextCursor[turnID] ?? 0, roundStartTextLen), text.count)
+        return !ReplyNumberGrounding.ungrounded(in: String(text.dropFirst(released)), sources: []).isEmpty
     }
 
     /// The FDA output perimeter, applied BEFORE the text becomes visible.

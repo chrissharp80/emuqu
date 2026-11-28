@@ -146,15 +146,28 @@ extension AssistantToolRunner {
     /// next `send()` is ALLOWED one more pass for the model to compose a final
     /// text answer — but we drop any further tool_use blocks on the floor and
     /// force-exit so a misbehaving model can't loop us to death.
-    private struct ToolLoopState {
+    struct ToolLoopState {
         var outbound: [ChatTurn]
+        /// How many of `outbound` are the conversation itself; the turns the
+        /// loop appends after them are its own re-asks, not the user's words.
+        private(set) var conversationTurnCount: Int
+        var conversation: ArraySlice<ChatTurn> { outbound.prefix(conversationTurnCount) }
         var toolRounds: [[ToolExchange]] = []
         var totalToolCalls = 0
         var budgetExhausted = false
+        /// Set once the turn has been re-asked after a refusal made without a lookup.
+        var reaskedBlindRefusal = false
+        /// Set once the turn has been re-asked for numbers its data doesn't hold.
+        var reaskedUngrounded = false
+
+        init(outbound: [ChatTurn]) {
+            self.outbound = outbound
+            conversationTurnCount = outbound.count
+        }
     }
 
     /// The parts of a tool-loop round that don't change between rounds.
-    private struct RoundContext {
+    struct RoundContext {
         let provider: AIProvider
         let model: ModelOption
         let systemPrompt: String
@@ -190,8 +203,10 @@ extension AssistantToolRunner {
         )
         if state.budgetExhausted { return true }
         if thisRound.isEmpty {
-            guard let nudge = grokQuirks.announceWithoutCallNudge(outbound: state.outbound, buffer: buffer)
-            else { return true }
+            guard let nudge = await textOnlyRoundNudge(round, state: &state, buffer: buffer, grokQuirks: &grokQuirks) else {
+                buffer.advanceSpeakableCursorToCurrentEnd()
+                return true
+            }
             state.outbound.append(nudge)
             return false
         }
@@ -472,11 +487,10 @@ extension AssistantToolRunner {
     /// pre-tool-use rewind (tool rounds), then the MetricsVerifier
     /// hallucination guard.
     ///
-    /// A round that ended text-only (no tool_use) advances the voice
-    /// speakable cursor to the full current text length; voice TTS then
-    /// flushes any buffered text up through there. Post-budget final text
-    /// counts as text-only for cursor purposes: the model spoke its closing
-    /// line, so it's safe to read.
+    /// A round that ended text-only (no tool_use) is released to voice by
+    /// `runOneRound` once its reply checks pass, never here. Post-budget
+    /// final text is released here: the model spoke its closing line and no
+    /// re-ask follows it.
     ///
     /// A round that had tool_use rewinds any pre-tool-use text the model
     /// emitted ("Based on your data…" before actually resolving the data).
@@ -494,9 +508,12 @@ extension AssistantToolRunner {
         budgetExhausted: Bool,
         buffer: StreamTextBuffer
     ) {
-        if thisRound.isEmpty || budgetExhausted {
+        // A text-only round is released to voice only after its checks pass
+        // (`runOneRound`), so a refusal or a number the data doesn't hold is
+        // never spoken.
+        if budgetExhausted {
             buffer.advanceSpeakableCursorToCurrentEnd()
-        } else {
+        } else if !thisRound.isEmpty {
             buffer.rewindToRoundStart()
         }
         buffer.commitCorrections()

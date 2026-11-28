@@ -55,7 +55,8 @@ extension CompactToolRouter {
             parameterized: [
                 "by_date": .init("session.by_date", "date", hint: " (YYYY-MM-DD)"),
                 "by_id": .init("session.by_id", "id", hint: " (UUID)"),
-                "by_ordinal": .init("session.by_ordinal", "n", hint: " (integer)")
+                "by_ordinal": .init("session.by_ordinal", "n", hint: " (integer)"),
+                "recent": .init("session.recent", "period")
             ],
             args: args
         )
@@ -73,7 +74,8 @@ extension CompactToolRouter {
             parameterized: [
                 "by_date": .init("recovery.score.by_date", "date"),
                 "recent": .init("recovery.score.recent", "period"),
-                "trend": .init("recovery.trend", "period")
+                "trend": .init("recovery.trend", "period"),
+                "breakdown": .init("recovery.breakdown.by_date", "date", hint: " (YYYY-MM-DD)")
             ],
             args: args
         )
@@ -94,12 +96,24 @@ extension CompactToolRouter {
             which,
             tool: "get_hrv",
             plain: ["latest": "hrv.latest", "live_snapshot": "hrv.live.snapshot"],
-            parameterized: [
-                "by_date": .init("hrv.by_date", "date"),
-                "recent": .init("hrv.recent", "period")
-            ],
+            parameterized: Self.hrvRows,
             args: args
         )
+    }
+
+    /// get_hrv's dated and period variants.
+    private static let hrvRows: [String: ParameterizedRow] = [
+        "by_date": .init("hrv.by_date", "date"),
+        "recent": .init("hrv.recent", "period"),
+        "timeline": .init("hrv.timeline.by_date", "date", hint: " (YYYY-MM-DD)"),
+        "readings": .init("hrv.readings.by_date", "date", hint: " (YYYY-MM-DD)")
+    ]
+
+    /// A period lists the nights, a date reads one, and neither reads the latest.
+    func resolveVitals(args: [String: String]) async -> FactValue {
+        if let period = args["period"] { return await registry.resolveAsync("vitals.recent(\(period))") }
+        if let date = args["date"] { return await registry.resolveAsync("vitals.by_date(\(date))") }
+        return await registry.resolveAsync("vitals.latest")
     }
 
     func resolveSleep(args: [String: String]) async -> FactValue {
@@ -118,7 +132,7 @@ extension CompactToolRouter {
     /// `which` → fact-key suffix, for every `get_workout` variant whose whole
     /// implementation is "resolve this dated fact".
     ///
-    /// These twelve are a table rather than one `case` each inside `resolveWorkout`
+    /// These are a table rather than one `case` each inside `resolveWorkout`
     /// (which would dominate its cyclomatic complexity). They differ only by the
     /// suffix, so the mapping is data. `by_ordinal` stays a branch because it
     /// reads a different argument and builds a different key shape.
@@ -134,7 +148,8 @@ extension CompactToolRouter {
         "power_tss": "power.tss.by_date",
         "power_intensity": "power.intensity_factor.by_date",
         "power_variability": "power.variability.by_date",
-        "timeline": "timeline.by_date"
+        "timeline": "timeline.by_date",
+        "deep_dive": "deep_dive.by_date"
     ]
 
     func resolveWorkout(args: [String: String]) async -> FactValue {
@@ -143,13 +158,36 @@ extension CompactToolRouter {
         }
         if which == "segment_compare" { return await resolveSegmentCompare(args: args) }
         if which == "by_ordinal" { return await resolveWorkoutByOrdinal(args: args) }
+        if which == "by_id" { return await resolveWorkoutByID(args: args) }
         guard let suffix = Self.datedWorkoutKeySuffixes[which] else {
             return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for get_workout")
         }
-        guard let date = args["date"] else {
-            return .missing(reason: .invalidParameter, detail: "which='\(which)' requires 'date' (YYYY-MM-DD)")
+        guard let selector = Self.workoutSelector(args) else {
+            return .missing(reason: .invalidParameter, detail: "which='\(which)' requires 'date' (YYYY-MM-DD) or 'id' (a workout UUID)")
         }
-        return await registry.resolveAsync("workout.\(suffix)(\(date))")
+        return await registry.resolveAsync("workout.\(suffix)(\(selector))")
+    }
+
+    /// The argument every single-workout variant takes (`WorkoutSelector`):
+    /// the workout's id when given, else the date with the sport and the
+    /// position that day when given.
+    static func workoutSelector(_ args: [String: String]) -> String? {
+        if let id = nonEmpty(args["id"]) { return id }
+        guard let date = nonEmpty(args["date"]) else { return nil }
+        return ([date] + [args["sport"], args["position"]].compactMap(nonEmpty)).joined(separator: ",")
+    }
+
+    private static func nonEmpty(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespaces), !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
+    /// `get_workout` which='by_id': one workout by its UUID.
+    private func resolveWorkoutByID(args: [String: String]) async -> FactValue {
+        guard let id = Self.nonEmpty(args["id"]) else {
+            return .missing(reason: .invalidParameter, detail: "which='by_id' requires 'id' (a workout UUID)")
+        }
+        return await registry.resolveAsync("workout.by_id(\(id))")
     }
 
     /// `get_workout` which='by_ordinal': the `n`th most recent workout.
@@ -166,16 +204,21 @@ extension CompactToolRouter {
         guard let point = args["point"] else {
             return .missing(reason: .invalidParameter, detail: "which='segment_compare' requires 'point' ('lat,lon' or 'lat,lon,radius_m')")
         }
-        return await registry.resolveAsync("workout.segment_compare(\(point))")
+        let bound = Self.nonEmpty(args["date"]) ?? Self.nonEmpty(args["period"])
+        return await registry.resolveAsync("workout.segment_compare(\([point, bound].compactMap { $0 }.joined(separator: ",")))")
     }
 
+    /// A named `sport` rides on the period ('last_30d,run'), which the
+    /// workout period lookups read as a sport filter.
     func resolveListWorkouts(args: [String: String]) async -> FactValue {
-        await dispatch(
+        var filtered = args
+        if let period = args["period"], let sport = Self.nonEmpty(args["sport"]) { filtered["period"] = "\(period),\(sport)" }
+        return await dispatch(
             args["which"] ?? "list",
             tool: "list_workouts",
             plain: [:],
             parameterized: Self.periodRows(prefix: "workout", ["list", "count", "recent"]),
-            args: args
+            args: filtered
         )
     }
 
@@ -433,21 +476,28 @@ extension CompactToolRouter {
         guard let which = args["which"] else {
             return .missing(reason: .invalidParameter, detail: "get_tags requires 'which'")
         }
-        switch which {
-        case "correlation":
-            guard let tag = args["tag"] else { return .missing(reason: .invalidParameter, detail: "which='correlation' requires 'tag'") }
-            return await registry.resolveAsync("tags.correlation(\(tag))")
-        case "count":
-            return await resolveTagCount(args: args)
-        case "list_active":
-            guard let date = args["date"] else { return .missing(reason: .invalidParameter, detail: "which='list_active' requires 'date'") }
-            return await registry.resolveAsync("tags.list_active(\(date))")
-        case "recent_tagged":
-            guard let tag = args["tag"] else { return .missing(reason: .invalidParameter, detail: "which='recent_tagged' requires 'tag'") }
-            return await registry.resolveAsync("tags.recent_tagged(\(tag))")
-        default:
-            return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for get_tags")
+        if which == "count" { return await resolveTagCount(args: args) }
+        if which == "tagged_in_period" { return await resolveTaggedInPeriod(args: args) }
+        return await dispatch(
+            which,
+            tool: "get_tags",
+            plain: [:],
+            parameterized: [
+                "correlation": .init("tags.correlation", "tag"),
+                "list_active": .init("tags.list_active", "date"),
+                "recent_tagged": .init("tags.recent_tagged", "tag"),
+                "list": .init("tags.list", "period")
+            ],
+            args: args
+        )
+    }
+
+    /// The sessions carrying `tag` in `period`.
+    private func resolveTaggedInPeriod(args: [String: String]) async -> FactValue {
+        guard let tag = args["tag"], let period = args["period"] else {
+            return .missing(reason: .invalidParameter, detail: "which='tagged_in_period' requires 'tag' and 'period'")
         }
+        return await registry.resolveAsync("tags.tagged_in_period(\(tag),\(period))")
     }
 
     /// Within `period` when one is passed, else across the whole archive.
@@ -479,6 +529,16 @@ extension CompactToolRouter {
             ],
             args: args
         )
+    }
+
+    /// `get_stored_record`: one session by `id`, else every session on
+    /// `date` or in `period`, with `kind` keeping one session type.
+    func resolveStoredRecord(args: [String: String]) async -> FactValue {
+        if let id = Self.nonEmpty(args["id"]) { return await registry.resolveAsync("stored.by_id(\(id))") }
+        let kind = Self.nonEmpty(args["kind"]).map { ",\($0)" } ?? ""
+        if let date = Self.nonEmpty(args["date"]) { return await registry.resolveAsync("stored.by_date(\(date)\(kind))") }
+        if let period = Self.nonEmpty(args["period"]) { return await registry.resolveAsync("stored.in_period(\(period)\(kind))") }
+        return .missing(reason: .invalidParameter, detail: "get_stored_record requires 'id', 'date' (YYYY-MM-DD) or 'period'")
     }
 
     /// `find_data`: the catalog entries that match `query`, each with what

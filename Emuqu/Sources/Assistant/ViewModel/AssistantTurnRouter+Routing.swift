@@ -605,7 +605,7 @@ extension AssistantTurnRouter {
     }
 
     /// Per-request BM25 tool retrieval (`ToolRetriever`). The tools passed
-    /// in are the compact schema (`CompactToolRouter.schema`: 22 read
+    /// in are the compact schema (`CompactToolRouter.schema`: 24 read
     /// tools plus up to 20 action tools), which is under `targetK` of 48,
     /// so the retriever returns them unchanged; it filters only if that
     /// schema grows past `targetK`. Apple Intelligence, whose window holds

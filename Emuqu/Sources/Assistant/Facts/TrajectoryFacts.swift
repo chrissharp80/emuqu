@@ -54,7 +54,7 @@ extension TrainingLoadNamespace {
         live: TrainingLoadState
     ) -> [TrainingMetricsCache.DaySample] {
         let calendar = Calendar.current
-        let cutoff = calendar.date(byAdding: .day, value: -90, to: Date()) ?? Date()
+        let cutoff = calendar.date(byAdding: .day, value: -90, to: AppClock.now) ?? AppClock.now
         return seriesDict.values
             .filter { $0.date >= cutoff }
             .sorted { $0.date < $1.date }

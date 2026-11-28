@@ -538,7 +538,7 @@ enum AssistantSystemPrompt {
     /// training-cutoff date and gets every relative-time question wrong.
     private static func nowSnapshot() -> String {
         let cal = Calendar.current
-        let now = Date()
+        let now = AppClock.now
         let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .timeZone], from: now)
         let rounded = cal.date(from: comps) ?? now
         let isoFormatter = ISO8601DateFormatter()
@@ -635,7 +635,7 @@ enum AssistantSystemPrompt {
     /// 0-100 scale.
     @MainActor
     private static func todayRecoveryLine(_ archive: SessionArchive) -> String? {
-        guard let score = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive)?.recoveryScore else { return nil }
+        guard let score = DeterministicIntent.todaysOvernightEntry(now: AppClock.now, archive: archive)?.recoveryScore else { return nil }
         return "- recovery_score_today: \(RecoveryScoreCalculator.displayScore(score * 10)) / 100"
     }
 

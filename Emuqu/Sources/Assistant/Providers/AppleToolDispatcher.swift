@@ -87,6 +87,7 @@ final class AppleToolDispatcher {
     func setRegistry(_ registry: FactResolverRegistry?) {
         currentRegistry = registry
         callsThisTurn = 0
+        resultsThisAttempt = []
         ranMutatingTool = false
         escalatesWebSearch = false
         replyGate = AppleReplyGate()
@@ -111,7 +112,20 @@ final class AppleToolDispatcher {
     func setToolOutputAllowance(_ allowance: AppleContextCompactor.ToolOutputAllowance) {
         outputAllowance = allowance
         callsThisTurn = 0
+        resultsThisAttempt = []
     }
+
+    /// The tool results of the current attempt, which a reply's numbers must come from.
+    private(set) var resultsThisAttempt: [String] = []
+
+    /// `result`, recorded so the reply's numbers can be checked against it.
+    private func keptForGrounding(_ result: String) -> String {
+        resultsThisAttempt.append(result)
+        return result
+    }
+
+    /// Whether the current attempt has called any tool.
+    var calledAToolThisAttempt: Bool { callsThisTurn > 0 }
 
     /// Tokens the tool calls and results of the current attempt took, which
     /// stay in the Apple session's transcript after the turn.
@@ -145,7 +159,7 @@ final class AppleToolDispatcher {
         // (`{"value": …, "missingReason": …}`), keeping wire-shape
         // parity between Apple and the cloud providers, then cut to the
         // attempt's allowance.
-        return outputAllowance.admit(value.toToolResultJSON())
+        return keptForGrounding(outputAllowance.admit(value.toToolResultJSON()))
     }
 
     /// Ends the Apple attempt with `AppleWebSearchEscalation` when the turn may

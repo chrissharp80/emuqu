@@ -4,7 +4,7 @@ import os
 /// Per-request BM25 tool retrieval.
 ///
 /// **Current state.** The tools handed to `retrieve` are the compact
-/// schema (`CompactToolRouter.schema`): 22 read tools plus up to 20 action
+/// schema (`CompactToolRouter.schema`): 24 read tools plus up to 20 action
 /// tools, which is under the default `targetK` of 48, so
 /// `retrieve` returns them unchanged, in the schema's name order, on every
 /// send. It filters only if that schema grows past `targetK`.
@@ -76,7 +76,7 @@ enum ToolRetriever {
     ///   - tools: The tool list for this send (the compact schema).
     ///   - targetK: Soft target for retrieved tool count (default 48 —
     ///     inside the 30-50 range where Anthropic reports tool choice starts
-    ///     to degrade, and above the compact schema's 42, so every cloud send
+    ///     to degrade, and above the compact schema's 44, so every cloud send
     ///     carries the same full list and the prompt cache holds).
     ///   - catalogHash: Pass `FactResolverRegistry.catalogHash()` so the
     ///     retriever can invalidate its index when the catalog changes.
@@ -158,22 +158,25 @@ enum ToolRetriever {
     }
 
     /// The tools of `ranked` whose summed `cost` fits `budget`, in their
-    /// ranked order, and that sum. A tool too large for the room left is
-    /// skipped, so smaller tools further down can still use it.
+    /// ranked order, and that sum. `find_data` is given its room first, so
+    /// however well the typed tools match, a small window always keeps the
+    /// search that reaches the rest of the catalog. A tool too large for the
+    /// room left is skipped, so smaller tools further down can still use it.
     static func fitting(
         _ ranked: [ToolSpec],
         budget: Int,
         cost: (ToolSpec) -> Int
     ) -> (tools: [ToolSpec], tokens: Int) {
-        var kept: [ToolSpec] = []
+        var keptNames: Set<String> = []
         var used = 0
-        for spec in ranked {
+        let searchFirst = ranked.filter { $0.name == "find_data" } + ranked.filter { $0.name != "find_data" }
+        for spec in searchFirst {
             let price = cost(spec)
             guard used + price <= budget else { continue }
-            kept.append(spec)
+            keptNames.insert(spec.name)
             used += price
         }
-        return (kept, used)
+        return (ranked.filter { keptNames.contains($0.name) }, used)
     }
 
     /// The top-K by score, stopping early when scores collapse toward zero —
